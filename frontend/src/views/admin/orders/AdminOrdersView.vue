@@ -53,6 +53,10 @@
               <Icon name="refresh" size="sm" />
               {{ t('payment.admin.retryRefund') }}
             </button>
+            <button v-else-if="row.status === 'REFUND_PENDING'" @click="handleQueryRefund(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
+              <Icon name="refresh" size="sm" />
+              {{ t('payment.admin.queryRefund') }}
+            </button>
             <button v-else-if="row.status === 'COMPLETED' || row.status === 'PARTIALLY_REFUNDED'" @click="openRefundDialog(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
               <Icon name="dollar" size="sm" />
               {{ t('payment.admin.refund') }}
@@ -285,6 +289,7 @@ const statusFilterOptions = computed(() => [
   { value: 'FAILED', label: t('payment.status.failed') },
   { value: 'REFUND_REQUESTED', label: t('payment.status.refund_requested') },
   { value: 'REFUNDING', label: t('payment.status.refunding') },
+  { value: 'REFUND_PENDING', label: t('payment.status.refund_pending') },
   { value: 'PARTIALLY_REFUNDED', label: t('payment.status.partially_refunded') },
   { value: 'REFUNDED', label: t('payment.status.refunded') },
   { value: 'REFUND_FAILED', label: t('payment.status.refund_failed') },
@@ -404,6 +409,16 @@ async function handleRefund(data: { amount: number; reason: string; deduct_balan
     appStore.showSuccess(t('payment.admin.refundSuccess')); showRefundDialog.value = false; loadOrders()
   } catch (err: unknown) { appStore.showError(extractI18nErrorMessage(err, t, 'payment.errors', t('common.error'))) }
   finally { refundSubmitting.value = false }
+}
+
+async function handleQueryRefund(order: PaymentOrder) {
+  try {
+    await adminPaymentAPI.queryRefund(order.id)
+    appStore.showSuccess(t('payment.admin.queryRefundSuccess'))
+    loadOrders()
+  } catch (err: unknown) {
+    appStore.showError(extractI18nErrorMessage(err, t, 'payment.errors', t('common.error')))
+  }
 }
 
 function formatDateTime(dateStr: string): string { return formatOrderDateTime(dateStr) }

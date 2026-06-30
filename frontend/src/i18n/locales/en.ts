@@ -7959,6 +7959,7 @@ export default {
       failed: 'Failed',
       refund_requested: 'Refund Requested',
       refunding: 'Refunding',
+      refund_pending: 'Refund Pending',
       refunded: 'Refunded',
       partially_refunded: 'Partially Refunded',
       refund_failed: 'Refund Failed'
@@ -8156,6 +8157,8 @@ export default {
       refundReasonPlaceholder: 'Please enter refund reason',
       confirmRefund: 'Confirm Refund',
       refundSuccess: 'Refund successful',
+      queryRefund: 'Query Refund',
+      queryRefundSuccess: 'Refund status refreshed',
       refundInfo: 'Refund Info',
       refundEnabled: 'Refund Enabled',
       allowUserRefund: 'Allow User Refund',

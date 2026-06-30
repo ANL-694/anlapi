@@ -8146,6 +8146,7 @@ export default {
       failed: '失败',
       refund_requested: '退款申请中',
       refunding: '退款中',
+      refund_pending: '退款待确认',
       refunded: '已退款',
       partially_refunded: '部分退款',
       refund_failed: '退款失败'
@@ -8343,6 +8344,8 @@ export default {
       refundReasonPlaceholder: '请输入退款原因',
       confirmRefund: '确认退款',
       refundSuccess: '退款成功',
+      queryRefund: '查询退款',
+      queryRefundSuccess: '退款状态已刷新',
       refundInfo: '退款信息',
       refundEnabled: '允许退款',
       alreadyRefunded: '已退款',

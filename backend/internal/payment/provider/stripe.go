@@ -221,6 +221,47 @@ func (s *Stripe) Refund(ctx context.Context, req payment.RefundRequest) (*paymen
 	}, nil
 }
 
+// QueryRefund retrieves a Stripe refund by refund ID when available, otherwise
+// falls back to the latest refund for the PaymentIntent.
+func (s *Stripe) QueryRefund(ctx context.Context, req payment.RefundQueryRequest) (*payment.RefundResponse, error) {
+	s.ensureInit()
+
+	var r *stripe.Refund
+	var err error
+	if refundID := strings.TrimSpace(req.RefundID); refundID != "" {
+		r, err = s.sc.V1Refunds.Retrieve(ctx, refundID, nil)
+		if err != nil {
+			return nil, fmt.Errorf("stripe query refund: %w", err)
+		}
+	} else {
+		tradeNo := strings.TrimSpace(req.TradeNo)
+		if tradeNo == "" {
+			return nil, fmt.Errorf("stripe query refund: missing payment intent id")
+		}
+		params := &stripe.RefundListParams{PaymentIntent: stripe.String(tradeNo)}
+		params.Limit = stripe.Int64(1)
+		list := s.sc.V1Refunds.List(ctx, params)
+		if list.Err() != nil {
+			return nil, fmt.Errorf("stripe query refund: %w", list.Err())
+		}
+		data := list.Data()
+		if len(data) == 0 {
+			return nil, fmt.Errorf("stripe query refund: no refund found")
+		}
+		r = data[0]
+	}
+
+	status := payment.ProviderStatusPending
+	if r != nil && r.Status == stripe.RefundStatusSucceeded {
+		status = payment.ProviderStatusSuccess
+	}
+	refundID := ""
+	if r != nil {
+		refundID = r.ID
+	}
+	return &payment.RefundResponse{RefundID: refundID, Status: status}, nil
+}
+
 // resolveStripeMethodTypes converts instance supported_types (comma-separated)
 // into Stripe API payment_method_types. Falls back to ["card"] if empty.
 func resolveStripeMethodTypes(instanceSubMethods string) []string {
