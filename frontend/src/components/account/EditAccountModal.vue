@@ -49,9 +49,9 @@
               form.share_mode === 'public'
                 ? 'border-primary-400 bg-primary-50 text-primary-700 dark:border-primary-500 dark:bg-primary-900/30 dark:text-primary-300'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-200 dark:hover:bg-dark-700',
-              userProxyForcesPrivate && 'cursor-not-allowed opacity-50'
+              userShareForcesPrivate && 'cursor-not-allowed opacity-50'
             ]"
-            :disabled="userProxyForcesPrivate"
+            :disabled="userShareForcesPrivate"
             @click="setUserShareMode('public')"
           >
             <Icon name="globe" size="sm" class="mr-2" />
@@ -80,7 +80,7 @@
       </div>
 
       <!-- API Key fields (only for apikey type) -->
-      <div v-if="!isUserScope && account.type === 'apikey'" class="space-y-4">
+      <div v-if="account.type === 'apikey'" class="space-y-4">
         <div v-if="account.platform === 'custom'">
           <label class="input-label">{{ t('admin.accounts.custom.protocol') }}</label>
           <select v-model="customProtocol" class="input">
@@ -2269,6 +2269,8 @@ const canManageProxy = computed(() => props.allowProxy !== false)
 const canManageBillingRate = computed(() => !isUserScope.value && props.allowBillingRate !== false)
 const assignableGroups = computed(() => accountAssignableGroups(props.groups))
 const userProxyForcesPrivate = computed(() => isUserScope.value && !!form.proxy_id)
+const userApiKeyForcesPrivate = computed(() => isUserScope.value && props.account?.type === 'apikey')
+const userShareForcesPrivate = computed(() => userProxyForcesPrivate.value || userApiKeyForcesPrivate.value)
 const canEditConcurrency = computed(() => !isUserScope.value || form.share_mode !== 'public')
 const normalizeCustomProtocol = (value: unknown): CustomAccountProtocol => {
   const normalized = String(value || '').trim().toLowerCase()
@@ -2622,7 +2624,7 @@ const applyUserScopeConcurrencyTemplate = () => {
 watch(() => isUserScope.value, applyUserScopeConcurrencyTemplate)
 
 const setUserShareMode = (mode: AccountShareMode) => {
-  if (mode === 'public' && userProxyForcesPrivate.value) {
+  if (mode === 'public' && userShareForcesPrivate.value) {
     return
   }
   form.share_mode = mode
@@ -2643,11 +2645,18 @@ watch(
     }
     form.concurrency = PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY
     form.load_factor = null
-    if (mode === 'public' && userProxyForcesPrivate.value) {
+    if (mode === 'public' && userShareForcesPrivate.value) {
       form.share_mode = 'private'
     }
   }
 )
+
+watch(userShareForcesPrivate, (forced) => {
+  if (forced) {
+    form.share_mode = 'private'
+    form.group_ids = []
+  }
+})
 
 watch(
   () => form.proxy_id,
@@ -3484,7 +3493,7 @@ const sanitizeUpdatePayload = (payload: Record<string, unknown>) => {
     delete next.rate_multiplier
   }
   if (isUserScope.value) {
-    next.share_mode = next.share_mode === 'public' && !userProxyForcesPrivate.value ? 'public' : 'private'
+    next.share_mode = next.share_mode === 'public' && !userShareForcesPrivate.value ? 'public' : 'private'
     delete next.group_ids
     delete next.status
     if (next.share_mode === 'public') {
@@ -3546,7 +3555,7 @@ const handleSubmit = async () => {
   if (!props.account) return
   const accountID = props.account.id
 
-  if (isUserScope.value && props.account.type !== 'oauth') {
+  if (isUserScope.value && props.account.type !== 'oauth' && props.account.type !== 'apikey') {
     appStore.showError(t('userAccounts.typeNotAllowed'))
     return
   }
@@ -3581,15 +3590,17 @@ const handleSubmit = async () => {
         : Math.max(1, Number(form.concurrency) || PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY)
       updatePayload.priority = Math.max(1, Number(form.priority) || PERSONAL_ACCOUNT_DEFAULT_PRIORITY)
       updatePayload.auto_pause_on_expired = PERSONAL_ACCOUNT_DEFAULT_AUTO_PAUSE_ON_EXPIRED
-      const templated = applyPersonalAccountTemplate(
-        props.account.platform,
-        (props.account.credentials as Record<string, unknown>) || {},
-        (props.account.extra as Record<string, unknown>) || {}
-      )
-      updatePayload.credentials = templated.credentials
-      updatePayload.extra = templated.extra
-      await submitUpdateAccount(accountID, updatePayload)
-      return
+      if (props.account.type === 'oauth') {
+        const templated = applyPersonalAccountTemplate(
+          props.account.platform,
+          (props.account.credentials as Record<string, unknown>) || {},
+          (props.account.extra as Record<string, unknown>) || {}
+        )
+        updatePayload.credentials = templated.credentials
+        updatePayload.extra = templated.extra
+        await submitUpdateAccount(accountID, updatePayload)
+        return
+      }
     }
 
     // For apikey type, handle credentials update

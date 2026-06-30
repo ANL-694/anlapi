@@ -127,6 +127,10 @@
             <Icon name="grid" size="sm" :stroke-width="2" />
             {{ t('admin.accounts.testModel') }}
           </span>
+          <span v-if="networkStatsVisible" class="flex items-center gap-1">
+            <Icon name="clock" size="sm" :stroke-width="2" />
+            {{ t('admin.accounts.networkSpeedSummary', networkStats) }}
+          </span>
         </div>
         <span class="flex items-center gap-1">
           <Icon name="chat" size="sm" :stroke-width="2" />
@@ -220,6 +224,10 @@ const availableModels = ref<ClaudeModel[]>([])
 const selectedModelId = ref('')
 const loadingModels = ref(false)
 let abortController: AbortController | null = null
+const testStartedAt = ref(0)
+const firstByteAt = ref(0)
+const testEndedAt = ref(0)
+const receivedBytes = ref(0)
 const testMode = ref<'default' | 'compact'>('default')
 const isOpenAIAccount = computed(() => props.account?.platform === 'openai')
 const isUserScope = computed(() => props.accountScope === 'user')
@@ -319,6 +327,10 @@ const resetState = () => {
   outputLines.value = []
   streamingContent.value = ''
   errorMessage.value = ''
+  testStartedAt.value = 0
+  firstByteAt.value = 0
+  testEndedAt.value = 0
+  receivedBytes.value = 0
 }
 
 const handleClose = () => {
@@ -345,6 +357,32 @@ const scrollToBottom = async () => {
   }
 }
 
+const formatDurationMs = (ms: number) => {
+  if (!Number.isFinite(ms) || ms <= 0) return '-'
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  return `${(ms / 1000).toFixed(2)}s`
+}
+
+const formatThroughput = (bytes: number, durationMs: number) => {
+  if (!Number.isFinite(bytes) || bytes <= 0 || !Number.isFinite(durationMs) || durationMs <= 0) return '-'
+  const bytesPerSecond = bytes / (durationMs / 1000)
+  if (bytesPerSecond >= 1024 * 1024) return `${(bytesPerSecond / 1024 / 1024).toFixed(2)}MB/s`
+  if (bytesPerSecond >= 1024) return `${(bytesPerSecond / 1024).toFixed(1)}KB/s`
+  return `${Math.round(bytesPerSecond)}B/s`
+}
+
+const networkStatsVisible = computed(() => testStartedAt.value > 0 && (firstByteAt.value > 0 || testEndedAt.value > 0 || receivedBytes.value > 0))
+const networkStats = computed(() => {
+  const endAt = testEndedAt.value || Date.now()
+  const totalMs = testStartedAt.value > 0 ? endAt - testStartedAt.value : 0
+  const firstByteMs = firstByteAt.value > 0 && testStartedAt.value > 0 ? firstByteAt.value - testStartedAt.value : 0
+  return {
+    firstByte: formatDurationMs(firstByteMs),
+    total: formatDurationMs(totalMs),
+    speed: formatThroughput(receivedBytes.value, totalMs)
+  }
+})
+
 const startTest = async () => {
   if (!props.account || !selectedModelId.value) return
 
@@ -357,6 +395,7 @@ const startTest = async () => {
   abortStream()
 
   abortController = new AbortController()
+  testStartedAt.value = Date.now()
 
   try {
     // Create EventSource for SSE
@@ -392,6 +431,10 @@ const startTest = async () => {
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
+      if (!firstByteAt.value) {
+        firstByteAt.value = Date.now()
+      }
+      receivedBytes.value += value.byteLength
 
       buffer += decoder.decode(value, { stream: true })
       const lines = buffer.split('\n')
@@ -411,12 +454,14 @@ const startTest = async () => {
         }
       }
     }
+    testEndedAt.value = Date.now()
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       status.value = 'idle'
       return
     }
     status.value = 'error'
+    testEndedAt.value = Date.now()
     const msg = error instanceof Error ? error.message : 'Unknown error'
     errorMessage.value = msg
     addLine(`Error: ${msg}`, 'text-red-400')

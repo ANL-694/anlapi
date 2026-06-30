@@ -82,7 +82,7 @@ type createUserAccountRequest struct {
 	Notes              *string        `json:"notes"`
 	Platform           string         `json:"platform" binding:"required"`
 	AccountLevel       string         `json:"account_level" binding:"omitempty,oneof=unknown free plus pro team"`
-	Type               string         `json:"type" binding:"required,oneof=oauth"`
+	Type               string         `json:"type" binding:"required,oneof=oauth apikey"`
 	Credentials        map[string]any `json:"credentials" binding:"required"`
 	Extra              map[string]any `json:"extra"`
 	ShareMode          string         `json:"share_mode" binding:"omitempty,oneof=private public"`

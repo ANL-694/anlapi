@@ -19,21 +19,22 @@ import (
 )
 
 var (
-	ErrAccountNotFound                        = infraerrors.NotFound("ACCOUNT_NOT_FOUND", "account not found")
-	ErrAccountNilInput                        = infraerrors.BadRequest("ACCOUNT_NIL_INPUT", "account input cannot be nil")
-	ErrOwnedAccountAlreadyExists              = infraerrors.Conflict("OWNED_ACCOUNT_ALREADY_EXISTS", "account already exists")
-	ErrOwnedAccountTypeNotAllowed             = infraerrors.BadRequest("OWNED_ACCOUNT_TYPE_NOT_ALLOWED", "user accounts only support official OAuth accounts")
-	ErrOwnedAccountCredentialsInvalid         = infraerrors.BadRequest("OWNED_ACCOUNT_CREDENTIALS_INVALID", "OAuth account credentials must include an access token")
-	ErrOwnedAccountCredentialsNotAllowed      = infraerrors.BadRequest("OWNED_ACCOUNT_CREDENTIALS_NOT_ALLOWED", "user accounts cannot include API keys, custom URLs, upstream endpoints, cookies or manual session credentials")
-	ErrOwnedAccountLevelNotAllowed            = infraerrors.BadRequest("OWNED_ACCOUNT_LEVEL_NOT_ALLOWED", "user accounts cannot manually change account level")
-	ErrOwnedAccountGroupPlatformMismatch      = infraerrors.BadRequest("OWNED_ACCOUNT_GROUP_PLATFORM_MISMATCH", "account group platform does not match account platform")
-	ErrOwnedAccountGroupValidationUnavailable = infraerrors.InternalServer("OWNED_ACCOUNT_GROUP_VALIDATION_UNAVAILABLE", "owned account group validation is unavailable")
-	ErrOwnedAccountPublicPoolUnavailable      = infraerrors.BadRequest("OWNED_ACCOUNT_PUBLIC_POOL_UNAVAILABLE", "public shared account pool group is not configured for this account platform")
-	ErrOwnedAccountPublicPolicyUnavailable    = infraerrors.BadRequest("OWNED_ACCOUNT_PUBLIC_POLICY_UNAVAILABLE", "account share policy is not configured for this public account pool")
-	ErrOwnedAccountPublicValidationFailed     = infraerrors.BadRequest("OWNED_ACCOUNT_PUBLIC_VALIDATION_FAILED", "public account validation failed")
-	ErrOwnedAccountProxyPublicShareNotAllowed = infraerrors.BadRequest("OWNED_ACCOUNT_PROXY_PUBLIC_SHARE_NOT_ALLOWED", "accounts using a private proxy can only be private")
-	ErrUserPrivateProxyLimitExceeded          = infraerrors.BadRequest("USER_PRIVATE_PROXY_LIMIT_EXCEEDED", "user private proxy limit exceeded")
-	ErrUserPrivateProxyInvalid                = infraerrors.BadRequest("USER_PRIVATE_PROXY_INVALID", "invalid private proxy configuration")
+	ErrAccountNotFound                         = infraerrors.NotFound("ACCOUNT_NOT_FOUND", "account not found")
+	ErrAccountNilInput                         = infraerrors.BadRequest("ACCOUNT_NIL_INPUT", "account input cannot be nil")
+	ErrOwnedAccountAlreadyExists               = infraerrors.Conflict("OWNED_ACCOUNT_ALREADY_EXISTS", "account already exists")
+	ErrOwnedAccountTypeNotAllowed              = infraerrors.BadRequest("OWNED_ACCOUNT_TYPE_NOT_ALLOWED", "user accounts only support OAuth or API key accounts")
+	ErrOwnedAccountCredentialsInvalid          = infraerrors.BadRequest("OWNED_ACCOUNT_CREDENTIALS_INVALID", "account credentials are invalid")
+	ErrOwnedAccountCredentialsNotAllowed       = infraerrors.BadRequest("OWNED_ACCOUNT_CREDENTIALS_NOT_ALLOWED", "user OAuth accounts cannot include API keys, custom URLs, upstream endpoints, cookies or manual session credentials")
+	ErrOwnedAccountLevelNotAllowed             = infraerrors.BadRequest("OWNED_ACCOUNT_LEVEL_NOT_ALLOWED", "user accounts cannot manually change account level")
+	ErrOwnedAccountGroupPlatformMismatch       = infraerrors.BadRequest("OWNED_ACCOUNT_GROUP_PLATFORM_MISMATCH", "account group platform does not match account platform")
+	ErrOwnedAccountGroupValidationUnavailable  = infraerrors.InternalServer("OWNED_ACCOUNT_GROUP_VALIDATION_UNAVAILABLE", "owned account group validation is unavailable")
+	ErrOwnedAccountPublicPoolUnavailable       = infraerrors.BadRequest("OWNED_ACCOUNT_PUBLIC_POOL_UNAVAILABLE", "public shared account pool group is not configured for this account platform")
+	ErrOwnedAccountPublicPolicyUnavailable     = infraerrors.BadRequest("OWNED_ACCOUNT_PUBLIC_POLICY_UNAVAILABLE", "account share policy is not configured for this public account pool")
+	ErrOwnedAccountPublicValidationFailed      = infraerrors.BadRequest("OWNED_ACCOUNT_PUBLIC_VALIDATION_FAILED", "public account validation failed")
+	ErrOwnedAccountProxyPublicShareNotAllowed  = infraerrors.BadRequest("OWNED_ACCOUNT_PROXY_PUBLIC_SHARE_NOT_ALLOWED", "accounts using a private proxy can only be private")
+	ErrOwnedAccountAPIKeyPublicShareNotAllowed = infraerrors.BadRequest("OWNED_ACCOUNT_APIKEY_PUBLIC_SHARE_NOT_ALLOWED", "user API key accounts can only be private")
+	ErrUserPrivateProxyLimitExceeded           = infraerrors.BadRequest("USER_PRIVATE_PROXY_LIMIT_EXCEEDED", "user private proxy limit exceeded")
+	ErrUserPrivateProxyInvalid                 = infraerrors.BadRequest("USER_PRIVATE_PROXY_INVALID", "invalid private proxy configuration")
 )
 
 const AccountListGroupUngrouped int64 = -1
@@ -650,7 +651,7 @@ func (s *AccountService) createOwned(ctx context.Context, ownerUserID int64, req
 	}
 	req.ProxyID = proxyID
 	shareMode := NormalizeAccountShareMode(req.ShareMode)
-	if req.ProxyID != nil {
+	if req.ProxyID != nil || ownedAccountForcesPrivateShare(req.Type) {
 		shareMode = AccountShareModePrivate
 	}
 
@@ -713,29 +714,44 @@ func (s *AccountService) createOwned(ctx context.Context, ownerUserID int64, req
 
 func isAllowedOwnedAccountType(accountType string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(accountType))
-	return normalized == AccountTypeOAuth
+	return normalized == AccountTypeOAuth || normalized == AccountTypeAPIKey
 }
 
 func validateOwnedAccountSource(accountType string, credentials, extra map[string]any) error {
 	if !isAllowedOwnedAccountType(accountType) {
 		return ErrOwnedAccountTypeNotAllowed
 	}
-	if !hasNonEmptyStringField(credentials, "access_token") {
-		return ErrOwnedAccountCredentialsInvalid
-	}
-	if field, ok := findDisallowedOwnedAccountField(credentials); ok {
-		return ErrOwnedAccountCredentialsNotAllowed.WithMetadata(map[string]string{
-			"section": "credentials",
-			"field":   field,
-		})
-	}
-	if field, ok := findDisallowedOwnedAccountField(extra); ok {
-		return ErrOwnedAccountCredentialsNotAllowed.WithMetadata(map[string]string{
-			"section": "extra",
-			"field":   field,
-		})
+	switch strings.ToLower(strings.TrimSpace(accountType)) {
+	case AccountTypeOAuth:
+		if !hasNonEmptyStringField(credentials, "access_token") {
+			return ErrOwnedAccountCredentialsInvalid.WithMetadata(map[string]string{
+				"field": "access_token",
+			})
+		}
+		if field, ok := findDisallowedOwnedAccountField(credentials); ok {
+			return ErrOwnedAccountCredentialsNotAllowed.WithMetadata(map[string]string{
+				"section": "credentials",
+				"field":   field,
+			})
+		}
+		if field, ok := findDisallowedOwnedAccountField(extra); ok {
+			return ErrOwnedAccountCredentialsNotAllowed.WithMetadata(map[string]string{
+				"section": "extra",
+				"field":   field,
+			})
+		}
+	case AccountTypeAPIKey:
+		if !hasNonEmptyStringField(credentials, "api_key") {
+			return ErrOwnedAccountCredentialsInvalid.WithMetadata(map[string]string{
+				"field": "api_key",
+			})
+		}
 	}
 	return nil
+}
+
+func ownedAccountForcesPrivateShare(accountType string) bool {
+	return strings.ToLower(strings.TrimSpace(accountType)) == AccountTypeAPIKey
 }
 
 func hasNonEmptyStringField(values map[string]any, key string) bool {
@@ -1080,10 +1096,10 @@ func (s *AccountService) UpdateOwned(ctx context.Context, ownerUserID, accountID
 	shouldBindGroups := false
 	var groupIDs []int64
 	hasPrivateProxy := account.ProxyID != nil && *account.ProxyID > 0
-	if hasPrivateProxy && req.ShareMode != nil && NormalizeAccountShareMode(*req.ShareMode) == AccountShareModePublic {
-		return nil, ErrOwnedAccountProxyPublicShareNotAllowed
+	if ownedAccountForcesPrivateShare(account.Type) && req.ShareMode != nil && NormalizeAccountShareMode(*req.ShareMode) == AccountShareModePublic {
+		return nil, ErrOwnedAccountAPIKeyPublicShareNotAllowed
 	}
-	if hasPrivateProxy && NormalizeAccountShareMode(account.ShareMode) == AccountShareModePublic {
+	if ownedAccountForcesPrivateShare(account.Type) && NormalizeAccountShareMode(account.ShareMode) == AccountShareModePublic {
 		managedGroupIDs, err := s.managedOwnedAccountGroupIDsForShareMode(ctx, ownerUserID, account, AccountShareModePrivate)
 		if err != nil {
 			return nil, err
@@ -1093,7 +1109,21 @@ func (s *AccountService) UpdateOwned(ctx context.Context, ownerUserID, accountID
 		account.ErrorMessage = ""
 		groupIDs = managedGroupIDs
 		shouldBindGroups = true
-	} else if req.ShareMode != nil {
+	}
+	if hasPrivateProxy && req.ShareMode != nil && NormalizeAccountShareMode(*req.ShareMode) == AccountShareModePublic {
+		return nil, ErrOwnedAccountProxyPublicShareNotAllowed
+	}
+	if !shouldBindGroups && hasPrivateProxy && NormalizeAccountShareMode(account.ShareMode) == AccountShareModePublic {
+		managedGroupIDs, err := s.managedOwnedAccountGroupIDsForShareMode(ctx, ownerUserID, account, AccountShareModePrivate)
+		if err != nil {
+			return nil, err
+		}
+		account.ShareMode = AccountShareModePrivate
+		account.ShareStatus = AccountShareStatusApproved
+		account.ErrorMessage = ""
+		groupIDs = managedGroupIDs
+		shouldBindGroups = true
+	} else if !shouldBindGroups && req.ShareMode != nil {
 		nextMode := NormalizeAccountShareMode(*req.ShareMode)
 		managedGroupIDs, err := s.managedOwnedAccountGroupIDsForShareMode(ctx, ownerUserID, account, nextMode)
 		if err != nil {
@@ -1682,6 +1712,9 @@ func (s *AccountService) ApproveOwnedPublicShareWithOptions(ctx context.Context,
 	}
 	if account.ProxyID != nil && *account.ProxyID > 0 {
 		return nil, ErrOwnedAccountProxyPublicShareNotAllowed
+	}
+	if ownedAccountForcesPrivateShare(account.Type) {
+		return nil, ErrOwnedAccountAPIKeyPublicShareNotAllowed
 	}
 	if err := validateOwnedAccountSource(account.Type, account.Credentials, account.Extra); err != nil {
 		return nil, err

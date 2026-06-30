@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/pkg/pagination"
 )
 
 type ownedAccountGroupRepoStub struct {
@@ -826,13 +826,13 @@ func TestValidateOwnedAccountSourceRejectsCustomEndpointURL(t *testing.T) {
 	require.ErrorIs(t, err, ErrOwnedAccountCredentialsNotAllowed)
 }
 
-func TestValidateOwnedAccountSourceRejectsAPIKeyAccountAndBaseURL(t *testing.T) {
+func TestValidateOwnedAccountSourceAllowsAPIKeyAccountAndRejectsOAuthBaseURL(t *testing.T) {
 	err := validateOwnedAccountSource(AccountTypeAPIKey, map[string]any{
 		"api_key":  "sk-test",
 		"base_url": "https://third-party.example.com",
 	}, nil)
 
-	require.ErrorIs(t, err, ErrOwnedAccountTypeNotAllowed)
+	require.NoError(t, err)
 
 	err = validateOwnedAccountSource(AccountTypeOAuth, map[string]any{
 		"access_token": "oauth-access-token",

@@ -90,10 +90,10 @@
               form.share_mode === 'public'
                 ? 'border-primary-400 bg-primary-50 text-primary-700 dark:border-primary-500 dark:bg-primary-900/30 dark:text-primary-300'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-200 dark:hover:bg-dark-700',
-              userProxyForcesPrivate && 'cursor-not-allowed opacity-50'
+              userShareForcesPrivate && 'cursor-not-allowed opacity-50'
             ]"
-            :disabled="userProxyForcesPrivate"
-            @click="!userProxyForcesPrivate && (form.share_mode = 'public')"
+            :disabled="userShareForcesPrivate"
+            @click="!userShareForcesPrivate && (form.share_mode = 'public')"
           >
             <Icon name="globe" size="sm" class="mr-2" />
             {{ t('userAccounts.publicMode') }}
@@ -182,7 +182,6 @@
             Antigravity
           </button>
           <button
-            v-if="!isUserScope"
             type="button"
             @click="form.platform = 'grok'"
             :class="[
@@ -196,7 +195,6 @@
             Grok
           </button>
           <button
-            v-if="!isUserScope"
             type="button"
             @click="form.platform = 'custom'"
             :class="[
@@ -247,7 +245,6 @@
           </button>
 
           <button
-            v-if="!isUserScope"
             type="button"
             @click="accountCategory = 'apikey'"
             :class="[
@@ -376,7 +373,6 @@
           </button>
 
           <button
-            v-if="!isUserScope"
             type="button"
             @click="accountCategory = 'apikey'"
             :class="[
@@ -461,7 +457,6 @@
           </button>
 
           <button
-            v-if="!isUserScope"
             type="button"
             @click="accountCategory = 'apikey'"
             :class="[
@@ -852,11 +847,12 @@
         </div>
       </div>
 
-      <!-- Account Type Selection (Grok - OAuth only) -->
-      <div v-if="!isUserScope && form.platform === 'grok'">
+      <!-- Account Type Selection (Grok) -->
+      <div v-if="form.platform === 'grok'">
         <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
         <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2" data-tour="account-form-type">
           <button
+            v-if="!isUserScope"
             type="button"
             @click="accountCategory = 'oauth-based'"
             :class="[
@@ -881,8 +877,33 @@
               <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.grokOauth') }}</span>
             </div>
           </button>
+          <button
+            type="button"
+            @click="accountCategory = 'apikey'"
+            :class="[
+              'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
+              accountCategory === 'apikey'
+                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                : 'border-gray-200 hover:border-purple-300 dark:border-dark-600 dark:hover:border-purple-700'
+            ]"
+          >
+            <div
+              :class="[
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                accountCategory === 'apikey'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
+              ]"
+            >
+              <Icon name="key" size="sm" />
+            </div>
+            <div>
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">API Key</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.grok.apiKeyHint') }}</span>
+            </div>
+          </button>
         </div>
-        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+        <p v-if="!isUserScope" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
           {{ t('admin.accounts.oauth.grok.oauthOnlyHint') }}
         </p>
       </div>
@@ -1122,7 +1143,7 @@
       </div>
 
       <!-- API Key input (only for apikey type, excluding Antigravity which has its own fields) -->
-      <div v-if="!isUserScope && form.type === 'apikey' && form.platform !== 'antigravity'" class="space-y-4">
+      <div v-if="form.type === 'apikey' && form.platform !== 'antigravity'" class="space-y-4">
         <div v-if="form.platform === 'custom'">
           <label class="input-label">{{ t('admin.accounts.custom.protocol') }}</label>
           <select v-model="customProtocol" class="input">
@@ -3399,6 +3420,8 @@ const canManageProxy = computed(() => props.allowProxy !== false)
 const canManageBillingRate = computed(() => !isUserScope.value && props.allowBillingRate !== false)
 const assignableGroups = computed(() => accountAssignableGroups(props.groups))
 const userProxyForcesPrivate = computed(() => isUserScope.value && !!form.proxy_id)
+const userApiKeyForcesPrivate = computed(() => isUserScope.value && form.type === 'apikey')
+const userShareForcesPrivate = computed(() => userProxyForcesPrivate.value || userApiKeyForcesPrivate.value)
 const customProtocolOptions = computed<Array<{ value: CustomAccountProtocol; label: string }>>(() => [
   { value: 'openai_chat_completions', label: t('admin.accounts.custom.protocolOptions.openaiChatCompletions') },
   { value: 'openai_responses', label: t('admin.accounts.custom.protocolOptions.openaiResponses') },
@@ -3794,6 +3817,12 @@ watch(
   }
 )
 
+watch(userShareForcesPrivate, (forced) => {
+  if (forced) {
+    form.share_mode = 'private'
+  }
+})
+
 // Helper to check if current type needs OAuth flow
 const isOAuthFlow = computed(() => {
   if (form.platform === 'custom') {
@@ -3886,7 +3915,7 @@ watch(
   [accountCategory, addMethod, antigravityAccountType, () => form.platform, isUserScope],
   ([category, method, agType]) => {
     if (isUserScope.value) {
-      if (accountCategory.value !== 'oauth-based') {
+      if (category === 'bedrock' || category === 'service_account') {
         accountCategory.value = 'oauth-based'
       }
       if (addMethod.value !== 'oauth') {
@@ -3895,7 +3924,17 @@ watch(
       if (antigravityAccountType.value !== 'oauth') {
         antigravityAccountType.value = 'oauth'
       }
-      form.type = 'oauth'
+      if (form.platform === 'custom' || form.platform === 'grok') {
+        accountCategory.value = 'apikey'
+        form.type = 'apikey'
+        return
+      }
+      if (form.platform === 'antigravity') {
+        accountCategory.value = 'oauth-based'
+        form.type = 'oauth'
+        return
+      }
+      form.type = accountCategory.value === 'apikey' ? 'apikey' : 'oauth'
       return
     }
     if (form.platform === 'custom') {
@@ -3941,16 +3980,16 @@ watch(
   () => form.platform,
   (newPlatform) => {
     if (isUserScope.value) {
-      accountCategory.value = 'oauth-based'
+      accountCategory.value = newPlatform === 'custom' || newPlatform === 'grok' ? 'apikey' : 'oauth-based'
       addMethod.value = 'oauth'
       antigravityAccountType.value = 'oauth'
-      form.type = 'oauth'
+      form.type = accountCategory.value === 'apikey' ? 'apikey' : 'oauth'
       form.concurrency = PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY
       form.load_factor = null
       form.priority = PERSONAL_ACCOUNT_DEFAULT_PRIORITY
       autoPauseOnExpired.value = PERSONAL_ACCOUNT_DEFAULT_AUTO_PAUSE_ON_EXPIRED
       modelRestrictionMode.value = 'whitelist'
-      allowedModels.value = Object.keys(buildPersonalAccountModelMapping(newPlatform))
+      allowedModels.value = accountCategory.value === 'apikey' ? [] : Object.keys(buildPersonalAccountModelMapping(newPlatform))
     }
     // Reset base URL based on platform
     apiKeyBaseUrl.value =
@@ -3981,7 +4020,7 @@ watch(
       modelRestrictionMode.value = 'mapping'
       allowedModels.value = []
     } else if (newPlatform === 'grok') {
-      accountCategory.value = 'oauth-based'
+      accountCategory.value = isUserScope.value ? 'apikey' : 'oauth-based'
       addMethod.value = 'oauth'
       modelRestrictionMode.value = 'mapping'
       form.concurrency = 1
@@ -4359,7 +4398,7 @@ const ensureAntigravityMixedChannelConfirmed = async (onConfirm: () => Promise<v
 const sanitizeCreatePayload = (payload: CreateAccountRequest): CreateAccountRequest => {
   const next: CreateAccountRequest = {
     ...payload,
-    share_mode: isUserScope.value ? form.share_mode : payload.share_mode
+    share_mode: isUserScope.value && payload.type === 'apikey' ? 'private' : (isUserScope.value ? form.share_mode : payload.share_mode)
   }
   if (!canManageProxy.value) {
     delete next.proxy_id
@@ -4373,13 +4412,15 @@ const sanitizeCreatePayload = (payload: CreateAccountRequest): CreateAccountRequ
     next.load_factor = undefined
     next.priority = PERSONAL_ACCOUNT_DEFAULT_PRIORITY
     next.auto_pause_on_expired = PERSONAL_ACCOUNT_DEFAULT_AUTO_PAUSE_ON_EXPIRED
-    const templated = applyPersonalAccountTemplate(
-      next.platform,
-      (next.credentials as Record<string, unknown>) || {},
-      next.extra as Record<string, unknown> | undefined
-    )
-    next.credentials = templated.credentials
-    next.extra = templated.extra
+    if (next.type === 'oauth') {
+      const templated = applyPersonalAccountTemplate(
+        next.platform,
+        (next.credentials as Record<string, unknown>) || {},
+        next.extra as Record<string, unknown> | undefined
+      )
+      next.credentials = templated.credentials
+      next.extra = templated.extra
+    }
   }
   return next
 }
@@ -4678,7 +4719,7 @@ const handleVertexServiceAccountDrop = async (event: DragEvent) => {
 }
 
 const handleSubmit = async () => {
-  if (isUserScope.value && !isOAuthFlow.value) {
+  if (isUserScope.value && !isOAuthFlow.value && accountCategory.value !== 'apikey') {
     accountCategory.value = 'oauth-based'
     addMethod.value = 'oauth'
     antigravityAccountType.value = 'oauth'
@@ -5002,7 +5043,7 @@ const createAccountAndFinish = async (
     }
   }
   if (platform === 'openai') {
-    if (isUserScope.value) {
+    if (isUserScope.value && type === 'oauth') {
       delete credentials.compact_model_mapping
       const templated = applyPersonalAccountTemplate(platform, credentials, finalExtra)
       credentials = templated.credentials
