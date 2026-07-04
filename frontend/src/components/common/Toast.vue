@@ -18,8 +18,8 @@
           :key="toast.id"
           :class="[
             'pointer-events-auto w-full overflow-hidden rounded-lg border shadow-[0_18px_45px_-28px_rgba(66,45,27,0.65)] backdrop-blur',
-            'bg-[#fffaf3]/95 text-[#2f2923] dark:bg-[#1f1b16]/95 dark:text-[#f7f0e8]',
-            'border-[#eadfd1] dark:border-[#4b4035]',
+            'bg-[#ffffff]/95 text-[#202123] dark:bg-[#212121]/95 dark:text-[#ececf1]',
+            'border-[#d9d9e3] dark:border-[#565869]',
             'sm:w-[22rem]'
           ]"
         >
@@ -39,7 +39,7 @@
 
               <!-- Content -->
               <div class="min-w-0 flex-1">
-                <p v-if="toast.title" class="text-sm font-semibold text-[#2f2923] dark:text-[#f7f0e8]">
+                <p v-if="toast.title" class="text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                   {{ toast.title }}
                 </p>
                 <p
@@ -47,7 +47,7 @@
                     'text-sm leading-relaxed',
                     toast.title
                       ? 'mt-1 text-[#6f6257] dark:text-[#d5cabd]'
-                      : 'text-[#2f2923] dark:text-[#f7f0e8]'
+                      : 'text-[#202123] dark:text-[#ececf1]'
                   ]"
                 >
                   {{ toast.message }}
@@ -57,7 +57,7 @@
               <!-- Close button -->
               <button
                 @click="removeToast(toast.id)"
-                class="-m-1 flex-shrink-0 rounded-md p-1 text-[#9b8a7a] transition-colors hover:bg-[#f1e7dc] hover:text-[#3d332a] dark:text-[#a79786] dark:hover:bg-[#322a22] dark:hover:text-[#f7f0e8]"
+                class="-m-1 flex-shrink-0 rounded-md p-1 text-[#6e6e80] transition-colors hover:bg-[#f3f3f6] hover:text-[#202123] dark:text-[#acacbe] dark:hover:bg-[#343541] dark:hover:text-[#ececf1]"
                 aria-label="Close notification"
               >
                 <Icon name="x" size="sm" />
@@ -126,7 +126,7 @@ const getProgressBarColor = (type: string): string => {
     success: 'bg-[#2f855a]',
     error: 'bg-[#c2412d]',
     warning: 'bg-[#d89122]',
-    info: 'bg-[#d97757]'
+    info: 'bg-[#10a37f]'
   }
   return colors[type] || colors.info
 }

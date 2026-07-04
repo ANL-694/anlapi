@@ -6,7 +6,7 @@
       class="app-header-subscription-control"
       :title="t('subscriptionProgress.viewDetails')"
     >
-      <Icon name="creditCard" size="sm" class="text-[#2f2923] dark:text-[#f4efe7]" />
+      <Icon name="creditCard" size="sm" class="text-[#202123] dark:text-[#ececf1]" />
       <div class="flex items-center gap-1.5">
         <!-- Combined progress indicator -->
         <div class="flex items-center gap-0.5">
@@ -17,7 +17,7 @@
             :class="getProgressDotClass(sub)"
           ></div>
         </div>
-        <span class="text-xs font-medium text-[#2f2923] dark:text-[#f4efe7]">
+        <span class="text-xs font-medium text-[#202123] dark:text-[#ececf1]">
           {{ activeSubscriptions.length }}
         </span>
       </div>
@@ -27,9 +27,9 @@
     <transition name="dropdown">
       <div
         v-if="tooltipOpen"
-        class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-[#e3d8c9] bg-[#fffaf3] shadow-card dark:border-[#42362f] dark:bg-[#201a16]"
+        class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-[#d9d9e3] bg-[#ffffff] shadow-card dark:border-[#3f3f46] dark:bg-[#212121]"
       >
-        <div class="border-b border-[#efe3d5] bg-[#fffaf3] p-3 dark:border-[#4b3a31] dark:bg-[#211a16]">
+        <div class="border-b border-[#d9d9e3] bg-[#ffffff] p-3 dark:border-[#3f3f46] dark:bg-[#212121]">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
             {{ t('subscriptionProgress.title') }}
           </h3>
@@ -167,7 +167,7 @@
           <router-link
             to="/subscriptions"
             @click="closeTooltip"
-            class="block w-full py-1 text-center text-xs text-[#a85a3c] hover:underline dark:text-[#e2ae8c]"
+            class="block w-full py-1 text-center text-xs text-[#0d8f70] hover:underline dark:text-[#45d09a]"
           >
             {{ t('subscriptionProgress.viewAll') }}
           </router-link>

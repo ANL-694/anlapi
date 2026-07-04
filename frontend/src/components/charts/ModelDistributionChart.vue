@@ -331,18 +331,18 @@ const enableRankingView = computed(() => props.enableRankingView)
 const activeView = ref<'model_distribution' | 'spending_ranking'>('model_distribution')
 
 const chartColors = [
-  '#c66f4a',
-  '#7f9362',
-  '#e2ae8c',
-  '#b85445',
-  '#8f6f4e',
-  '#a46143',
-  '#64754d',
-  '#d58b65',
-  '#4e5d3f',
-  '#9caf7c',
-  '#aa9d8f',
-  '#864632'
+  '#10a37f',
+  '#3b82f6',
+  '#45d09a',
+  '#ef4444',
+  '#f59e0b',
+  '#f97316',
+  '#2563eb',
+  '#10a37f',
+  '#2563eb',
+  '#60a5fa',
+  '#9b9ba7',
+  '#0a5c4b'
 ]
 
 const displayModelStats = computed(() => {
@@ -382,7 +382,7 @@ const rankingChartData = computed(() => {
   if (otherRankingItem.value) {
     labels.push(t('admin.dashboard.spendingRankingOther'))
     data.push(otherRankingItem.value.actual_cost)
-    backgroundColor.push('#aa9d8f')
+    backgroundColor.push('#9b9ba7')
   }
 
   return {

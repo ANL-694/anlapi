@@ -4,23 +4,44 @@
 
 @layer base {
   :root {
-    --font-home-display: "Tiempos Text", "Iowan Old Style", "Songti SC", "Noto Serif CJK SC", "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", "Noto Serif", Georgia, "Times New Roman", serif;
+    --font-home-display: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
     --font-app: var(--font-home-display);
     --font-admin: var(--font-app);
     --font-admin-display: var(--font-home-display);
-    --claude-bg: #f7f3ea;
-    --claude-surface: #fffaf3;
-    --claude-surface-muted: #f1ebe2;
-    --claude-border: #e3d8c9;
-    --claude-text: #26211c;
-    --claude-muted: #7b6f63;
-    --claude-accent: #c66f4a;
-    --claude-bg-dark: #171310;
-    --claude-surface-dark: #201a16;
-    --claude-surface-muted-dark: #2a231f;
-    --claude-border-dark: #42362f;
-    --claude-text-dark: #f4efe7;
-    --claude-muted-dark: #b7aa9c;
+    --app-bg: #f7f7f8;
+    --app-surface: #ffffff;
+    --app-surface-muted: #f3f3f6;
+    --app-border: #d9d9e3;
+    --app-border-strong: #c5c5d2;
+    --app-text: #202123;
+    --app-muted: #6e6e80;
+    --app-muted-strong: #565869;
+    --app-primary: #10a37f;
+    --app-primary-hover: #0d8f70;
+    --app-primary-soft: #e6f6f1;
+    --app-sidebar: #f9f9fb;
+    --app-bg-dark: #171717;
+    --app-surface-dark: #212121;
+    --app-surface-muted-dark: #2f2f2f;
+    --app-border-dark: #3f3f46;
+    --app-border-strong-dark: #565869;
+    --app-text-dark: #ececf1;
+    --app-muted-dark: #acacbe;
+    --app-muted-strong-dark: #c5c5d2;
+    --app-sidebar-dark: #202123;
+    --claude-bg: var(--app-bg);
+    --claude-surface: var(--app-surface);
+    --claude-surface-muted: var(--app-surface-muted);
+    --claude-border: var(--app-border);
+    --claude-text: var(--app-text);
+    --claude-muted: var(--app-muted);
+    --claude-accent: var(--app-primary);
+    --claude-bg-dark: var(--app-bg-dark);
+    --claude-surface-dark: var(--app-surface-dark);
+    --claude-surface-muted-dark: var(--app-surface-muted-dark);
+    --claude-border-dark: var(--app-border-dark);
+    --claude-text-dark: var(--app-text-dark);
+    --claude-muted-dark: var(--app-muted-dark);
   }
 
   * {
@@ -29,24 +50,33 @@
 
   html {
     @apply scroll-smooth antialiased;
-    background: var(--claude-bg);
+    background: var(--app-bg);
     font-family: var(--font-app);
   }
 
   html.dark {
-    --claude-bg: var(--claude-bg-dark);
-    --claude-surface: var(--claude-surface-dark);
-    --claude-surface-muted: var(--claude-surface-muted-dark);
-    --claude-border: var(--claude-border-dark);
-    --claude-text: var(--claude-text-dark);
-    --claude-muted: var(--claude-muted-dark);
-    background: var(--claude-bg-dark);
+    --app-bg: var(--app-bg-dark);
+    --app-surface: var(--app-surface-dark);
+    --app-surface-muted: var(--app-surface-muted-dark);
+    --app-border: var(--app-border-dark);
+    --app-border-strong: var(--app-border-strong-dark);
+    --app-text: var(--app-text-dark);
+    --app-muted: var(--app-muted-dark);
+    --app-muted-strong: var(--app-muted-strong-dark);
+    --app-sidebar: var(--app-sidebar-dark);
+    --claude-bg: var(--app-bg);
+    --claude-surface: var(--app-surface);
+    --claude-surface-muted: var(--app-surface-muted);
+    --claude-border: var(--app-border);
+    --claude-text: var(--app-text);
+    --claude-muted: var(--app-muted);
+    background: var(--app-bg-dark);
   }
 
   body {
     @apply min-h-screen;
-    background: var(--claude-bg);
-    color: var(--claude-text);
+    background: var(--app-bg);
+    color: var(--app-text);
     font-family: var(--font-app);
   }
 
@@ -67,7 +97,7 @@
 
   .admin-font :where(h1, h2, h3, .page-title, .modal-title, .card-title) {
     font-family: var(--font-admin-display);
-    font-weight: 650;
+    font-weight: 600;
   }
 
   .admin-font :where(button, input, select, textarea, table, th, td) {
@@ -80,8 +110,8 @@
   }
 
   html.dark body {
-    background: var(--claude-bg-dark);
-    color: var(--claude-text-dark);
+    background: var(--app-bg-dark);
+    color: var(--app-text-dark);
   }
 
   /* 自定义滚动条 - 仅针对 Firefox，避免 Chrome 取消 webkit 的全局定制 */
@@ -135,76 +165,78 @@
   /* ============ 按钮样式 ============ */
   .btn {
     @apply inline-flex items-center justify-center gap-2;
-    @apply rounded-xl px-4 py-2.5 text-sm font-medium;
+    @apply rounded-lg px-4 py-2.5 text-sm font-medium;
     @apply transition-colors duration-150 ease-out;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500/25 focus:ring-offset-2 focus:ring-offset-[#fffaf3] dark:focus:ring-primary-200/20 dark:focus:ring-offset-[#171310];
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500/25 focus:ring-offset-2;
     @apply disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50;
+    border: 1px solid transparent;
+    --tw-ring-offset-color: var(--app-bg);
     min-height: 2.5rem;
   }
 
   .btn-primary {
-    background: #2f2923;
-    color: #fffaf3;
+    background: var(--app-primary);
+    color: #ffffff;
     border: 1px solid transparent;
     box-shadow: none;
   }
 
   .btn-primary:hover {
-    background: #211c18;
+    background: var(--app-primary-hover);
   }
 
   .dark .btn-primary {
-    background: #f4efe7;
-    color: #171310;
+    background: var(--app-primary);
+    color: #ffffff;
     border-color: transparent;
     box-shadow: none;
   }
 
   .dark .btn-primary:hover {
-    background: #ffffff;
+    background: #19c694;
   }
 
   .btn-secondary {
-    background: rgba(255, 250, 243, 0.5);
-    color: #26211c;
-    border: 1px solid rgba(112, 92, 74, 0.16);
+    background: var(--app-surface);
+    color: var(--app-text);
+    border: 1px solid var(--app-border);
     box-shadow: none;
   }
 
   .btn-secondary:hover {
-    background: rgba(112, 92, 74, 0.08);
-    border-color: rgba(112, 92, 74, 0.24);
+    background: var(--app-surface-muted);
+    border-color: var(--app-border-strong);
   }
 
   .dark .btn-secondary {
-    background: rgba(32, 26, 22, 0.52);
-    color: #f4efe7;
-    border-color: rgba(244, 239, 231, 0.12);
+    background: var(--app-surface);
+    color: var(--app-text);
+    border-color: var(--app-border);
     box-shadow: none;
   }
 
   .dark .btn-secondary:hover {
-    background: rgba(244, 239, 231, 0.08);
-    border-color: rgba(244, 239, 231, 0.2);
+    background: var(--app-surface-muted);
+    border-color: var(--app-border-strong);
   }
 
   .btn-ghost {
     @apply bg-transparent;
-    color: #6f655b;
+    color: var(--app-muted-strong);
   }
 
   .btn-ghost:hover {
-    background: rgba(112, 92, 74, 0.08);
-    color: #2f2923;
+    background: var(--app-surface-muted);
+    color: var(--app-text);
   }
 
   .dark .btn-ghost {
-    color: #b7aa9c;
+    color: var(--app-muted);
   }
 
   .dark .btn-ghost:hover {
-    background: rgba(244, 239, 231, 0.08);
-    color: #f4efe7;
+    background: var(--app-surface-muted);
+    color: var(--app-text);
   }
 
   .btn-danger {
@@ -277,80 +309,86 @@
 
   .pagination-arrow-button {
     @apply relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-transparent p-0 text-sm font-medium shadow-none;
-    @apply text-[#7b6f63] transition-colors duration-150 hover:bg-transparent hover:text-[#26211c];
+    @apply transition-colors duration-150 hover:bg-transparent;
     @apply focus:outline-none focus:ring-2 focus:ring-primary-500/25;
-    @apply disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-[#7b6f63];
-    @apply dark:text-[#b7aa9c] dark:hover:bg-transparent dark:hover:text-[#f4efe7] dark:disabled:hover:text-[#b7aa9c];
+    @apply disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent;
+    color: var(--app-muted);
   }
 
   .pagination-page-button {
     @apply relative inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-transparent bg-transparent px-2 text-sm font-medium shadow-none;
-    @apply text-[#5f574f] transition-colors duration-150 hover:bg-transparent hover:text-[#26211c];
+    @apply transition-colors duration-150 hover:bg-transparent;
     @apply focus:outline-none focus:ring-2 focus:ring-primary-500/25;
-    @apply disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#5f574f];
-    @apply dark:text-[#b7aa9c] dark:hover:bg-transparent dark:hover:text-[#f4efe7] dark:disabled:hover:bg-transparent dark:disabled:hover:text-[#b7aa9c];
+    @apply disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent;
+    color: var(--app-muted-strong);
+  }
+
+  .pagination-arrow-button:hover,
+  .pagination-page-button:hover {
+    color: var(--app-text);
   }
 
   .pagination-button-active {
-    @apply border-transparent bg-[#1f1b17] text-[#fffaf3] shadow-none hover:bg-[#1f1b17] hover:text-[#fffaf3];
-    @apply dark:border-transparent dark:bg-[#f4efe7] dark:text-[#171310] dark:hover:bg-[#f4efe7] dark:hover:text-[#171310];
+    @apply border-transparent bg-primary-500 text-white shadow-none hover:bg-primary-600 hover:text-white;
+    @apply dark:border-transparent dark:bg-primary-500 dark:text-white dark:hover:bg-primary-400 dark:hover:text-white;
   }
 
   .pagination-button-muted {
-    @apply cursor-default text-[#7b6f63] hover:bg-transparent hover:text-[#7b6f63] dark:text-[#8f8378] dark:hover:bg-transparent dark:hover:text-[#8f8378];
+    @apply cursor-default hover:bg-transparent;
+    color: var(--app-muted);
   }
 
   .pagination-text-button {
-    @apply inline-flex h-8 items-center justify-center rounded-full border border-transparent bg-transparent px-2 text-sm font-medium text-[#4b453f] shadow-none;
-    @apply transition-colors duration-150 hover:bg-transparent hover:text-[#26211c] focus:outline-none focus:ring-2 focus:ring-primary-500/25;
-    @apply disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-[#4b453f];
-    @apply dark:text-[#f4efe7] dark:hover:bg-transparent dark:hover:text-[#fffaf3] dark:disabled:hover:bg-transparent dark:disabled:hover:text-[#f4efe7];
+    @apply inline-flex h-8 items-center justify-center rounded-full border border-transparent bg-transparent px-2 text-sm font-medium shadow-none;
+    @apply transition-colors duration-150 hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-primary-500/25;
+    @apply disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent;
+    color: var(--app-muted-strong);
   }
 
   .pagination-info {
-    @apply text-sm text-[#7b6f63] dark:text-[#b7aa9c];
+    @apply text-sm;
+    color: var(--app-muted);
   }
 
   /* ============ 输入框样式 ============ */
   .input {
-    @apply w-full rounded-xl px-4 py-2.5 text-sm;
-    @apply placeholder:text-[#aa9d90] dark:placeholder:text-[#75695f];
+    @apply w-full rounded-lg px-4 py-2.5 text-sm;
     @apply transition-colors duration-150;
     @apply focus:outline-none;
     @apply disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-dark-900;
-    background: rgba(255, 250, 243, 0.72);
-    border: 1px solid rgba(112, 92, 74, 0.16);
-    color: #2f2923;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    color: var(--app-text);
+    box-shadow: none;
+  }
+
+  .input::placeholder {
+    color: var(--app-muted);
   }
 
   .input:hover {
-    border-color: rgba(112, 92, 74, 0.26);
+    border-color: var(--app-border-strong);
   }
 
   .input:focus {
-    border-color: rgba(143, 77, 53, 0.5);
-    box-shadow:
-      0 0 0 3px rgba(198, 111, 74, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    border-color: rgba(16, 163, 127, 0.62);
+    box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.14);
   }
 
   .dark .input {
-    background: rgba(32, 26, 22, 0.72);
-    border-color: rgba(244, 239, 231, 0.12);
-    color: #f4efe7;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-text);
+    box-shadow: none;
   }
 
   .dark .input:hover {
-    border-color: rgba(244, 239, 231, 0.2);
+    border-color: var(--app-border-strong);
   }
 
   .dark .input:focus {
-    border-color: rgba(226, 174, 140, 0.52);
-    box-shadow:
-      0 0 0 3px rgba(226, 174, 140, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    border-color: rgba(16, 163, 127, 0.72);
+    box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.18);
   }
 
   .input-error {
@@ -359,20 +397,20 @@
 
   .input-label {
     @apply mb-1.5 block text-sm font-medium;
-    color: #6f655b;
+    color: var(--app-muted-strong);
   }
 
   .dark .input-label {
-    color: #c8baad;
+    color: var(--app-muted-strong);
   }
 
   .input-hint {
     @apply mt-1 text-xs;
-    color: #8a7d70;
+    color: var(--app-muted);
   }
 
   .dark .input-hint {
-    color: #9f9286;
+    color: var(--app-muted);
   }
 
   .input-error-text {
@@ -392,39 +430,43 @@
 
   /* ============ 玻璃效果 ============ */
   .glass {
-    @apply bg-[#fffaf3]/95 dark:bg-[#201a16]/95;
+    background: color-mix(in srgb, var(--app-surface) 92%, transparent);
   }
 
   .glass-card {
-    @apply bg-[#fffaf3] dark:bg-[#201a16];
     @apply rounded-lg;
-    @apply border border-[#e3d8c9] dark:border-[#42362f];
     @apply shadow-card;
     @apply transition-colors duration-150;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
   }
 
   /* ============ 卡片样式 ============ */
   .card {
-    @apply bg-[#fffaf3] dark:bg-[#201a16];
     @apply rounded-lg;
-    @apply border border-[#e3d8c9] dark:border-[#42362f];
     @apply shadow-card;
     @apply transition-colors duration-150;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
   }
 
   .card-hover {
-    @apply hover:border-[#d5c8b8] dark:hover:border-[#51443b];
+    @apply hover:shadow-card-hover;
+  }
+
+  .card-hover:hover {
+    border-color: var(--app-border-strong);
   }
 
   .card-glass {
-    @apply bg-[#fffaf3] dark:bg-[#201a16];
-    @apply border border-[#e3d8c9] dark:border-[#42362f];
     @apply shadow-card;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
   }
 
   .card-header {
-    @apply border-b border-[#e3d8c9] dark:border-[#42362f];
     @apply px-5 py-4;
+    border-bottom: 1px solid var(--app-border);
   }
 
   .card-body {
@@ -432,8 +474,8 @@
   }
 
   .card-footer {
-    @apply border-t border-[#e3d8c9] dark:border-[#42362f];
     @apply px-5 py-4;
+    border-top: 1px solid var(--app-border);
   }
 
   /* ============ 统计卡片 ============ */
@@ -486,7 +528,8 @@
 
   /* ============ 表格样式 ============ */
   .table-container {
-    @apply overflow-x-auto rounded-lg border border-[#e3d8c9] dark:border-[#42362f];
+    @apply overflow-x-auto rounded-lg;
+    border: 1px solid var(--app-border);
   }
 
   .table {
@@ -495,15 +538,15 @@
 
   .table th {
     @apply px-4 py-3 text-left font-medium;
-    @apply text-gray-600 dark:text-dark-300;
-    @apply bg-[#f1ebe2] dark:bg-[#2a231f];
-    @apply border-b border-[#e3d8c9] dark:border-[#42362f];
+    color: var(--app-muted-strong);
+    background: var(--app-surface-muted);
+    border-bottom: 1px solid var(--app-border);
   }
 
   .table td {
     @apply px-4 py-3;
-    @apply text-gray-700 dark:text-gray-300;
-    @apply border-b border-[#eee6da] dark:border-[#332a25];
+    color: var(--app-text);
+    border-bottom: 1px solid var(--app-border);
   }
 
   .table tr:last-child td {
@@ -512,7 +555,10 @@
 
   .table tbody tr {
     @apply transition-colors duration-150;
-    @apply hover:bg-[#f7f1e8] dark:hover:bg-[#26201c];
+  }
+
+  .table tbody tr:hover {
+    background: var(--app-surface-muted);
   }
 
   /* ============ 徽章样式 ============ */
@@ -548,34 +594,37 @@
   /* ============ 下拉菜单 ============ */
   .dropdown {
     @apply absolute z-50;
-    @apply bg-[#fffaf3] dark:bg-[#201a16];
     @apply rounded-lg;
-    @apply border border-[#e3d8c9] dark:border-[#42362f];
     @apply shadow-card;
     @apply py-1;
     @apply origin-top-right animate-scale-in;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
   }
 
   .dropdown-item {
     @apply px-4 py-2 text-sm;
-    @apply text-gray-700 dark:text-gray-300;
-    @apply hover:bg-[#f1ebe2] dark:hover:bg-[#2a231f];
     @apply cursor-pointer transition-colors;
     @apply flex items-center gap-2;
+    color: var(--app-text);
+  }
+
+  .dropdown-item:hover {
+    background: var(--app-surface-muted);
   }
 
   /* ============ 模态框 ============ */
-  /* ============ Claude-style admin header ============ */
+  /* ============ ChatGPT-style admin header ============ */
   .app-header {
     @apply sticky top-0 z-30;
-    background: rgba(247, 243, 234, 0.86);
-    border-bottom: 1px solid rgba(112, 92, 74, 0.1);
+    background: color-mix(in srgb, var(--app-bg) 88%, transparent);
+    border-bottom: 1px solid var(--app-border);
     backdrop-filter: blur(18px);
   }
 
   .dark .app-header {
-    background: rgba(23, 19, 16, 0.86);
-    border-bottom-color: rgba(244, 239, 231, 0.08);
+    background: color-mix(in srgb, var(--app-bg) 88%, transparent);
+    border-bottom-color: var(--app-border);
   }
 
   .app-header-inner {
@@ -584,20 +633,20 @@
 
   .app-header-title {
     @apply truncate text-lg font-semibold;
-    color: #2f2923;
+    color: var(--app-text);
   }
 
   .dark .app-header-title {
-    color: #f4efe7;
+    color: var(--app-text);
   }
 
   .app-header-description {
     @apply truncate text-xs;
-    color: #8a7d70;
+    color: var(--app-muted);
   }
 
   .dark .app-header-description {
-    color: #9f9286;
+    color: var(--app-muted);
   }
 
   .app-header-control,
@@ -605,7 +654,7 @@
   .app-header-user-button {
     @apply inline-flex items-center gap-1.5 rounded-full text-sm font-medium transition-colors;
     min-height: 2.25rem;
-    color: #6f655b;
+    color: var(--app-muted-strong);
     background: transparent;
   }
 
@@ -621,55 +670,55 @@
   .app-header-control:hover,
   .app-header-subscription-control:hover,
   .app-header-user-button:hover {
-    background: rgba(112, 92, 74, 0.08);
-    color: #2f2923;
+    background: var(--app-surface-muted);
+    color: var(--app-text);
   }
 
   .dark .app-header-control,
   .dark .app-header-subscription-control,
   .dark .app-header-user-button {
-    color: #b7aa9c;
+    color: var(--app-muted);
   }
 
   .dark .app-header-control:hover,
   .dark .app-header-subscription-control:hover,
   .dark .app-header-user-button:hover {
-    background: rgba(244, 239, 231, 0.08);
-    color: #f4efe7;
+    background: var(--app-surface-muted);
+    color: var(--app-text);
   }
 
   .app-header-icon-button {
     @apply rounded-full;
-    color: #6f655b;
+    color: var(--app-muted-strong);
   }
 
   .app-header-balance {
     @apply hidden items-center gap-2 rounded-full px-3 py-1.5 sm:flex;
-    background: rgba(255, 250, 243, 0.68);
-    border: 1px solid rgba(112, 92, 74, 0.12);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
   }
 
   .dark .app-header-balance {
-    background: rgba(32, 26, 22, 0.7);
-    border-color: rgba(244, 239, 231, 0.1);
+    background: var(--app-surface);
+    border-color: var(--app-border);
   }
 
   .app-header-avatar {
     @apply flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-sm font-medium;
-    background: #2f2923;
-    color: #fffaf3;
+    background: var(--app-primary);
+    color: #ffffff;
   }
 
   .dark .app-header-avatar {
-    background: #f4efe7;
-    color: #171310;
+    background: var(--app-primary);
+    color: #ffffff;
   }
 
   .modal-overlay {
     @apply fixed inset-0 z-50;
     @apply flex items-center justify-center p-2 sm:p-4;
     @apply overflow-x-hidden overflow-y-auto;
-    background: rgba(47, 41, 35, 0.34);
+    background: rgba(0, 0, 0, 0.42);
     backdrop-filter: blur(4px);
   }
 
@@ -678,18 +727,16 @@
     @apply min-w-0 overflow-hidden;
     @apply max-h-[95vh] sm:max-h-[90vh];
     @apply flex flex-col;
-    background: #fffaf3;
-    border: 1px solid rgba(112, 92, 74, 0.16);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
     border-radius: 1rem;
-    box-shadow:
-      0 24px 70px rgba(47, 41, 35, 0.16),
-      0 1px 0 rgba(255, 255, 255, 0.7) inset;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
     max-width: calc(100vw - 1rem);
   }
 
   .dark .modal-content {
-    background: #201a16;
-    border-color: rgba(244, 239, 231, 0.12);
+    background: var(--app-surface);
+    border-color: var(--app-border);
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
   }
 
@@ -698,41 +745,41 @@
     @apply sm:px-6 sm:py-4;
     @apply flex items-center justify-between;
     @apply flex-shrink-0;
-    border-bottom: 1px solid rgba(112, 92, 74, 0.1);
-    background: rgba(255, 250, 243, 0.72);
+    border-bottom: 1px solid var(--app-border);
+    background: var(--app-surface);
   }
 
   .dark .modal-header {
-    border-bottom-color: rgba(244, 239, 231, 0.08);
-    background: rgba(32, 26, 22, 0.78);
+    border-bottom-color: var(--app-border);
+    background: var(--app-surface);
   }
 
   .modal-title {
     @apply text-lg font-semibold;
-    color: #2f2923;
+    color: var(--app-text);
   }
 
   .dark .modal-title {
-    color: #f4efe7;
+    color: var(--app-text);
   }
 
   .modal-close-button {
     @apply -mr-2 rounded-full p-2 transition-colors;
-    color: #8a7d70;
+    color: var(--app-muted);
   }
 
   .modal-close-button:hover {
-    background: rgba(112, 92, 74, 0.08);
-    color: #2f2923;
+    background: var(--app-surface-muted);
+    color: var(--app-text);
   }
 
   .dark .modal-close-button {
-    color: #9f9286;
+    color: var(--app-muted);
   }
 
   .dark .modal-close-button:hover {
-    background: rgba(244, 239, 231, 0.08);
-    color: #f4efe7;
+    background: var(--app-surface-muted);
+    color: var(--app-text);
   }
 
   .modal-body {
@@ -746,13 +793,13 @@
     @apply sm:px-6 sm:py-4;
     @apply flex items-center justify-end gap-3;
     @apply flex-shrink-0;
-    border-top: 1px solid rgba(112, 92, 74, 0.1);
-    background: rgba(247, 241, 232, 0.7);
+    border-top: 1px solid var(--app-border);
+    background: var(--app-surface-muted);
   }
 
   .dark .modal-footer {
-    border-top-color: rgba(244, 239, 231, 0.08);
-    background: rgba(27, 21, 18, 0.72);
+    border-top-color: var(--app-border);
+    background: var(--app-surface-muted);
   }
 
   /* 防止body滚动的工具类 */
@@ -818,13 +865,15 @@
   .dialog-container {
     @apply flex w-full flex-col;
     @apply max-h-[90vh];
-    @apply rounded-lg bg-[#fffaf3] dark:bg-[#201a16];
-    @apply border border-[#e3d8c9] shadow-card dark:border-[#42362f];
+    @apply rounded-lg shadow-card;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
   }
 
   .dialog-header {
-    @apply border-b border-[#e3d8c9] px-6 py-4 dark:border-[#42362f];
     @apply flex items-center justify-between;
+    @apply px-6 py-4;
+    border-bottom: 1px solid var(--app-border);
   }
 
   .dialog-body {
@@ -832,20 +881,21 @@
   }
 
   .dialog-footer {
-    @apply border-t border-[#e3d8c9] px-6 py-4 dark:border-[#42362f];
-    @apply bg-[#f7f1e8] dark:bg-[#1b1512];
     @apply flex items-center justify-end gap-3;
+    @apply px-6 py-4;
+    border-top: 1px solid var(--app-border);
+    background: var(--app-surface-muted);
   }
 
   /* ============ Toast 通知 ============ */
   .toast {
     @apply fixed right-4 top-4 z-[100];
     @apply min-w-[320px] max-w-md;
-    @apply bg-[#fffaf3] dark:bg-[#201a16];
     @apply rounded-lg shadow-card;
-    @apply border border-[#e3d8c9] dark:border-[#42362f];
     @apply p-4;
     @apply animate-slide-in-right;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
   }
 
   .toast-success {
@@ -867,11 +917,12 @@
   /* ============ 侧边栏 ============ */
   .sidebar {
     @apply fixed inset-y-0 left-0 z-40;
-    @apply w-64 bg-[#fbf7ef] dark:bg-[#1a1512];
-    @apply border-r border-[#eadfce]/75 dark:border-[#302722]/80;
+    @apply w-64;
     @apply flex flex-col;
     @apply transition-transform duration-300;
-    color: #5f574f;
+    background: var(--app-sidebar);
+    border-right: 1px solid var(--app-border);
+    color: var(--app-muted-strong);
     transition-property: width, transform;
   }
 
@@ -889,29 +940,29 @@
   }
 
   .sidebar-link {
-    @apply relative flex items-center gap-3 rounded-xl py-2.5;
+    @apply relative flex items-center gap-3 rounded-lg py-2.5;
     @apply overflow-hidden;
     @apply text-sm font-medium;
     @apply transition-colors duration-150;
-    color: #6f655b;
+    color: var(--app-muted-strong);
     padding-left: 0.875rem;
     padding-right: 0.875rem;
   }
 
   .sidebar-link:hover {
-    background: rgba(112, 92, 74, 0.07);
-    color: #2f2923;
+    background: var(--app-surface-muted);
+    color: var(--app-text);
   }
 
   .sidebar-link-active {
-    background: rgba(112, 92, 74, 0.11);
-    color: #2f2923;
+    background: #ececf1;
+    color: #202123;
     box-shadow: none;
   }
 
   .sidebar-link-active:hover {
-    background: rgba(112, 92, 74, 0.13);
-    color: #211c18;
+    background: #e5e5ea;
+    color: #202123;
   }
 
   .sidebar-section {
@@ -921,35 +972,35 @@
   .sidebar-section-title {
     @apply mb-2 px-3;
     @apply text-xs font-medium uppercase;
-    color: #9b8d7d;
+    color: var(--app-muted);
     letter-spacing: 0.02em;
   }
 
   .dark .sidebar {
-    color: #b7aa9c;
+    color: var(--app-muted);
   }
 
   .dark .sidebar-link {
-    color: #b7aa9c;
+    color: var(--app-muted);
   }
 
   .dark .sidebar-link:hover {
-    background: rgba(244, 239, 231, 0.07);
-    color: #f4efe7;
+    background: var(--app-surface-muted);
+    color: var(--app-text);
   }
 
   .dark .sidebar-link-active {
-    background: rgba(244, 239, 231, 0.12);
-    color: #fffaf3;
+    background: #2f3037;
+    color: #ececf1;
   }
 
   .dark .sidebar-link-active:hover {
-    background: rgba(244, 239, 231, 0.15);
-    color: #fffaf3;
+    background: #343541;
+    color: #ececf1;
   }
 
   .dark .sidebar-section-title {
-    color: #82766b;
+    color: var(--app-muted);
   }
 
   /* ============ 页面头部 ============ */
@@ -1002,7 +1053,8 @@
   /* ============ 标签页 ============ */
   .tabs {
     @apply flex gap-1 p-1;
-    @apply rounded-lg bg-[#f1ebe2] dark:bg-[#2a231f];
+    @apply rounded-lg;
+    background: var(--app-surface-muted);
   }
 
   .tab {
@@ -1013,9 +1065,9 @@
   }
 
   .tab-active {
-    @apply bg-[#fffaf3] dark:bg-[#201a16];
     @apply text-gray-900 dark:text-white;
     @apply shadow-sm;
+    background: var(--app-surface);
   }
 
   /* ============ 进度条 ============ */
@@ -1081,8 +1133,8 @@
   }
 
   .tour-info-box {
-    @apply rounded-md border-l-4 border-blue-500 bg-blue-50 px-3 py-2 text-xs text-blue-900;
-    @apply dark:border-blue-400 dark:bg-blue-950/40 dark:text-blue-200;
+    @apply rounded-md border-l-4 border-primary-500 bg-primary-50 px-3 py-2 text-xs text-primary-900;
+    @apply dark:border-primary-400 dark:bg-primary-950/40 dark:text-primary-200;
   }
 
   .tour-success-box {
@@ -1120,7 +1172,7 @@
 
   /* 玻璃效果 */
   .glass {
-    @apply bg-[#fffaf3]/95 dark:bg-[#201a16]/95;
+    background: color-mix(in srgb, var(--app-surface) 92%, transparent);
   }
 
   /* 隐藏滚动条 */

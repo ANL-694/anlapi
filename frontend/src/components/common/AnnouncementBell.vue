@@ -4,7 +4,7 @@
     <button
       @click="openModal"
       class="relative flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-all hover:bg-gray-100 hover:scale-105 dark:text-gray-400 dark:hover:bg-dark-800"
-      :class="{ 'text-[#a85a3c] dark:text-[#e2ae8c]': unreadCount > 0 }"
+      :class="{ 'text-[#0d8f70] dark:text-[#45d09a]': unreadCount > 0 }"
       :aria-label="t('announcements.title')"
     >
       <Icon name="bell" size="md" />
@@ -30,11 +30,11 @@
             class="w-full max-w-[620px] overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-dark-800 dark:ring-white/10"
             @click.stop
           >
-            <div class="relative overflow-hidden border-b border-[#e8dccd] bg-[#f7f3ea] px-6 py-5 dark:border-[#4b3a31] dark:bg-[#211a16]">
+            <div class="relative overflow-hidden border-b border-[#d9d9e3] bg-[#f7f7f8] px-6 py-5 dark:border-[#3f3f46] dark:bg-[#212121]">
               <div class="relative z-10 flex items-start justify-between">
                 <div>
                   <div class="flex items-center gap-2">
-                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#c66f4a] text-white shadow-lg shadow-[#c66f4a]/20">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#10a37f] text-white shadow-lg shadow-[#10a37f]/20">
                       <Icon name="bell" size="sm" />
                     </div>
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -42,7 +42,7 @@
                     </h2>
                   </div>
                   <p v-if="unreadCount > 0" class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    <span class="font-medium text-[#a85a3c] dark:text-[#e2ae8c]">{{ unreadCount }}</span>
+                    <span class="font-medium text-[#0d8f70] dark:text-[#45d09a]">{{ unreadCount }}</span>
                     {{ t('announcements.unread') }}
                   </p>
                 </div>
@@ -51,7 +51,7 @@
                     v-if="unreadCount > 0"
                     @click="markAllAsRead"
                     :disabled="loading"
-                    class="rounded-lg bg-[#171717] px-4 py-2 text-xs font-medium text-[#fffaf3] shadow-lg shadow-black/15 transition-all hover:bg-black hover:shadow-xl disabled:opacity-50 dark:bg-[#f4efe7] dark:text-[#171310] dark:hover:bg-white"
+                    class="rounded-lg bg-[#171717] px-4 py-2 text-xs font-medium text-[#ffffff] shadow-lg shadow-black/15 transition-all hover:bg-black hover:shadow-xl disabled:opacity-50 dark:bg-[#ececf1] dark:text-[#171717] dark:hover:bg-white"
                   >
                     {{ t('announcements.markAllRead') }}
                   </button>
@@ -71,8 +71,8 @@
               <!-- Loading -->
               <div v-if="loading" class="flex items-center justify-center py-16">
                 <div class="relative">
-                  <div class="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#c66f4a] dark:border-dark-600 dark:border-t-[#e2ae8c]"></div>
-                  <div class="absolute inset-0 h-12 w-12 animate-pulse rounded-full border-4 border-[#c66f4a]/25"></div>
+                  <div class="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#10a37f] dark:border-dark-600 dark:border-t-[#45d09a]"></div>
+                  <div class="absolute inset-0 h-12 w-12 animate-pulse rounded-full border-4 border-[#10a37f]/25"></div>
                 </div>
               </div>
 
@@ -82,7 +82,7 @@
                   v-for="item in announcements"
                   :key="item.id"
                   class="group relative flex items-center gap-4 border-b border-gray-100 px-6 py-4 transition-all hover:bg-gray-50 dark:border-dark-700 dark:hover:bg-dark-700/30"
-                  :class="{ 'bg-[#fffaf3] dark:bg-[#211a16]/60': !item.read_at }"
+                  :class="{ 'bg-[#ffffff] dark:bg-[#212121]/60': !item.read_at }"
                   style="min-height: 72px"
                   @click="openDetail(item)"
                 >
@@ -90,10 +90,10 @@
                   <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center">
                     <div
                       v-if="!item.read_at"
-                      class="relative flex h-10 w-10 items-center justify-center rounded-xl bg-[#c66f4a] text-white shadow-lg shadow-[#c66f4a]/20"
+                      class="relative flex h-10 w-10 items-center justify-center rounded-xl bg-[#10a37f] text-white shadow-lg shadow-[#10a37f]/20"
                     >
                       <!-- Pulse ring -->
-                      <span class="absolute inline-flex h-full w-full animate-ping rounded-xl bg-[#d58b65] opacity-60"></span>
+                      <span class="absolute inline-flex h-full w-full animate-ping rounded-xl bg-[#10a37f] opacity-60"></span>
                       <!-- Icon -->
                       <svg class="relative z-10 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -124,8 +124,8 @@
                           class="inline-flex items-center gap-1 rounded-md bg-[#f0e4d6] px-1.5 py-0.5 text-xs font-medium text-[#8f4c32] dark:bg-[#35261f] dark:text-[#f1c7aa]"
                         >
                           <span class="relative flex h-1.5 w-1.5">
-                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#c66f4a] opacity-60"></span>
-                            <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#c66f4a]"></span>
+                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#10a37f] opacity-60"></span>
+                            <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#10a37f]"></span>
                           </span>
                           {{ t('announcements.unread') }}
                         </span>
@@ -149,7 +149,7 @@
                   <!-- Unread indicator bar -->
                   <div
                     v-if="!item.read_at"
-                    class="absolute left-0 top-0 h-full w-1 bg-[#c66f4a]"
+                    class="absolute left-0 top-0 h-full w-1 bg-[#10a37f]"
                   ></div>
                 </div>
               </div>
@@ -187,12 +187,12 @@
             class="w-full max-w-[780px] overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-dark-800 dark:ring-white/10"
             @click.stop
           >
-            <div class="relative overflow-hidden border-b border-[#e8dccd] bg-[#f7f3ea] px-8 py-6 dark:border-[#4b3a31] dark:bg-[#211a16]">
+            <div class="relative overflow-hidden border-b border-[#d9d9e3] bg-[#f7f7f8] px-8 py-6 dark:border-[#3f3f46] dark:bg-[#212121]">
               <div class="relative z-10 flex items-start justify-between gap-4">
                 <div class="flex-1 min-w-0">
                   <!-- Icon and Category -->
                   <div class="mb-3 flex items-center gap-2">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c66f4a] text-white shadow-lg shadow-[#c66f4a]/20">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#10a37f] text-white shadow-lg shadow-[#10a37f]/20">
                       <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -206,8 +206,8 @@
                         class="inline-flex items-center gap-1.5 rounded-lg bg-[#f0e4d6] px-2.5 py-1 text-xs font-medium text-[#8f4c32] ring-1 ring-[#ddc8b6] dark:bg-[#35261f] dark:text-[#f1c7aa] dark:ring-[#5a4035]"
                       >
                         <span class="relative flex h-2 w-2">
-                          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#c66f4a] opacity-60"></span>
-                          <span class="relative inline-flex h-2 w-2 rounded-full bg-[#c66f4a]"></span>
+                          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#10a37f] opacity-60"></span>
+                          <span class="relative inline-flex h-2 w-2 rounded-full bg-[#10a37f]"></span>
                         </span>
                         {{ t('announcements.unread') }}
                       </span>
@@ -253,7 +253,7 @@
               <!-- Content with decorative border -->
               <div class="relative">
                 <!-- Decorative left border -->
-                <div class="absolute left-0 top-0 bottom-0 w-1 rounded-full bg-[#c66f4a]"></div>
+                <div class="absolute left-0 top-0 bottom-0 w-1 rounded-full bg-[#10a37f]"></div>
 
                 <div class="pl-6">
                   <div
@@ -265,7 +265,7 @@
             </div>
 
             <!-- Footer with Actions -->
-            <div class="border-t border-[#e8dccd] bg-[#fffaf3] px-8 py-5 dark:border-[#4b3a31] dark:bg-[#1f1915]">
+            <div class="border-t border-[#d9d9e3] bg-[#ffffff] px-8 py-5 dark:border-[#3f3f46] dark:bg-[#212121]">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -283,7 +283,7 @@
                   <button
                     v-if="!selectedAnnouncement.read_at"
                     @click="markAsReadAndClose(selectedAnnouncement.id)"
-                    class="rounded-xl bg-[#171717] px-5 py-2.5 text-sm font-medium text-[#fffaf3] shadow-lg shadow-black/15 transition-all hover:bg-black hover:shadow-xl dark:bg-[#f4efe7] dark:text-[#171310] dark:hover:bg-white"
+                    class="rounded-xl bg-[#171717] px-5 py-2.5 text-sm font-medium text-[#ffffff] shadow-lg shadow-black/15 transition-all hover:bg-black hover:shadow-xl dark:bg-[#ececf1] dark:text-[#171717] dark:hover:bg-white"
                   >
                     <span class="flex items-center gap-2">
                       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -446,20 +446,20 @@ watch(
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #d8cec0, #aa9d8f);
+  background: linear-gradient(to bottom, #c5c5d2, #9b9ba7);
   border-radius: 4px;
 }
 
 .dark .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #5b5148, #403832);
+  background: linear-gradient(to bottom, #565869, #40414f);
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #aa9d8f, #786d62);
+  background: linear-gradient(to bottom, #9b9ba7, #8e8ea0);
 }
 
 .dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #786d62, #5b5148);
+  background: linear-gradient(to bottom, #8e8ea0, #565869);
 }
 </style>
 
@@ -492,21 +492,21 @@ watch(
 
 .markdown-body a {
   @apply font-medium underline decoration-2 underline-offset-2 transition-all;
-  color: #a85a3c;
+  color: #0d8f70;
   text-decoration-color: rgba(168, 90, 60, 0.32);
 }
 
 .markdown-body a:hover {
-  text-decoration-color: #a85a3c;
+  text-decoration-color: #0d8f70;
 }
 
 .dark .markdown-body a {
-  color: #e2ae8c;
+  color: #45d09a;
   text-decoration-color: rgba(226, 174, 140, 0.36);
 }
 
 .dark .markdown-body a:hover {
-  text-decoration-color: #e2ae8c;
+  text-decoration-color: #45d09a;
 }
 
 .markdown-body ul,
@@ -528,28 +528,28 @@ watch(
 }
 
 .markdown-body li::marker {
-  color: #a85a3c;
+  color: #0d8f70;
 }
 
 .dark .markdown-body li::marker {
-  color: #e2ae8c;
+  color: #45d09a;
 }
 
 .markdown-body blockquote {
   @apply relative my-5 border-l-4 py-3 pl-5 pr-4 italic text-gray-700 dark:text-gray-300;
-  border-color: #c66f4a;
+  border-color: #10a37f;
   background: rgba(247, 243, 234, 0.72);
 }
 
 .dark .markdown-body blockquote {
-  border-color: #e2ae8c;
+  border-color: #45d09a;
   background: rgba(53, 38, 31, 0.42);
 }
 
 .markdown-body blockquote::before {
   content: '"';
-  @apply absolute -left-1 top-0 text-5xl font-serif;
-  color: rgba(198, 111, 74, 0.22);
+  @apply absolute -left-1 top-0 text-5xl font-sans;
+  color: rgba(16, 163, 127, 0.22);
 }
 
 .dark .markdown-body blockquote::before {
@@ -592,11 +592,11 @@ watch(
 
 .markdown-body th {
   @apply font-semibold text-gray-900 dark:text-white;
-  background: #f7f3ea;
+  background: #f7f7f8;
 }
 
 .dark .markdown-body th {
-  background: #211a16;
+  background: #212121;
 }
 
 .markdown-body tbody tr {

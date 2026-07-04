@@ -16,22 +16,22 @@ export default {
         models: '模型'
       },
       hero: {
-        eyebrow: '统一模型网关',
-        title: '把模型接进稳定入口',
-        lead: '{siteName} 将 GPT、Claude、Gemini、Grok 与自定义接口统一到同一套网关中，兼顾稳定调度、清晰用量和长期成本控制。',
+        eyebrow: 'ikik',
+        title: '今天想调用哪个模型？',
+        lead: '{siteName} 把常用模型放进同一个入口。创建密钥，选择分组，然后像平时一样发送请求。',
         proofAria: '平台能力',
         proof: {
-          openai: 'OpenAI 兼容接口',
-          routing: '分组调度与故障切换',
-          billing: '实时用量与费用分析'
+          openai: 'OpenAI 兼容',
+          routing: '自动选择可用资源',
+          billing: '用量实时记录'
         }
       },
       product: {
-        client: '客户端',
-        gateway: '网关',
-        pool: '账号池',
-        apiSurface: '接口入口',
-        compatible: '兼容'
+        client: '你的请求',
+        gateway: 'API 入口',
+        pool: '返回结果',
+        apiSurface: '发送一个请求，剩下交给 ikik',
+        compatible: '在线'
       },
       story: {
         title: '一次接入，持续可用',
@@ -251,8 +251,8 @@ export default {
     },
     footer: {
       kicker: '服务信息',
-      title: '{siteName} 把模型能力带进真实工作流',
-      description: '面向个人开发者、团队和自动化场景，提供统一网关、用量分析、订阅额度和账号池调度，降低长期 AI 接入成本。',
+      title: '{siteName} 的基础信息',
+      description: '模型、额度、计费和可用状态都以控制台为准。这里保留最常用的入口和服务说明。',
       infoAria: '平台信息',
       baseUrlLabel: 'API Base URL',
       serviceNotice: '服务状态、计费与可用模型以控制台展示为准。',

@@ -16,22 +16,22 @@ export default {
         models: 'Models'
       },
       hero: {
-        eyebrow: 'Unified model gateway',
-        title: 'Every model, one stable entry',
-        lead: '{siteName} unifies GPT, Claude, Gemini, Grok, and custom APIs into one gateway with stable routing, transparent usage, and long-term cost control.',
+        eyebrow: 'ikik',
+        title: 'Which model do you want to call today?',
+        lead: '{siteName} puts your models behind one familiar entry point. Create a key, choose a group, then send requests as usual.',
         proofAria: 'Platform capabilities',
         proof: {
-          openai: 'OpenAI-compatible API',
-          routing: 'Group routing and failover',
-          billing: 'Real-time usage and cost analytics'
+          openai: 'OpenAI compatible',
+          routing: 'Available resource routing',
+          billing: 'Live usage records'
         }
       },
       product: {
-        client: 'Client',
-        gateway: 'Gateway',
-        pool: 'Account Pool',
-        apiSurface: 'API Entry Points',
-        compatible: 'Compatible'
+        client: 'Your request',
+        gateway: 'API entry',
+        pool: 'Response',
+        apiSurface: 'Send one request. Let ikik handle the rest.',
+        compatible: 'Online'
       },
       story: {
         title: 'Connect once, keep running',
@@ -250,9 +250,9 @@ export default {
       button: 'Sign Up Free'
     },
     footer: {
-      kicker: 'Commercial AI access',
-      title: '{siteName} brings model capacity into real workflows',
-      description: 'Built for individual developers, teams, and automation workflows with one gateway, usage analytics, subscription quotas, and account-pool routing to reduce the cost of long-term AI access.',
+      kicker: 'Service details',
+      title: '{siteName} service information',
+      description: 'Models, quota, billing, and availability follow the console display. This page keeps the common entry points and service notes close at hand.',
       infoAria: 'Platform information',
       baseUrlLabel: 'API Base URL',
       serviceNotice: 'Service status, billing, and available models follow the console display.',

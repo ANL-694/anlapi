@@ -3199,12 +3199,12 @@ func (h *SettingHandler) SendTestEmail(c *gin.Context) {
 <head>
     <meta charset="UTF-8">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f7f7f8; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header { background: linear-gradient(135deg, #10a37f 0%, #0d8f70 100%); color: white; padding: 30px; text-align: center; }
         .content { padding: 40px 30px; text-align: center; }
-        .success { color: #10b981; font-size: 48px; margin-bottom: 20px; }
-        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; color: #999; font-size: 12px; }
+        .success { color: #10a37f; font-size: 48px; margin-bottom: 20px; }
+        .footer { background-color: #f3f3f6; padding: 20px; text-align: center; color: #6e6e80; font-size: 12px; }
     </style>
 </head>
 <body>

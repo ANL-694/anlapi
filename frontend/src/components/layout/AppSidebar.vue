@@ -9,11 +9,11 @@
     <!-- Logo/Brand -->
     <div class="sidebar-header" :class="{ 'sidebar-header-collapsed': sidebarCollapsed }">
       <!-- Custom Logo or Default Logo -->
-      <div class="sidebar-logo flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl border border-[#eadfce]/70 bg-[#fffaf3]/60 shadow-none dark:border-[#302722]/80 dark:bg-[#241d19]/70">
+      <div class="sidebar-logo flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white shadow-none dark:border-dark-700 dark:bg-dark-900">
         <img v-if="settingsLoaded" :src="siteLogo || '/logo.svg'" alt="Logo" class="h-full w-full object-contain" />
       </div>
       <div class="sidebar-brand" :class="{ 'sidebar-brand-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
-        <span class="sidebar-brand-title text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+        <span class="sidebar-brand-title text-lg font-semibold text-gray-900 dark:text-gray-100">
           {{ siteName }}
         </span>
         <!-- Version Badge -->
@@ -1242,27 +1242,27 @@ watch(
 
 .sidebar-brand :deep(button),
 .sidebar-brand :deep(span.text-xs) {
-  border: 1px solid rgba(112, 92, 74, 0.08);
-  background: rgba(112, 92, 74, 0.06);
-  color: #8a7d70;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
   box-shadow: none;
 }
 
 .sidebar-brand :deep(button:hover) {
-  background: rgba(112, 92, 74, 0.09);
-  color: #5f574f;
+  background: var(--app-surface);
+  color: var(--app-text);
 }
 
 .dark .sidebar-brand :deep(button),
 .dark .sidebar-brand :deep(span.text-xs) {
-  border-color: rgba(244, 239, 231, 0.07);
-  background: rgba(244, 239, 231, 0.06);
-  color: #9d9184;
+  border-color: var(--app-border);
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
 }
 
 .dark .sidebar-brand :deep(button:hover) {
-  background: rgba(244, 239, 231, 0.09);
-  color: #f4efe7;
+  background: var(--app-surface);
+  color: var(--app-text);
 }
 
 .sidebar-link-collapsed {
@@ -1274,7 +1274,7 @@ watch(
 
 .sidebar-child-group {
   margin: 0.125rem 0 0.375rem 1.25rem;
-  border-left: 1px solid rgba(112, 92, 74, 0.12);
+  border-left: 1px solid var(--app-border);
   padding-left: 0.5rem;
 }
 

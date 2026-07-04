@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen overflow-x-hidden bg-[#f7f3ea] dark:bg-[#171310]"
+    class="min-h-screen bg-gray-50 dark:bg-dark-950"
     :class="{ 'admin-font': useAdminTypography }"
   >
     <!-- Sidebar -->
@@ -8,7 +8,7 @@
 
     <!-- Main Content Area -->
     <div
-      class="relative min-h-screen min-w-0 max-w-full overflow-x-hidden transition-all duration-300"
+      class="relative min-h-screen min-w-0 max-w-full transition-all duration-300"
       :class="[sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64']"
     >
       <!-- Header -->

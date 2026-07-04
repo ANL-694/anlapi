@@ -450,10 +450,10 @@ function getDateParams(): string {
 
 const CIRCUMFERENCE = 2 * Math.PI * 68
 const RING_GRADIENTS = [
-  { from: '#c66f4a', to: '#e2ae8c' },
-  { from: '#7f9362', to: '#d2dec0' },
-  { from: '#a85a3c', to: '#f1c5a9' },
-  { from: '#8f6f4e', to: '#ead9c8' },
+  { from: '#10a37f', to: '#45d09a' },
+  { from: '#3b82f6', to: '#d2dec0' },
+  { from: '#0d8f70', to: '#b8f3d6' },
+  { from: '#f59e0b', to: '#ead9c8' },
 ]
 
 const ringAnimated = ref(false)
@@ -842,8 +842,8 @@ onUnmounted(() => {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .input-ring:focus {
-  box-shadow: 0 0 0 3px rgba(198, 111, 74, 0.2);
-  border-color: #c66f4a;
+  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.2);
+  border-color: #10a37f;
   outline: none;
 }
 
@@ -860,13 +860,13 @@ onUnmounted(() => {
   100% { background-position: 200% 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #e8e2d8 25%, #f4f1eb 50%, #e8e2d8 75%);
+  background: linear-gradient(90deg, #d9d9e3 25%, #ececf1 50%, #d9d9e3 75%);
   background-size: 200% 100%;
   animation: shimmer-kv 1.8s ease-in-out infinite;
   border-radius: 8px;
 }
 :global(.dark) .skeleton {
-  background: linear-gradient(90deg, #403832 25%, #2c2621 50%, #403832 75%);
+  background: linear-gradient(90deg, #40414f 25%, #2f3037 50%, #40414f 75%);
   background-size: 200% 100%;
 }
 

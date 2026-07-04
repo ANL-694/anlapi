@@ -5342,7 +5342,7 @@
 	            </div>
 	            <div
 	              v-if="form.carpool_enabled"
-	              class="grid gap-4 rounded-2xl border border-[#eadfce] bg-[#fbf6ef] p-4 dark:border-[#302722] dark:bg-[#1b1512] md:grid-cols-3"
+	              class="grid gap-4 rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-4 dark:border-[#3f3f46] dark:bg-[#171717] md:grid-cols-3"
 	            >
 	              <div>
 	                <label class="input-label">
@@ -5380,7 +5380,7 @@
 	                  class="input"
 	                />
 	              </div>
-	              <p class="text-xs leading-5 text-[#7a6b5d] dark:text-[#b8afa4] md:col-span-3">
+	              <p class="text-xs leading-5 text-[#6e6e80] dark:text-[#acacbe] md:col-span-3">
 	                {{ t('admin.settings.features.carpool.feeHint') }}
 	              </p>
 	            </div>
@@ -5856,7 +5856,7 @@
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           @click.self="closeAffiliateModal"
         >
-          <div class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-stone-200 bg-[#fbfaf7] shadow-2xl dark:border-dark-700 dark:bg-dark-900">
+          <div class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-stone-200 bg-[#f7f7f8] shadow-2xl dark:border-dark-700 dark:bg-dark-900">
             <div class="border-b border-stone-200 px-6 py-5 dark:border-dark-700">
               <div class="flex items-start justify-between gap-4">
                 <div>
@@ -6088,7 +6088,7 @@
             <div class="space-y-4 p-6">
               <!-- External Purchase Page -->
               <div
-                class="rounded-lg border border-[#eadfce] bg-[#fffaf3] p-4 dark:border-[#3a3028] dark:bg-[#1f1a16]"
+                class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-4 dark:border-[#3f3f46] dark:bg-[#212121]"
               >
                 <div class="flex items-center justify-between gap-4">
                   <div>
@@ -6568,10 +6568,10 @@
           <!-- SMTP Settings - Only show when email verification is enabled -->
           <div
             v-if="form.email_verify_enabled"
-            class="card overflow-hidden border-[#e8dccd] bg-[#fffaf3] dark:border-[#4b3a31] dark:bg-[#1f1915]"
+            class="card overflow-hidden border-[#d9d9e3] bg-[#ffffff] dark:border-[#3f3f46] dark:bg-[#212121]"
           >
             <div
-              class="flex items-center justify-between border-b border-[#e8dccd] bg-[#f7f3ea] px-6 py-4 dark:border-[#4b3a31] dark:bg-[#211a16]"
+              class="flex items-center justify-between border-b border-[#d9d9e3] bg-[#f7f7f8] px-6 py-4 dark:border-[#3f3f46] dark:bg-[#212121]"
             >
               <div>
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -6716,7 +6716,7 @@
 
               <!-- Use TLS Toggle -->
               <div
-                class="flex items-center justify-between border-t border-[#e8dccd] pt-4 dark:border-[#4b3a31]"
+                class="flex items-center justify-between border-t border-[#d9d9e3] pt-4 dark:border-[#3f3f46]"
               >
                 <div>
                   <label class="font-medium text-gray-900 dark:text-white">{{
@@ -6734,10 +6734,10 @@
           <!-- Send Test Email - Only show when email verification is enabled -->
           <div
             v-if="form.email_verify_enabled"
-            class="card overflow-hidden border-[#e8dccd] bg-[#fffaf3] dark:border-[#4b3a31] dark:bg-[#1f1915]"
+            class="card overflow-hidden border-[#d9d9e3] bg-[#ffffff] dark:border-[#3f3f46] dark:bg-[#212121]"
           >
             <div
-              class="border-b border-[#e8dccd] bg-[#f7f3ea] px-6 py-4 dark:border-[#4b3a31] dark:bg-[#211a16]"
+              class="border-b border-[#d9d9e3] bg-[#f7f7f8] px-6 py-4 dark:border-[#3f3f46] dark:bg-[#212121]"
             >
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
                 {{ t("admin.settings.testEmail.title") }}
@@ -6803,10 +6803,10 @@
           <!-- Balance Low Notification -->
           <div
             v-if="form.email_verify_enabled"
-            class="card overflow-hidden border-[#e8dccd] bg-[#fffaf3] dark:border-[#4b3a31] dark:bg-[#1f1915]"
+            class="card overflow-hidden border-[#d9d9e3] bg-[#ffffff] dark:border-[#3f3f46] dark:bg-[#212121]"
           >
             <div
-              class="border-b border-[#e8dccd] bg-[#f7f3ea] px-6 py-4 dark:border-[#4b3a31] dark:bg-[#211a16]"
+              class="border-b border-[#d9d9e3] bg-[#f7f7f8] px-6 py-4 dark:border-[#3f3f46] dark:bg-[#212121]"
             >
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
                 {{ t("admin.emailBroadcast.title") }}
@@ -10657,16 +10657,16 @@ watch(
   @apply text-primary-600 dark:text-primary-400;
   background: linear-gradient(
     135deg,
-    rgba(198, 111, 74, 0.08),
+    rgba(16, 163, 127, 0.08),
     rgba(127, 147, 98, 0.03)
   );
-  box-shadow: 0 1px 2px rgba(198, 111, 74, 0.1);
+  box-shadow: 0 1px 2px rgba(16, 163, 127, 0.1);
 }
 
 :root.dark .settings-tab-active {
   background: linear-gradient(
     135deg,
-    rgba(213, 139, 101, 0.12),
+    rgba(16, 163, 127, 0.12),
     rgba(127, 147, 98, 0.05)
   );
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);

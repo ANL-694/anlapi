@@ -265,10 +265,10 @@
             </button>
           </div>
 
-          <div class="overflow-hidden rounded-2xl border border-[var(--claude-border)] bg-[#fffaf3] p-5 text-[#26211c] shadow-sm">
+          <div class="overflow-hidden rounded-2xl border border-[var(--claude-border)] bg-[#ffffff] p-5 text-[#171717] shadow-sm">
             <div class="flex items-start justify-between gap-4">
               <div class="flex min-w-0 items-center gap-3">
-                <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#26211c] text-xl font-semibold text-[#f7f3ea]">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#171717] text-xl font-semibold text-[#f7f7f8]">
                   <img
                     v-if="avatarUrl"
                     :src="avatarUrl"
@@ -281,19 +281,19 @@
                   <p class="truncate text-base font-semibold">{{ displayName }}</p>
                   <p
                     v-if="primaryEmailDisplay"
-                    class="truncate text-sm text-[#7b6f63]"
+                    class="truncate text-sm text-[#6e6e80]"
                   >
                     {{ primaryEmailDisplay }}
                   </p>
                 </div>
               </div>
-              <p class="text-sm font-semibold uppercase tracking-[0.18em] text-[#7b6f63]">
+              <p class="text-sm font-semibold uppercase tracking-[0.18em] text-[#6e6e80]">
                 ikik
               </p>
             </div>
 
             <div class="mt-6">
-              <p class="mb-3 text-sm font-medium text-[#7b6f63]">{{ t('profile.activity.title') }}</p>
+              <p class="mb-3 text-sm font-medium text-[#6e6e80]">{{ t('profile.activity.title') }}</p>
               <div class="grid grid-flow-col grid-rows-7 gap-1 overflow-hidden">
                 <span
                   v-for="cell in previewCells"
@@ -308,9 +308,9 @@
               <div
                 v-for="metric in shareMetrics"
                 :key="metric.label"
-                class="rounded-xl bg-[#f1ebe2] px-3 py-3"
+                class="rounded-xl bg-[#f3f3f6] px-3 py-3"
               >
-                <p class="text-[11px] font-medium text-[#7b6f63]">{{ metric.label }}</p>
+                <p class="text-[11px] font-medium text-[#6e6e80]">{{ metric.label }}</p>
                 <p class="mt-1 truncate text-base font-semibold">{{ metric.value }}</p>
               </div>
             </div>
@@ -680,22 +680,22 @@ async function renderShareCanvas(): Promise<HTMLCanvasElement> {
   }
 
   ctx.scale(scale, scale)
-  ctx.fillStyle = '#f7f3ea'
+  ctx.fillStyle = '#f7f7f8'
   ctx.fillRect(0, 0, width, height)
 
   roundedRect(ctx, 54, 44, width - 108, height - 88, 34)
-  ctx.fillStyle = '#fffaf3'
+  ctx.fillStyle = '#ffffff'
   ctx.fill()
-  ctx.strokeStyle = '#e3d8c9'
+  ctx.strokeStyle = '#d9d9e3'
   ctx.lineWidth = 2
   ctx.stroke()
 
   await drawAvatar(ctx, 102, 88, 72)
 
-  ctx.fillStyle = '#26211c'
+  ctx.fillStyle = '#171717'
   ctx.font = '600 30px Inter, "Microsoft YaHei", sans-serif'
   drawTruncatedText(ctx, displayName.value, 196, 116, 450)
-  ctx.fillStyle = '#7b6f63'
+  ctx.fillStyle = '#6e6e80'
   ctx.font = '18px Inter, "Microsoft YaHei", sans-serif'
   if (primaryEmailDisplay.value) {
     drawTruncatedText(ctx, primaryEmailDisplay.value, 196, 146, 450)
@@ -703,7 +703,7 @@ async function renderShareCanvas(): Promise<HTMLCanvasElement> {
   ctx.font = '700 18px Inter, "Microsoft YaHei", sans-serif'
   ctx.fillText('IKIK', 820, 116)
 
-  ctx.fillStyle = '#7b6f63'
+  ctx.fillStyle = '#6e6e80'
   ctx.font = '600 18px Inter, "Microsoft YaHei", sans-serif'
   ctx.fillText(t('profile.activity.title'), 102, 198)
 
@@ -726,12 +726,12 @@ async function renderShareCanvas(): Promise<HTMLCanvasElement> {
   shareMetrics.value.forEach((metric, index) => {
     const x = 102 + index * 212
     roundedRect(ctx, x, metricY, 184, 84, 18)
-    ctx.fillStyle = '#f1ebe2'
+    ctx.fillStyle = '#f3f3f6'
     ctx.fill()
-    ctx.fillStyle = '#7b6f63'
+    ctx.fillStyle = '#6e6e80'
     ctx.font = '500 15px Inter, "Microsoft YaHei", sans-serif'
     drawTruncatedText(ctx, metric.label, x + 18, metricY + 30, 148)
-    ctx.fillStyle = '#26211c'
+    ctx.fillStyle = '#171717'
     ctx.font = '700 24px Inter, "Microsoft YaHei", sans-serif'
     drawTruncatedText(ctx, metric.value, x + 18, metricY + 62, 148)
   })
@@ -759,9 +759,9 @@ async function drawAvatar(ctx: CanvasRenderingContext2D, x: number, y: number, s
 
 function drawAvatarFallback(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
   roundedRect(ctx, x, y, size, size, 20)
-  ctx.fillStyle = '#26211c'
+  ctx.fillStyle = '#171717'
   ctx.fill()
-  ctx.fillStyle = '#f7f3ea'
+  ctx.fillStyle = '#f7f7f8'
   ctx.font = '700 30px Inter, "Microsoft YaHei", sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'

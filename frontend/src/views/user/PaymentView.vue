@@ -6,23 +6,23 @@
       </div>
       <template v-else-if="externalPurchaseEnabled">
         <section
-          class="overflow-hidden rounded-lg border border-[#eadfce] bg-[#fffaf3] shadow-[0_18px_48px_rgba(38,33,28,0.08)] dark:border-[#3a3028] dark:bg-[#1f1a16]"
+          class="overflow-hidden rounded-lg border border-[#d9d9e3] bg-[#ffffff] shadow-[0_18px_48px_rgba(0,0,0,0.08)] dark:border-[#3f3f46] dark:bg-[#212121]"
         >
-          <div class="border-b border-[#eadfce] bg-[#f8f1e8] px-6 py-6 dark:border-[#3a3028] dark:bg-[#171310]">
+          <div class="border-b border-[#d9d9e3] bg-[#f3f3f6] px-6 py-6 dark:border-[#3f3f46] dark:bg-[#171717]">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div
-                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#e1d4c3] bg-[#fffaf3] text-[#9d5f42] dark:border-[#46382f] dark:bg-[#241d19] dark:text-[#d8a58c]"
+                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#d9d9e3] bg-[#ffffff] text-[#10a37f] dark:border-[#565869] dark:bg-[#2f2f2f] dark:text-[#45d09a]"
               >
                 <Icon name="gift" size="lg" />
               </div>
               <div>
-                <p class="text-xs font-semibold uppercase text-[#9d5f42] dark:text-[#d8a58c]">
+                <p class="text-xs font-semibold uppercase text-[#10a37f] dark:text-[#45d09a]">
                   {{ t('payment.externalPurchase.kicker') }}
                 </p>
-                <h1 class="mt-1 text-2xl font-semibold text-[#26211c] dark:text-[#f4efe7]">
+                <h1 class="mt-1 text-2xl font-semibold text-[#171717] dark:text-[#ececf1]">
                   {{ t('payment.externalPurchase.title') }}
                 </h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-[#75685d] dark:text-[#b8aa9d]">
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-[#6e6e80] dark:text-[#c5c5d2]">
                   {{ t('payment.externalPurchase.description') }}
                 </p>
               </div>
@@ -33,24 +33,24 @@
             <div
               v-for="step in externalPurchaseSteps"
               :key="step.title"
-              class="rounded-lg border border-[#eadfce] bg-[#fffaf3] p-4 dark:border-[#3a3028] dark:bg-[#1f1a16]"
+              class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-4 dark:border-[#3f3f46] dark:bg-[#212121]"
             >
-              <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-md bg-[#f1e6d8] text-sm font-semibold text-[#7a4f39] dark:bg-[#2a231d] dark:text-[#d8b69b]">
+              <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-md bg-[#e6f6f1] text-sm font-semibold text-[#0d8f70] dark:bg-[#2f2f2f] dark:text-[#45d09a]">
                 {{ step.index }}
               </div>
-              <h2 class="text-sm font-semibold text-[#26211c] dark:text-[#f4efe7]">
+              <h2 class="text-sm font-semibold text-[#171717] dark:text-[#ececf1]">
                 {{ step.title }}
               </h2>
-              <p class="mt-2 text-sm leading-6 text-[#75685d] dark:text-[#b8aa9d]">
+              <p class="mt-2 text-sm leading-6 text-[#6e6e80] dark:text-[#c5c5d2]">
                 {{ step.description }}
               </p>
             </div>
           </div>
 
-          <div class="flex flex-col gap-3 border-t border-[#eadfce] bg-[#f8f1e8] p-6 dark:border-[#3a3028] dark:bg-[#171310] sm:flex-row">
+          <div class="flex flex-col gap-3 border-t border-[#d9d9e3] bg-[#f3f3f6] p-6 dark:border-[#3f3f46] dark:bg-[#171717] sm:flex-row">
             <button
               type="button"
-              class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#171310] px-5 py-3 text-sm font-semibold text-[#fffaf3] shadow-[0_10px_24px_rgba(23,19,16,0.18)] transition hover:bg-black dark:bg-[#f4efe7] dark:text-[#171310] dark:hover:bg-white"
+              class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#171717] px-5 py-3 text-sm font-semibold text-[#ffffff] shadow-[0_10px_24px_rgba(0,0,0,0.18)] transition hover:bg-black dark:bg-[#ececf1] dark:text-[#171717] dark:hover:bg-white"
               @click="openExternalPurchase"
             >
               <Icon name="externalLink" size="sm" />
@@ -58,7 +58,7 @@
             </button>
             <router-link
               to="/redeem"
-              class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#d8c8b5] bg-[#fffaf3] px-5 py-3 text-sm font-semibold text-[#3a3028] transition hover:bg-white dark:border-[#4d4035] dark:bg-[#241d19] dark:text-[#efe5da] dark:hover:bg-[#2a231d]"
+              class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#c5c5d2] bg-[#ffffff] px-5 py-3 text-sm font-semibold text-[#3f3f46] transition hover:bg-white dark:border-[#565869] dark:bg-[#2f2f2f] dark:text-[#ececf1] dark:hover:bg-[#2f2f2f]"
             >
               <Icon name="checkCircle" size="sm" />
               {{ t('payment.externalPurchase.redeemCode') }}
@@ -68,10 +68,10 @@
       </template>
       <template v-else>
         <!-- Tab Switcher (hide during payment and subscription confirm) -->
-        <div v-if="tabs.length > 1 && paymentPhase === 'select' && !selectedPlan" class="flex space-x-1 rounded-lg border border-[#e5d8c7] bg-[#f7efe4] p-1 dark:border-[#3a3028] dark:bg-[#1f1a16]">
+        <div v-if="tabs.length > 1 && paymentPhase === 'select' && !selectedPlan" class="flex space-x-1 rounded-lg border border-[#d9d9e3] bg-[#f3f3f6] p-1 dark:border-[#3f3f46] dark:bg-[#212121]">
           <button v-for="tab in tabs" :key="tab.key"
             class="flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all"
-            :class="activeTab === tab.key ? 'bg-[#fffaf3] text-[#26211c] shadow-sm dark:bg-[#2a231d] dark:text-[#f4efe7]' : 'text-[#7a6c60] hover:text-[#26211c] dark:text-[#b8aa9d] dark:hover:text-[#f4efe7]'"
+            :class="activeTab === tab.key ? 'bg-[#ffffff] text-[#171717] shadow-sm dark:bg-[#2f2f2f] dark:text-[#ececf1]' : 'text-[#6e6e80] hover:text-[#171717] dark:text-[#c5c5d2] dark:hover:text-[#ececf1]'"
             @click="activeTab = tab.key">{{ tab.label }}</button>
         </div>
         <!-- Payment in progress (shared by recharge and subscription) -->
@@ -157,53 +157,53 @@
           <template v-else-if="activeTab === 'subscription'">
             <!-- Subscription confirm (inline, replaces plan list) -->
             <template v-if="selectedPlan">
-              <div class="rounded-lg border border-[#e5d8c7] bg-[#fffaf3] p-5 shadow-[0_14px_34px_rgba(38,33,28,0.08)] dark:border-[#3a3028] dark:bg-[#1f1a16]">
+              <div class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-5 shadow-[0_14px_34px_rgba(0,0,0,0.08)] dark:border-[#3f3f46] dark:bg-[#212121]">
                 <!-- Header: platform badge + plan name -->
                 <div class="mb-3 flex flex-wrap items-center gap-2">
-                  <span class="rounded-md border border-[#e5d8c7] bg-[#f7efe4] px-2 py-0.5 text-xs font-medium text-[#7a4f39] dark:border-[#4d4035] dark:bg-[#2a231d] dark:text-[#d8b69b]">
+                  <span class="rounded-md border border-[#d9d9e3] bg-[#f3f3f6] px-2 py-0.5 text-xs font-medium text-[#0d8f70] dark:border-[#565869] dark:bg-[#2f2f2f] dark:text-[#45d09a]">
                     {{ platformLabel(selectedPlan.group_platform || '') }}
                   </span>
-                  <h3 class="text-lg font-semibold text-[#26211c] dark:text-[#f4efe7]">{{ selectedPlan.name }}</h3>
+                  <h3 class="text-lg font-semibold text-[#171717] dark:text-[#ececf1]">{{ selectedPlan.name }}</h3>
                 </div>
                 <!-- Price -->
                 <div class="flex items-baseline gap-2">
-                  <span v-if="selectedPlan.original_price" class="text-sm text-[#a89a8d] line-through dark:text-[#8b7c70]">
+                  <span v-if="selectedPlan.original_price" class="text-sm text-[#9b9ba7] line-through dark:text-[#8e8ea0]">
                     {{ formatSelectedSubscriptionPaymentAmount(selectedPlan.original_price) }}
                   </span>
-                  <span class="text-3xl font-semibold text-[#26211c] dark:text-[#f4efe7]">{{ formatSelectedSubscriptionPaymentAmount(selectedPlan.price) }}</span>
-                  <span class="text-sm text-[#75685d] dark:text-[#b8aa9d]">/ {{ planValiditySuffix }}</span>
+                  <span class="text-3xl font-semibold text-[#171717] dark:text-[#ececf1]">{{ formatSelectedSubscriptionPaymentAmount(selectedPlan.price) }}</span>
+                  <span class="text-sm text-[#6e6e80] dark:text-[#c5c5d2]">/ {{ planValiditySuffix }}</span>
                 </div>
                 <!-- Description -->
                 <div v-if="selectedPlan.description" class="mt-2">
                   <p
-                    class="whitespace-pre-line break-words text-sm leading-relaxed text-[#75685d] [overflow-wrap:anywhere] dark:text-[#b8aa9d]"
+                    class="whitespace-pre-line break-words text-sm leading-relaxed text-[#6e6e80] [overflow-wrap:anywhere] dark:text-[#c5c5d2]"
                   >
                     {{ selectedPlan.description }}
                   </p>
                 </div>
                 <!-- Rate + Limits grid -->
-                <div class="mt-4 grid grid-cols-2 gap-3 rounded-lg border border-[#eadfce] bg-[#f8f1e8] p-3 dark:border-[#3a3028] dark:bg-[#171310]">
+                <div class="mt-4 grid grid-cols-2 gap-3 rounded-lg border border-[#d9d9e3] bg-[#f3f3f6] p-3 dark:border-[#3f3f46] dark:bg-[#171717]">
                   <div>
-                    <span class="text-xs text-[#8f8174] dark:text-[#a29386]">{{ t('payment.planCard.rate') }}</span>
+                    <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('payment.planCard.rate') }}</span>
                     <div class="flex items-baseline">
-                      <span class="text-lg font-semibold text-[#3a3028] dark:text-[#efe5da]">×{{ selectedPlan.rate_multiplier ?? 1 }}</span>
+                      <span class="text-lg font-semibold text-[#3f3f46] dark:text-[#ececf1]">×{{ selectedPlan.rate_multiplier ?? 1 }}</span>
                     </div>
                   </div>
                   <div v-if="selectedPlan.daily_limit_usd != null">
-                    <span class="text-xs text-[#8f8174] dark:text-[#a29386]">{{ t('payment.planCard.dailyLimit') }}</span>
-                    <div class="text-lg font-semibold text-[#3a3028] dark:text-[#efe5da]">${{ selectedPlan.daily_limit_usd }}</div>
+                    <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('payment.planCard.dailyLimit') }}</span>
+                    <div class="text-lg font-semibold text-[#3f3f46] dark:text-[#ececf1]">${{ selectedPlan.daily_limit_usd }}</div>
                   </div>
                   <div v-if="selectedPlan.weekly_limit_usd != null">
-                    <span class="text-xs text-[#8f8174] dark:text-[#a29386]">{{ t('payment.planCard.weeklyLimit') }}</span>
-                    <div class="text-lg font-semibold text-[#3a3028] dark:text-[#efe5da]">${{ selectedPlan.weekly_limit_usd }}</div>
+                    <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('payment.planCard.weeklyLimit') }}</span>
+                    <div class="text-lg font-semibold text-[#3f3f46] dark:text-[#ececf1]">${{ selectedPlan.weekly_limit_usd }}</div>
                   </div>
                   <div v-if="selectedPlan.monthly_limit_usd != null">
-                    <span class="text-xs text-[#8f8174] dark:text-[#a29386]">{{ t('payment.planCard.monthlyLimit') }}</span>
-                    <div class="text-lg font-semibold text-[#3a3028] dark:text-[#efe5da]">${{ selectedPlan.monthly_limit_usd }}</div>
+                    <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('payment.planCard.monthlyLimit') }}</span>
+                    <div class="text-lg font-semibold text-[#3f3f46] dark:text-[#ececf1]">${{ selectedPlan.monthly_limit_usd }}</div>
                   </div>
                   <div v-if="selectedPlan.daily_limit_usd == null && selectedPlan.weekly_limit_usd == null && selectedPlan.monthly_limit_usd == null">
-                    <span class="text-xs text-[#8f8174] dark:text-[#a29386]">{{ t('payment.planCard.quota') }}</span>
-                    <div class="text-lg font-semibold text-[#3a3028] dark:text-[#efe5da]">{{ t('payment.planCard.unlimited') }}</div>
+                    <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('payment.planCard.quota') }}</span>
+                    <div class="text-lg font-semibold text-[#3f3f46] dark:text-[#ececf1]">{{ t('payment.planCard.unlimited') }}</div>
                   </div>
                 </div>
               </div>
@@ -214,23 +214,23 @@
                   @select="selectedMethod = $event"
                 />
               </div>
-              <div v-if="feeRate > 0 && selectedPlan.price > 0" class="rounded-lg border border-[#eadfce] bg-[#fffaf3] p-5 dark:border-[#3a3028] dark:bg-[#1f1a16]">
+              <div v-if="feeRate > 0 && selectedPlan.price > 0" class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-5 dark:border-[#3f3f46] dark:bg-[#212121]">
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-[#75685d] dark:text-[#b8aa9d]">{{ t('payment.amountLabel') }}</span>
-                    <span class="text-[#26211c] dark:text-[#f4efe7]">{{ formatSelectedPaymentAmount(subPaymentAmount) }}</span>
+                    <span class="text-[#6e6e80] dark:text-[#c5c5d2]">{{ t('payment.amountLabel') }}</span>
+                    <span class="text-[#171717] dark:text-[#ececf1]">{{ formatSelectedPaymentAmount(subPaymentAmount) }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-[#75685d] dark:text-[#b8aa9d]">{{ t('payment.fee') }} ({{ feeRate }}%)</span>
-                    <span class="text-[#26211c] dark:text-[#f4efe7]">{{ formatSelectedPaymentAmount(subFeeAmount) }}</span>
+                    <span class="text-[#6e6e80] dark:text-[#c5c5d2]">{{ t('payment.fee') }} ({{ feeRate }}%)</span>
+                    <span class="text-[#171717] dark:text-[#ececf1]">{{ formatSelectedPaymentAmount(subFeeAmount) }}</span>
                   </div>
-                  <div class="flex justify-between border-t border-[#eadfce] pt-2 dark:border-[#3a3028]">
-                    <span class="font-medium text-[#3a3028] dark:text-[#efe5da]">{{ t('payment.actualPay') }}</span>
-                    <span class="text-lg font-semibold text-[#26211c] dark:text-[#f4efe7]">{{ formatSelectedPaymentAmount(subTotalAmount) }}</span>
+                  <div class="flex justify-between border-t border-[#d9d9e3] pt-2 dark:border-[#3f3f46]">
+                    <span class="font-medium text-[#3f3f46] dark:text-[#ececf1]">{{ t('payment.actualPay') }}</span>
+                    <span class="text-lg font-semibold text-[#171717] dark:text-[#ececf1]">{{ formatSelectedPaymentAmount(subTotalAmount) }}</span>
                   </div>
                 </div>
               </div>
-              <button class="w-full rounded-lg bg-[#171310] py-3 text-base font-medium text-[#fffaf3] shadow-[0_10px_24px_rgba(23,19,16,0.18)] transition-all hover:bg-black hover:shadow-[0_14px_28px_rgba(23,19,16,0.24)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#f4efe7] dark:text-[#171310] dark:hover:bg-white" :disabled="!canSubmitSubscription || submitting" @click="confirmSubscribe">
+              <button class="w-full rounded-lg bg-[#171717] py-3 text-base font-medium text-[#ffffff] shadow-[0_10px_24px_rgba(0,0,0,0.18)] transition-all hover:bg-black hover:shadow-[0_14px_28px_rgba(0,0,0,0.24)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#ececf1] dark:text-[#171717] dark:hover:bg-white" :disabled="!canSubmitSubscription || submitting" @click="confirmSubscribe">
                 <span v-if="submitting" class="flex items-center justify-center gap-2">
                   <span class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
                   {{ t('common.processing') }}
@@ -250,17 +250,17 @@
               </div>
               <!-- Active subscriptions (compact, below plan list) -->
               <div v-if="activeSubscriptions.length > 0">
-                <p class="mb-2 text-xs font-medium text-[#8f8174] dark:text-[#a29386]">{{ t('payment.activeSubscription') }}</p>
+                <p class="mb-2 text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">{{ t('payment.activeSubscription') }}</p>
                 <div class="space-y-2">
                   <div v-for="sub in activeSubscriptions" :key="sub.id"
-                    class="flex items-center gap-3 rounded-lg border border-[#eadfce] bg-[#fffaf3] px-3 py-2 dark:border-[#3a3028] dark:bg-[#1f1a16]">
-                    <div class="h-6 w-1 shrink-0 rounded-full bg-[#d97857] dark:bg-[#c98d70]" />
+                    class="flex items-center gap-3 rounded-lg border border-[#d9d9e3] bg-[#ffffff] px-3 py-2 dark:border-[#3f3f46] dark:bg-[#212121]">
+                    <div class="h-6 w-1 shrink-0 rounded-full bg-[#10a37f] dark:bg-[#45d09a]" />
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center gap-1.5">
-                        <span class="truncate text-xs font-semibold text-[#26211c] dark:text-[#f4efe7]">{{ sub.group?.name || t('payment.groupFallback', { id: sub.group_id }) }}</span>
-                        <span class="shrink-0 rounded-md border border-[#e5d8c7] bg-[#f7efe4] px-1.5 py-0.5 text-[9px] font-medium text-[#7a4f39] dark:border-[#4d4035] dark:bg-[#2a231d] dark:text-[#d8b69b]">{{ platformLabel(sub.group?.platform || '') }}</span>
+                        <span class="truncate text-xs font-semibold text-[#171717] dark:text-[#ececf1]">{{ sub.group?.name || t('payment.groupFallback', { id: sub.group_id }) }}</span>
+                        <span class="shrink-0 rounded-md border border-[#d9d9e3] bg-[#f3f3f6] px-1.5 py-0.5 text-[9px] font-medium text-[#0d8f70] dark:border-[#565869] dark:bg-[#2f2f2f] dark:text-[#45d09a]">{{ platformLabel(sub.group?.platform || '') }}</span>
                       </div>
-                      <div class="flex flex-wrap gap-x-3 text-[11px] text-[#8f8174] dark:text-[#a29386]">
+                      <div class="flex flex-wrap gap-x-3 text-[11px] text-[#6e6e80] dark:text-[#acacbe]">
                         <span>{{ t('payment.planCard.rate') }}: ×{{ sub.group?.rate_multiplier ?? 1 }}</span>
                         <span v-if="sub.group?.daily_limit_usd == null && sub.group?.weekly_limit_usd == null && sub.group?.monthly_limit_usd == null">{{ t('payment.planCard.quota') }}: {{ t('payment.planCard.unlimited') }}</span>
                         <span v-if="sub.expires_at">{{ t('userSubscriptions.daysRemaining', { days: getDaysRemaining(sub.expires_at) }) }}</span>
@@ -288,12 +288,12 @@
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="showRenewalModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" @click.self="closeRenewalModal">
-          <div class="relative w-full max-w-lg rounded-lg border border-[#e5d8c7] bg-[#fffaf3] p-6 shadow-2xl dark:border-[#3a3028] dark:bg-[#1f1a16]">
+          <div class="relative w-full max-w-lg rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-6 shadow-2xl dark:border-[#3f3f46] dark:bg-[#212121]">
             <!-- Close button -->
-            <button class="absolute right-4 top-4 rounded-md p-1 text-[#8f8174] transition-colors hover:bg-[#f7efe4] hover:text-[#26211c] dark:text-[#a29386] dark:hover:bg-[#2a231d] dark:hover:text-[#f4efe7]" @click="closeRenewalModal">
+            <button class="absolute right-4 top-4 rounded-md p-1 text-[#6e6e80] transition-colors hover:bg-[#f3f3f6] hover:text-[#171717] dark:text-[#acacbe] dark:hover:bg-[#2f2f2f] dark:hover:text-[#ececf1]" @click="closeRenewalModal">
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <h3 class="mb-4 text-lg font-semibold text-[#26211c] dark:text-[#f4efe7]">{{ t('payment.selectPlan') }}</h3>
+            <h3 class="mb-4 text-lg font-semibold text-[#171717] dark:text-[#ececf1]">{{ t('payment.selectPlan') }}</h3>
             <div class="space-y-4">
               <SubscriptionPlanCard v-for="plan in renewalPlans" :key="plan.id" :plan="plan" :active-subscriptions="activeSubscriptions" @select="selectPlanFromModal" />
             </div>

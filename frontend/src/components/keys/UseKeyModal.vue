@@ -28,19 +28,19 @@
           {{ platformDescription }}
         </p>
 
-        <div class="rounded-lg border border-[#eadfd1] bg-[#fffaf3] p-3 dark:border-[#4b4035] dark:bg-[#1f1b16]">
+        <div class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-3 dark:border-[#565869] dark:bg-[#212121]">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
-              <label class="text-sm font-medium text-[#3d332a] dark:text-[#f4eee6]">
+              <label class="text-sm font-medium text-[#202123] dark:text-[#ececf1]">
                 {{ t('keys.useKeyModal.endpointLabel') }}
               </label>
-              <p class="mt-0.5 text-xs text-[#76685b] dark:text-[#cdbfaf]">
+              <p class="mt-0.5 text-xs text-[#6e6e80] dark:text-[#acacbe]">
                 {{ t('keys.useKeyModal.endpointHint') }}
               </p>
             </div>
             <select
               v-model="selectedBaseUrl"
-              class="min-h-[2.25rem] w-full rounded-md border border-[#d7c8b8] bg-white px-3 py-1.5 text-sm text-[#2f2923] shadow-sm transition-colors focus:border-[#c96442] focus:outline-none focus:ring-2 focus:ring-[#d97757]/20 dark:border-[#5a4a3d] dark:bg-[#27211b] dark:text-[#f7f0e8] sm:w-[22rem]"
+              class="min-h-[2.25rem] w-full rounded-md border border-[#c5c5d2] bg-white px-3 py-1.5 text-sm text-[#202123] shadow-sm transition-colors focus:border-[#10a37f] focus:outline-none focus:ring-2 focus:ring-[#10a37f]/20 dark:border-[#565869] dark:bg-[#2f2f2f] dark:text-[#ececf1] sm:w-[22rem]"
             >
               <option
                 v-for="endpoint in endpointOptions"
@@ -53,7 +53,7 @@
           </div>
           <p
             v-if="selectedEndpointDescription"
-            class="mt-2 text-xs leading-5 text-[#76685b] dark:text-[#cdbfaf]"
+            class="mt-2 text-xs leading-5 text-[#6e6e80] dark:text-[#acacbe]"
           >
             {{ selectedEndpointDescription }}
           </p>

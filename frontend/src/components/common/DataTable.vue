@@ -859,7 +859,7 @@ tbody tr:hover .sticky-col {
   background: linear-gradient(to left, rgba(0, 0, 0, 0.2), transparent);
 }
 .table-wrapper {
-  --table-surface: #fffaf3;
+  --table-surface: #ffffff;
   --table-header-surface: #f4eee5;
   --table-hover-surface: #f7f1e8;
   --table-border: rgba(112, 92, 74, 0.1);
@@ -869,8 +869,8 @@ tbody tr:hover .sticky-col {
 }
 
 .dark .table-wrapper {
-  --table-surface: #201a16;
-  --table-header-surface: #211a16;
+  --table-surface: #212121;
+  --table-header-surface: #212121;
   --table-hover-surface: #28211d;
   --table-border: rgba(244, 239, 231, 0.08);
   --table-header-border: rgba(244, 239, 231, 0.1);
@@ -946,7 +946,7 @@ tbody .sticky-col,
 .mobile-data-card,
 .mobile-data-empty {
   border: 1px solid rgba(112, 92, 74, 0.14);
-  background: #fffaf3;
+  background: #ffffff;
   border-radius: 0.875rem;
   color: #332d27;
   box-shadow: 0 1px 0 rgba(112, 92, 74, 0.05);
@@ -964,7 +964,7 @@ tbody .sticky-col,
 .dark .mobile-data-card,
 .dark .mobile-data-empty {
   border-color: rgba(244, 239, 231, 0.12);
-  background: #201a16;
+  background: #212121;
   color: #eee6dc;
   box-shadow: none;
 }

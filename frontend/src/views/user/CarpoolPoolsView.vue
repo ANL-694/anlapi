@@ -3,15 +3,15 @@
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <section class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="space-y-2">
-          <div class="inline-flex items-center gap-2 rounded-full border border-[#e7dac8] bg-[#f9f3ea] px-3 py-1 text-xs font-medium text-[#6d5c49] dark:border-[#3a3028] dark:bg-[#241e18] dark:text-[#d8c8b7]">
+          <div class="inline-flex items-center gap-2 rounded-full border border-[#d9d9e3] bg-[#f3f3f6] px-3 py-1 text-xs font-medium text-[#565869] dark:border-[#3f3f46] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]">
             <Icon name="users" size="sm" />
             <span>{{ t('carpool.title') }}</span>
           </div>
           <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-[#2f2923] dark:text-[#f4efe7]">
+            <h1 class="text-2xl font-semibold tracking-tight text-[#202123] dark:text-[#ececf1]">
               {{ t('carpool.title') }}
             </h1>
-            <p class="mt-2 max-w-3xl text-sm text-[#6b6258] dark:text-[#b8afa4]">
+            <p class="mt-2 max-w-3xl text-sm text-[#6e6e80] dark:text-[#acacbe]">
               {{ t('carpool.description') }}
             </p>
           </div>
@@ -29,14 +29,14 @@
         </div>
       </section>
 
-      <section class="rounded-2xl border border-[#eadfce] bg-white/90 p-2 shadow-sm dark:border-[#2f2721] dark:bg-[#171311]">
+      <section class="rounded-2xl border border-[#d9d9e3] bg-white/90 p-2 shadow-sm dark:border-[#3f3f46] dark:bg-[#171717]">
         <div class="grid grid-cols-2 gap-2">
           <button
             type="button"
             class="rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
             :class="activeTab === 'mine'
-              ? 'bg-[#201815] text-white dark:bg-[#f3ede4] dark:text-[#211915]'
-              : 'text-[#6b6258] hover:bg-[#f6eee3] dark:text-[#c4b7a7] dark:hover:bg-[#211915]'"
+              ? 'bg-[#171717] text-white dark:bg-[#ececf1] dark:text-[#171717]'
+              : 'text-[#6e6e80] hover:bg-[#f3f3f6] dark:text-[#c5c5d2] dark:hover:bg-[#171717]'"
             @click="activeTab = 'mine'"
           >
             {{ t('carpool.myPools') }}
@@ -45,8 +45,8 @@
             type="button"
             class="rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
             :class="activeTab === 'invite'
-              ? 'bg-[#201815] text-white dark:bg-[#f3ede4] dark:text-[#211915]'
-              : 'text-[#6b6258] hover:bg-[#f6eee3] dark:text-[#c4b7a7] dark:hover:bg-[#211915]'"
+              ? 'bg-[#171717] text-white dark:bg-[#ececf1] dark:text-[#171717]'
+              : 'text-[#6e6e80] hover:bg-[#f3f3f6] dark:text-[#c5c5d2] dark:hover:bg-[#171717]'"
             @click="activeTab = 'invite'"
           >
             {{ t('carpool.joinByInvite') }}
@@ -56,24 +56,24 @@
 
       <section
         v-if="activeTab === 'mine' && mineOverview"
-        class="rounded-2xl border border-[#eadfce] bg-[#fbf6ef] p-4 shadow-sm dark:border-[#2f2721] dark:bg-[#171311] sm:p-5"
+        class="rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-4 shadow-sm dark:border-[#3f3f46] dark:bg-[#171717] sm:p-5"
       >
         <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#211915]">
-            <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.totalPools') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">{{ carpoolStats.total }}</div>
+          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#171717]">
+            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.totalPools') }}</div>
+            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">{{ carpoolStats.total }}</div>
           </div>
-          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#211915]">
-            <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.myOwnedPools') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">{{ carpoolStats.owned }}</div>
+          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#171717]">
+            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.myOwnedPools') }}</div>
+            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">{{ carpoolStats.owned }}</div>
           </div>
-          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#211915]">
-            <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.joinedPools') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">{{ carpoolStats.joined }}</div>
+          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#171717]">
+            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.joinedPools') }}</div>
+            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">{{ carpoolStats.joined }}</div>
           </div>
-          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#211915]">
-            <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.pendingApplications') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">{{ carpoolStats.pending }}</div>
+          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#171717]">
+            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.pendingApplications') }}</div>
+            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">{{ carpoolStats.pending }}</div>
           </div>
         </div>
 
@@ -106,10 +106,10 @@
         <template v-if="activeTab === 'mine'">
           <section class="space-y-4">
             <div class="flex items-center justify-between">
-              <h2 class="text-base font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+              <h2 class="text-base font-semibold text-[#202123] dark:text-[#ececf1]">
                 {{ t('carpool.myOwnedPools') }}
               </h2>
-              <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+              <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                 {{ filteredOwnedPools.length }}/{{ ownedPools.length }}
               </span>
             </div>
@@ -124,19 +124,19 @@
               <article
                 v-for="summary in pagedOwnedPools"
                 :key="`owned-${summary.pool.id}`"
-                class="rounded-2xl border border-[#eadfce] bg-white/95 p-5 shadow-sm transition-colors dark:border-[#2f2721] dark:bg-[#171311]"
+                class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 shadow-sm transition-colors dark:border-[#3f3f46] dark:bg-[#171717]"
               >
                 <div class="flex flex-col gap-4">
                   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div class="space-y-2">
                       <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                        <h3 class="text-lg font-semibold text-[#202123] dark:text-[#ececf1]">
                           {{ summary.pool.name }}
                         </h3>
                         <span :class="poolStatusClass(summary.pool.status)" class="rounded-full px-2.5 py-1 text-xs font-medium">
                           {{ poolStatusLabel(summary.pool.status) }}
                         </span>
-                        <span class="rounded-full bg-[#f7efe4] px-2.5 py-1 text-xs font-medium text-[#7b6551] dark:bg-[#241d19] dark:text-[#d1beaa]">
+                        <span class="rounded-full bg-[#f3f3f6] px-2.5 py-1 text-xs font-medium text-[#565869] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]">
                           {{ t('carpool.owner') }}
                         </span>
                       </div>
@@ -148,7 +148,7 @@
                           subscription-type="subscription"
                           :show-rate="false"
                         />
-                        <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+                        <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                           {{ visibilityLabel(summary.pool.visibility) }}
                         </span>
                       </div>
@@ -168,34 +168,34 @@
                   </div>
 
                   <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                    <div class="rounded-xl bg-[#faf4eb] p-3 dark:bg-[#211915]">
-                      <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.seats') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="rounded-xl bg-[#f3f3f6] p-3 dark:bg-[#171717]">
+                      <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.seats') }}</div>
+                      <div class="mt-1 text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                         {{ summary.active_members }}/{{ summary.pool.target_seats }}
                       </div>
                     </div>
-                    <div class="rounded-xl bg-[#faf4eb] p-3 dark:bg-[#211915]">
-                      <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.pendingApplications') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="rounded-xl bg-[#f3f3f6] p-3 dark:bg-[#171717]">
+                      <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.pendingApplications') }}</div>
+                      <div class="mt-1 text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                         {{ summary.pending_applications }}
                       </div>
                     </div>
-                    <div class="rounded-xl bg-[#faf4eb] p-3 dark:bg-[#211915]">
-                      <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.boundAccounts') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="rounded-xl bg-[#f3f3f6] p-3 dark:bg-[#171717]">
+                      <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.boundAccounts') }}</div>
+                      <div class="mt-1 text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                         {{ summary.bound_account_count }}
                       </div>
                     </div>
-                    <div class="rounded-xl bg-[#faf4eb] p-3 dark:bg-[#211915]">
-                      <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.durationDays') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="rounded-xl bg-[#f3f3f6] p-3 dark:bg-[#171717]">
+                      <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.durationDays') }}</div>
+                      <div class="mt-1 text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                         {{ summary.pool.duration_days }}
                       </div>
                     </div>
                   </div>
 
                   <div v-if="poolDetail(summary.pool.id)" class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div class="rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+                    <div class="rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
                       <UsageProgressBar
                         label="5h"
                         :utilization="poolDetailUsageUtilization(poolDetail(summary.pool.id), '5h')"
@@ -205,7 +205,7 @@
                         color="indigo"
                       />
                     </div>
-                    <div class="rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+                    <div class="rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
                       <UsageProgressBar
                         label="7d"
                         :utilization="poolDetailUsageUtilization(poolDetail(summary.pool.id), '7d')"
@@ -218,13 +218,13 @@
                   </div>
 
                   <div class="grid grid-cols-1 gap-3">
-                    <div v-if="poolExpanded(summary.pool.id)" class="rounded-xl border border-[#efe3d4] p-3 dark:border-[#312823]">
-                      <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.feeSummary') }}</div>
-                      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#2f2923] dark:text-[#f4efe7]">
+                    <div v-if="poolExpanded(summary.pool.id)" class="rounded-xl border border-[#d9d9e3] p-3 dark:border-[#3f3f46]">
+                      <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.feeSummary') }}</div>
+                      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#202123] dark:text-[#ececf1]">
                         <span>{{ t('carpool.seatPrice') }}: {{ formatMoney(summary.pool.seat_price) }}</span>
                         <span>{{ t('carpool.extraFee') }}: {{ formatExtraFeeMoney(summary.pool.extra_fee) }}</span>
                       </div>
-                      <p v-if="summary.pool.extra_fee_description" class="mt-2 text-xs text-[#8c7f73] dark:text-[#998c80]">
+                      <p v-if="summary.pool.extra_fee_description" class="mt-2 text-xs text-[#6e6e80] dark:text-[#acacbe]">
                         {{ summary.pool.extra_fee_description }}
                       </p>
                       <div class="mt-3 flex flex-wrap gap-1.5">
@@ -238,14 +238,14 @@
                     </div>
                   </div>
 
-                  <div v-if="poolExpanded(summary.pool.id) && poolDetailLoading(summary.pool.id)" class="rounded-xl border border-dashed border-[#dccbb6] px-4 py-6 text-center text-sm text-[#8c7f73] dark:border-[#3a3028] dark:text-[#998c80]">
+                  <div v-if="poolExpanded(summary.pool.id) && poolDetailLoading(summary.pool.id)" class="rounded-xl border border-dashed border-[#c5c5d2] px-4 py-6 text-center text-sm text-[#6e6e80] dark:border-[#3f3f46] dark:text-[#acacbe]">
                     {{ t('common.loading') }}
                   </div>
                   <template v-else-if="poolExpanded(summary.pool.id) && poolDetail(summary.pool.id)">
                     <section class="grid grid-cols-1 gap-3">
-                      <div class="rounded-xl border border-[#efe3d4] p-3 dark:border-[#312823]">
+                      <div class="rounded-xl border border-[#d9d9e3] p-3 dark:border-[#3f3f46]">
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                          <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.inviteCode') }}</div>
+                          <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.inviteCode') }}</div>
                           <div class="flex flex-wrap gap-2">
                             <button type="button" class="btn btn-secondary btn-sm" @click="copyInviteCode(poolDetail(summary.pool.id)!.pool.invite_code)">
                               <Icon name="copy" size="sm" class="mr-1" />
@@ -257,16 +257,16 @@
                             </button>
                           </div>
                         </div>
-                        <div class="mt-2 break-all rounded-lg bg-[#f7efe4] px-3 py-2 font-mono text-sm text-[#2f2923] dark:bg-[#241d19] dark:text-[#f4efe7]">
+                        <div class="mt-2 break-all rounded-lg bg-[#f3f3f6] px-3 py-2 font-mono text-sm text-[#202123] dark:bg-[#2f2f2f] dark:text-[#ececf1]">
                           {{ poolDetail(summary.pool.id)!.pool.invite_code }}
                         </div>
                       </div>
 
-                      <div class="text-xs font-medium text-[#8c7f73] dark:text-[#998c80]">
+                      <div class="text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">
                         {{ t('carpool.accountWindowUsage') }}
                       </div>
                       <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <div class="rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+                        <div class="rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
                           <UsageProgressBar
                             label="5h"
                             :utilization="poolDetailUsageUtilization(poolDetail(summary.pool.id), '5h')"
@@ -276,7 +276,7 @@
                             color="indigo"
                           />
                         </div>
-                        <div class="rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+                        <div class="rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
                           <UsageProgressBar
                             label="7d"
                             :utilization="poolDetailUsageUtilization(poolDetail(summary.pool.id), '7d')"
@@ -288,22 +288,22 @@
                         </div>
                       </div>
 
-                      <div class="rounded-xl border border-[#efe3d4] p-3 dark:border-[#312823]">
+                      <div class="rounded-xl border border-[#d9d9e3] p-3 dark:border-[#3f3f46]">
                         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                          <div class="text-xs font-medium text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.accounts') }}</div>
-                          <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ poolDetail(summary.pool.id)!.accounts.length }}</span>
+                          <div class="text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.accounts') }}</div>
+                          <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ poolDetail(summary.pool.id)!.accounts.length }}</span>
                         </div>
-                        <div v-if="poolDetail(summary.pool.id)!.accounts.length === 0" class="rounded-lg border border-dashed border-[#dccbb6] px-3 py-5 text-center text-xs text-[#8c7f73] dark:border-[#3a3028] dark:text-[#998c80]">
+                        <div v-if="poolDetail(summary.pool.id)!.accounts.length === 0" class="rounded-lg border border-dashed border-[#c5c5d2] px-3 py-5 text-center text-xs text-[#6e6e80] dark:border-[#3f3f46] dark:text-[#acacbe]">
                           {{ t('carpool.noAccountsBound') }}
                         </div>
                         <div v-else class="grid grid-cols-1 gap-2">
                           <div
                             v-for="account in poolDetail(summary.pool.id)!.accounts"
                             :key="account.id"
-                            class="rounded-lg bg-[#faf4eb] p-3 dark:bg-[#211915]"
+                            class="rounded-lg bg-[#f3f3f6] p-3 dark:bg-[#171717]"
                           >
                             <div class="flex flex-wrap items-center justify-between gap-2">
-                              <div class="min-w-0 truncate text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                              <div class="min-w-0 truncate text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                                 {{ account.name }}
                               </div>
                               <div class="flex flex-wrap items-center gap-2">
@@ -332,9 +332,9 @@
                         </div>
                       </div>
 
-                      <div class="rounded-xl border border-[#efe3d4] p-3 dark:border-[#312823]">
+                      <div class="rounded-xl border border-[#d9d9e3] p-3 dark:border-[#3f3f46]">
                         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                          <div class="text-xs font-medium text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.members') }}</div>
+                          <div class="text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.members') }}</div>
                           <button
                             type="button"
                             class="btn btn-secondary btn-sm"
@@ -347,14 +347,14 @@
                           <div
                             v-for="member in poolVisibleMembers(poolDetail(summary.pool.id))"
                             :key="member.member.id"
-                            class="rounded-lg bg-[#faf4eb] p-3 dark:bg-[#211915]"
+                            class="rounded-lg bg-[#f3f3f6] p-3 dark:bg-[#171717]"
                           >
                             <div class="flex flex-wrap items-center justify-between gap-2">
                               <div class="min-w-0">
-                                <div class="truncate text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                                <div class="truncate text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                                   {{ member.username || member.masked_email }}
                                 </div>
-                                <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+                                <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                                   {{ memberRoleLabel(member.member.role) }} · {{ formatPercent(memberAllocationPercent(member, poolDetail(summary.pool.id)?.pool.target_seats)) }}
                                 </div>
                               </div>
@@ -390,26 +390,26 @@
                         </div>
                       </div>
 
-                      <div v-if="poolDetail(summary.pool.id)!.join_requests.length > 0" class="rounded-xl border border-[#efe3d4] p-3 dark:border-[#312823]">
-                        <div class="mb-3 text-xs font-medium text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.joinRequests') }}</div>
+                      <div v-if="poolDetail(summary.pool.id)!.join_requests.length > 0" class="rounded-xl border border-[#d9d9e3] p-3 dark:border-[#3f3f46]">
+                        <div class="mb-3 text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.joinRequests') }}</div>
                         <div class="space-y-2">
                           <div
                             v-for="requestProfile in poolDetail(summary.pool.id)!.join_requests"
                             :key="requestProfile.request.id"
-                            class="rounded-lg bg-[#faf4eb] p-3 dark:bg-[#211915]"
+                            class="rounded-lg bg-[#f3f3f6] p-3 dark:bg-[#171717]"
                           >
                             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                               <div class="min-w-0 space-y-2">
                                 <div class="flex flex-wrap items-center gap-2">
-                                  <span class="truncate text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                                  <span class="truncate text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                                     {{ requestProfile.username || requestProfile.masked_email }}
                                   </span>
                                   <span :class="requestStatusClass(requestProfile.request.status)" class="rounded-full px-2 py-0.5 text-[11px] font-medium">
                                     {{ requestStatusLabel(requestProfile.request.status) }}
                                   </span>
                                 </div>
-                                <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ requestProfile.masked_email }}</div>
-                                <div class="grid grid-cols-2 gap-2 text-xs text-[#8c7f73] dark:text-[#998c80] md:grid-cols-4">
+                                <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ requestProfile.masked_email }}</div>
+                                <div class="grid grid-cols-2 gap-2 text-xs text-[#6e6e80] dark:text-[#acacbe] md:grid-cols-4">
                                   <div>{{ t('carpool.totalRequests') }}: {{ formatInteger(requestProfile.usage.total_requests) }}</div>
                                   <div>{{ t('carpool.totalTokens') }}: {{ formatTokenCount(requestProfile.usage.total_tokens) }}</div>
                                   <div>{{ t('carpool.last7dTokens') }}: {{ formatTokenCount(requestProfile.usage.last_7d_tokens) }}</div>
@@ -462,15 +462,15 @@
               </article>
             </div>
 
-            <div v-if="ownedPageCount > 1" class="flex flex-col gap-3 rounded-2xl border border-[#eadfce] bg-white/80 p-3 dark:border-[#2f2721] dark:bg-[#171311] sm:flex-row sm:items-center sm:justify-between">
-              <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+            <div v-if="ownedPageCount > 1" class="flex flex-col gap-3 rounded-2xl border border-[#d9d9e3] bg-white/80 p-3 dark:border-[#3f3f46] dark:bg-[#171717] sm:flex-row sm:items-center sm:justify-between">
+              <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                 {{ paginationInfo(ownedPage, filteredOwnedPools.length) }}
               </div>
               <div class="flex items-center justify-end gap-2">
                 <button type="button" class="btn btn-secondary btn-sm" :disabled="ownedPage <= 1" @click="setOwnedPage(ownedPage - 1)">
                   {{ t('carpool.previousPage') }}
                 </button>
-                <span class="min-w-16 text-center text-xs font-medium text-[#6b6258] dark:text-[#b8afa4]">
+                <span class="min-w-16 text-center text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">
                   {{ ownedPage }}/{{ ownedPageCount }}
                 </span>
                 <button type="button" class="btn btn-secondary btn-sm" :disabled="ownedPage >= ownedPageCount" @click="setOwnedPage(ownedPage + 1)">
@@ -482,10 +482,10 @@
 
           <section class="space-y-4">
             <div class="flex items-center justify-between">
-              <h2 class="text-base font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+              <h2 class="text-base font-semibold text-[#202123] dark:text-[#ececf1]">
                 {{ t('carpool.joinedPools') }}
               </h2>
-              <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+              <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                 {{ filteredJoinedPools.length }}/{{ joinedPools.length }}
               </span>
             </div>
@@ -500,19 +500,19 @@
               <article
                 v-for="summary in pagedJoinedPools"
                 :key="`joined-${summary.pool.id}`"
-                class="rounded-2xl border border-[#eadfce] bg-white/95 p-5 shadow-sm transition-colors dark:border-[#2f2721] dark:bg-[#171311]"
+                class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 shadow-sm transition-colors dark:border-[#3f3f46] dark:bg-[#171717]"
               >
                 <div class="flex flex-col gap-4">
                   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div class="space-y-2">
                       <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                        <h3 class="text-lg font-semibold text-[#202123] dark:text-[#ececf1]">
                           {{ summary.pool.name }}
                         </h3>
                         <span :class="poolStatusClass(summary.pool.status)" class="rounded-full px-2.5 py-1 text-xs font-medium">
                           {{ poolStatusLabel(summary.pool.status) }}
                         </span>
-                        <span class="rounded-full bg-[#f7efe4] px-2.5 py-1 text-xs font-medium text-[#7b6551] dark:bg-[#241d19] dark:text-[#d1beaa]">
+                        <span class="rounded-full bg-[#f3f3f6] px-2.5 py-1 text-xs font-medium text-[#565869] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]">
                           {{ currentUserStatusLabel(summary.current_user_status) }}
                         </span>
                       </div>
@@ -537,28 +537,28 @@
                   </div>
 
                   <div class="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                    <div class="rounded-xl bg-[#faf4eb] p-3 dark:bg-[#211915]">
-                      <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.seats') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="rounded-xl bg-[#f3f3f6] p-3 dark:bg-[#171717]">
+                      <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.seats') }}</div>
+                      <div class="mt-1 text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                         {{ summary.active_members }}/{{ summary.pool.target_seats }}
                       </div>
                     </div>
-                    <div class="rounded-xl bg-[#faf4eb] p-3 dark:bg-[#211915]">
-                      <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.durationDays') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="rounded-xl bg-[#f3f3f6] p-3 dark:bg-[#171717]">
+                      <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.durationDays') }}</div>
+                      <div class="mt-1 text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                         {{ summary.pool.duration_days }}
                       </div>
                     </div>
-                    <div class="rounded-xl bg-[#faf4eb] p-3 dark:bg-[#211915]">
-                      <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.seatPrice') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="rounded-xl bg-[#f3f3f6] p-3 dark:bg-[#171717]">
+                      <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.seatPrice') }}</div>
+                      <div class="mt-1 text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                         {{ formatMoney(summary.pool.seat_price) }}
                       </div>
                     </div>
                   </div>
 
                   <div v-if="poolDetail(summary.pool.id)" class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div class="rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+                    <div class="rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
                       <UsageProgressBar
                         label="5h"
                         :utilization="currentMemberUsageUtilization(poolDetail(summary.pool.id), '5h')"
@@ -568,7 +568,7 @@
                         color="indigo"
                       />
                     </div>
-                    <div class="rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+                    <div class="rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
                       <UsageProgressBar
                         label="7d"
                         :utilization="currentMemberUsageUtilization(poolDetail(summary.pool.id), '7d')"
@@ -580,26 +580,26 @@
                     </div>
                   </div>
 
-                  <div v-if="poolExpanded(summary.pool.id) && poolDetailLoading(summary.pool.id)" class="rounded-xl border border-dashed border-[#dccbb6] px-4 py-6 text-center text-sm text-[#8c7f73] dark:border-[#3a3028] dark:text-[#998c80]">
+                  <div v-if="poolExpanded(summary.pool.id) && poolDetailLoading(summary.pool.id)" class="rounded-xl border border-dashed border-[#c5c5d2] px-4 py-6 text-center text-sm text-[#6e6e80] dark:border-[#3f3f46] dark:text-[#acacbe]">
                     {{ t('common.loading') }}
                   </div>
                   <template v-else-if="poolExpanded(summary.pool.id) && poolDetail(summary.pool.id)">
-                    <div class="rounded-xl border border-[#efe3d4] p-3 dark:border-[#312823]">
+                    <div class="rounded-xl border border-[#d9d9e3] p-3 dark:border-[#3f3f46]">
                       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <div class="text-xs font-medium text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.accounts') }}</div>
-                        <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ poolDetail(summary.pool.id)!.accounts.length }}</span>
+                        <div class="text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.accounts') }}</div>
+                        <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ poolDetail(summary.pool.id)!.accounts.length }}</span>
                       </div>
-                      <div v-if="poolDetail(summary.pool.id)!.accounts.length === 0" class="rounded-lg border border-dashed border-[#dccbb6] px-3 py-5 text-center text-xs text-[#8c7f73] dark:border-[#3a3028] dark:text-[#998c80]">
+                      <div v-if="poolDetail(summary.pool.id)!.accounts.length === 0" class="rounded-lg border border-dashed border-[#c5c5d2] px-3 py-5 text-center text-xs text-[#6e6e80] dark:border-[#3f3f46] dark:text-[#acacbe]">
                         {{ t('carpool.noAccountsBound') }}
                       </div>
                       <div v-else class="grid grid-cols-1 gap-2">
                         <div
                           v-for="account in poolDetail(summary.pool.id)!.accounts"
                           :key="account.id"
-                          class="rounded-lg bg-[#faf4eb] p-3 dark:bg-[#211915]"
+                          class="rounded-lg bg-[#f3f3f6] p-3 dark:bg-[#171717]"
                         >
                           <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div class="min-w-0 truncate text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                            <div class="min-w-0 truncate text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                               {{ account.name }}
                             </div>
                             <span :class="accountStatusBadgeClass(account.status)">
@@ -616,24 +616,24 @@
                         </div>
                       </div>
                     </div>
-                    <div class="rounded-xl border border-[#efe3d4] p-3 dark:border-[#312823]">
-                      <div class="mb-3 text-xs font-medium text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.members') }}</div>
+                    <div class="rounded-xl border border-[#d9d9e3] p-3 dark:border-[#3f3f46]">
+                      <div class="mb-3 text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.members') }}</div>
                       <div class="grid grid-cols-1 gap-2">
                         <div
                           v-for="member in poolVisibleMembers(poolDetail(summary.pool.id))"
                           :key="member.member.id"
-                          class="rounded-lg bg-[#faf4eb] p-3 dark:bg-[#211915]"
+                          class="rounded-lg bg-[#f3f3f6] p-3 dark:bg-[#171717]"
                         >
                           <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="min-w-0">
-                              <div class="truncate text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                              <div class="truncate text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                                 {{ member.username || member.masked_email }}
                               </div>
-                              <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+                              <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                                 {{ memberRoleLabel(member.member.role) }} · {{ formatPercent(memberAllocationPercent(member, poolDetail(summary.pool.id)?.pool.target_seats)) }}
                               </div>
                             </div>
-                            <div class="text-right text-xs text-[#8c7f73] dark:text-[#998c80]">
+                            <div class="text-right text-xs text-[#6e6e80] dark:text-[#acacbe]">
                               <div>{{ t('carpool.totalTokens') }}: {{ formatTokenCount(member.total_tokens) }}</div>
                               <div>{{ t('carpool.totalCost') }}: {{ formatMoney(member.total_cost_usd) }}</div>
                             </div>
@@ -664,15 +664,15 @@
               </article>
             </div>
 
-            <div v-if="joinedPageCount > 1" class="flex flex-col gap-3 rounded-2xl border border-[#eadfce] bg-white/80 p-3 dark:border-[#2f2721] dark:bg-[#171311] sm:flex-row sm:items-center sm:justify-between">
-              <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+            <div v-if="joinedPageCount > 1" class="flex flex-col gap-3 rounded-2xl border border-[#d9d9e3] bg-white/80 p-3 dark:border-[#3f3f46] dark:bg-[#171717] sm:flex-row sm:items-center sm:justify-between">
+              <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                 {{ paginationInfo(joinedPage, filteredJoinedPools.length) }}
               </div>
               <div class="flex items-center justify-end gap-2">
                 <button type="button" class="btn btn-secondary btn-sm" :disabled="joinedPage <= 1" @click="setJoinedPage(joinedPage - 1)">
                   {{ t('carpool.previousPage') }}
                 </button>
-                <span class="min-w-16 text-center text-xs font-medium text-[#6b6258] dark:text-[#b8afa4]">
+                <span class="min-w-16 text-center text-xs font-medium text-[#6e6e80] dark:text-[#acacbe]">
                   {{ joinedPage }}/{{ joinedPageCount }}
                 </span>
                 <button type="button" class="btn btn-secondary btn-sm" :disabled="joinedPage >= joinedPageCount" @click="setJoinedPage(joinedPage + 1)">
@@ -684,24 +684,24 @@
         </template>
 
         <template v-else>
-          <section class="rounded-2xl border border-[#eadfce] bg-[#fbf6ef] p-5 shadow-sm dark:border-[#2f2721] dark:bg-[#171311] sm:p-6">
+          <section class="rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-5 shadow-sm dark:border-[#3f3f46] dark:bg-[#171717] sm:p-6">
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,480px)] lg:items-center">
               <div class="min-w-0 space-y-3">
-                <div class="inline-flex items-center gap-2 rounded-full border border-[#e7dac8] bg-white/80 px-3 py-1 text-xs font-medium text-[#6d5c49] dark:border-[#3a3028] dark:bg-[#241e18] dark:text-[#d8c8b7]">
+                <div class="inline-flex items-center gap-2 rounded-full border border-[#d9d9e3] bg-white/80 px-3 py-1 text-xs font-medium text-[#565869] dark:border-[#3f3f46] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]">
                   <Icon name="key" size="sm" />
                   <span>{{ t('carpool.joinByInvite') }}</span>
                 </div>
                 <div>
-                  <h2 class="text-xl font-semibold tracking-tight text-[#2f2923] dark:text-[#f4efe7]">
+                  <h2 class="text-xl font-semibold tracking-tight text-[#202123] dark:text-[#ececf1]">
                     {{ t('carpool.inviteEntryTitle') }}
                   </h2>
-                  <p class="mt-2 max-w-2xl text-sm leading-6 text-[#6b6258] dark:text-[#b8afa4]">
+                  <p class="mt-2 max-w-2xl text-sm leading-6 text-[#6e6e80] dark:text-[#acacbe]">
                     {{ t('carpool.joinByInviteHint') }}
                   </p>
                 </div>
               </div>
 
-              <div class="rounded-2xl border border-[#eadfce] bg-white/95 p-4 shadow-sm dark:border-[#302722] dark:bg-[#1b1512]">
+              <div class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-4 shadow-sm dark:border-[#3f3f46] dark:bg-[#171717]">
                 <label class="input-label">{{ t('carpool.inviteCode') }}</label>
                 <div class="mt-2 flex flex-col gap-2 sm:flex-row">
                   <input
@@ -757,20 +757,20 @@
           <label class="input-label">{{ t('carpool.seatPrice') }}</label>
           <input v-model.number="createForm.seatPrice" class="input" type="number" min="0" step="0.01" required />
         </div>
-        <section class="md:col-span-2 rounded-2xl border border-[#eadfce] bg-[#fbf6ef] p-4 dark:border-[#302722] dark:bg-[#1b1512]">
+        <section class="md:col-span-2 rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-4 dark:border-[#3f3f46] dark:bg-[#171717]">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div class="text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+              <div class="text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                 {{ t('carpool.ownerPaidServices') }}
               </div>
-              <p class="mt-1 text-xs leading-5 text-[#7a6b5d] dark:text-[#b8afa4]">
+              <p class="mt-1 text-xs leading-5 text-[#6e6e80] dark:text-[#acacbe]">
                 {{ t('carpool.ownerPaidServicesHint') }}
               </p>
-              <p class="mt-1 text-xs leading-5 font-medium text-[#6d5c49] dark:text-[#d8c8b7]">
+              <p class="mt-1 text-xs leading-5 font-medium text-[#565869] dark:text-[#c5c5d2]">
                 {{ t('carpool.defaultServiceFeeHint', { amount: formatExtraFeeMoney(carpoolBaseServiceFee) }) }}
               </p>
             </div>
-            <div class="rounded-full bg-[#201815] px-3 py-1 text-xs font-semibold text-white dark:bg-[#f3ede4] dark:text-[#211915]">
+            <div class="rounded-full bg-[#171717] px-3 py-1 text-xs font-semibold text-white dark:bg-[#ececf1] dark:text-[#171717]">
               {{ t('carpool.selectedExtraFeeSummary', { amount: formatExtraFeeMoney(createExtraFee) }) }}
             </div>
           </div>
@@ -780,27 +780,27 @@
               type="button"
               class="flex cursor-pointer gap-3 rounded-xl border p-4 text-left transition-colors"
               :class="createForm.useSystemProxyService
-                ? 'border-[#201815] bg-white shadow-sm dark:border-[#f3ede4] dark:bg-[#171311]'
-                : 'border-[#eadfce] bg-white/90 hover:border-[#d8c2a8] dark:border-[#2f2721] dark:bg-[#171311] dark:hover:border-[#5a4635]'"
+                ? 'border-[#171717] bg-white shadow-sm dark:border-[#ececf1] dark:bg-[#171717]'
+                : 'border-[#d9d9e3] bg-white/90 hover:border-[#d8c2a8] dark:border-[#3f3f46] dark:bg-[#171717] dark:hover:border-[#5a4635]'"
               @click="createForm.useSystemProxyService = !createForm.useSystemProxyService"
             >
               <span
                 class="mt-0.5 flex h-6 w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
-                :class="createForm.useSystemProxyService ? 'bg-[#201815] dark:bg-[#f3ede4]' : 'bg-[#d8c9b8] dark:bg-[#3a3028]'"
+                :class="createForm.useSystemProxyService ? 'bg-[#171717] dark:bg-[#ececf1]' : 'bg-[#d8c9b8] dark:bg-[#3f3f46]'"
               >
                 <span
-                  class="h-5 w-5 rounded-full bg-white shadow-sm transition-transform dark:bg-[#171311]"
-                  :class="createForm.useSystemProxyService ? 'translate-x-5 dark:bg-[#211915]' : 'translate-x-0'"
+                  class="h-5 w-5 rounded-full bg-white shadow-sm transition-transform dark:bg-[#171717]"
+                  :class="createForm.useSystemProxyService ? 'translate-x-5 dark:bg-[#171717]' : 'translate-x-0'"
                 ></span>
               </span>
               <span class="min-w-0 flex-1">
                 <span class="flex flex-wrap items-center gap-2">
-                  <span class="text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">{{ t('carpool.systemProxyService') }}</span>
-                  <span class="rounded-full bg-[#f4eadc] px-2 py-0.5 text-[11px] font-semibold text-[#765f48] dark:bg-[#241d19] dark:text-[#dcc7ad]">
+                  <span class="text-sm font-semibold text-[#202123] dark:text-[#ececf1]">{{ t('carpool.systemProxyService') }}</span>
+                  <span class="rounded-full bg-[#e6f6f1] px-2 py-0.5 text-[11px] font-semibold text-[#765f48] dark:bg-[#2f2f2f] dark:text-[#dcc7ad]">
                     {{ t('carpool.monthlyFee', { amount: formatExtraFeeMoney(carpoolSystemProxyFee) }) }}
                   </span>
                 </span>
-                <span class="mt-1 block text-xs leading-5 text-[#7a6b5d] dark:text-[#b8afa4]">
+                <span class="mt-1 block text-xs leading-5 text-[#6e6e80] dark:text-[#acacbe]">
                   {{ t('carpool.systemProxyServiceDescription') }}
                 </span>
               </span>
@@ -810,35 +810,35 @@
               type="button"
               class="flex cursor-pointer gap-3 rounded-xl border p-4 text-left transition-colors"
               :class="createForm.useRiskControlService
-                ? 'border-[#201815] bg-white shadow-sm dark:border-[#f3ede4] dark:bg-[#171311]'
-                : 'border-[#eadfce] bg-white/90 hover:border-[#d8c2a8] dark:border-[#2f2721] dark:bg-[#171311] dark:hover:border-[#5a4635]'"
+                ? 'border-[#171717] bg-white shadow-sm dark:border-[#ececf1] dark:bg-[#171717]'
+                : 'border-[#d9d9e3] bg-white/90 hover:border-[#d8c2a8] dark:border-[#3f3f46] dark:bg-[#171717] dark:hover:border-[#5a4635]'"
               @click="createForm.useRiskControlService = !createForm.useRiskControlService"
             >
               <span
                 class="mt-0.5 flex h-6 w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
-                :class="createForm.useRiskControlService ? 'bg-[#201815] dark:bg-[#f3ede4]' : 'bg-[#d8c9b8] dark:bg-[#3a3028]'"
+                :class="createForm.useRiskControlService ? 'bg-[#171717] dark:bg-[#ececf1]' : 'bg-[#d8c9b8] dark:bg-[#3f3f46]'"
               >
                 <span
-                  class="h-5 w-5 rounded-full bg-white shadow-sm transition-transform dark:bg-[#171311]"
-                  :class="createForm.useRiskControlService ? 'translate-x-5 dark:bg-[#211915]' : 'translate-x-0'"
+                  class="h-5 w-5 rounded-full bg-white shadow-sm transition-transform dark:bg-[#171717]"
+                  :class="createForm.useRiskControlService ? 'translate-x-5 dark:bg-[#171717]' : 'translate-x-0'"
                 ></span>
               </span>
               <span class="min-w-0 flex-1">
                 <span class="flex flex-wrap items-center gap-2">
-                  <span class="text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">{{ t('carpool.riskControlService') }}</span>
-                  <span class="rounded-full bg-[#f4eadc] px-2 py-0.5 text-[11px] font-semibold text-[#765f48] dark:bg-[#241d19] dark:text-[#dcc7ad]">
+                  <span class="text-sm font-semibold text-[#202123] dark:text-[#ececf1]">{{ t('carpool.riskControlService') }}</span>
+                  <span class="rounded-full bg-[#e6f6f1] px-2 py-0.5 text-[11px] font-semibold text-[#765f48] dark:bg-[#2f2f2f] dark:text-[#dcc7ad]">
                     {{ t('carpool.monthlyFee', { amount: formatExtraFeeMoney(carpoolRiskControlFee) }) }}
                   </span>
                 </span>
-                <span class="mt-1 block text-xs leading-5 text-[#7a6b5d] dark:text-[#b8afa4]">
+                <span class="mt-1 block text-xs leading-5 text-[#6e6e80] dark:text-[#acacbe]">
                   {{ t('carpool.riskControlServiceDescription') }}
                 </span>
               </span>
             </button>
           </div>
 
-          <div class="mt-3 rounded-xl border border-[#eadfce] bg-white/70 px-3 py-2 text-xs text-[#7a6b5d] dark:border-[#2f2721] dark:bg-[#171311] dark:text-[#b8afa4]">
-            <span class="font-medium text-[#2f2923] dark:text-[#f4efe7]">{{ t('carpool.extraFeeDescription') }}:</span>
+          <div class="mt-3 rounded-xl border border-[#d9d9e3] bg-white/70 px-3 py-2 text-xs text-[#6e6e80] dark:border-[#3f3f46] dark:bg-[#171717] dark:text-[#acacbe]">
+            <span class="font-medium text-[#202123] dark:text-[#ececf1]">{{ t('carpool.extraFeeDescription') }}:</span>
             {{ createExtraFeeDescription || t('carpool.noExtraFeeSelected') }}
           </div>
         </section>
@@ -872,12 +872,12 @@
       @close="closeBindDialog"
     >
       <div class="space-y-4">
-        <div class="rounded-xl border border-dashed border-[#dccbb6] bg-[#fbf6ef] px-4 py-3 text-sm text-[#6d5c49] dark:border-[#3a3028] dark:bg-[#1a1512] dark:text-[#d8c8b7]">
+        <div class="rounded-xl border border-dashed border-[#c5c5d2] bg-[#f7f7f8] px-4 py-3 text-sm text-[#565869] dark:border-[#3f3f46] dark:bg-[#1a1512] dark:text-[#c5c5d2]">
           {{ t('carpool.bindAccountsHint') }}
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="text-sm text-[#6b6258] dark:text-[#b8afa4]">
+          <div class="text-sm text-[#6e6e80] dark:text-[#acacbe]">
             {{ t('carpool.selectedAccounts', { count: selectedBindAccountIds.length }) }}
           </div>
           <button type="button" class="btn btn-secondary btn-sm" :disabled="loadingOwnerAccounts" @click="reloadOwnerAccounts">
@@ -886,17 +886,17 @@
           </button>
         </div>
 
-        <div v-if="loadingOwnerAccounts" class="rounded-xl border border-[#efe3d4] px-4 py-10 text-center text-sm text-[#8c7f73] dark:border-[#312823] dark:text-[#998c80]">
+        <div v-if="loadingOwnerAccounts" class="rounded-xl border border-[#d9d9e3] px-4 py-10 text-center text-sm text-[#6e6e80] dark:border-[#3f3f46] dark:text-[#acacbe]">
           {{ t('common.loading') }}
         </div>
-        <div v-else-if="ownerAccounts.length === 0" class="rounded-xl border border-[#efe3d4] px-4 py-10 text-center text-sm text-[#8c7f73] dark:border-[#312823] dark:text-[#998c80]">
+        <div v-else-if="ownerAccounts.length === 0" class="rounded-xl border border-[#d9d9e3] px-4 py-10 text-center text-sm text-[#6e6e80] dark:border-[#3f3f46] dark:text-[#acacbe]">
           {{ t('carpool.noAccountsForPlatform') }}
         </div>
         <div v-else class="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <label
             v-for="account in ownerAccounts"
             :key="account.id"
-            class="flex cursor-pointer gap-3 rounded-2xl border border-[#eadfce] bg-white/95 p-4 transition-colors hover:border-[#d7bea1] dark:border-[#2f2721] dark:bg-[#171311] dark:hover:border-[#5a4635]"
+            class="flex cursor-pointer gap-3 rounded-2xl border border-[#d9d9e3] bg-white/95 p-4 transition-colors hover:border-[#d7bea1] dark:border-[#3f3f46] dark:bg-[#171717] dark:hover:border-[#5a4635]"
           >
             <input
               :checked="selectedBindAccountIds.includes(account.id)"
@@ -906,14 +906,14 @@
             />
             <div class="min-w-0 flex-1 space-y-2">
               <div class="flex flex-wrap items-center gap-2">
-                <div class="min-w-0 truncate text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                <div class="min-w-0 truncate text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                   {{ account.name }}
                 </div>
-                <span class="rounded-full bg-[#f7efe4] px-2 py-0.5 text-[11px] font-medium text-[#7b6551] dark:bg-[#241d19] dark:text-[#d1beaa]">
+                <span class="rounded-full bg-[#f3f3f6] px-2 py-0.5 text-[11px] font-medium text-[#565869] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]">
                   {{ platformLabel(account.platform) }}
                 </span>
               </div>
-              <div class="grid grid-cols-2 gap-2 text-xs text-[#8c7f73] dark:text-[#998c80]">
+              <div class="grid grid-cols-2 gap-2 text-xs text-[#6e6e80] dark:text-[#acacbe]">
                 <div>{{ t('carpool.fiveHourQuota') }}: {{ formatMoney(account.window_cost_limit ?? 0) }}</div>
                 <div>{{ t('carpool.weeklyQuota') }}: {{ formatMoney(account.quota_weekly_limit ?? 0) }}</div>
                 <div>{{ t('carpool.shareMode') }}: {{ account.share_mode || '-' }}</div>
@@ -943,11 +943,11 @@
       @close="closeApplyDialog"
     >
       <div class="space-y-4">
-        <div v-if="applyTarget" class="rounded-xl border border-[#efe3d4] bg-[#faf4eb] p-4 dark:border-[#312823] dark:bg-[#211915]">
-          <div class="text-base font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+        <div v-if="applyTarget" class="rounded-xl border border-[#d9d9e3] bg-[#f3f3f6] p-4 dark:border-[#3f3f46] dark:bg-[#171717]">
+          <div class="text-base font-semibold text-[#202123] dark:text-[#ececf1]">
             {{ applyTarget.pool.name }}
           </div>
-          <div class="mt-2 flex flex-wrap gap-3 text-sm text-[#6b6258] dark:text-[#b8afa4]">
+          <div class="mt-2 flex flex-wrap gap-3 text-sm text-[#6e6e80] dark:text-[#acacbe]">
             <span>{{ t('carpool.seats') }}: {{ applyTarget.active_members }}/{{ applyTarget.pool.target_seats }}</span>
             <span>{{ t('carpool.seatPrice') }}: {{ formatMoney(applyTarget.pool.seat_price) }}</span>
             <span>{{ t('carpool.extraFee') }}: {{ formatExtraFeeMoney(applyTarget.pool.extra_fee) }}</span>
@@ -982,16 +982,16 @@
       width="extra-wide"
       @close="closeDetailDialog"
     >
-      <div v-if="detailLoading && !detailData" class="py-10 text-center text-sm text-[#8c7f73] dark:text-[#998c80]">
+      <div v-if="detailLoading && !detailData" class="py-10 text-center text-sm text-[#6e6e80] dark:text-[#acacbe]">
         {{ t('common.loading') }}
       </div>
 
       <div v-else-if="detailData" class="space-y-6">
-        <section class="rounded-2xl border border-[#eadfce] bg-white/95 p-5 dark:border-[#2f2721] dark:bg-[#171311]">
+        <section class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 dark:border-[#3f3f46] dark:bg-[#171717]">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="space-y-3">
               <div class="flex flex-wrap items-center gap-2">
-                <h3 class="text-xl font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                <h3 class="text-xl font-semibold text-[#202123] dark:text-[#ececf1]">
                   {{ detailData.pool.name }}
                 </h3>
                 <span :class="poolStatusClass(detailData.pool.status)" class="rounded-full px-2.5 py-1 text-xs font-medium">
@@ -1006,11 +1006,11 @@
                   :subscription-type="detailData.group?.subscription_type || 'subscription'"
                   :show-rate="false"
                 />
-                <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+                <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                   {{ visibilityLabel(detailData.pool.visibility) }}
                 </span>
               </div>
-              <p v-if="detailData.pool.notes" class="text-sm text-[#6b6258] dark:text-[#b8afa4]">
+              <p v-if="detailData.pool.notes" class="text-sm text-[#6e6e80] dark:text-[#acacbe]">
                 {{ detailData.pool.notes }}
               </p>
             </div>
@@ -1044,10 +1044,10 @@
             v-if="detailData.summary.is_owner"
             class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start"
           >
-            <div class="rounded-xl border border-[#efe3d4] p-4 dark:border-[#312823]">
-              <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.inviteCode') }}</div>
+            <div class="rounded-xl border border-[#d9d9e3] p-4 dark:border-[#3f3f46]">
+              <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.inviteCode') }}</div>
               <div class="mt-2 flex flex-wrap items-center gap-3">
-                <code class="rounded-lg bg-[#f7efe4] px-3 py-2 text-sm font-medium text-[#2f2923] dark:bg-[#241d19] dark:text-[#f4efe7]">
+                <code class="rounded-lg bg-[#f3f3f6] px-3 py-2 text-sm font-medium text-[#202123] dark:bg-[#2f2f2f] dark:text-[#ececf1]">
                   {{ detailData.pool.invite_code }}
                 </code>
                 <button type="button" class="btn btn-secondary btn-sm" @click="copyInviteCode(detailData.pool.invite_code)">
@@ -1059,18 +1059,18 @@
                   {{ t('carpool.copyInviteLink') }}
                 </button>
               </div>
-              <p class="mt-2 break-all text-xs text-[#8c7f73] dark:text-[#998c80]">
+              <p class="mt-2 break-all text-xs text-[#6e6e80] dark:text-[#acacbe]">
                 {{ buildCarpoolInviteLink(detailData.pool.invite_code) }}
               </p>
             </div>
-            <div class="rounded-xl border border-[#efe3d4] p-4 dark:border-[#312823]">
-              <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.feeSummary') }}</div>
-              <div class="mt-2 space-y-1 text-sm text-[#2f2923] dark:text-[#f4efe7]">
+            <div class="rounded-xl border border-[#d9d9e3] p-4 dark:border-[#3f3f46]">
+              <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.feeSummary') }}</div>
+              <div class="mt-2 space-y-1 text-sm text-[#202123] dark:text-[#ececf1]">
 	                <div>{{ t('carpool.seatPrice') }}: {{ formatMoney(detailData.pool.seat_price) }}</div>
 	                <div>{{ t('carpool.extraFee') }}: {{ formatExtraFeeMoney(detailData.pool.extra_fee) }}</div>
 	                <div>{{ t('carpool.durationDays') }}: {{ detailData.pool.duration_days }}</div>
 		                <div class="space-y-1 pt-1">
-		                  <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.serviceStatus') }}</div>
+		                  <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.serviceStatus') }}</div>
 		                  <div class="flex flex-wrap gap-1.5">
 		                    <span :class="serviceStatusBadgeClass(detailData.pool.system_proxy_enabled)">
 		                      {{ t('carpool.systemProxyService') }} · {{ serviceStatusLabel(detailData.pool.system_proxy_enabled) }}
@@ -1085,17 +1085,17 @@
           </div>
         </section>
 
-        <section class="rounded-2xl border border-[#eadfce] bg-white/95 p-5 dark:border-[#2f2721] dark:bg-[#171311]">
+        <section class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 dark:border-[#3f3f46] dark:bg-[#171717]">
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h4 class="text-base font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+            <h4 class="text-base font-semibold text-[#202123] dark:text-[#ececf1]">
               {{ t('carpool.accountWindowUsage') }}
             </h4>
-            <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+            <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
               {{ t('carpool.boundAccounts') }}: {{ detailData.summary.bound_account_count }}
             </span>
           </div>
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div class="rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+            <div class="rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
               <UsageProgressBar
                 :label="t('carpool.fiveHourUsage')"
                 :utilization="poolUsageWindowUtilization('5h')"
@@ -1105,7 +1105,7 @@
 	                color="indigo"
 	              />
 	            </div>
-            <div class="rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+            <div class="rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
               <UsageProgressBar
                 :label="t('carpool.weeklyUsage')"
                 :utilization="poolUsageWindowUtilization('7d')"
@@ -1118,24 +1118,24 @@
           </div>
         </section>
 
-        <section class="rounded-2xl border border-[#eadfce] bg-white/95 p-5 dark:border-[#2f2721] dark:bg-[#171311]">
+        <section class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 dark:border-[#3f3f46] dark:bg-[#171717]">
           <div class="mb-4 flex items-center justify-between">
-            <h4 class="text-base font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+            <h4 class="text-base font-semibold text-[#202123] dark:text-[#ececf1]">
               {{ t('carpool.accounts') }}
             </h4>
-            <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ detailData.accounts.length }}</span>
+            <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ detailData.accounts.length }}</span>
           </div>
-          <div v-if="detailData.accounts.length === 0" class="rounded-xl border border-dashed border-[#dccbb6] px-4 py-8 text-center text-sm text-[#8c7f73] dark:border-[#3a3028] dark:text-[#998c80]">
+          <div v-if="detailData.accounts.length === 0" class="rounded-xl border border-dashed border-[#c5c5d2] px-4 py-8 text-center text-sm text-[#6e6e80] dark:border-[#3f3f46] dark:text-[#acacbe]">
             {{ t('carpool.noAccountsBound') }}
           </div>
           <div v-else class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <div
               v-for="account in detailData.accounts"
               :key="account.id"
-              class="rounded-xl border border-[#efe3d4] p-4 dark:border-[#312823]"
+              class="rounded-xl border border-[#d9d9e3] p-4 dark:border-[#3f3f46]"
             >
               <div class="flex flex-wrap items-center gap-2">
-                <div class="text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">{{ account.name }}</div>
+                <div class="text-sm font-semibold text-[#202123] dark:text-[#ececf1]">{{ account.name }}</div>
                 <span :class="accountStatusBadgeClass(account.status)">
                   {{ accountStatusLabel(account.status) }}
                 </span>
@@ -1161,9 +1161,9 @@
           </div>
         </section>
 
-        <section class="rounded-2xl border border-[#eadfce] bg-white/95 p-5 dark:border-[#2f2721] dark:bg-[#171311]">
+        <section class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 dark:border-[#3f3f46] dark:bg-[#171717]">
           <div class="mb-4 flex items-center justify-between">
-            <h4 class="text-base font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+            <h4 class="text-base font-semibold text-[#202123] dark:text-[#ececf1]">
               {{ t('carpool.members') }}
             </h4>
             <div class="flex items-center gap-2">
@@ -1175,32 +1175,32 @@
               >
                 {{ t('carpool.editAllocation') }}
               </button>
-              <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ visibleDetailMembers.length }}</span>
+              <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ visibleDetailMembers.length }}</span>
             </div>
           </div>
           <div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
             <div
               v-for="member in visibleDetailMembers"
               :key="member.member.id"
-              class="rounded-xl border border-[#efe3d4] p-4 dark:border-[#312823]"
+              class="rounded-xl border border-[#d9d9e3] p-4 dark:border-[#3f3f46]"
             >
               <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="space-y-1">
                   <div class="flex flex-wrap items-center gap-2">
-                    <div class="text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                       {{ member.username || member.masked_email }}
                     </div>
-                    <span class="rounded-full bg-[#f7efe4] px-2 py-0.5 text-[11px] font-medium text-[#7b6551] dark:bg-[#241d19] dark:text-[#d1beaa]">
+                    <span class="rounded-full bg-[#f3f3f6] px-2 py-0.5 text-[11px] font-medium text-[#565869] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]">
                       {{ memberRoleLabel(member.member.role) }}
                     </span>
                   </div>
-                  <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+                  <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                     {{ member.masked_email }}
                   </div>
-                  <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+                  <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                     {{ t('carpool.currentUserStatus') }}: {{ currentUserStatusLabel(member.member.status) }}
                   </div>
-                  <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+                  <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                     {{ t('carpool.allocationShare') }}: {{ formatPercent(memberAllocationPercent(member)) }}
                   </div>
                 </div>
@@ -1216,7 +1216,7 @@
                 </button>
               </div>
 
-              <div class="mt-3 rounded-xl bg-[#faf4eb] px-3 py-3 dark:bg-[#211915]">
+              <div class="mt-3 rounded-xl bg-[#f3f3f6] px-3 py-3 dark:bg-[#171717]">
                 <div class="space-y-1.5">
                   <UsageProgressBar
                     label="5h"
@@ -1236,11 +1236,11 @@
                   />
                 </div>
                 <div class="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
-                  <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 text-[11px] text-[#6b6258] dark:bg-[#171311]/70 dark:text-[#c4b7a7]">
+                  <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 text-[11px] text-[#6e6e80] dark:bg-[#171717]/70 dark:text-[#c5c5d2]">
                     <span class="min-w-0 truncate font-medium">{{ t('carpool.totalTokens') }}</span>
                     <span class="shrink-0 font-mono">{{ formatTokenCount(member.total_tokens) }}</span>
                   </div>
-                  <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 text-[11px] text-[#6b6258] dark:bg-[#171311]/70 dark:text-[#c4b7a7]">
+                  <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 text-[11px] text-[#6e6e80] dark:bg-[#171717]/70 dark:text-[#c5c5d2]">
                     <span class="min-w-0 truncate font-medium">{{ t('carpool.totalCost') }}</span>
                     <span class="shrink-0 font-mono">{{ formatMoney(member.total_cost_usd) }}</span>
                   </div>
@@ -1252,41 +1252,41 @@
 
         <section
           v-if="detailData.summary.is_owner"
-          class="rounded-2xl border border-[#eadfce] bg-white/95 p-5 dark:border-[#2f2721] dark:bg-[#171311]"
+          class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 dark:border-[#3f3f46] dark:bg-[#171717]"
         >
           <div class="mb-4 flex items-center justify-between">
-            <h4 class="text-base font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+            <h4 class="text-base font-semibold text-[#202123] dark:text-[#ececf1]">
               {{ t('carpool.joinRequests') }}
             </h4>
-            <span class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ detailData.join_requests.length }}</span>
+            <span class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ detailData.join_requests.length }}</span>
           </div>
 
-          <div v-if="detailData.join_requests.length === 0" class="rounded-xl border border-dashed border-[#dccbb6] px-4 py-8 text-center text-sm text-[#8c7f73] dark:border-[#3a3028] dark:text-[#998c80]">
+          <div v-if="detailData.join_requests.length === 0" class="rounded-xl border border-dashed border-[#c5c5d2] px-4 py-8 text-center text-sm text-[#6e6e80] dark:border-[#3f3f46] dark:text-[#acacbe]">
             {{ t('carpool.noJoinRequests') }}
           </div>
           <div v-else class="space-y-3">
             <div
               v-for="requestProfile in detailData.join_requests"
               :key="requestProfile.request.id"
-              class="rounded-xl border border-[#efe3d4] p-4 dark:border-[#312823]"
+              class="rounded-xl border border-[#d9d9e3] p-4 dark:border-[#3f3f46]"
             >
               <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                 <div class="min-w-0 flex-1 space-y-3">
                   <div class="flex flex-wrap items-center gap-2">
-                    <div class="text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                    <div class="text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                       {{ requestProfile.username || requestProfile.masked_email }}
                     </div>
                     <span :class="requestStatusClass(requestProfile.request.status)" class="rounded-full px-2 py-0.5 text-[11px] font-medium">
                       {{ requestStatusLabel(requestProfile.request.status) }}
                     </span>
                   </div>
-                  <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">
+                  <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">
                     {{ requestProfile.masked_email }}
                   </div>
-                  <div v-if="requestProfile.request.note" class="rounded-lg bg-[#faf4eb] px-3 py-2 text-sm text-[#6b6258] dark:bg-[#211915] dark:text-[#c4b7a7]">
+                  <div v-if="requestProfile.request.note" class="rounded-lg bg-[#f3f3f6] px-3 py-2 text-sm text-[#6e6e80] dark:bg-[#171717] dark:text-[#c5c5d2]">
                     {{ requestProfile.request.note }}
                   </div>
-	                  <div class="grid grid-cols-2 gap-2 text-xs text-[#8c7f73] dark:text-[#998c80] md:grid-cols-4">
+	                  <div class="grid grid-cols-2 gap-2 text-xs text-[#6e6e80] dark:text-[#acacbe] md:grid-cols-4">
 	                    <div>{{ t('carpool.totalRequests') }}: {{ formatInteger(requestProfile.usage.total_requests) }}</div>
 	                    <div>{{ t('carpool.totalTokens') }}: {{ formatTokenCount(requestProfile.usage.total_tokens) }}</div>
 	                    <div>{{ t('carpool.last7dTokens') }}: {{ formatTokenCount(requestProfile.usage.last_7d_tokens) }}</div>
@@ -1369,12 +1369,12 @@
       @close="closeAllocationDialog"
     >
       <form v-if="detailData" class="space-y-4" @submit.prevent="submitMemberAllocations">
-        <div class="rounded-xl border border-[#eadfce] bg-[#fffaf3] p-4 text-sm text-[#6b6258] dark:border-[#312823] dark:bg-[#171311] dark:text-[#c4b7a7]">
+        <div class="rounded-xl border border-[#d9d9e3] bg-[#ffffff] p-4 text-sm text-[#6e6e80] dark:border-[#3f3f46] dark:bg-[#171717] dark:text-[#c5c5d2]">
           {{ t('carpool.allocationHint') }}
         </div>
 
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="text-sm text-[#6b6258] dark:text-[#c4b7a7]">
+          <div class="text-sm text-[#6e6e80] dark:text-[#c5c5d2]">
             {{ t('carpool.allocationTotal') }}:
             <span :class="allocationTotalClass" class="font-mono font-semibold">
               {{ allocationTotalPercent.toFixed(2) }}%
@@ -1389,34 +1389,34 @@
           <div
             v-for="member in activeAllocationMembers"
             :key="member.member.id"
-            class="grid grid-cols-1 gap-3 rounded-xl border border-[#efe3d4] p-4 dark:border-[#312823] sm:grid-cols-[minmax(0,1fr)_160px]"
+            class="grid grid-cols-1 gap-3 rounded-xl border border-[#d9d9e3] p-4 dark:border-[#3f3f46] sm:grid-cols-[minmax(0,1fr)_160px]"
           >
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="truncate text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+                <span class="truncate text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
                   {{ member.username || member.masked_email }}
                 </span>
-                <span class="rounded-full bg-[#f7efe4] px-2 py-0.5 text-[11px] font-medium text-[#7b6551] dark:bg-[#241d19] dark:text-[#d1beaa]">
+                <span class="rounded-full bg-[#f3f3f6] px-2 py-0.5 text-[11px] font-medium text-[#565869] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]">
                   {{ memberRoleLabel(member.member.role) }}
                 </span>
               </div>
-              <div class="mt-1 truncate text-xs text-[#8c7f73] dark:text-[#998c80]">
+              <div class="mt-1 truncate text-xs text-[#6e6e80] dark:text-[#acacbe]">
                 {{ member.masked_email }}
               </div>
             </div>
             <label class="min-w-0">
               <span class="input-label">{{ t('carpool.allocationPercent') }}</span>
-              <div class="flex items-center rounded-lg border border-[#dccbb6] bg-white px-3 py-2 dark:border-[#3a3028] dark:bg-[#171311]">
+              <div class="flex items-center rounded-lg border border-[#c5c5d2] bg-white px-3 py-2 dark:border-[#3f3f46] dark:bg-[#171717]">
                 <input
                   v-model="allocationPercents[member.member.id]"
-                  class="min-w-0 flex-1 bg-transparent text-right font-mono text-sm text-[#2f2923] outline-none dark:text-[#f4efe7]"
+                  class="min-w-0 flex-1 bg-transparent text-right font-mono text-sm text-[#202123] outline-none dark:text-[#ececf1]"
                   type="number"
                   min="0"
                   max="100"
                   step="0.01"
                   required
                 />
-                <span class="ml-2 text-xs text-[#8c7f73] dark:text-[#998c80]">%</span>
+                <span class="ml-2 text-xs text-[#6e6e80] dark:text-[#acacbe]">%</span>
               </div>
             </label>
           </div>
@@ -2221,7 +2221,7 @@ function serviceStatusBadgeClass(enabled: boolean): string {
     'rounded-full px-2 py-0.5 text-[11px] font-medium',
     enabled
       ? 'bg-[#eef7ed] text-[#4f7a4c] dark:bg-[#1b281b] dark:text-[#b9d8b6]'
-      : 'bg-[#f7efe4] text-[#8c7f73] dark:bg-[#241d19] dark:text-[#998c80]',
+      : 'bg-[#f3f3f6] text-[#6e6e80] dark:bg-[#2f2f2f] dark:text-[#acacbe]',
   ].join(' ')
 }
 
@@ -2251,7 +2251,7 @@ function accountStatusBadgeClass(value?: string): string {
     case 'inactive':
       return `${base} bg-[#f2eee8] text-[#766b60] dark:bg-[#24201d] dark:text-[#b8aca0]`
     default:
-      return `${base} bg-[#f7efe4] text-[#7b6551] dark:bg-[#241d19] dark:text-[#d1beaa]`
+      return `${base} bg-[#f3f3f6] text-[#565869] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]`
   }
 }
 

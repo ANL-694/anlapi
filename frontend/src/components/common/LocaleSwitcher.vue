@@ -26,7 +26,7 @@
           :key="locale.code"
           :disabled="switching"
           @click="selectLocale(locale.code)"
-          class="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#5f574f] transition-colors hover:bg-[#f1ebe2] dark:text-[#d7ccbf] dark:hover:bg-[#2a231f]"
+          class="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#565869] transition-colors hover:bg-[#f3f3f6] dark:text-[#c5c5d2] dark:hover:bg-[#2f2f2f]"
           :class="{
             'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400':
               locale.code === currentLocaleCode

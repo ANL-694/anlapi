@@ -442,7 +442,7 @@ onUnmounted(() => {
   @apply cursor-pointer;
   background: rgba(255, 250, 243, 0.72);
   border: 1px solid rgba(112, 92, 74, 0.16);
-  color: #2f2923;
+  color: #202123;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
@@ -453,7 +453,7 @@ onUnmounted(() => {
 .dark .select-trigger {
   background: rgba(32, 26, 22, 0.72);
   border-color: rgba(244, 239, 231, 0.12);
-  color: #f4efe7;
+  color: #ececf1;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -464,7 +464,7 @@ onUnmounted(() => {
 .select-trigger-open {
   border-color: rgba(143, 77, 53, 0.5);
   box-shadow:
-    0 0 0 3px rgba(198, 111, 74, 0.12),
+    0 0 0 3px rgba(16, 163, 127, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
@@ -507,7 +507,7 @@ onUnmounted(() => {
   @apply min-w-0;
   @apply rounded-xl;
   @apply overflow-hidden;
-  background: #fffaf3;
+  background: #ffffff;
   border: 1px solid rgba(112, 92, 74, 0.16);
   box-shadow: 0 16px 44px rgba(47, 41, 35, 0.16);
   width: max-content;
@@ -517,7 +517,7 @@ onUnmounted(() => {
 }
 
 .dark .select-dropdown-portal {
-  background: #201a16;
+  background: #212121;
   border-color: rgba(244, 239, 231, 0.12);
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.42);
 }
@@ -534,7 +534,7 @@ onUnmounted(() => {
 .select-dropdown-portal .select-search-input {
   @apply flex-1 bg-transparent text-sm;
   @apply focus:outline-none;
-  color: #2f2923;
+  color: #202123;
 }
 
 .select-dropdown-portal .select-search-input::placeholder {
@@ -542,7 +542,7 @@ onUnmounted(() => {
 }
 
 .dark .select-dropdown-portal .select-search-input {
-  color: #f4efe7;
+  color: #ececf1;
 }
 
 .dark .select-dropdown-portal .select-search-input::placeholder {
@@ -557,32 +557,32 @@ onUnmounted(() => {
   @apply flex min-w-0 max-w-full items-center justify-between gap-2;
   @apply px-4 py-2.5 text-sm;
   @apply cursor-pointer transition-colors duration-150;
-  color: #5f574f;
+  color: #565869;
   pointer-events: auto !important;
 }
 
 .select-dropdown-portal .select-option:hover {
   background: rgba(112, 92, 74, 0.07);
-  color: #2f2923;
+  color: #202123;
 }
 
 .dark .select-dropdown-portal .select-option {
-  color: #d7ccbf;
+  color: #c5c5d2;
 }
 
 .dark .select-dropdown-portal .select-option:hover {
   background: rgba(244, 239, 231, 0.07);
-  color: #f4efe7;
+  color: #ececf1;
 }
 
 .select-dropdown-portal .select-option-selected {
-  background: rgba(198, 111, 74, 0.11);
-  color: #8f4d35;
+  background: rgba(16, 163, 127, 0.11);
+  color: #0d8f70;
 }
 
 .dark .select-dropdown-portal .select-option-selected {
   background: rgba(226, 174, 140, 0.12);
-  color: #e2ae8c;
+  color: #45d09a;
 }
 
 .select-dropdown-portal .select-option-focused {

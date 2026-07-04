@@ -361,18 +361,23 @@ onMounted(() => {
 
 <style scoped>
 .home-page {
-  --bg: #f7f3ea;
-  --paper: #fffaf3;
-  --paper-2: #f0e8dc;
-  --text: #26211c;
-  --muted: #746a60;
-  --subtle: #998d80;
-  --line: rgba(58, 43, 33, 0.12);
-  --line-strong: rgba(58, 43, 33, 0.2);
-  --accent: #c66f4a;
-  --accent-soft: rgba(198, 111, 74, 0.12);
-  --ink: #30241d;
-  --shadow: 0 28px 80px rgba(70, 49, 35, 0.13);
+  --bg: #ffffff;
+  --paper: #ffffff;
+  --paper-2: #f7f7f8;
+  --text: #171717;
+  --muted: #6e6e80;
+  --subtle: #9b9ba7;
+  --line: rgba(13, 13, 13, 0.1);
+  --line-strong: rgba(13, 13, 13, 0.16);
+  --accent: #10a37f;
+  --accent-soft: rgba(16, 163, 127, 0.12);
+  --ink: #171717;
+  --shadow: 0 28px 80px rgba(0, 0, 0, 0.1);
+  --grid-line: rgba(0, 0, 0, 0.035);
+  --ambient-border: rgba(0, 0, 0, 0.06);
+  --ambient-paper: rgba(255, 255, 255, 0.48);
+  --ambient-accent: rgba(16, 163, 127, 0.07);
+  --ambient-stripe: rgba(0, 0, 0, 0.028);
   --serif: var(--font-home-display);
   --pointer-x: 0;
   --pointer-y: 0;
@@ -381,8 +386,8 @@ onMounted(() => {
   min-height: 100vh;
   overflow: clip;
   background:
-    linear-gradient(180deg, rgba(255, 250, 243, 0.96), rgba(247, 243, 234, 0.98) 48%, #efe7dc),
-    linear-gradient(115deg, transparent 0 58%, rgba(198, 111, 74, 0.08) 58% 58.2%, transparent 58.2%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 247, 248, 0.98) 48%, #ececf1),
+    linear-gradient(115deg, transparent 0 58%, rgba(16, 163, 127, 0.06) 58% 58.2%, transparent 58.2%);
   color: var(--text);
   font-family: var(--font-app);
 }
@@ -391,8 +396,8 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(58, 43, 33, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(58, 43, 33, 0.05) 1px, transparent 1px);
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.62), transparent 72%);
   content: "";
@@ -405,11 +410,11 @@ onMounted(() => {
   right: 8vw;
   width: min(52vw, 760px);
   height: min(52vw, 760px);
-  border: 1px solid rgba(58, 43, 33, 0.08);
+  border: 1px solid var(--ambient-border);
   border-radius: 42% 58% 52% 48%;
   background:
-    linear-gradient(135deg, rgba(255, 250, 243, 0.42), rgba(198, 111, 74, 0.08)),
-    repeating-linear-gradient(90deg, rgba(58, 43, 33, 0.04) 0 1px, transparent 1px 22px);
+    linear-gradient(135deg, var(--ambient-paper), var(--ambient-accent)),
+    repeating-linear-gradient(90deg, var(--ambient-stripe) 0 1px, transparent 1px 22px);
   content: "";
   filter: blur(0.2px);
   opacity: 0.72;
@@ -420,42 +425,34 @@ onMounted(() => {
 }
 
 :global(html.dark .home-page) {
-  --bg: #171310;
-  --paper: #211a16;
-  --paper-2: #2a211c;
-  --text: #f4efe7;
-  --muted: #b8aa9a;
-  --subtle: #8f8174;
-  --line: rgba(244, 239, 231, 0.12);
-  --line-strong: rgba(244, 239, 231, 0.22);
-  --accent: #d58b65;
-  --accent-soft: rgba(213, 139, 101, 0.16);
-  --ink: #f4efe7;
+  --bg: #171717;
+  --paper: #212121;
+  --paper-2: #2f2f2f;
+  --text: #ececf1;
+  --muted: #c5c5d2;
+  --subtle: #8e8ea0;
+  --line: rgba(236, 236, 241, 0.12);
+  --line-strong: rgba(236, 236, 241, 0.2);
+  --accent: #10a37f;
+  --accent-soft: rgba(16, 163, 127, 0.16);
+  --ink: #ececf1;
   --shadow: 0 32px 92px rgba(0, 0, 0, 0.34);
+  --grid-line: rgba(236, 236, 241, 0.045);
+  --ambient-border: rgba(236, 236, 241, 0.08);
+  --ambient-paper: rgba(236, 236, 241, 0.08);
+  --ambient-accent: rgba(16, 163, 127, 0.08);
+  --ambient-stripe: rgba(236, 236, 241, 0.04);
 
   background:
-    linear-gradient(180deg, #171310 0%, #211915 48%, #2a201b 100%),
-    linear-gradient(115deg, transparent 0 58%, rgba(213, 139, 101, 0.12) 58% 58.2%, transparent 58.2%);
-}
-
-:global(html.dark .home-page)::before {
-  background-image:
-    linear-gradient(rgba(244, 239, 231, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(244, 239, 231, 0.045) 1px, transparent 1px);
-}
-
-:global(html.dark .home-page)::after {
-  border-color: rgba(244, 239, 231, 0.08);
-  background:
-    linear-gradient(135deg, rgba(244, 239, 231, 0.08), rgba(213, 139, 101, 0.08)),
-    repeating-linear-gradient(90deg, rgba(244, 239, 231, 0.04) 0 1px, transparent 1px 22px);
+    linear-gradient(180deg, #171717 0%, #212121 48%, #2f2f2f 100%),
+    linear-gradient(115deg, transparent 0 58%, rgba(16, 163, 127, 0.12) 58% 58.2%, transparent 58.2%);
 }
 
 .home-noise {
   position: fixed;
   inset: 0;
   z-index: 0;
-  background-image: radial-gradient(rgba(58, 43, 33, 0.14) 0.7px, transparent 0.7px);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.1) 0.7px, transparent 0.7px);
   background-size: 4px 4px;
   opacity: 0.12;
   pointer-events: none;
@@ -498,7 +495,7 @@ onMounted(() => {
   border-radius: 12px;
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   color: var(--accent);
-  box-shadow: 0 12px 28px rgba(70, 49, 35, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
 }
 
 .brand-mark img,
@@ -586,13 +583,13 @@ onMounted(() => {
 .button.primary {
   background: var(--ink);
   color: var(--paper);
-  box-shadow: 0 14px 32px rgba(48, 36, 29, 0.18);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.14);
 }
 
 :global(html.dark .home-page .button.primary) {
-  background: #f4efe7;
-  color: #171310;
-  box-shadow: 0 18px 44px rgba(244, 239, 231, 0.14);
+  background: #ececf1;
+  color: #171717;
+  box-shadow: 0 18px 44px rgba(236, 236, 241, 0.14);
 }
 
 .button.secondary {
@@ -698,7 +695,7 @@ onMounted(() => {
   border-radius: 30px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--paper) 92%, transparent), color-mix(in srgb, var(--paper-2) 78%, transparent)),
-    repeating-linear-gradient(90deg, transparent 0 28px, rgba(58, 43, 33, 0.035) 28px 29px);
+    repeating-linear-gradient(90deg, transparent 0 28px, rgba(0, 0, 0, 0.03) 28px 29px);
   box-shadow: var(--shadow);
   transform:
     rotateX(calc(var(--pointer-y) * -2deg + 8deg))
@@ -710,8 +707,8 @@ onMounted(() => {
 
 :global(html.dark .home-page .device-frame) {
   background:
-    linear-gradient(135deg, rgba(34, 27, 23, 0.94), rgba(42, 33, 28, 0.86)),
-    repeating-linear-gradient(90deg, transparent 0 28px, rgba(244, 239, 231, 0.035) 28px 29px);
+    linear-gradient(135deg, rgba(33, 33, 33, 0.94), rgba(47, 47, 47, 0.86)),
+    repeating-linear-gradient(90deg, transparent 0 28px, rgba(236, 236, 241, 0.035) 28px 29px);
 }
 
 .device-topbar {
@@ -837,15 +834,15 @@ onMounted(() => {
 
 .flow-panel-head b {
   border-radius: 999px;
-  background: rgba(91, 121, 74, 0.12);
-  color: #587447;
+  background: var(--accent-soft);
+  color: var(--accent);
   padding: 5px 9px;
   font-size: 0.72rem;
   font-weight: 800;
 }
 
 :global(html.dark .home-page .flow-panel-head b) {
-  color: #c8d8ad;
+  color: #7fd7bd;
 }
 
 .api-rows {
@@ -910,9 +907,9 @@ onMounted(() => {
   border-radius: 24px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--paper) 94%, transparent), color-mix(in srgb, var(--paper-2) 78%, transparent)),
-    radial-gradient(circle at 12% 20%, rgba(198, 111, 74, 0.1), transparent 36%);
+    radial-gradient(circle at 12% 20%, rgba(16, 163, 127, 0.1), transparent 36%);
   padding: 26px;
-  box-shadow: 0 18px 44px rgba(70, 49, 35, 0.06);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.06);
 }
 
 .footer-intro h2 {
@@ -1221,7 +1218,7 @@ onMounted(() => {
 
   .device-frame {
     border-radius: 22px;
-    box-shadow: 0 18px 46px rgba(70, 49, 35, 0.1);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.1);
   }
 
   .device-topbar {

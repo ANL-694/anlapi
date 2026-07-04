@@ -71,8 +71,8 @@
   <div class="card overflow-hidden p-0">
     <div class="flex flex-col gap-3 border-b border-gray-200/70 px-5 py-4 dark:border-dark-700/70 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-center gap-3">
-        <div class="rounded-lg bg-[#f4ede3] p-2 dark:bg-[#2a231d]">
-          <Icon name="grid" size="md" class="text-[#8a5a44] dark:text-[#d8b69b]" :stroke-width="2" />
+        <div class="rounded-lg bg-[#f4ede3] p-2 dark:bg-[#2f2f2f]">
+          <Icon name="grid" size="md" class="text-[#8a5a44] dark:text-[#45d09a]" :stroke-width="2" />
         </div>
         <div>
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('dashboard.todayPlatformUsage') }}</h3>

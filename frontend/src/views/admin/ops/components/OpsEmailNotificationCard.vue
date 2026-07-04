@@ -181,7 +181,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="rounded-3xl bg-[#fffaf3] p-6 shadow-sm ring-1 ring-[#e8dccd] dark:bg-[#1f1915] dark:ring-[#4b3a31]">
+  <div class="rounded-3xl bg-[#ffffff] p-6 shadow-sm ring-1 ring-[#d9d9e3] dark:bg-[#212121] dark:ring-[#3f3f46]">
     <div class="mb-4 flex items-start justify-between gap-4">
       <div>
         <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ t('admin.ops.email.title') }}</h3>
@@ -189,7 +189,7 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <button
-          class="flex items-center gap-1.5 rounded-lg border border-[#26211c] bg-[#171717] px-3 py-1.5 text-xs font-bold text-[#fffaf3] transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#f4efe7] dark:bg-[#f4efe7] dark:text-[#171310] dark:hover:bg-white"
+          class="flex items-center gap-1.5 rounded-lg border border-[#171717] bg-[#171717] px-3 py-1.5 text-xs font-bold text-[#ffffff] transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#ececf1] dark:bg-[#ececf1] dark:text-[#171717] dark:hover:bg-white"
           :disabled="loading"
           @click="loadConfig"
         >
@@ -208,7 +208,7 @@ onMounted(() => {
     </div>
 
     <div v-else class="space-y-6">
-      <div class="rounded-2xl border border-[#efe3d5] bg-[#f7f3ea] p-4 dark:border-[#4b3a31] dark:bg-[#241c18]">
+      <div class="rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-4 dark:border-[#3f3f46] dark:bg-[#2f2f2f]">
         <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.alertTitle') }}</h4>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div class="text-xs text-gray-600 dark:text-gray-300">
@@ -234,7 +234,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="rounded-2xl border border-[#efe3d5] bg-[#f7f3ea] p-4 dark:border-[#4b3a31] dark:bg-[#241c18]">
+      <div class="rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-4 dark:border-[#3f3f46] dark:bg-[#2f2f2f]">
         <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.reportTitle') }}</h4>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div class="text-xs text-gray-600 dark:text-gray-300">
@@ -263,7 +263,7 @@ onMounted(() => {
           <li v-for="msg in editorValidation.errors" :key="msg">{{ msg }}</li>
         </ul>
       </div>
-      <div class="rounded-2xl border border-[#efe3d5] bg-[#f7f3ea] p-4 dark:border-[#4b3a31] dark:bg-[#241c18]">
+      <div class="rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-4 dark:border-[#3f3f46] dark:bg-[#2f2f2f]">
         <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.alertTitle') }}</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
@@ -333,7 +333,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="rounded-2xl border border-[#efe3d5] bg-[#f7f3ea] p-4 dark:border-[#4b3a31] dark:bg-[#241c18]">
+      <div class="rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-4 dark:border-[#3f3f46] dark:bg-[#2f2f2f]">
         <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.reportTitle') }}</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>

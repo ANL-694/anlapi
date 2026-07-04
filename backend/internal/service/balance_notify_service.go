@@ -387,23 +387,23 @@ const balanceLowEmailTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f7f3ea; margin: 0; padding: 20px; color: #26211c; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #fffaf3; border: 1px solid #e8dccd; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px rgba(38,33,28,0.08); }
-        .header { background: #c66f4a; color: #fffaf3; padding: 30px; text-align: center; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f7f7f8; margin: 0; padding: 20px; color: #202123; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #d9d9e3; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px rgba(0,0,0,0.06); }
+        .header { background: #10a37f; color: #ffffff; padding: 30px; text-align: center; }
         .header h1 { margin: 0; font-size: 24px; }
         .content { padding: 40px 30px; text-align: center; }
-        .balance { font-size: 36px; font-weight: bold; color: #a33d2d; margin: 20px 0; }
-        .info { color: #6d6258; font-size: 14px; line-height: 1.6; margin-top: 20px; }
-        .recharge-btn { display: inline-block; margin-top: 24px; padding: 12px 32px; background: #171717; color: #fffaf3; text-decoration: none; border-radius: 10px; font-size: 16px; font-weight: bold; box-shadow: 0 10px 24px rgba(23,23,23,0.18); }
-        .footer { background-color: #f2e8dc; padding: 20px; text-align: center; color: #8b7d70; font-size: 12px; }
+        .balance { font-size: 36px; font-weight: bold; color: #dc2626; margin: 20px 0; }
+        .info { color: #6e6e80; font-size: 14px; line-height: 1.6; margin-top: 20px; }
+        .recharge-btn { display: inline-block; margin-top: 24px; padding: 12px 32px; background: #10a37f; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 16px; font-weight: bold; box-shadow: 0 10px 24px rgba(16,163,127,0.18); }
+        .footer { background-color: #f3f3f6; padding: 20px; text-align: center; color: #6e6e80; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header"><h1>%s</h1></div>
         <div class="content">
-            <p style="font-size: 18px; color: #26211c;">%s，您的余额不足</p>
-            <p style="color: #6d6258;">Dear %s, your balance is running low</p>
+            <p style="font-size: 18px; color: #202123;">%s，您的余额不足</p>
+            <p style="color: #6e6e80;">Dear %s, your balance is running low</p>
             <div class="balance">$%.2f</div>
             <div class="info">
                 <p>您的账户余额已低于提醒阈值 <strong>$%.2f</strong>。</p>
@@ -425,23 +425,23 @@ const quotaAlertEmailTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f7f3ea; margin: 0; padding: 20px; color: #26211c; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #fffaf3; border: 1px solid #e8dccd; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px rgba(38,33,28,0.08); }
-        .header { background: #a33d2d; color: #fffaf3; padding: 30px; text-align: center; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f7f7f8; margin: 0; padding: 20px; color: #202123; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #d9d9e3; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px rgba(0,0,0,0.06); }
+        .header { background: #dc2626; color: #ffffff; padding: 30px; text-align: center; }
         .header h1 { margin: 0; font-size: 24px; }
         .content { padding: 40px 30px; }
-        .metric { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e8dccd; }
-        .metric-label { color: #6d6258; }
-        .metric-value { font-weight: bold; color: #26211c; }
-        .info { color: #6d6258; font-size: 14px; line-height: 1.6; margin-top: 20px; text-align: center; }
-        .footer { background-color: #f2e8dc; padding: 20px; text-align: center; color: #8b7d70; font-size: 12px; }
+        .metric { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #d9d9e3; }
+        .metric-label { color: #6e6e80; }
+        .metric-value { font-weight: bold; color: #202123; }
+        .info { color: #6e6e80; font-size: 14px; line-height: 1.6; margin-top: 20px; text-align: center; }
+        .footer { background-color: #f3f3f6; padding: 20px; text-align: center; color: #6e6e80; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header"><h1>%s</h1></div>
         <div class="content">
-            <p style="font-size: 18px; color: #26211c; text-align: center;">账号限额告警 / Account Quota Alert</p>
+            <p style="font-size: 18px; color: #202123; text-align: center;">账号限额告警 / Account Quota Alert</p>
             <div class="metric"><span class="metric-label">账号 ID / Account ID</span><span class="metric-value">#%d</span></div>
             <div class="metric"><span class="metric-label">账号 / Account</span><span class="metric-value">%s</span></div>
             <div class="metric"><span class="metric-label">平台 / Platform</span><span class="metric-value">%s</span></div>

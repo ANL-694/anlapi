@@ -2448,13 +2448,13 @@ func (s *CarpoolService) sendCarpoolExternalOverageEmail(ctx context.Context, po
 	}
 	subject := "拼车池站外使用额度提醒"
 	body := fmt.Sprintf(`
-<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f2eb;padding:24px;color:#2f2924;">
-  <div style="max-width:560px;margin:0 auto;background:#fffaf3;border:1px solid #eadfd2;border-radius:14px;padding:24px;">
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f7f8;padding:24px;color:#202123;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #d9d9e3;border-radius:14px;padding:24px;">
     <h2 style="margin:0 0 12px;font-size:20px;">拼车池额度提醒</h2>
     <p style="line-height:1.7;margin:0 0 12px;">你的拼车池 <strong>%s</strong> 检测到站外使用：%s。</p>
     <p style="line-height:1.7;margin:0 0 12px;">系统已按规则把站外消耗计入池主额度，号池不会因此自动暂停。</p>
     <ul style="line-height:1.8;margin:0 0 12px;padding-left:20px;">%s%s</ul>
-    <p style="line-height:1.7;margin:0;color:#7b6f63;">建议检查池主是否直接登录官方客户端或网页使用了该账号。</p>
+    <p style="line-height:1.7;margin:0;color:#6e6e80;">建议检查池主是否直接登录官方客户端或网页使用了该账号。</p>
   </div>
 </div>`, html.EscapeString(pool.Name), html.EscapeString(accountsText), fiveHourLine, weeklyLine)
 	return s.emailService.SendEmail(ctx, to, subject, body)

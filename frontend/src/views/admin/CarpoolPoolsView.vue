@@ -43,7 +43,7 @@
               <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <span>#{{ row.pool.id }}</span>
                 <span>{{ row.pool.platform }}</span>
-                <code class="rounded bg-[#f7efe3] px-1.5 py-0.5 text-[#6f5b43] dark:bg-[#2f2822] dark:text-[#cdbda8]">
+                <code class="rounded bg-[#f3f3f6] px-1.5 py-0.5 text-[#565869] dark:bg-[#2f2f2f] dark:text-[#acacbe]">
                   {{ row.pool.invite_code }}
                 </code>
               </div>
@@ -144,27 +144,27 @@
       </div>
       <div v-else-if="detailData" class="space-y-6">
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div class="rounded-lg border border-[#eadfce] bg-[#fffaf3] p-3 dark:border-[#302722] dark:bg-[#241d19]">
-            <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.seats') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+          <div class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-3 dark:border-[#3f3f46] dark:bg-[#2f2f2f]">
+            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.seats') }}</div>
+            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">
               {{ detailData.summary.active_members }}/{{ detailData.pool.target_seats }}
             </div>
           </div>
-          <div class="rounded-lg border border-[#eadfce] bg-[#fffaf3] p-3 dark:border-[#302722] dark:bg-[#241d19]">
-            <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.pendingApplications') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+          <div class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-3 dark:border-[#3f3f46] dark:bg-[#2f2f2f]">
+            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.pendingApplications') }}</div>
+            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">
               {{ detailData.summary.pending_applications }}
             </div>
           </div>
-          <div class="rounded-lg border border-[#eadfce] bg-[#fffaf3] p-3 dark:border-[#302722] dark:bg-[#241d19]">
-            <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.boundAccounts') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+          <div class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-3 dark:border-[#3f3f46] dark:bg-[#2f2f2f]">
+            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.boundAccounts') }}</div>
+            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">
               {{ detailData.accounts.length }}
             </div>
           </div>
-          <div class="rounded-lg border border-[#eadfce] bg-[#fffaf3] p-3 dark:border-[#302722] dark:bg-[#241d19]">
-            <div class="text-xs text-[#8c7f73] dark:text-[#998c80]">{{ t('carpool.inviteCode') }}</div>
-            <div class="mt-1 truncate font-mono text-sm font-semibold text-[#2f2923] dark:text-[#f4efe7]">
+          <div class="rounded-lg border border-[#d9d9e3] bg-[#ffffff] p-3 dark:border-[#3f3f46] dark:bg-[#2f2f2f]">
+            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.inviteCode') }}</div>
+            <div class="mt-1 truncate font-mono text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
               {{ detailData.pool.invite_code }}
             </div>
           </div>
