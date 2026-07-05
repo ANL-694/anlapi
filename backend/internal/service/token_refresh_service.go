@@ -426,6 +426,7 @@ func IsNonRetryableRefreshError(err error) bool {
 	nonRetryable := []string{
 		"invalid_grant",          // refresh_token 已失效
 		"invalid_refresh_token",  // refresh_token 无效, team 账号工作区被删除会出现
+		"token_expired",          // refresh_token 已过期，需要重新授权
 		"app_session_terminated", // refresh_token team 账号工作区被删除
 		"invalid_client",         // 客户端配置错误
 		"unauthorized_client",    // 客户端未授权

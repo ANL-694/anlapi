@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/service"
 )
 
 type helperConcurrencyCacheStub struct {
@@ -117,6 +117,10 @@ func (s *helperConcurrencyCacheStub) GetUsersLoadBatch(ctx context.Context, user
 }
 
 func (s *helperConcurrencyCacheStub) CleanupExpiredAccountSlots(ctx context.Context, accountID int64) error {
+	return nil
+}
+
+func (s *helperConcurrencyCacheStub) CleanupExpiredAccountSlotKeys(ctx context.Context) error {
 	return nil
 }
 

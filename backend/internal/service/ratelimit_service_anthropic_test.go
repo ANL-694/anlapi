@@ -2,6 +2,7 @@ package service
 
 import (
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -178,6 +179,74 @@ func TestIsAnthropicWindowExceeded(t *testing.T) {
 				t.Errorf("expected %v, got %v", tc.expected, got)
 			}
 		})
+	}
+}
+
+func TestSelectAnthropicFableWindowLimit_RejectedStatus(t *testing.T) {
+	now := time.Now()
+	reset := now.Add(80 * time.Hour).Truncate(time.Second)
+
+	headers := http.Header{}
+	headers.Set("anthropic-ratelimit-unified-7d_oi-status", "rejected")
+	headers.Set("anthropic-ratelimit-unified-7d_oi-utilization", "1.0")
+	headers.Set("anthropic-ratelimit-unified-7d_oi-surpassed-threshold", "1.0")
+	headers.Set("anthropic-ratelimit-unified-7d_oi-reset", strconv.FormatInt(reset.Unix(), 10))
+
+	limit := selectAnthropicFableWindowLimit(headers, now)
+	if limit == nil {
+		t.Fatal("expected non-nil limit")
+	}
+	if !limit.resetAt.Equal(reset) {
+		t.Errorf("expected resetAt=%v, got %v", reset, limit.resetAt)
+	}
+	if limit.reason != anthropicFableWindowReason {
+		t.Errorf("expected reason=%q, got %q", anthropicFableWindowReason, limit.reason)
+	}
+}
+
+func TestSelectAnthropicFableWindowLimit_UtilizationOnly(t *testing.T) {
+	now := time.Now()
+	reset := now.Add(3 * 24 * time.Hour).Truncate(time.Second)
+
+	headers := http.Header{}
+	headers.Set("anthropic-ratelimit-unified-7d_oi-utilization", "1.0")
+	headers.Set("anthropic-ratelimit-unified-7d_oi-reset", strconv.FormatInt(reset.Unix(), 10))
+
+	limit := selectAnthropicFableWindowLimit(headers, now)
+	if limit == nil {
+		t.Fatal("expected non-nil limit")
+	}
+	if !limit.resetAt.Equal(reset) {
+		t.Errorf("expected resetAt=%v, got %v", reset, limit.resetAt)
+	}
+}
+
+func TestSelectAnthropicFableWindowLimit_AllowedReturnsNil(t *testing.T) {
+	now := time.Now()
+	headers := http.Header{}
+	headers.Set("anthropic-ratelimit-unified-7d_oi-status", "allowed")
+	headers.Set("anthropic-ratelimit-unified-7d_oi-utilization", "0.56")
+	headers.Set("anthropic-ratelimit-unified-7d_oi-reset", strconv.FormatInt(now.Add(80*time.Hour).Unix(), 10))
+
+	if limit := selectAnthropicFableWindowLimit(headers, now); limit != nil {
+		t.Errorf("expected nil limit for allowed window, got %+v", limit)
+	}
+}
+
+func TestSelectAnthropicFableWindowLimit_FallsBackToAggregateReset(t *testing.T) {
+	now := time.Now()
+	reset := now.Add(80 * time.Hour).Truncate(time.Second)
+
+	headers := http.Header{}
+	headers.Set("anthropic-ratelimit-unified-7d_oi-status", "rejected")
+	headers.Set("anthropic-ratelimit-unified-reset", strconv.FormatInt(reset.Unix(), 10))
+
+	limit := selectAnthropicFableWindowLimit(headers, now)
+	if limit == nil {
+		t.Fatal("expected non-nil limit via aggregate reset fallback")
+	}
+	if !limit.resetAt.Equal(reset) {
+		t.Errorf("expected resetAt=%v, got %v", reset, limit.resetAt)
 	}
 }
 

@@ -421,14 +421,37 @@ func TestAccountGetModelMapping_AntigravityEnsuresGeminiDefaultPassthroughs(t *t
 	}
 
 	mapping := account.GetModelMapping()
+	if mapping["gemini-pro-agent"] != "gemini-pro-agent" {
+		t.Fatalf("expected gemini-pro-agent passthrough to be auto-filled, got: %q", mapping["gemini-pro-agent"])
+	}
 	if mapping["gemini-3-flash"] != "gemini-3-flash" {
 		t.Fatalf("expected gemini-3-flash passthrough to be auto-filled, got: %q", mapping["gemini-3-flash"])
 	}
-	if mapping["gemini-3.1-pro-high"] != "gemini-3.1-pro-high" {
+	if mapping["gemini-3.1-pro-high"] != "gemini-pro-agent" {
 		t.Fatalf("expected gemini-3.1-pro-high passthrough to be auto-filled, got: %q", mapping["gemini-3.1-pro-high"])
 	}
 	if mapping["gemini-3.1-pro-low"] != "gemini-3.1-pro-low" {
 		t.Fatalf("expected gemini-3.1-pro-low passthrough to be auto-filled, got: %q", mapping["gemini-3.1-pro-low"])
+	}
+}
+
+func TestAccountGetModelMapping_AntigravityUpgradesGemini31ProLegacyAliases(t *testing.T) {
+	account := &Account{
+		Platform: PlatformAntigravity,
+		Credentials: map[string]any{
+			"model_mapping": map[string]any{
+				"gemini-pro-agent":       "gemini-pro-agent",
+				"gemini-3.1-pro-high":    "gemini-3.1-pro-high",
+				"gemini-3.1-pro-preview": "gemini-3.1-pro-high",
+			},
+		},
+	}
+
+	mapping := account.GetModelMapping()
+	for _, model := range []string{"gemini-3.1-pro", "gemini-3.1-pro-high", "gemini-3.1-pro-preview"} {
+		if mapping[model] != "gemini-pro-agent" {
+			t.Fatalf("expected %s to map to gemini-pro-agent, got: %q", model, mapping[model])
+		}
 	}
 }
 

@@ -13,7 +13,7 @@ export interface FreeModelProvider {
 }
 
 export interface FreeModelTestState {
-  status: 'success' | 'error'
+  status: 'success' | 'warning' | 'error'
   message: string
   latency?: number
 }

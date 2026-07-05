@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/service"
 	"github.com/lib/pq"
+	"ikik-api/internal/service"
 )
 
 type opsRepository struct {
@@ -180,6 +180,29 @@ func opsInsertErrorLogArgs(input *service.OpsInsertErrorLogInput) []any {
 	}
 }
 
+func opsErrorLogsOrderBy(filter *service.OpsErrorLogFilter) string {
+	sortBy := ""
+	sortOrder := ""
+	if filter != nil {
+		sortBy = strings.ToLower(strings.TrimSpace(filter.SortBy))
+		sortOrder = strings.ToLower(strings.TrimSpace(filter.SortOrder))
+	}
+
+	column := "e.created_at"
+	switch sortBy {
+	case "model":
+		column = "COALESCE(NULLIF(TRIM(e.requested_model), ''), e.model)"
+	case "status_code":
+		column = "COALESCE(e.upstream_status_code, e.status_code, 0)"
+	}
+
+	dir := "DESC"
+	if sortOrder == "asc" {
+		dir = "ASC"
+	}
+	return fmt.Sprintf("%s %s, e.id %s", column, dir, dir)
+}
+
 func (r *opsRepository) ListErrorLogs(ctx context.Context, filter *service.OpsErrorLogFilter) (*service.OpsErrorLogList, error) {
 	if r == nil || r.db == nil {
 		return nil, fmt.Errorf("nil ops repository")
@@ -253,7 +276,7 @@ LEFT JOIN groups g ON e.group_id = g.id
 LEFT JOIN users u ON e.user_id = u.id
 LEFT JOIN users u2 ON e.resolved_by_user_id = u2.id
 ` + where + `
-ORDER BY e.created_at DESC
+ORDER BY ` + opsErrorLogsOrderBy(filter) + `
 LIMIT $` + itoa(len(args)+1) + ` OFFSET $` + itoa(len(args)+2)
 
 	rows, err := r.db.QueryContext(ctx, selectSQL, argsWithLimit...)
@@ -1271,8 +1294,10 @@ func buildOpsErrorLogsWhere(filter *service.OpsErrorLogFilter) (string, []any) {
 	clauses = append(clauses, "1=1")
 
 	phaseFilter := ""
+	includeRecoveredUpstream := false
 	if filter != nil {
 		phaseFilter = strings.TrimSpace(strings.ToLower(filter.Phase))
+		includeRecoveredUpstream = filter.IncludeRecoveredUpstream
 	}
 	// ops_error_logs stores client-visible error requests (status>=400),
 	// but we also persist "recovered" upstream errors (status<400) for upstream health visibility.
@@ -1281,35 +1306,57 @@ func buildOpsErrorLogsWhere(filter *service.OpsErrorLogFilter) (string, []any) {
 	if filter != nil {
 		resolvedFilter = filter.Resolved
 	}
-	// Keep list endpoints scoped to client errors unless explicitly filtering upstream phase.
-	if phaseFilter != "upstream" {
+	// Keep request-error style lists scoped to client-visible errors. The only
+	// exception is the ops upstream drill-down, which explicitly opts into
+	// recovered upstream rows.
+	if phaseFilter != "upstream" || !includeRecoveredUpstream {
 		clauses = append(clauses, "COALESCE(e.status_code, 0) >= 400")
 	}
 
-	if filter.StartTime != nil && !filter.StartTime.IsZero() {
+	if filter != nil && filter.StartTime != nil && !filter.StartTime.IsZero() {
 		args = append(args, filter.StartTime.UTC())
 		clauses = append(clauses, "e.created_at >= $"+itoa(len(args)))
 	}
-	if filter.EndTime != nil && !filter.EndTime.IsZero() {
+	if filter != nil && filter.EndTime != nil && !filter.EndTime.IsZero() {
 		args = append(args, filter.EndTime.UTC())
 		// Keep time-window semantics consistent with other ops queries: [start, end)
 		clauses = append(clauses, "e.created_at < $"+itoa(len(args)))
 	}
-	if p := strings.TrimSpace(filter.Platform); p != "" {
-		args = append(args, p)
-		clauses = append(clauses, "e.platform = $"+itoa(len(args)))
+	if filter != nil {
+		if p := strings.TrimSpace(filter.Platform); p != "" {
+			args = append(args, p)
+			clauses = append(clauses, "e.platform = $"+itoa(len(args)))
+		}
 	}
-	if filter.GroupID != nil && *filter.GroupID > 0 {
+	if filter != nil && filter.GroupID != nil && *filter.GroupID > 0 {
 		args = append(args, *filter.GroupID)
 		clauses = append(clauses, "e.group_id = $"+itoa(len(args)))
 	}
-	if filter.AccountID != nil && *filter.AccountID > 0 {
+	if filter != nil && filter.AccountID != nil && *filter.AccountID > 0 {
 		args = append(args, *filter.AccountID)
 		clauses = append(clauses, "e.account_id = $"+itoa(len(args)))
 	}
 	if phase := phaseFilter; phase != "" {
 		args = append(args, phase)
 		clauses = append(clauses, "e.error_phase = $"+itoa(len(args)))
+	}
+	if filter != nil && len(filter.ErrorPhasesAny) > 0 {
+		args = append(args, pq.Array(filter.ErrorPhasesAny))
+		clauses = append(clauses, "COALESCE(e.error_phase,'') = ANY($"+itoa(len(args))+")")
+	}
+	if filter != nil && len(filter.ErrorTypesAny) > 0 {
+		args = append(args, pq.Array(filter.ErrorTypesAny))
+		clauses = append(clauses, "COALESCE(e.error_type,'') = ANY($"+itoa(len(args))+")")
+	}
+	if filter != nil && strings.TrimSpace(filter.Model) != "" {
+		model := strings.TrimSpace(filter.Model)
+		if filter.ModelFuzzy {
+			args = append(args, "%"+model+"%")
+			clauses = append(clauses, "COALESCE(NULLIF(TRIM(e.requested_model), ''), e.model, '') ILIKE $"+itoa(len(args)))
+		} else {
+			args = append(args, model)
+			clauses = append(clauses, "COALESCE(NULLIF(TRIM(e.requested_model), ''), e.model, '') = $"+itoa(len(args)))
+		}
 	}
 	if filter != nil {
 		if owner := strings.TrimSpace(strings.ToLower(filter.Owner)); owner != "" {
@@ -1344,37 +1391,43 @@ func buildOpsErrorLogsWhere(filter *service.OpsErrorLogFilter) (string, []any) {
 		// treat unknown as default 'errors'
 		clauses = append(clauses, "COALESCE(e.is_business_limited,false) = false")
 	}
-	if len(filter.StatusCodes) > 0 {
+	if filter != nil && len(filter.StatusCodes) > 0 {
 		args = append(args, pq.Array(filter.StatusCodes))
 		clauses = append(clauses, "COALESCE(e.upstream_status_code, e.status_code, 0) = ANY($"+itoa(len(args))+")")
-	} else if filter.StatusCodesOther {
+	} else if filter != nil && filter.StatusCodesOther {
 		// "Other" means: status codes not in the common list.
 		known := []int{400, 401, 403, 404, 409, 422, 429, 500, 502, 503, 504, 529}
 		args = append(args, pq.Array(known))
 		clauses = append(clauses, "NOT (COALESCE(e.upstream_status_code, e.status_code, 0) = ANY($"+itoa(len(args))+"))")
 	}
 	// Exact correlation keys (preferred for request↔upstream linkage).
-	if rid := strings.TrimSpace(filter.RequestID); rid != "" {
-		args = append(args, rid)
-		clauses = append(clauses, "COALESCE(e.request_id,'') = $"+itoa(len(args)))
-	}
-	if crid := strings.TrimSpace(filter.ClientRequestID); crid != "" {
-		args = append(args, crid)
-		clauses = append(clauses, "COALESCE(e.client_request_id,'') = $"+itoa(len(args)))
-	}
-
-	if q := strings.TrimSpace(filter.Query); q != "" {
-		like := "%" + q + "%"
-		args = append(args, like)
-		n := itoa(len(args))
-		clauses = append(clauses, "(e.request_id ILIKE $"+n+" OR e.client_request_id ILIKE $"+n+" OR e.error_message ILIKE $"+n+")")
+	if filter != nil {
+		if rid := strings.TrimSpace(filter.RequestID); rid != "" {
+			args = append(args, rid)
+			clauses = append(clauses, "COALESCE(e.request_id,'') = $"+itoa(len(args)))
+		}
+		if crid := strings.TrimSpace(filter.ClientRequestID); crid != "" {
+			args = append(args, crid)
+			clauses = append(clauses, "COALESCE(e.client_request_id,'') = $"+itoa(len(args)))
+		}
 	}
 
-	if userQuery := strings.TrimSpace(filter.UserQuery); userQuery != "" {
-		like := "%" + userQuery + "%"
-		args = append(args, like)
-		n := itoa(len(args))
-		clauses = append(clauses, "EXISTS (SELECT 1 FROM users u WHERE u.id = e.user_id AND u.email ILIKE $"+n+")")
+	if filter != nil {
+		if q := strings.TrimSpace(filter.Query); q != "" {
+			like := "%" + q + "%"
+			args = append(args, like)
+			n := itoa(len(args))
+			clauses = append(clauses, "(e.request_id ILIKE $"+n+" OR e.client_request_id ILIKE $"+n+" OR e.error_message ILIKE $"+n+")")
+		}
+	}
+
+	if filter != nil {
+		if userQuery := strings.TrimSpace(filter.UserQuery); userQuery != "" {
+			like := "%" + userQuery + "%"
+			args = append(args, like)
+			n := itoa(len(args))
+			clauses = append(clauses, "EXISTS (SELECT 1 FROM users u WHERE u.id = e.user_id AND u.email ILIKE $"+n+")")
+		}
 	}
 
 	return "WHERE " + strings.Join(clauses, " AND "), args

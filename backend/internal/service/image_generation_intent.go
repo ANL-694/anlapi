@@ -151,19 +151,27 @@ func openAIJSONToolChoiceSelectsImageGeneration(choice gjson.Result) bool {
 	return false
 }
 
-func openAIAnyToolChoiceSelectsImageGeneration(choice any) bool {
-	switch v := choice.(type) {
+func openAIAnyToolChoiceSelectsImageGeneration(value any) bool {
+	switch v := value.(type) {
 	case string:
 		return strings.TrimSpace(v) == "image_generation"
 	case map[string]any:
 		if strings.TrimSpace(firstNonEmptyString(v["type"])) == "image_generation" {
 			return true
 		}
-		if tool, ok := v["tool"].(map[string]any); ok && strings.TrimSpace(firstNonEmptyString(tool["type"])) == "image_generation" {
+		if strings.TrimSpace(firstNonEmptyString(v["name"])) == "image_generation" {
 			return true
 		}
-		if fn, ok := v["function"].(map[string]any); ok && strings.TrimSpace(firstNonEmptyString(fn["name"])) == "image_generation" {
-			return true
+		for _, nested := range v {
+			if openAIAnyToolChoiceSelectsImageGeneration(nested) {
+				return true
+			}
+		}
+	case []any:
+		for _, item := range v {
+			if openAIAnyToolChoiceSelectsImageGeneration(item) {
+				return true
+			}
 		}
 	}
 	return false

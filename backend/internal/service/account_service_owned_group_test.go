@@ -487,7 +487,7 @@ func TestAccountServiceResolveOwnedPublicShareGroupAllowsHigherLevelFallbackToLo
 	require.Equal(t, int64(10), group.ID)
 }
 
-func TestAccountServiceResolveOwnedPublicShareGroupTreatsTeamPoolAsPlus(t *testing.T) {
+func TestAccountServiceResolveOwnedPublicShareGroupDoesNotTreatTeamPoolAsPlus(t *testing.T) {
 	svc := &AccountService{
 		groupRepo: &ownedPublicShareGroupRepoStub{
 			groups: []Group{
@@ -498,8 +498,38 @@ func TestAccountServiceResolveOwnedPublicShareGroupTreatsTeamPoolAsPlus(t *testi
 
 	group, err := svc.resolveOwnedPublicShareGroup(context.Background(), &Account{Platform: PlatformOpenAI, AccountLevel: AccountLevelPlus})
 
+	require.Error(t, err)
+	require.Nil(t, group)
+}
+
+func TestAccountServiceResolveOwnedPublicShareGroupMatchesTeamPool(t *testing.T) {
+	svc := &AccountService{
+		groupRepo: &ownedPublicShareGroupRepoStub{
+			groups: []Group{
+				{ID: 12, Name: "TEAM共享号池", Platform: PlatformOpenAI, Status: StatusActive, Scope: GroupScopePublic, RequiredAccountLevel: AccountLevelTeam},
+			},
+		},
+	}
+
+	group, err := svc.resolveOwnedPublicShareGroup(context.Background(), &Account{Platform: PlatformOpenAI, AccountLevel: AccountLevelTeam})
+
 	require.NoError(t, err)
 	require.Equal(t, int64(12), group.ID)
+}
+
+func TestAccountServiceResolveOwnedPublicShareGroupMatchesK12Pool(t *testing.T) {
+	svc := &AccountService{
+		groupRepo: &ownedPublicShareGroupRepoStub{
+			groups: []Group{
+				{ID: 14, Name: "K12共享号池", Platform: PlatformOpenAI, Status: StatusActive, Scope: GroupScopePublic, RequiredAccountLevel: AccountLevelK12},
+			},
+		},
+	}
+
+	group, err := svc.resolveOwnedPublicShareGroup(context.Background(), &Account{Platform: PlatformOpenAI, AccountLevel: AccountLevelK12})
+
+	require.NoError(t, err)
+	require.Equal(t, int64(14), group.ID)
 }
 
 func TestAccountServiceResolveOwnedPublicShareGroupRejectsHigherPoolForLowerLevel(t *testing.T) {

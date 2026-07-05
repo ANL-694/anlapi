@@ -261,6 +261,9 @@ func (c *schedInvCountingCache) GetUsersLoadBatch(_ context.Context, users []ser
 func (c *schedInvCountingCache) CleanupExpiredAccountSlots(_ context.Context, _ int64) error {
 	return nil
 }
+func (c *schedInvCountingCache) CleanupExpiredAccountSlotKeys(_ context.Context) error {
+	return nil
+}
 func (c *schedInvCountingCache) CleanupStaleProcessSlots(_ context.Context, _ string) error {
 	return nil
 }

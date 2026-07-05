@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/suite"
 	dbent "ikik-api/ent"
 	"ikik-api/ent/accountgroup"
 	"ikik-api/internal/pkg/pagination"
 	"ikik-api/internal/service"
-	"github.com/stretchr/testify/suite"
 )
 
 type AccountRepoSuite struct {
@@ -381,10 +381,13 @@ func (s *AccountRepoSuite) TestListWithFilters() {
 				mustBindAccountToGroup(s.T(), client, mixed.ID, publicGroup.ID, 2)
 			},
 			groupID:   service.AccountListGroupUngrouped,
-			wantCount: 2,
+			wantCount: 1,
 			validate: func(accounts []service.Account) {
-				names := []string{accounts[0].Name, accounts[1].Name}
-				s.Require().ElementsMatch([]string{"private-only-account", "ungrouped-account"}, names)
+				names := make([]string, 0, len(accounts))
+				for _, account := range accounts {
+					names = append(names, account.Name)
+				}
+				s.Require().ElementsMatch([]string{"ungrouped-account"}, names)
 			},
 		},
 		{

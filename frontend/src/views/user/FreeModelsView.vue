@@ -60,15 +60,8 @@
         @close="closeStatusDialog"
         @connect="statusProvider && openConnectDialog(statusProvider)"
         @test-all="statusProvider && testProviderAccounts(statusProvider)"
-        @test-account="openTestDialog"
+        @test-account="runAccountTest"
         @delete-account="deleteAccount"
-      />
-
-      <AccountTestModal
-        :show="testDialogOpen"
-        :account="testDialogAccount"
-        account-scope="user"
-        @close="closeTestDialog"
       />
     </div>
   </AppLayout>
@@ -79,7 +72,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { accountsAPI } from '@/api'
 import { buildApiUrl } from '@/api/client'
-import AccountTestModal from '@/components/account/AccountTestModal.vue'
 import FreeModelConnectDialog from '@/components/free-models/FreeModelConnectDialog.vue'
 import FreeModelProviderCard from '@/components/free-models/FreeModelProviderCard.vue'
 import FreeModelStatusDialog from '@/components/free-models/FreeModelStatusDialog.vue'
@@ -87,7 +79,7 @@ import type { FreeModelAccount, FreeModelProvider, FreeModelTestState } from '@/
 import Icon from '@/components/icons/Icon.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAppStore } from '@/stores/app'
-import type { CreateAccountRequest } from '@/types'
+import type { CreateAccountRequest, UpdateAccountRequest } from '@/types'
 import { extractApiErrorMessage } from '@/utils/apiError'
 
 const { t } = useI18n()
@@ -267,8 +259,6 @@ const connectDialogOpen = ref(false)
 const connectProvider = ref<FreeModelProvider | null>(null)
 const statusDialogOpen = ref(false)
 const statusProvider = ref<FreeModelProvider | null>(null)
-const testDialogOpen = ref(false)
-const testDialogAccount = ref<FreeModelAccount | null>(null)
 
 const accountName = ref('')
 const baseUrlInput = ref('')
@@ -318,10 +308,47 @@ function providerAccounts(provider: FreeModelProvider): FreeModelAccount[] {
   return accounts.value.filter((account) => account.extra?.free_model_provider === provider.code)
 }
 
-function accountModelIDs(account: FreeModelAccount): string[] {
+interface DisabledFreeModelInfo {
+  disabled_at?: string
+  error?: string
+}
+
+type DisabledFreeModelMap = Record<string, DisabledFreeModelInfo>
+
+interface FreeModelRunResult {
+  model: string
+  success: boolean
+  message: string
+  latency?: number
+}
+
+function plainRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return { ...(value as Record<string, unknown>) }
+}
+
+function accountModelMapping(account: FreeModelAccount): Record<string, unknown> {
   const mapping = account.credentials?.model_mapping
-  if (!mapping || typeof mapping !== 'object' || Array.isArray(mapping)) return []
-  return Object.keys(mapping as Record<string, unknown>)
+  if (!mapping || typeof mapping !== 'object' || Array.isArray(mapping)) return {}
+  return { ...(mapping as Record<string, unknown>) }
+}
+
+function accountModelIDs(account: FreeModelAccount): string[] {
+  return Object.keys(accountModelMapping(account))
+}
+
+function disabledModelMap(account: FreeModelAccount): DisabledFreeModelMap {
+  const value = account.extra?.free_model_disabled_models
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return value as DisabledFreeModelMap
+}
+
+function disabledModelCount(account: FreeModelAccount): number {
+  return Object.keys(disabledModelMap(account)).length
+}
+
+function accountHasUsableModels(account: FreeModelAccount): boolean {
+  return accountModelIDs(account).length > 0
 }
 
 function connectionLabel(provider: FreeModelProvider): string {
@@ -343,10 +370,12 @@ function accountHasActiveLimit(account: FreeModelAccount): boolean {
   return Object.values(modelLimits as Record<string, { rate_limit_reset_at?: string }>).some((item) => parseFutureTime(item.rate_limit_reset_at))
 }
 
-function providerHealth(provider: FreeModelProvider): 'normal' | 'limited' | 'error' | 'not_connected' {
+function providerHealth(provider: FreeModelProvider): 'normal' | 'limited' | 'model_filtered' | 'error' | 'not_connected' {
   const items = providerAccounts(provider)
   if (items.length === 0) return 'not_connected'
+  if (items.some((account) => account.status === 'active' && accountHasUsableModels(account) && !accountHasActiveLimit(account))) return 'normal'
   if (items.some((account) => accountHasActiveLimit(account))) return 'limited'
+  if (items.some((account) => disabledModelCount(account) > 0)) return 'model_filtered'
   if (items.some((account) => account.status === 'error')) return 'error'
   if (items.some((account) => account.status === 'active')) return 'normal'
   return 'error'
@@ -360,6 +389,7 @@ function healthBadgeClass(provider: FreeModelProvider): string {
   const health = providerHealth(provider)
   if (health === 'normal') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
   if (health === 'limited') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+  if (health === 'model_filtered') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
   if (health === 'error') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
   return 'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)]'
 }
@@ -369,6 +399,16 @@ function connectedSummary(provider: FreeModelProvider): string {
   const normal = items.filter((account) => account.status === 'active' && !accountHasActiveLimit(account)).length
   const limited = items.filter(accountHasActiveLimit).length
   const errored = items.filter((account) => account.status === 'error').length
+  const filtered = items.reduce((total, account) => total + disabledModelCount(account), 0)
+  if (filtered > 0) {
+    return t('freeModels.connectedSummaryWithFiltered', {
+      count: items.length,
+      normal,
+      limited,
+      error: errored,
+      filtered
+    })
+  }
   return t('freeModels.connectedSummary', {
     count: items.length,
     normal,
@@ -501,17 +541,6 @@ async function createFreeModelAccount() {
   }
 }
 
-function openTestDialog(account: FreeModelAccount) {
-  testDialogAccount.value = account
-  testDialogOpen.value = true
-}
-
-async function closeTestDialog() {
-  testDialogOpen.value = false
-  testDialogAccount.value = null
-  await loadAccounts()
-}
-
 interface AccountTestEvent {
   type: string
   text?: string
@@ -520,10 +549,125 @@ interface AccountTestEvent {
   error?: string
 }
 
+function isModelUnavailableError(message: string): boolean {
+  const value = message.toLowerCase()
+  return [
+    'no_access',
+    'no access to model',
+    'does not have access to model',
+    'model_not_found',
+    'model not found',
+    'model does not exist',
+    'not supported',
+    'unsupported model',
+    'invalid model',
+    'unknown model'
+  ].some((keyword) => value.includes(keyword))
+}
+
+function replaceAccount(updated: FreeModelAccount) {
+  accounts.value = accounts.value.map((item) => (item.id === updated.id ? updated : item))
+}
+
+async function disableFreeModel(account: FreeModelAccount, model: string, message: string): Promise<FreeModelAccount> {
+  const credentials = plainRecord(account.credentials)
+  const mapping = accountModelMapping(account)
+  delete mapping[model]
+  credentials.model_mapping = mapping
+
+  const disabledModels: DisabledFreeModelMap = {
+    ...disabledModelMap(account),
+    [model]: {
+      disabled_at: new Date().toISOString(),
+      error: message
+    }
+  }
+  const extra = {
+    ...plainRecord(account.extra),
+    free_model_disabled_models: disabledModels,
+    free_model_last_filter_at: new Date().toISOString()
+  }
+
+  const payload: UpdateAccountRequest = { credentials, extra }
+  const updated = await accountsAPI.update(account.id, payload) as FreeModelAccount
+  replaceAccount(updated)
+  return updated
+}
+
+async function runSingleAccountModelTest(account: FreeModelAccount, model: string): Promise<FreeModelRunResult> {
+  const startedAt = Date.now()
+  const response = await fetch(buildApiUrl(`/api/v1/accounts/${account.id}/test`), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model_id: model,
+      prompt: '',
+      mode: 'default'
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) {
+    throw new Error('No response body')
+  }
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let result: FreeModelRunResult = {
+    model,
+    success: false,
+    message: t('freeModels.testFailed')
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      const jsonStr = line.slice(6).trim()
+      if (!jsonStr) continue
+      try {
+        const event = JSON.parse(jsonStr) as AccountTestEvent
+        if (event.type === 'test_complete') {
+          result = {
+            model,
+            success: event.success === true,
+            message: event.success ? t('freeModels.testSuccess') : event.error || t('freeModels.testFailed'),
+            latency: Date.now() - startedAt
+          }
+        } else if (event.type === 'error') {
+          result = {
+            model,
+            success: false,
+            message: event.error || t('freeModels.testFailed'),
+            latency: Date.now() - startedAt
+          }
+        }
+      } catch {
+        // Ignore partial or malformed SSE lines.
+      }
+    }
+  }
+
+  return result
+}
+
 async function runAccountTest(account: FreeModelAccount) {
-  const model = accountModelIDs(account)[0]
-  if (!model) {
-    const message = t('freeModels.requireModels')
+  const models = accountModelIDs(account)
+  if (models.length === 0) {
+    const message = t('freeModels.noUsableModels')
     testResults.value = {
       ...testResults.value,
       [account.id]: { status: 'error', message }
@@ -533,78 +677,51 @@ async function runAccountTest(account: FreeModelAccount) {
   }
 
   testingAccountID.value = account.id
-  const startedAt = Date.now()
   try {
-    const response = await fetch(buildApiUrl(`/api/v1/accounts/${account.id}/test`), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model_id: model,
-        prompt: '',
-        mode: 'default'
-      })
-    })
+    let currentAccount = account
+    const results: FreeModelRunResult[] = []
+    const disabled: string[] = []
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const reader = response.body?.getReader()
-    if (!reader) {
-      throw new Error('No response body')
-    }
-
-    const decoder = new TextDecoder()
-    let buffer = ''
-    let result: FreeModelTestState = {
-      status: 'error',
-      message: t('freeModels.testFailed')
-    }
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        const jsonStr = line.slice(6).trim()
-        if (!jsonStr) continue
-        try {
-          const event = JSON.parse(jsonStr) as AccountTestEvent
-          if (event.type === 'test_complete') {
-            result = {
-              status: event.success ? 'success' : 'error',
-              message: event.success ? t('freeModels.testSuccess') : event.error || t('freeModels.testFailed'),
-              latency: Date.now() - startedAt
-            }
-          } else if (event.type === 'error') {
-            result = {
-              status: 'error',
-              message: event.error || t('freeModels.testFailed'),
-              latency: Date.now() - startedAt
-            }
-          }
-        } catch {
-          // Ignore partial or malformed SSE lines.
+    for (const model of models) {
+      try {
+        const result = await runSingleAccountModelTest(currentAccount, model)
+        results.push(result)
+        if (!result.success && isModelUnavailableError(result.message)) {
+          currentAccount = await disableFreeModel(currentAccount, model, result.message)
+          disabled.push(model)
+        }
+      } catch (err: unknown) {
+        const message = extractApiErrorMessage(err, t('freeModels.testFailed'))
+        results.push({ model, success: false, message })
+        if (isModelUnavailableError(message)) {
+          currentAccount = await disableFreeModel(currentAccount, model, message)
+          disabled.push(model)
         }
       }
     }
 
+    const passed = results.filter((result) => result.success).length
+    const failed = results.length - passed - disabled.length
+    const latency = [...results].reverse().find((result) => result.latency != null)?.latency
+    const message = passed > 0
+      ? t('freeModels.modelTestSummary', { passed, disabled: disabled.length, failed })
+      : disabled.length > 0
+        ? t('freeModels.allModelsDisabled')
+        : results[0]?.message || t('freeModels.testFailed')
+    const status: FreeModelTestState['status'] = passed > 0
+      ? (disabled.length > 0 || failed > 0 ? 'warning' : 'success')
+      : 'error'
+
     testResults.value = {
       ...testResults.value,
-      [account.id]: result
+      [account.id]: { status, message, latency }
     }
-    if (result.status === 'success') {
-      appStore.showSuccess(result.message)
+    if (status === 'success') {
+      appStore.showSuccess(message)
+    } else if (status === 'warning') {
+      appStore.showWarning(message)
     } else {
-      appStore.showError(result.message)
+      appStore.showError(message)
     }
     await loadAccounts()
   } catch (err: unknown) {

@@ -921,7 +921,7 @@ func (r *accountRepository) listWithFilters(ctx context.Context, params paginati
 		q = q.Where(dbaccount.NameContainsFold(search))
 	}
 	if groupID == service.AccountListGroupUngrouped {
-		q = q.Where(accountHasNoNonPrivateGroups())
+		q = q.Where(accountHasNoGroups())
 	} else if groupID > 0 {
 		q = q.Where(dbaccount.HasAccountGroupsWith(dbaccountgroup.GroupIDEQ(groupID)))
 	}
@@ -1023,13 +1023,8 @@ func accountListOrder(params pagination.PaginationParams) []func(*entsql.Selecto
 	return []func(*entsql.Selector){dbent.Asc(field), dbent.Asc(dbaccount.FieldID)}
 }
 
-func accountHasNoNonPrivateGroups() dbpredicate.Account {
-	return dbaccount.Not(dbaccount.HasAccountGroupsWith(
-		dbaccountgroup.HasGroupWith(
-			dbgroup.DeletedAtIsNil(),
-			dbgroup.ScopeNEQ(service.GroupScopeUserPrivate),
-		),
-	))
+func accountHasNoGroups() dbpredicate.Account {
+	return dbaccount.Not(dbaccount.HasAccountGroups())
 }
 
 func (r *accountRepository) ListByGroup(ctx context.Context, groupID int64) ([]service.Account, error) {
@@ -1656,6 +1651,20 @@ func (r *accountRepository) UpdateSessionWindow(ctx context.Context, id int64, s
 		if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, &id, nil, nil); err != nil {
 			logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue session window update failed: account=%d err=%v", id, err)
 		}
+	}
+	return nil
+}
+
+func (r *accountRepository) UpdateSessionWindowEnd(ctx context.Context, id int64, end time.Time) error {
+	_, err := r.client.Account.Update().
+		Where(dbaccount.IDEQ(id)).
+		SetSessionWindowEnd(end).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, &id, nil, nil); err != nil {
+		logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue session window end update failed: account=%d err=%v", id, err)
 	}
 	return nil
 }

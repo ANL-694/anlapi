@@ -64,13 +64,27 @@
           <div class="mt-3 flex flex-wrap gap-2">
             <span
               v-for="model in accountModelIDs(account)"
-              :key="model"
+              :key="`active-${model}`"
               class="max-w-full truncate rounded-full bg-[var(--app-surface-muted)] px-2 py-1 font-mono text-[11px] text-[var(--app-text-muted)]"
               :title="model"
             >
               {{ model }}
             </span>
+            <span
+              v-for="model in disabledModelIDs(account)"
+              :key="`disabled-${model}`"
+              class="max-w-full truncate rounded-full bg-amber-50 px-2 py-1 font-mono text-[11px] text-amber-700 line-through dark:bg-amber-900/25 dark:text-amber-300"
+              :title="disabledModelTitle(account, model)"
+            >
+              {{ model }}
+            </span>
           </div>
+          <p
+            v-if="disabledModelIDs(account).length > 0"
+            class="mt-2 text-xs leading-5 text-amber-700 dark:text-amber-300"
+          >
+            {{ t('freeModels.disabledModelHint') }}
+          </p>
 
           <div v-if="accountLimitText(account) || account.error_message || testResults[account.id]?.message" class="mt-3 space-y-1 text-xs leading-5 text-[var(--app-text-muted)]">
             <p v-if="accountLimitText(account)">
@@ -79,7 +93,7 @@
             <p v-if="account.error_message" class="text-red-600 dark:text-red-300">
               {{ account.error_message }}
             </p>
-            <p v-if="testResults[account.id]?.message" :class="testResults[account.id]?.status === 'success' ? 'text-green-700 dark:text-green-300' : 'text-red-600 dark:text-red-300'">
+            <p v-if="testResults[account.id]?.message" :class="testResultTextClass(testResults[account.id]?.status)">
               {{ testResults[account.id]?.message }}
               <span v-if="testResults[account.id]?.latency != null">
                 · {{ t('freeModels.latencyMs', { ms: Math.round(testResults[account.id]?.latency || 0) }) }}
@@ -147,6 +161,7 @@ function accountHasActiveLimit(account: FreeModelAccount): boolean {
 
 function accountHealthLabel(account: FreeModelAccount): string {
   if (accountHasActiveLimit(account)) return t('freeModels.health.limited')
+  if (accountModelIDs(account).length === 0 && disabledModelIDs(account).length > 0) return t('freeModels.health.model_filtered')
   if (account.status === 'active') return t('freeModels.health.normal')
   if (account.status === 'disabled') return t('freeModels.status.disabled')
   if (account.status === 'inactive') return t('freeModels.status.inactive')
@@ -155,6 +170,7 @@ function accountHealthLabel(account: FreeModelAccount): string {
 
 function accountHealthBadgeClass(account: FreeModelAccount): string {
   if (accountHasActiveLimit(account)) return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+  if (accountModelIDs(account).length === 0 && disabledModelIDs(account).length > 0) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
   if (account.status === 'active') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
   if (account.status === 'disabled' || account.status === 'inactive') return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
   return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
@@ -164,6 +180,20 @@ function accountModelIDs(account: FreeModelAccount): string[] {
   const mapping = account.credentials?.model_mapping
   if (!mapping || typeof mapping !== 'object' || Array.isArray(mapping)) return []
   return Object.keys(mapping as Record<string, unknown>)
+}
+
+function disabledModelMap(account: FreeModelAccount): Record<string, { disabled_at?: string; error?: string }> {
+  const value = account.extra?.free_model_disabled_models
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return value as Record<string, { disabled_at?: string; error?: string }>
+}
+
+function disabledModelIDs(account: FreeModelAccount): string[] {
+  return Object.keys(disabledModelMap(account))
+}
+
+function disabledModelTitle(account: FreeModelAccount, model: string): string {
+  return disabledModelMap(account)[model]?.error || model
 }
 
 function accountBaseUrl(account: FreeModelAccount): string {
@@ -186,5 +216,11 @@ function accountLimitText(account: FreeModelAccount): string {
     model: limited[0],
     time: parseFutureTime(limited[1].rate_limit_reset_at)?.toLocaleString() || '-'
   })
+}
+
+function testResultTextClass(status: FreeModelTestState['status'] | undefined): string {
+  if (status === 'success') return 'text-green-700 dark:text-green-300'
+  if (status === 'warning') return 'text-amber-700 dark:text-amber-300'
+  return 'text-red-600 dark:text-red-300'
 }
 </script>

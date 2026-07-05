@@ -1,7 +1,7 @@
 <template>
   <header class="app-header">
     <div class="app-header-inner">
-      <div class="flex min-w-0 items-center gap-2 sm:gap-3">
+      <div class="app-header-leading">
         <button
           @click="toggleMobileSidebar"
           class="btn-ghost btn-icon app-header-icon-button lg:hidden"
@@ -17,10 +17,10 @@
         </div>
       </div>
 
-      <div class="flex min-w-0 items-center gap-1.5 sm:gap-2">
-        <LocaleSwitcher class="shrink-0" />
-        <AnnouncementBell v-if="user" />
-        <SubscriptionProgressMini v-if="user" />
+      <div class="app-header-actions">
+        <LocaleSwitcher class="app-header-action-item shrink-0" />
+        <AnnouncementBell v-if="user" class="app-header-action-item" />
+        <SubscriptionProgressMini v-if="user" class="app-header-action-item" />
         <div
           v-if="user"
           class="app-header-balance"

@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	"ikik-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/pkg/pagination"
 )
 
 func ptrString[T ~string](v T) *string {
@@ -329,7 +329,7 @@ func TestAdminService_UpdateGroupCopyAccounts_RejectsMismatchedOpenAILevelBefore
 	require.Empty(t, repo.bindAccountsAccountIDs)
 }
 
-func TestAdminService_UpdateGroupCopyAccounts_NormalizesTeamRequiredLevelToPlus(t *testing.T) {
+func TestAdminService_UpdateGroupCopyAccounts_PreservesTeamRequiredLevel(t *testing.T) {
 	existing := &Group{
 		ID:             2,
 		Name:           "Legacy Team Pool",
@@ -350,9 +350,9 @@ func TestAdminService_UpdateGroupCopyAccounts_NormalizesTeamRequiredLevelToPlus(
 
 	require.NoError(t, err)
 	require.NotNil(t, updated)
-	require.Equal(t, AccountLevelPlus, updated.RequiredAccountLevel)
+	require.Equal(t, AccountLevelTeam, updated.RequiredAccountLevel)
 	require.NotNil(t, repo.updated)
-	require.Equal(t, AccountLevelPlus, repo.updated.RequiredAccountLevel)
+	require.Equal(t, AccountLevelTeam, repo.updated.RequiredAccountLevel)
 }
 
 // TestAdminService_UpdateGroup_WithImagePricing 测试更新分组时 ImagePrice 字段正确更新

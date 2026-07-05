@@ -112,6 +112,8 @@ func NormalizeAccountLevel(level string) string {
 		return AccountLevelPro
 	case AccountLevelTeam:
 		return AccountLevelTeam
+	case AccountLevelK12:
+		return AccountLevelK12
 	default:
 		return AccountLevelUnknown
 	}
@@ -119,7 +121,16 @@ func NormalizeAccountLevel(level string) string {
 
 func IsConcreteAccountLevel(level string) bool {
 	switch NormalizeAccountLevel(level) {
-	case AccountLevelFree, AccountLevelPlus, AccountLevelPro, AccountLevelTeam:
+	case AccountLevelFree, AccountLevelPlus, AccountLevelPro, AccountLevelTeam, AccountLevelK12:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsUserEditableAccountLevel(level string) bool {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "", AccountLevelUnknown, AccountLevelTeam, AccountLevelK12:
 		return true
 	default:
 		return false
@@ -174,6 +185,8 @@ func NormalizeOpenAIPlanAccountLevel(planType string) string {
 		return AccountLevelPro
 	case normalized == "chatgptteam":
 		return AccountLevelTeam
+	case normalized == "chatgptk12" || normalized == "chatgptk":
+		return AccountLevelK12
 	default:
 		return AccountLevelUnknown
 	}
@@ -183,20 +196,13 @@ func NormalizeOpenAISharedPoolAccountLevel(level string) string {
 	switch NormalizeAccountLevel(level) {
 	case AccountLevelUnknown:
 		return AccountLevelFree
-	case AccountLevelTeam:
-		return AccountLevelPlus
 	default:
 		return NormalizeAccountLevel(level)
 	}
 }
 
 func NormalizeOpenAISharedPoolRequiredLevel(level string) string {
-	switch NormalizeRequiredAccountLevel(level) {
-	case AccountLevelTeam:
-		return AccountLevelPlus
-	default:
-		return NormalizeRequiredAccountLevel(level)
-	}
+	return NormalizeRequiredAccountLevel(level)
 }
 
 func OpenAISharedPoolLevelRank(level string) int {
@@ -218,6 +224,10 @@ func CanOpenAIAccountJoinSharedPool(accountLevel, requiredLevel string) bool {
 		return true
 	}
 	account := NormalizeOpenAISharedPoolAccountLevel(accountLevel)
+	switch required {
+	case AccountLevelTeam, AccountLevelK12:
+		return account == required
+	}
 	accountRank := OpenAISharedPoolLevelRank(account)
 	requiredRank := OpenAISharedPoolLevelRank(required)
 	return accountRank > 0 && requiredRank > 0 && accountRank >= requiredRank
@@ -228,6 +238,9 @@ func OpenAISharedPoolAllowedAccountLevels(requiredLevel string) []string {
 	if required == "" {
 		return nil
 	}
+	if required == AccountLevelTeam || required == AccountLevelK12 {
+		return []string{required}
+	}
 	requiredRank := OpenAISharedPoolLevelRank(required)
 	if requiredRank == 0 {
 		return nil
@@ -236,7 +249,7 @@ func OpenAISharedPoolAllowedAccountLevels(requiredLevel string) []string {
 	if required == AccountLevelFree {
 		levels = append(levels, AccountLevelUnknown)
 	}
-	for _, level := range []string{AccountLevelFree, AccountLevelPlus, AccountLevelPro, AccountLevelTeam} {
+	for _, level := range []string{AccountLevelFree, AccountLevelPlus, AccountLevelPro, AccountLevelTeam, AccountLevelK12} {
 		if CanOpenAIAccountJoinSharedPool(level, required) {
 			levels = append(levels, level)
 		}
@@ -789,10 +802,12 @@ func (a *Account) resolveModelMapping(rawMapping map[string]any) map[string]stri
 	if len(result) > 0 {
 		if a.Platform == domain.PlatformAntigravity {
 			ensureAntigravityDefaultPassthroughs(result, []string{
+				domain.AntigravityGemini31ProAgentModel,
 				"gemini-3-flash",
 				"gemini-3.1-pro-high",
 				"gemini-3.1-pro-low",
 			})
+			applyAntigravityGemini31ProAliases(result)
 		}
 		return result
 	}
@@ -857,6 +872,61 @@ func ensureAntigravityDefaultPassthroughs(mapping map[string]string, models []st
 	for _, model := range models {
 		ensureAntigravityDefaultPassthrough(mapping, model)
 	}
+}
+
+func applyAntigravityGemini31ProAliases(mapping map[string]string) {
+	target := strings.TrimSpace(mapping[domain.AntigravityGemini31ProAgentModel])
+	if target == "" {
+		return
+	}
+
+	aliases := []struct {
+		model         string
+		legacyTargets map[string]struct{}
+	}{
+		{
+			model: "gemini-3.1-pro",
+			legacyTargets: map[string]struct{}{
+				"gemini-3.1-pro": {},
+			},
+		},
+		{
+			model: "gemini-3.1-pro-high",
+			legacyTargets: map[string]struct{}{
+				"gemini-3.1-pro-high": {},
+			},
+		},
+		{
+			model: "gemini-3.1-pro-preview",
+			legacyTargets: map[string]struct{}{
+				"gemini-3.1-pro-preview": {},
+				"gemini-3.1-pro-high":    {},
+			},
+		},
+	}
+
+	for _, alias := range aliases {
+		current, exists := mapping[alias.model]
+		if exists {
+			if _, legacy := alias.legacyTargets[current]; legacy {
+				mapping[alias.model] = target
+			}
+			continue
+		}
+		if mappingHasWildcardForModel(mapping, alias.model) {
+			continue
+		}
+		mapping[alias.model] = target
+	}
+}
+
+func mappingHasWildcardForModel(mapping map[string]string, model string) bool {
+	for pattern := range mapping {
+		if matchWildcard(pattern, model) {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeRequestedModelForLookup(platform, requestedModel string) string {

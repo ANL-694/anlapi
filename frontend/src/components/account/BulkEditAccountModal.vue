@@ -1302,7 +1302,8 @@ const accountLevelOptions = computed(() => [
   { value: 'free', label: t('admin.accounts.accountLevel.free') },
   { value: 'plus', label: t('admin.accounts.accountLevel.plus') },
   { value: 'pro', label: t('admin.accounts.accountLevel.pro') },
-  { value: 'team', label: t('admin.accounts.accountLevel.team') }
+  { value: 'team', label: t('admin.accounts.accountLevel.team') },
+  { value: 'k12', label: t('admin.accounts.accountLevel.k12') }
 ])
 const isOpenAIModelRestrictionDisabled = computed(
   () =>

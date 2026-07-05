@@ -125,7 +125,7 @@ const mockPublicSettings = {
   github_oauth_enabled: false,
   google_oauth_enabled: false,
   backend_mode_enabled: false,
-  version: '1.0.1-local',
+  version: '1.0.2-local',
   balance_low_notify_enabled: false,
   account_quota_notify_enabled: false,
   balance_low_notify_threshold: 0,
@@ -541,8 +541,8 @@ function localMockApiPlugin(enabled: boolean): Plugin {
 
         if (path === '/api/v1/admin/system/check-updates') {
           sendJson(res, 200, success({
-            current_version: '1.0.1-local',
-            latest_version: '1.0.1-local',
+            current_version: '1.0.2-local',
+            latest_version: '1.0.2-local',
             update_available: false
           }))
           return

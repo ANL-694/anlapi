@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 	"ikik-api/internal/config"
 	"ikik-api/internal/pkg/antigravity"
 	"ikik-api/internal/pkg/tlsfingerprint"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 )
 
 // antigravityFailingWriter 模拟客户端断开连接的 gin.ResponseWriter
@@ -657,7 +657,7 @@ func TestAntigravityGatewayService_ForwardGemini_RetriesCorruptedThoughtSignatur
 	}
 
 	const originalModel = "gemini-3.1-pro-preview"
-	const mappedModel = "gemini-3.1-pro-high"
+	const mappedModel = "gemini-pro-agent"
 	account := &Account{
 		ID:          7,
 		Name:        "acc-gemini-signature",
@@ -715,7 +715,7 @@ func TestAntigravityGatewayService_ForwardGemini_SignatureRetryPropagatesFailove
 	firstRespBody := []byte(`{"response":{"error":{"code":400,"message":"Corrupted thought signature.","status":"INVALID_ARGUMENT"}}}`)
 
 	const originalModel = "gemini-3.1-pro-preview"
-	const mappedModel = "gemini-3.1-pro-high"
+	const mappedModel = "gemini-pro-agent"
 	account := &Account{
 		ID:          8,
 		Name:        "acc-gemini-signature-failover",

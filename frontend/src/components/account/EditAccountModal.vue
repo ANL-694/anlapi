@@ -67,15 +67,13 @@
           v-model="form.account_level"
           :options="accountLevelOptions"
         />
-        <div
+        <Select
           v-else
-          class="input flex min-h-[42px] items-center justify-between bg-gray-50 text-gray-700 dark:bg-dark-800 dark:text-dark-200"
-        >
-          <span>{{ accountLevelLabel }}</span>
-          <span class="text-xs text-gray-400 dark:text-dark-400">{{ t('admin.accounts.accountLevel.autoDetected') }}</span>
-        </div>
+          v-model="form.account_level"
+          :options="userAccountLevelOptions"
+        />
         <p class="input-hint">
-          {{ isUserScope ? t('admin.accounts.accountLevel.autoDetectedHint') : t('admin.accounts.accountLevel.manualHint') }}
+          {{ isUserScope ? t('admin.accounts.accountLevel.userManualHint') : t('admin.accounts.accountLevel.manualHint') }}
         </p>
       </div>
 
@@ -1398,6 +1396,36 @@
         </div>
       </div>
 
+      <!-- OpenAI Codex 图像工具策略 -->
+      <div
+        v-if="!isUserScope && account?.platform === 'openai' && (account?.type === 'oauth' || account?.type === 'apikey')"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+      >
+        <div class="mb-3">
+          <label class="input-label mb-0">{{ t('admin.accounts.openai.codexImageTool') }}</label>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {{ t('admin.accounts.openai.codexImageToolDesc') }}
+          </p>
+        </div>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            v-for="option in codexImageToolOptions"
+            :key="option.value"
+            type="button"
+            :class="[
+              'rounded-lg border px-3 py-2 text-left transition-colors',
+              codexImageToolMode === option.value
+                ? option.activeClass
+                : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-dark-600 dark:bg-dark-800 dark:hover:bg-dark-700'
+            ]"
+            @click="codexImageToolMode = option.value"
+          >
+            <span class="block text-sm font-medium">{{ option.label }}</span>
+            <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{{ option.description }}</span>
+          </button>
+        </div>
+      </div>
+
       <!-- OpenAI WS Mode 三态（off/ctx_pool/passthrough） -->
       <div
         v-if="!isUserScope && account?.platform === 'openai' && (account?.type === 'oauth' || account?.type === 'apikey')"
@@ -2460,6 +2488,8 @@ const openAICompactMode = ref<OpenAICompactMode>('auto')
 const openaiOAuthResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OFF)
 const openaiAPIKeyResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OFF)
 const codexCLIOnlyEnabled = ref(false)
+type CodexImageToolMode = 'inherit' | 'force_inject' | 'no_inject' | 'block_all'
+const codexImageToolMode = ref<CodexImageToolMode>('inherit')
 const anthropicPassthroughEnabled = ref(false)
 const anthropicAPIKeyAuthScheme = ref<AnthropicAPIKeyAuthScheme>(ANTHROPIC_API_KEY_AUTH_SCHEME_X_API_KEY)
 const webSearchEmulationMode = ref('default')
@@ -2519,6 +2549,32 @@ const openAICompactModeOptions = computed(() => [
   { value: 'auto', label: t('admin.accounts.openai.compactModeAuto') },
   { value: 'force_on', label: t('admin.accounts.openai.compactModeForceOn') },
   { value: 'force_off', label: t('admin.accounts.openai.compactModeForceOff') }
+])
+const codexImageToolOptions = computed(() => [
+  {
+    value: 'inherit' as CodexImageToolMode,
+    label: t('admin.accounts.openai.codexImageToolInherit'),
+    description: t('admin.accounts.openai.codexImageToolInheritDesc'),
+    activeClass: 'border-gray-400 bg-gray-50 text-gray-900 dark:border-dark-400 dark:bg-dark-700 dark:text-white'
+  },
+  {
+    value: 'force_inject' as CodexImageToolMode,
+    label: t('admin.accounts.openai.codexImageToolForceInject'),
+    description: t('admin.accounts.openai.codexImageToolForceInjectDesc'),
+    activeClass: 'border-emerald-400 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-900/25 dark:text-emerald-100'
+  },
+  {
+    value: 'no_inject' as CodexImageToolMode,
+    label: t('admin.accounts.openai.codexImageToolNoInject'),
+    description: t('admin.accounts.openai.codexImageToolNoInjectDesc'),
+    activeClass: 'border-amber-400 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-900/25 dark:text-amber-100'
+  },
+  {
+    value: 'block_all' as CodexImageToolMode,
+    label: t('admin.accounts.openai.codexImageToolBlockAll'),
+    description: t('admin.accounts.openai.codexImageToolBlockAllDesc'),
+    activeClass: 'border-red-400 bg-red-50 text-red-900 dark:border-red-700 dark:bg-red-900/25 dark:text-red-100'
+  }
 ])
 const isOpenAIModelRestrictionDisabled = computed(() =>
   props.account?.platform === 'openai' && openaiPassthroughEnabled.value
@@ -2615,18 +2671,25 @@ const form = reactive({
   expires_at: null as number | null
 })
 
-const accountLevelLabel = computed(() => {
-  const level = form.account_level || 'unknown'
-  return t(`admin.accounts.accountLevel.${level}`)
-})
-
 const accountLevelOptions = computed(() => [
   { value: 'unknown', label: t('admin.accounts.accountLevel.unknown') },
   { value: 'free', label: t('admin.accounts.accountLevel.free') },
   { value: 'plus', label: t('admin.accounts.accountLevel.plus') },
   { value: 'pro', label: t('admin.accounts.accountLevel.pro') },
-  { value: 'team', label: t('admin.accounts.accountLevel.team') }
+  { value: 'team', label: t('admin.accounts.accountLevel.team') },
+  { value: 'k12', label: t('admin.accounts.accountLevel.k12') }
 ])
+
+const userAccountLevelOptions = computed(() => [
+  { value: 'unknown', label: t('admin.accounts.accountLevel.unknown') },
+  { value: 'free', label: t('admin.accounts.accountLevel.free'), disabled: true },
+  { value: 'plus', label: t('admin.accounts.accountLevel.plus'), disabled: true },
+  { value: 'pro', label: t('admin.accounts.accountLevel.pro'), disabled: true },
+  { value: 'team', label: t('admin.accounts.accountLevel.team') },
+  { value: 'k12', label: t('admin.accounts.accountLevel.k12') }
+])
+
+const isUserEditableAccountLevel = (level: AccountLevel) => level === 'unknown' || level === 'team' || level === 'k12'
 
 const normalizeConcurrencyInput = () => {
   if (isUserScope.value && !canEditConcurrency.value) {
@@ -2793,6 +2856,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   openaiOAuthResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
   openaiAPIKeyResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
   codexCLIOnlyEnabled.value = false
+  codexImageToolMode.value = 'inherit'
   anthropicPassthroughEnabled.value = false
   anthropicAPIKeyAuthScheme.value = ANTHROPIC_API_KEY_AUTH_SCHEME_X_API_KEY
   webSearchEmulationMode.value = 'default'
@@ -2821,6 +2885,15 @@ const syncFormFromAccount = (newAccount: Account | null) => {
       })
       if (newAccount.type === 'oauth') {
         codexCLIOnlyEnabled.value = extra?.codex_cli_only === true
+      }
+      if (extra?.codex_image_generation_explicit_tool_policy === 'strip') {
+        codexImageToolMode.value = 'block_all'
+      } else if (extra?.codex_image_generation_bridge === true) {
+        codexImageToolMode.value = 'force_inject'
+      } else if (extra?.codex_image_generation_bridge === false) {
+        codexImageToolMode.value = 'no_inject'
+      } else {
+        codexImageToolMode.value = 'inherit'
       }
       const credentials = newAccount.credentials as Record<string, unknown> | undefined
       const compactMappings = credentials?.compact_model_mapping as Record<string, string> | undefined
@@ -3596,7 +3669,7 @@ const handleSubmit = async () => {
   }
 
   const updatePayload: Record<string, unknown> = { ...form }
-  if (isUserScope.value || props.account.platform !== 'openai') {
+  if (props.account.platform !== 'openai' || (isUserScope.value && !isUserEditableAccountLevel(form.account_level))) {
     delete updatePayload.account_level
   }
   try {
@@ -4033,7 +4106,7 @@ const handleSubmit = async () => {
 
     // For OpenAI OAuth/API Key accounts, handle passthrough mode in extra
     if (props.account.platform === 'openai' && (props.account.type === 'oauth' || props.account.type === 'apikey')) {
-      const currentExtra = (props.account.extra as Record<string, unknown>) || {}
+      const currentExtra = (updatePayload.extra as Record<string, unknown>) || (props.account.extra as Record<string, unknown>) || {}
       const newExtra: Record<string, unknown> = { ...currentExtra }
       const hadCodexCLIOnlyEnabled = currentExtra.codex_cli_only === true
       if (props.account.type === 'oauth') {
@@ -4066,6 +4139,25 @@ const handleSubmit = async () => {
         } else {
           delete newExtra.codex_cli_only
         }
+      }
+
+      switch (codexImageToolMode.value) {
+        case 'force_inject':
+          newExtra.codex_image_generation_bridge = true
+          delete newExtra.codex_image_generation_explicit_tool_policy
+          break
+        case 'no_inject':
+          newExtra.codex_image_generation_bridge = false
+          delete newExtra.codex_image_generation_explicit_tool_policy
+          break
+        case 'block_all':
+          newExtra.codex_image_generation_bridge = false
+          newExtra.codex_image_generation_explicit_tool_policy = 'strip'
+          break
+        default:
+          delete newExtra.codex_image_generation_bridge
+          delete newExtra.codex_image_generation_explicit_tool_policy
+          break
       }
 
       updatePayload.extra = newExtra

@@ -83,6 +83,7 @@ services:
       # =======================================================================
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ikik-api.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
 
       # =======================================================================
       # JWT Configuration

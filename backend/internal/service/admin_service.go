@@ -22,7 +22,6 @@ import (
 	"ikik-api/internal/pkg/httpclient"
 	"ikik-api/internal/pkg/logger"
 	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/xai"
 	"ikik-api/internal/util/httputil"
 )
 
@@ -1642,7 +1641,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		return nil, errors.New("rate_multiplier must be > 0")
 	}
 	if !IsValidRequiredAccountLevel(input.RequiredAccountLevel) {
-		return nil, errors.New("required_account_level must be empty, free, plus, or pro")
+		return nil, errors.New("required_account_level must be empty, free, plus, pro, team, or k12")
 	}
 
 	platform := input.Platform
@@ -1802,9 +1801,6 @@ func normalizeAccountConcurrency(platform, accountType string, concurrency int) 
 		if concurrency <= 0 {
 			return 1
 		}
-		if concurrency > 1 && !xai.AllowUnsafeHighConcurrency() {
-			return 1
-		}
 	}
 	return concurrency
 }
@@ -1912,7 +1908,7 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	}
 	if input.RequiredAccountLevel != nil {
 		if !IsValidRequiredAccountLevel(*input.RequiredAccountLevel) {
-			return nil, errors.New("required_account_level must be empty, free, plus, or pro")
+			return nil, errors.New("required_account_level must be empty, free, plus, pro, team, or k12")
 		}
 		group.RequiredAccountLevel = NormalizeRequiredAccountLevel(*input.RequiredAccountLevel)
 	}
@@ -3800,7 +3796,7 @@ func (s *adminServiceImpl) validateAccountLevelGroupBinding(ctx context.Context,
 		if !CanOpenAIAccountJoinSharedPool(level, required) {
 			return infraerrors.BadRequest(
 				"ACCOUNT_GROUP_BINDING_INVALID",
-				fmt.Sprintf("account_level mismatch: OpenAI account level %s cannot bind to group %s requiring %s or lower", NormalizeOpenAISharedPoolAccountLevel(level), group.Name, required),
+				fmt.Sprintf("account_level mismatch: OpenAI account level %s cannot bind to group %s requiring %s-compatible account", NormalizeOpenAISharedPoolAccountLevel(level), group.Name, required),
 			)
 		}
 	}
@@ -4004,7 +4000,7 @@ func (s *adminServiceImpl) normalizeAccountIDsForGroupBinding(ctx context.Contex
 		}
 		accountLevel := NormalizeAccountLevel(account.AccountLevel)
 		if requiresLevelCheck && account.Platform == PlatformOpenAI && !CanOpenAIAccountJoinSharedPool(accountLevel, requiredLevel) {
-			return nil, fmt.Errorf("account_level mismatch: OpenAI account %s level %s cannot bind to group %s requiring %s or lower", account.Name, NormalizeOpenAISharedPoolAccountLevel(accountLevel), group.Name, requiredLevel)
+			return nil, fmt.Errorf("account_level mismatch: OpenAI account %s level %s cannot bind to group %s requiring %s-compatible account", account.Name, NormalizeOpenAISharedPoolAccountLevel(accountLevel), group.Name, requiredLevel)
 		}
 		filtered = append(filtered, accountID)
 	}

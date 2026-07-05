@@ -20,3 +20,21 @@ func TestDefaultAntigravityModelMapping_IncludesImageCompatibilityAliases(t *tes
 		}
 	}
 }
+
+func TestDefaultAntigravityModelMapping_Gemini31ProAliases(t *testing.T) {
+	t.Parallel()
+
+	expected := map[string]string{
+		AntigravityGemini31ProAgentModel: AntigravityGemini31ProAgentModel,
+		"gemini-3.1-pro":                 AntigravityGemini31ProAgentModel,
+		"gemini-3.1-pro-high":            AntigravityGemini31ProAgentModel,
+		"gemini-3.1-pro-preview":         AntigravityGemini31ProAgentModel,
+		"gemini-3.1-pro-low":             "gemini-3.1-pro-low",
+	}
+
+	for model, want := range expected {
+		if got, ok := DefaultAntigravityModelMapping[model]; !ok || got != want {
+			t.Fatalf("expected Gemini 3.1 Pro alias %q to map to %q, got %q (present=%v)", model, want, got, ok)
+		}
+	}
+}

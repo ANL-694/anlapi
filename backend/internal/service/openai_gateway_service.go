@@ -2406,7 +2406,21 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 		markPatchSet("instructions", instructions)
 	}
 
-	if !isCompactRequest && isCodexCLI && ensureOpenAIResponsesImageGenerationTool(reqBody) {
+	codexImageGenerationExplicitToolPolicy := codexImageGenerationExplicitToolPolicyAllow
+	codexImageGenerationBridgeEnabled := true
+	if isCodexCLI {
+		codexImageGenerationExplicitToolPolicy = account.CodexImageGenerationExplicitToolPolicy()
+		if override := account.CodexImageGenerationBridgeOverride(); override != nil {
+			codexImageGenerationBridgeEnabled = *override
+		}
+	}
+	if !isCompactRequest && isCodexCLI && codexImageGenerationExplicitToolPolicy == codexImageGenerationExplicitToolPolicyStrip {
+		if stripOpenAIImageGenerationTools(reqBody) {
+			bodyModified = true
+			disablePatch()
+			logger.LegacyPrintf("service.openai_gateway", "[OpenAI] Stripped /responses image_generation tool for Codex client by account policy")
+		}
+	} else if !isCompactRequest && isCodexCLI && codexImageGenerationBridgeEnabled && ensureOpenAIResponsesImageGenerationTool(reqBody) {
 		bodyModified = true
 		disablePatch()
 		logger.LegacyPrintf("service.openai_gateway", "[OpenAI] Injected /responses image_generation tool for Codex client")
@@ -2417,7 +2431,7 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 		disablePatch()
 		logger.LegacyPrintf("service.openai_gateway", "[OpenAI] Normalized /responses image_generation tool payload")
 	}
-	if !isCompactRequest && isCodexCLI && applyCodexImageGenerationBridgeInstructions(reqBody) {
+	if !isCompactRequest && isCodexCLI && codexImageGenerationBridgeEnabled && codexImageGenerationExplicitToolPolicy != codexImageGenerationExplicitToolPolicyStrip && applyCodexImageGenerationBridgeInstructions(reqBody) {
 		bodyModified = true
 		disablePatch()
 		logger.LegacyPrintf("service.openai_gateway", "[OpenAI] Added Codex image_generation bridge instructions")
@@ -2431,17 +2445,11 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 		bodyModified = true
 		markPatchSet("model", billingModel)
 	}
-	imageIntentRequiresPermission := IsImageGenerationIntent(c.Request.URL.Path, reqModel, body) || isOpenAIImageGenerationModel(billingModel)
-	if imageIntentRequiresPermission && !GroupAllowsImageGeneration(apiKeyGroup(getAPIKeyFromContext(c))) {
-		err := errors.New(ImageGenerationPermissionMessage())
-		setOpsUpstreamError(c, http.StatusForbidden, err.Error(), "")
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": gin.H{
-				"type":    "permission_error",
-				"message": err.Error(),
-			},
-		})
-		return nil, err
+	imageIntentRequiresPermission := isOpenAIImageGenerationModel(billingModel)
+	if codexImageGenerationExplicitToolPolicy == codexImageGenerationExplicitToolPolicyStrip {
+		imageIntentRequiresPermission = imageIntentRequiresPermission || IsImageGenerationIntentMap(c.Request.URL.Path, reqModel, reqBody)
+	} else {
+		imageIntentRequiresPermission = imageIntentRequiresPermission || IsImageGenerationIntent(c.Request.URL.Path, reqModel, body)
 	}
 	upstreamModel := billingModel
 	if normalizeOpenAIResponsesImageOnlyModel(reqBody) {
@@ -2457,6 +2465,21 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 			billingModel,
 			upstreamModel,
 		)
+	}
+	imageIntentRequiresPermission = imageIntentRequiresPermission || isOpenAIImageGenerationModel(upstreamModel)
+	if imageIntentRequiresPermission {
+		ctx = WithOpenAIImageGenerationIntent(ctx)
+	}
+	if imageIntentRequiresPermission && !GroupAllowsImageGeneration(apiKeyGroup(getAPIKeyFromContext(c))) {
+		err := errors.New(ImageGenerationPermissionMessage())
+		setOpsUpstreamError(c, http.StatusForbidden, err.Error(), "")
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": gin.H{
+				"type":    "permission_error",
+				"message": err.Error(),
+			},
+		})
+		return nil, err
 	}
 	if err := validateOpenAIResponsesImageModel(reqBody, upstreamModel); err != nil {
 		setOpsUpstreamError(c, http.StatusBadRequest, err.Error(), "")
@@ -2882,6 +2905,9 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 				wsAttempts,
 			)
 			wsResult.UpstreamModel = upstreamModel
+			if wsResult.BillingModel == "" {
+				wsResult.BillingModel = billingModel
+			}
 			return wsResult, nil
 		}
 		if failoverErr := s.openAIWSCapacityFailoverError(c, account, wsErr); failoverErr != nil {
@@ -3015,12 +3041,16 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 				imageBillingModel = imageCfg.Model
 			}
 		}
+		resultBillingModel := billingModel
+		if imageCount > 0 && imageBillingModel != "" {
+			resultBillingModel = imageBillingModel
+		}
 
 		return &OpenAIForwardResult{
 			RequestID:       resp.Header.Get("x-request-id"),
 			Usage:           *usage,
 			Model:           originalModel,
-			BillingModel:    imageBillingModel,
+			BillingModel:    resultBillingModel,
 			UpstreamModel:   upstreamModel,
 			ServiceTier:     serviceTier,
 			ReasoningEffort: reasoningEffort,

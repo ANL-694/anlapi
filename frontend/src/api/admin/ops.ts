@@ -1143,6 +1143,11 @@ export type OpsErrorListQueryParams = {
   view?: OpsErrorListView
 
   q?: string
+  user_query?: string
+  model?: string
+  category?: string
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
   status_codes?: string
   status_codes_other?: string
 }

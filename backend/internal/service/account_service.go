@@ -25,7 +25,7 @@ var (
 	ErrOwnedAccountTypeNotAllowed              = infraerrors.BadRequest("OWNED_ACCOUNT_TYPE_NOT_ALLOWED", "user accounts only support OAuth or API key accounts")
 	ErrOwnedAccountCredentialsInvalid          = infraerrors.BadRequest("OWNED_ACCOUNT_CREDENTIALS_INVALID", "account credentials are invalid")
 	ErrOwnedAccountCredentialsNotAllowed       = infraerrors.BadRequest("OWNED_ACCOUNT_CREDENTIALS_NOT_ALLOWED", "user OAuth accounts cannot include API keys, custom URLs, upstream endpoints, cookies or manual session credentials")
-	ErrOwnedAccountLevelNotAllowed             = infraerrors.BadRequest("OWNED_ACCOUNT_LEVEL_NOT_ALLOWED", "user accounts cannot manually change account level")
+	ErrOwnedAccountLevelNotAllowed             = infraerrors.BadRequest("OWNED_ACCOUNT_LEVEL_NOT_ALLOWED", "user accounts can only set unknown, team or k12 account level")
 	ErrOwnedAccountGroupPlatformMismatch       = infraerrors.BadRequest("OWNED_ACCOUNT_GROUP_PLATFORM_MISMATCH", "account group platform does not match account platform")
 	ErrOwnedAccountGroupValidationUnavailable  = infraerrors.InternalServer("OWNED_ACCOUNT_GROUP_VALIDATION_UNAVAILABLE", "owned account group validation is unavailable")
 	ErrOwnedAccountPublicPoolUnavailable       = infraerrors.BadRequest("OWNED_ACCOUNT_PUBLIC_POOL_UNAVAILABLE", "public shared account pool group is not configured for this account platform")
@@ -53,6 +53,7 @@ const (
 	AccountLevelPlus    = domain.AccountLevelPlus
 	AccountLevelPro     = domain.AccountLevelPro
 	AccountLevelTeam    = domain.AccountLevelTeam
+	AccountLevelK12     = domain.AccountLevelK12
 )
 
 type AccountRepository interface {
@@ -638,7 +639,7 @@ func (s *AccountService) createOwned(ctx context.Context, ownerUserID int64, req
 	if ownerUserID <= 0 {
 		return nil, ErrUserNotFound
 	}
-	if IsConcreteAccountLevel(req.AccountLevel) {
+	if !IsUserEditableAccountLevel(req.AccountLevel) {
 		return nil, ErrOwnedAccountLevelNotAllowed
 	}
 	applyOwnedPersonalAccountTemplateToCreate(&req)
@@ -1030,7 +1031,7 @@ func (s *AccountService) Update(ctx context.Context, id int64, req UpdateAccount
 }
 
 func (s *AccountService) UpdateOwned(ctx context.Context, ownerUserID, accountID int64, req UpdateAccountRequest) (*Account, error) {
-	if req.AccountLevel != nil {
+	if req.AccountLevel != nil && !IsUserEditableAccountLevel(*req.AccountLevel) {
 		return nil, ErrOwnedAccountLevelNotAllowed
 	}
 	account, err := s.GetOwnedByID(ctx, ownerUserID, accountID)
@@ -1442,7 +1443,7 @@ func (s *AccountService) BulkUpdateOwned(ctx context.Context, ownerUserID int64,
 	if input.GroupIDs != nil {
 		return nil, ErrGroupNotAllowed
 	}
-	if input.AccountLevel != nil {
+	if input.AccountLevel != nil && !IsUserEditableAccountLevel(*input.AccountLevel) {
 		return nil, ErrOwnedAccountLevelNotAllowed
 	}
 	status, err := normalizeOwnedBulkStatus(input.Status)
@@ -1902,7 +1903,7 @@ func (s *AccountService) resolveOwnedPublicShareGroup(ctx context.Context, accou
 	}
 	if account.Platform == PlatformOpenAI {
 		accountLevel := NormalizeOpenAISharedPoolAccountLevel(NormalizeOpenAIAccountLevel(account.Platform, account.AccountLevel, account.Credentials, account.Extra))
-		if OpenAISharedPoolLevelRank(accountLevel) == 0 {
+		if OpenAISharedPoolLevelRank(accountLevel) == 0 && accountLevel != AccountLevelTeam && accountLevel != AccountLevelK12 {
 			return nil, ErrOwnedAccountPublicPoolUnavailable.WithMetadata(map[string]string{
 				"platform":      platform,
 				"account_level": accountLevel,

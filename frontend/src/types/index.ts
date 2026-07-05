@@ -786,7 +786,7 @@ export type CustomAccountProtocol =
   | 'anthropic_messages'
   | 'gemini'
 export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
-export type AccountLevel = 'unknown' | 'free' | 'plus' | 'pro' | 'team'
+export type AccountLevel = 'unknown' | 'free' | 'plus' | 'pro' | 'team' | 'k12'
 export type AccountShareMode = 'private' | 'public'
 export type AccountShareStatus = 'pending' | 'approved' | 'suspended'
 export type AccountStatus = 'active' | 'inactive' | 'disabled' | 'error'
@@ -1252,6 +1252,7 @@ export interface AccountUsageInfo {
   five_hour: UsageProgress | null
   seven_day: UsageProgress | null
   seven_day_sonnet: UsageProgress | null
+  seven_day_fable?: UsageProgress | null
   gemini_shared_daily?: UsageProgress | null
   gemini_pro_daily?: UsageProgress | null
   gemini_flash_daily?: UsageProgress | null

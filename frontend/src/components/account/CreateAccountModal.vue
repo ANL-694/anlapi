@@ -403,11 +403,13 @@
 
       <div v-if="form.platform === 'openai'">
         <label class="input-label">{{ t('admin.accounts.accountLevel.label') }}</label>
-        <div class="input flex min-h-[42px] items-center justify-between bg-gray-50 text-gray-700 dark:bg-dark-800 dark:text-dark-200">
-          <span>{{ t('admin.accounts.accountLevel.unknown') }}</span>
-          <span class="text-xs text-gray-400 dark:text-dark-400">{{ t('admin.accounts.accountLevel.autoDetected') }}</span>
-        </div>
-        <p class="input-hint">{{ t('admin.accounts.accountLevel.autoDetectedHint') }}</p>
+        <Select
+          v-model="form.account_level"
+          :options="accountLevelOptions"
+        />
+        <p class="input-hint">
+          {{ isUserScope ? t('admin.accounts.accountLevel.userManualHint') : t('admin.accounts.accountLevel.manualHint') }}
+        </p>
       </div>
 
       <!-- Account Type Selection (Gemini) -->
@@ -3798,6 +3800,25 @@ const form = reactive({
   expires_at: null as number | null
 })
 
+const adminAccountLevelOptions = computed(() => [
+  { value: 'unknown', label: t('admin.accounts.accountLevel.unknown') },
+  { value: 'free', label: t('admin.accounts.accountLevel.free') },
+  { value: 'plus', label: t('admin.accounts.accountLevel.plus') },
+  { value: 'pro', label: t('admin.accounts.accountLevel.pro') },
+  { value: 'team', label: t('admin.accounts.accountLevel.team') },
+  { value: 'k12', label: t('admin.accounts.accountLevel.k12') }
+])
+
+const userAccountLevelOptions = computed(() => [
+  { value: 'unknown', label: t('admin.accounts.accountLevel.unknown') },
+  { value: 'team', label: t('admin.accounts.accountLevel.team') },
+  { value: 'k12', label: t('admin.accounts.accountLevel.k12') }
+])
+
+const accountLevelOptions = computed(() => (
+  isUserScope.value ? userAccountLevelOptions.value : adminAccountLevelOptions.value
+))
+
 const syncPreviewCredentials = computed(() => {
   const apiKey = apiKeyValue.value.trim()
   if (isUserScope.value || accountCategory.value !== 'apikey' || !apiKey) {
@@ -5094,7 +5115,7 @@ const createAccountAndFinish = async (
     name: form.name,
     notes: form.notes,
     platform,
-    account_level: 'unknown',
+    account_level: form.account_level,
     type,
     credentials,
     extra: finalExtra,

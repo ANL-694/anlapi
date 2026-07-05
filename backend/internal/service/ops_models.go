@@ -1,6 +1,9 @@
 package service
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type OpsSystemLog struct {
 	ID              int64          `json:"id"`
@@ -120,14 +123,63 @@ type OpsErrorLogFilter struct {
 	RequestID       string
 	ClientRequestID string
 
+	// Model matches against requested_model first, then model.
+	Model string
+	// ModelFuzzy enables ILIKE model matching for user-facing filters.
+	ModelFuzzy bool
+
+	// ErrorPhasesAny / ErrorTypesAny add category-style ANY filters without
+	// changing the special single Phase filter.
+	ErrorPhasesAny []string
+	ErrorTypesAny  []string
+
+	// IncludeRecoveredUpstream explicitly allows phase=upstream to include
+	// recovered upstream rows with client-visible status below 400.
+	IncludeRecoveredUpstream bool
+
 	// View controls error categorization for list endpoints.
 	// - errors: show actionable errors (exclude business-limited / 429 / 529)
 	// - excluded: only show excluded errors
 	// - all: show everything
 	View string
 
-	Page     int
-	PageSize int
+	Page      int
+	PageSize  int
+	SortBy    string
+	SortOrder string
+}
+
+func (f *OpsErrorLogFilter) SetSort(sortBy, sortOrder string) {
+	if f == nil {
+		return
+	}
+	f.SortBy = strings.TrimSpace(sortBy)
+	f.SortOrder = strings.TrimSpace(sortOrder)
+}
+
+// CategoryToFilter maps the user-facing coarse error category back to backend filters.
+// Unknown categories return empty slices, which means no category filter.
+func CategoryToFilter(category string) (phases []string, errorTypes []string) {
+	switch strings.TrimSpace(category) {
+	case "auth":
+		return []string{"auth"}, nil
+	case "service_unavailable":
+		return []string{"routing"}, nil
+	case "upstream":
+		return []string{"upstream", "network"}, nil
+	case "internal":
+		return []string{"internal"}, nil
+	case "rate_limit":
+		return nil, []string{"rate_limit_error"}
+	case "quota":
+		return nil, []string{"billing_error", "subscription_error"}
+	case "invalid_request":
+		return nil, []string{"invalid_request_error"}
+	case "cyber":
+		return []string{"request"}, []string{"cyber_policy"}
+	default:
+		return nil, nil
+	}
 }
 
 type OpsErrorLogList struct {

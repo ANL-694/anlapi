@@ -37,6 +37,7 @@ services:
       - REDIS_DB=${REDIS_DB:-0}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ikik-api.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
       - JWT_SECRET=${JWT_SECRET:-}
       - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
       - TZ=${TZ:-Asia/Shanghai}

@@ -81,7 +81,7 @@ type createUserAccountRequest struct {
 	Name               string         `json:"name" binding:"required"`
 	Notes              *string        `json:"notes"`
 	Platform           string         `json:"platform" binding:"required"`
-	AccountLevel       string         `json:"account_level" binding:"omitempty,oneof=unknown free plus pro team"`
+	AccountLevel       string         `json:"account_level" binding:"omitempty,oneof=unknown team k12"`
 	Type               string         `json:"type" binding:"required,oneof=oauth apikey"`
 	Credentials        map[string]any `json:"credentials" binding:"required"`
 	Extra              map[string]any `json:"extra"`
@@ -109,7 +109,7 @@ type importUserAccountCredentialsRequest struct {
 type updateUserAccountRequest struct {
 	Name               *string         `json:"name"`
 	Notes              *string         `json:"notes"`
-	AccountLevel       *string         `json:"account_level" binding:"omitempty,oneof=unknown free plus pro team"`
+	AccountLevel       *string         `json:"account_level" binding:"omitempty,oneof=unknown team k12"`
 	Credentials        *map[string]any `json:"credentials"`
 	Extra              *map[string]any `json:"extra"`
 	ShareMode          *string         `json:"share_mode" binding:"omitempty,oneof=private public"`
@@ -133,7 +133,7 @@ type bulkUpdateUserAccountsRequest struct {
 	RateMultiplier *float64       `json:"rate_multiplier"`
 	Status         string         `json:"status" binding:"omitempty,oneof=active disabled inactive"`
 	Schedulable    *bool          `json:"schedulable"`
-	AccountLevel   *string        `json:"account_level" binding:"omitempty,oneof=unknown free plus pro team"`
+	AccountLevel   *string        `json:"account_level" binding:"omitempty,oneof=unknown team k12"`
 	ShareMode      *string        `json:"share_mode" binding:"omitempty,oneof=private public"`
 	GroupIDs       *[]int64       `json:"group_ids"`
 	Credentials    map[string]any `json:"credentials"`

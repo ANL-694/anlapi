@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"ikik-api/internal/pkg/ctxkey"
 )
 
@@ -388,4 +389,48 @@ func TestGetRateLimitRemainingTime(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIsModelRateLimited_AnthropicFableFamilyKey(t *testing.T) {
+	now := time.Now()
+	future := now.Add(48 * time.Hour).Format(time.RFC3339)
+
+	account := &Account{
+		Platform: PlatformAnthropic,
+		Extra: map[string]any{
+			modelRateLimitsKey: map[string]any{
+				anthropicFableRateLimitKey: map[string]any{
+					"rate_limit_reset_at": future,
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		requestedModel string
+		expected       bool
+	}{
+		{"claude-fable-5", true},
+		{"claude-fable-5[1m]", true},
+		{"Claude-Fable-5-20260601", true},
+		{"claude-sonnet-4-6", false},
+		{"claude-opus-4-8", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.requestedModel, func(t *testing.T) {
+			got := account.isModelRateLimitedWithContext(context.Background(), tc.requestedModel)
+			require.Equal(t, tc.expected, got)
+			remaining := account.GetModelRateLimitRemainingTimeWithContext(context.Background(), tc.requestedModel)
+			require.Equal(t, tc.expected, remaining > 0)
+		})
+	}
+}
+
+func TestIsAnthropicFableModel(t *testing.T) {
+	require.True(t, isAnthropicFableModel("claude-fable-5"))
+	require.True(t, isAnthropicFableModel("claude-fable-5[1m]"))
+	require.True(t, isAnthropicFableModel("Claude-Fable-5"))
+	require.False(t, isAnthropicFableModel("claude-sonnet-4-6"))
+	require.False(t, isAnthropicFableModel(""))
 }
