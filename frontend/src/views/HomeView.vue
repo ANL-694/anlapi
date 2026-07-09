@@ -72,7 +72,7 @@
           <p>{{ t('home.redesign.hero.lead', { siteName }) }}</p>
 
           <div class="hero-actions">
-            <router-link :to="isAuthenticated ? dashboardPath : '/login'" class="button primary">
+            <router-link :to="isAuthenticated ? dashboardPath : '/register'" class="button primary">
               {{ isAuthenticated ? t('home.goToDashboard') : t('home.getStarted') }}
             </router-link>
             <router-link class="button secondary" to="/key-usage">
@@ -145,8 +145,8 @@
         </div>
         <div class="footer-meta-links">
           <router-link to="/key-usage">{{ t('home.nav.usage') }}</router-link>
-          <router-link :to="isAuthenticated ? '/models' : '/login'">{{ t('nav.modelMarket') }}</router-link>
-          <router-link :to="isAuthenticated ? '/purchase' : '/login'">{{ t('nav.buySubscription') }}</router-link>
+          <router-link :to="isAuthenticated ? '/purchase' : '/register'">{{ t('home.nav.purchase') }}</router-link>
+          <router-link :to="isAuthenticated ? '/keys' : '/register'">{{ t('home.nav.keys') }}</router-link>
         </div>
       </section>
 
@@ -237,10 +237,10 @@ const metricItems = computed(() => [
 ])
 
 const endpointRows = computed(() => [
-  { method: 'POST', path: '/v1/chat/completions', label: 'Chat' },
-  { method: 'POST', path: '/v1/responses', label: 'Responses' },
-  { method: 'GET', path: '/v1/models', label: 'Models' },
-  { method: 'GET', path: '/key-usage', label: 'Usage' }
+  { method: '1', path: '/register', label: '注册' },
+  { method: '2', path: '/purchase', label: '充值' },
+  { method: '3', path: '/keys', label: '创建 Key' },
+  { method: '4', path: '/key-usage', label: '查用量' }
 ])
 
 const currentYear = computed(() => new Date().getFullYear())

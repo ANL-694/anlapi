@@ -247,3 +247,90 @@ func TestEasyPayQueryOrderUsesGetQuery(t *testing.T) {
 		t.Fatalf("amount = %v, want 5", resp.Amount)
 	}
 }
+
+func TestEasyPayCreatePaymentFallsBackToExtensionlessMapi(t *testing.T) {
+	var gotPaths []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPaths = append(gotPaths, r.URL.Path)
+		if r.URL.Path == "/mapi.php" {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`<!DOCTYPE html><html><body>webman 404</body></html>`))
+			return
+		}
+		if r.URL.Path != "/mapi" {
+			t.Fatalf("path = %s, want /mapi fallback", r.URL.Path)
+		}
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %s, want POST", r.Method)
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("ParseForm: %v", err)
+		}
+		if got := r.PostForm.Get("sign_type"); got != signTypeMD5 {
+			t.Fatalf("sign_type = %q, want %q", got, signTypeMD5)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":1,"msg":"ok","trade_no":"T123","payurl":"https://pay.example","qrcode":"qr-content"}`))
+	}))
+	defer server.Close()
+
+	provider := newTestEasyPay(t, server.URL)
+	provider.httpClient = server.Client()
+	resp, err := provider.CreatePayment(context.Background(), payment.CreatePaymentRequest{
+		OrderID:     "ORDER123",
+		Amount:      "1.00",
+		PaymentType: payment.TypeAlipay,
+		Subject:     "test",
+		ClientIP:    "127.0.0.1",
+	})
+	if err != nil {
+		t.Fatalf("CreatePayment returned error: %v", err)
+	}
+	if resp.TradeNo != "T123" || resp.PayURL != "https://pay.example" || resp.QRCode != "qr-content" {
+		t.Fatalf("response = %+v, want fallback JSON payload", resp)
+	}
+	if len(gotPaths) != 2 || gotPaths[0] != "/mapi.php" || gotPaths[1] != "/mapi" {
+		t.Fatalf("paths = %v, want [/mapi.php /mapi]", gotPaths)
+	}
+}
+
+func TestEasyPayQueryOrderFallsBackToExtensionlessAPI(t *testing.T) {
+	var gotPaths []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPaths = append(gotPaths, r.URL.Path)
+		if r.URL.Path == "/api.php" {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`<html><body>webman 404</body></html>`))
+			return
+		}
+		if r.URL.Path != "/api" {
+			t.Fatalf("path = %s, want /api fallback", r.URL.Path)
+		}
+		if r.URL.Query().Get("out_trade_no") != "ORDER123" {
+			t.Fatalf("out_trade_no = %q, want ORDER123", r.URL.Query().Get("out_trade_no"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":1,"msg":"succ","status":1,"money":"5.00"}`))
+	}))
+	defer server.Close()
+
+	provider := &EasyPay{
+		config: map[string]string{
+			"pid":     "1001",
+			"pkey":    "secret",
+			"apiBase": server.URL,
+		},
+		httpClient: server.Client(),
+	}
+
+	resp, err := provider.QueryOrder(context.Background(), "ORDER123")
+	if err != nil {
+		t.Fatalf("QueryOrder returned error: %v", err)
+	}
+	if resp.Status != payment.ProviderStatusPaid {
+		t.Fatalf("status = %q, want %q", resp.Status, payment.ProviderStatusPaid)
+	}
+	if len(gotPaths) != 2 || gotPaths[0] != "/api.php" || gotPaths[1] != "/api" {
+		t.Fatalf("paths = %v, want [/api.php /api]", gotPaths)
+	}
+}

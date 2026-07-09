@@ -186,9 +186,12 @@ describe('useAuthStore', () => {
       expect(store.token).toBeNull()
       expect(store.user).toBeNull()
       expect(store.isAuthenticated).toBe(false)
+      expect(mockResumeSession).not.toHaveBeenCalled()
     })
 
-    it('localStorage 无数据时可通过网站会话恢复登录', async () => {
+    it('启用网站会话恢复时可通过 Cookie 恢复登录', async () => {
+      const testWindow = window as any
+      testWindow.__APP_CONFIG__ = { web_session_resume_enabled: true }
       mockResumeSession.mockResolvedValue(fakeAuthResponse)
       const store = useAuthStore()
 

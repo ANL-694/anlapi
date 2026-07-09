@@ -94,6 +94,16 @@ func TestMigration140CreatesOwnedAccountIdentityIndexesOnline(t *testing.T) {
 	require.NotContains(t, strings.ToUpper(sql), "COMMIT")
 }
 
+func TestMigration190SkipsMissingUserPlatformQuotasTable(t *testing.T) {
+	content, err := FS.ReadFile("190_allow_kiro_user_platform_quotas.sql")
+	require.NoError(t, err)
+
+	sql := string(content)
+	require.Contains(t, sql, "to_regclass('public.user_platform_quotas')")
+	require.Contains(t, sql, "IF to_regclass")
+	require.Contains(t, sql, "platform IN ('anthropic', 'openai', 'gemini', 'antigravity', 'kiro')")
+}
+
 func TestMigration110SeedsAuthSourceSignupGrantsDisabledByDefault(t *testing.T) {
 	content, err := FS.ReadFile("110_pending_auth_and_provider_default_grants.sql")
 	require.NoError(t, err)

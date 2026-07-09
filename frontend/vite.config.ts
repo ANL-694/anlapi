@@ -1221,6 +1221,14 @@ export default defineConfig(({ mode }) => {
               return 'vendor-i18n'
             }
 
+            // 支付 SDK 有外部脚本副作用，必须跟支付页面一起按需加载。
+            if (id.includes('/@airwallex/')) {
+              return 'vendor-airwallex'
+            }
+            if (id.includes('/@stripe/')) {
+              return 'vendor-stripe'
+            }
+
             // 其他小型第三方库合并
             return 'vendor-misc'
           }

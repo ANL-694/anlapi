@@ -20,6 +20,8 @@ import (
 
 // --- Order Creation ---
 
+const easyPayReturnURLMaxLength = 255
+
 type paymentProviderOrderPossiblyCreatedError struct {
 	err error
 }
@@ -487,7 +489,7 @@ func (s *PaymentService) invokeProvider(ctx context.Context, order *dbent.Paymen
 			}
 		}
 	}
-	providerReturnURL, err := buildPaymentReturnURL(canonicalReturnURL, order.ID, outTradeNo, resumeToken)
+	providerReturnURL, err := buildProviderReturnURLForSelection(canonicalReturnURL, order.ID, outTradeNo, resumeToken, sel)
 	if err != nil {
 		return nil, err
 	}
@@ -533,6 +535,31 @@ func (s *PaymentService) invokeProvider(ctx context.Context, order *dbent.Paymen
 	return resp, nil
 }
 
+func buildProviderReturnURLForSelection(canonicalReturnURL string, orderID int64, outTradeNo, resumeToken string, sel *payment.InstanceSelection) (string, error) {
+	providerReturnURL, err := buildPaymentReturnURL(canonicalReturnURL, orderID, outTradeNo, resumeToken)
+	if err != nil {
+		return "", err
+	}
+	if !shouldUseCompactProviderReturnURL(sel, providerReturnURL) {
+		return providerReturnURL, nil
+	}
+	compactReturnURL, err := buildPaymentReturnURL(canonicalReturnURL, orderID, outTradeNo, "")
+	if err != nil {
+		return "", err
+	}
+	if compactReturnURL == "" {
+		return providerReturnURL, nil
+	}
+	return compactReturnURL, nil
+}
+
+func shouldUseCompactProviderReturnURL(sel *payment.InstanceSelection, providerReturnURL string) bool {
+	if sel == nil || strings.TrimSpace(sel.ProviderKey) != payment.TypeEasyPay {
+		return false
+	}
+	return providerReturnURL != "" && len(providerReturnURL) > easyPayReturnURLMaxLength
+}
+
 func buildProviderCreatePaymentRequest(req CreateOrderRequest, sel *payment.InstanceSelection, orderID, amount, subject string) payment.CreatePaymentRequest {
 	return payment.CreatePaymentRequest{
 		OrderID:            orderID,
@@ -559,13 +586,13 @@ func (s *PaymentService) buildPaymentSubject(req CreateOrderRequest, plan *dbent
 		if plan.ProductName != "" {
 			return plan.ProductName
 		}
-		return "ikik-api Subscription " + plan.Name
+		return "ANLAPI 订阅 " + plan.Name
 	}
 	if req.OrderType == payment.OrderTypeShop {
 		if subject := strings.TrimSpace(req.Subject); subject != "" {
 			return subject
 		}
-		return "ikik-api Store Order"
+		return "ANLAPI 商城订单"
 	}
 	currency := payment.DefaultPaymentCurrency
 	if sel != nil {
@@ -577,7 +604,7 @@ func (s *PaymentService) buildPaymentSubject(req CreateOrderRequest, plan *dbent
 	if pf != "" || sf != "" {
 		return strings.TrimSpace(pf + " " + amountStr + " " + sf)
 	}
-	return "ikik-api " + amountStr + " " + currency
+	return "ANLAPI 余额充值 " + amountStr + " " + currency
 }
 
 func (s *PaymentService) maybeBuildWeChatOAuthRequiredResponse(ctx context.Context, req CreateOrderRequest, amount, payAmount, feeRate float64) (*CreateOrderResponse, error) {

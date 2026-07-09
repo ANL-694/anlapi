@@ -7451,7 +7451,7 @@ const form = reactive<SettingsForm>({
   user_private_group_rpm_limit: 0,
   site_name: "ikik-api",
   site_logo: "",
-  site_subtitle: "Subscription to API Conversion Platform",
+  site_subtitle: "AI API 接入与用量管理平台",
   api_base_url: "",
   contact_info: "",
   doc_url: "",

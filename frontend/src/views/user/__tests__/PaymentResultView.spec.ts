@@ -7,6 +7,7 @@ const routeState = vi.hoisted(() => ({
 
 const routerPush = vi.hoisted(() => vi.fn())
 const pollOrderStatus = vi.hoisted(() => vi.fn())
+const verifyOrder = vi.hoisted(() => vi.fn())
 const verifyOrderPublic = vi.hoisted(() => vi.fn())
 const resolveOrderPublicByResumeToken = vi.hoisted(() => vi.fn())
 
@@ -37,6 +38,7 @@ vi.mock('@/stores/payment', () => ({
 
 vi.mock('@/api/payment', () => ({
   paymentAPI: {
+    verifyOrder,
     verifyOrderPublic,
     resolveOrderPublicByResumeToken,
   },
@@ -81,6 +83,7 @@ describe('PaymentResultView', () => {
     routeState.query = {}
     routerPush.mockReset()
     pollOrderStatus.mockReset()
+    verifyOrder.mockReset()
     verifyOrderPublic.mockReset()
     resolveOrderPublicByResumeToken.mockReset()
     window.localStorage.clear()
@@ -377,6 +380,72 @@ describe('PaymentResultView', () => {
     expect(verifyOrderPublic).toHaveBeenCalledWith('legacy-123')
     expect(pollOrderStatus).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('payment.result.success')
+  })
+
+  it('reconciles a pending returned order with authenticated upstream verification', async () => {
+    vi.useFakeTimers()
+    window.localStorage.setItem('auth_token', 'token-42')
+    routeState.query = {
+      order_id: '42',
+      out_trade_no: 'sub2_pending_paid',
+      status: 'success',
+    }
+    pollOrderStatus.mockResolvedValueOnce({
+      ...orderFactory('PENDING'),
+      out_trade_no: 'sub2_pending_paid',
+    })
+    verifyOrder.mockResolvedValueOnce({
+      data: {
+        ...orderFactory('PAID'),
+        out_trade_no: 'sub2_pending_paid',
+      },
+    })
+
+    const wrapper = mount(PaymentResultView, {
+      global: {
+        stubs: {
+          OrderStatusBadge: true,
+        },
+      },
+    })
+
+    await flushPromises()
+    expect(wrapper.text()).toContain('payment.result.processing')
+
+    await vi.advanceTimersByTimeAsync(2000)
+    await flushPromises()
+
+    expect(verifyOrder).toHaveBeenCalledWith('sub2_pending_paid')
+    expect(wrapper.text()).toContain('payment.result.success')
+  })
+
+  it('treats a missing fee rate as zero when rendering amounts', async () => {
+    routeState.query = {
+      order_id: '42',
+      out_trade_no: 'sub2_no_fee_rate',
+      status: 'success',
+    }
+    const orderWithoutFeeRate: Record<string, unknown> = {
+      ...orderFactory('PENDING'),
+      amount: 1,
+      pay_amount: 1,
+      out_trade_no: 'sub2_no_fee_rate',
+    }
+    delete orderWithoutFeeRate.fee_rate
+    pollOrderStatus.mockResolvedValueOnce(orderWithoutFeeRate)
+
+    const wrapper = mount(PaymentResultView, {
+      global: {
+        stubs: {
+          OrderStatusBadge: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('1.00')
+    expect(wrapper.text()).not.toContain('NaN')
   })
 
   it('does not use public out_trade_no verification for bare order numbers without legacy return markers', async () => {

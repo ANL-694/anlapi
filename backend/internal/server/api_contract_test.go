@@ -924,7 +924,7 @@ func TestAPIContracts(t *testing.T) {
 					"oidc_connect_userinfo_username_path": "",
 					"site_name": "ikik-api",
 					"site_logo": "",
-					"site_subtitle": "Subscription to API Conversion Platform",
+					"site_subtitle": "AI API 接入与用量管理平台",
 					"api_base_url": "",
 					"contact_info": "",
 					"doc_url": "",

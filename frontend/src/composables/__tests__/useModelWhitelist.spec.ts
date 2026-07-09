@@ -7,6 +7,15 @@ vi.mock('@/api/admin/accounts', () => ({
 import { buildModelMappingObject, getModelsByPlatform } from '../useModelWhitelist'
 
 describe('useModelWhitelist', () => {
+  it('openai 模型列表包含 GPT-5.6 三档模型', () => {
+    const models = getModelsByPlatform('openai')
+
+    expect(models).toContain('gpt-5.6-sol')
+    expect(models).toContain('gpt-5.6-terra')
+    expect(models).toContain('gpt-5.6-luna')
+    expect(models).not.toContain('gpt-5.6')
+  })
+
   it('openai 模型列表包含 GPT-5.4 官方快照', () => {
     const models = getModelsByPlatform('openai')
 

@@ -803,6 +803,10 @@ func TestApplyCodexOAuthTransform_EmptyInput(t *testing.T) {
 
 func TestNormalizeCodexModel_Gpt53(t *testing.T) {
 	cases := map[string]string{
+		"gpt-5.6-sol":               "gpt-5.6-sol",
+		"gpt-5.6-sol-high":          "gpt-5.6-sol",
+		"models/gpt-5.6-terra":      "gpt-5.6-terra",
+		"openai/gpt-5.6-luna-xhigh": "gpt-5.6-luna",
 		"gpt-5.4":                   "gpt-5.4",
 		"gpt5.5":                    "gpt-5.5",
 		"openai/gpt5.5":             "gpt-5.5",
@@ -848,6 +852,7 @@ func TestNormalizeCodexModel_RemovedModelsFallbackToSupportedTargets(t *testing.
 	cases := map[string]string{
 		"":                   "gpt-5.4",
 		"gpt-5":              "gpt-5.4",
+		"gpt-5.6":            "gpt-5.4",
 		"gpt-5-mini":         "gpt-5.4",
 		"gpt-5-nano":         "gpt-5.4",
 		"gpt-5.1":            "gpt-5.4",

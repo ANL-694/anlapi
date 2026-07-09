@@ -15,6 +15,7 @@ const TOKEN_EXPIRES_AT_KEY = 'token_expires_at' // 存储过期时间戳而非�
 const PENDING_AUTH_SESSION_KEY = 'pending_auth_session'
 const AUTO_REFRESH_INTERVAL = 60 * 1000 // 60 seconds for user data refresh
 const TOKEN_REFRESH_BUFFER = 120 * 1000 // 120 seconds before expiry to refresh token
+const WEB_SESSION_RESUME_FLAG = 'web_session_resume_enabled'
 
 type PendingAuthTokenField = 'pending_auth_token' | 'pending_oauth_token'
 
@@ -68,6 +69,13 @@ function clearPendingAuthSessionStorage(): void {
   localStorage.removeItem(PENDING_AUTH_SESSION_KEY)
 }
 
+function isWebSessionResumeEnabled(): boolean {
+  const config = typeof window !== 'undefined'
+    ? (window.__APP_CONFIG__ as { web_session_resume_enabled?: boolean } | undefined)
+    : undefined
+  return config?.web_session_resume_enabled === true || localStorage.getItem(WEB_SESSION_RESUME_FLAG) === 'true'
+}
+
 export const useAuthStore = defineStore('auth', () => {
   // ==================== State ====================
 
@@ -117,9 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
         // Immediately refresh user data from backend (async, don't block)
         refreshUser().catch((error) => {
           console.error('Failed to refresh user on init:', error)
-          resumeSessionFromCookie().catch((resumeError) => {
-            console.debug('No resumable web session after refresh failure:', resumeError)
-          })
+        tryResumeSessionFromCookie('after refresh failure')
         })
 
         // Start auto-refresh interval for user data
@@ -133,16 +139,12 @@ export const useAuthStore = defineStore('auth', () => {
       } catch (error) {
         console.error('Failed to parse saved user data:', error)
         clearAuth({ preservePendingAuthSession: true })
-        resumeSessionFromCookie().catch((resumeError) => {
-          console.debug('No resumable web session after stored auth parse failure:', resumeError)
-        })
+        tryResumeSessionFromCookie('after stored auth parse failure')
       }
       return
     }
 
-    resumeSessionFromCookie().catch((error) => {
-      console.debug('No resumable web session:', error)
-    })
+    tryResumeSessionFromCookie()
   }
 
   /**
@@ -235,6 +237,19 @@ export const useAuthStore = defineStore('auth', () => {
   async function resumeSessionFromCookie(): Promise<void> {
     const response = await authAPI.resumeSession()
     setAuthFromResponse(response)
+  }
+
+  function tryResumeSessionFromCookie(reason?: string): void {
+    if (!isWebSessionResumeEnabled()) {
+      return
+    }
+
+    resumeSessionFromCookie().catch((error) => {
+      console.debug(
+        reason ? `No resumable web session ${reason}:` : 'No resumable web session:',
+        error
+      )
+    })
   }
 
   /**

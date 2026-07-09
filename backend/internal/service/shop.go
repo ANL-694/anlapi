@@ -794,7 +794,7 @@ func (s *ShopService) createPlatformPaymentOrder(ctx context.Context, req ShopCr
 		PaymentSource:   req.PaymentSource,
 		OrderType:       payment.OrderTypeShop,
 		ShopOrderID:     order.ID,
-		Subject:         "ikik-api Store " + product.Name,
+		Subject:         "ANLAPI 商城 " + product.Name,
 	}
 	prep, err := s.paymentService.prepareCreateOrder(ctx, paymentReq)
 	if err != nil {

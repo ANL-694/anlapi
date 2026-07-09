@@ -92,6 +92,98 @@ func TestBuildCreateOrderResponseCopiesJSAPIPayload(t *testing.T) {
 	}
 }
 
+func TestBuildProviderReturnURLForSelectionCompactsLongEasyPayURL(t *testing.T) {
+	t.Parallel()
+
+	got, err := buildProviderReturnURLForSelection(
+		"https://api.example.com/payment/result",
+		42,
+		"sub2_20260703abcdef",
+		strings.Repeat("x", 320),
+		&payment.InstanceSelection{ProviderKey: payment.TypeEasyPay},
+	)
+	if err != nil {
+		t.Fatalf("buildProviderReturnURLForSelection returned error: %v", err)
+	}
+	if len(got) > easyPayReturnURLMaxLength {
+		t.Fatalf("return_url length = %d, want <= %d: %s", len(got), easyPayReturnURLMaxLength, got)
+	}
+	parsed, err := url.Parse(got)
+	if err != nil {
+		t.Fatalf("parse return_url: %v", err)
+	}
+	if parsed.Query().Get("resume_token") != "" {
+		t.Fatalf("resume_token should be omitted for compact EasyPay return_url: %s", got)
+	}
+	if parsed.Query().Get("order_id") != "42" {
+		t.Fatalf("order_id = %q, want 42", parsed.Query().Get("order_id"))
+	}
+	if parsed.Query().Get("out_trade_no") != "sub2_20260703abcdef" {
+		t.Fatalf("out_trade_no = %q", parsed.Query().Get("out_trade_no"))
+	}
+	if parsed.Query().Get("status") != "success" {
+		t.Fatalf("status = %q, want success", parsed.Query().Get("status"))
+	}
+}
+
+func TestBuildProviderReturnURLForSelectionKeepsLongURLForOtherProviders(t *testing.T) {
+	t.Parallel()
+
+	resumeToken := strings.Repeat("x", 320)
+	got, err := buildProviderReturnURLForSelection(
+		"https://api.example.com/payment/result",
+		42,
+		"sub2_20260703abcdef",
+		resumeToken,
+		&payment.InstanceSelection{ProviderKey: payment.TypeWxpay},
+	)
+	if err != nil {
+		t.Fatalf("buildProviderReturnURLForSelection returned error: %v", err)
+	}
+	parsed, err := url.Parse(got)
+	if err != nil {
+		t.Fatalf("parse return_url: %v", err)
+	}
+	if parsed.Query().Get("resume_token") != resumeToken {
+		t.Fatalf("resume_token was not preserved for non-EasyPay provider")
+	}
+}
+
+func TestBuildPaymentSubjectDefaultsToANLAPIBalanceRecharge(t *testing.T) {
+	t.Parallel()
+
+	got := (*PaymentService)(nil).buildPaymentSubject(
+		CreateOrderRequest{OrderType: payment.OrderTypeBalance},
+		nil,
+		5,
+		&PaymentConfig{},
+		&payment.InstanceSelection{ProviderKey: payment.TypeEasyPay},
+	)
+
+	if got != "ANLAPI 余额充值 5.00 CNY" {
+		t.Fatalf("subject = %q, want %q", got, "ANLAPI 余额充值 5.00 CNY")
+	}
+}
+
+func TestBuildPaymentSubjectKeepsConfiguredProductNamePrefixSuffix(t *testing.T) {
+	t.Parallel()
+
+	got := (*PaymentService)(nil).buildPaymentSubject(
+		CreateOrderRequest{OrderType: payment.OrderTypeBalance},
+		nil,
+		5,
+		&PaymentConfig{
+			ProductNamePrefix: "自定义",
+			ProductNameSuffix: "充值",
+		},
+		&payment.InstanceSelection{ProviderKey: payment.TypeEasyPay},
+	)
+
+	if got != "自定义 5.00 充值" {
+		t.Fatalf("subject = %q, want %q", got, "自定义 5.00 充值")
+	}
+}
+
 func TestMaybeBuildWeChatOAuthRequiredResponse(t *testing.T) {
 	t.Setenv("PAYMENT_RESUME_SIGNING_KEY", "0123456789abcdef0123456789abcdef")
 

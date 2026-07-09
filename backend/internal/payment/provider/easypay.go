@@ -39,6 +39,8 @@ type EasyPay struct {
 	httpClient *http.Client
 }
 
+var _ payment.CancelableProvider = (*EasyPay)(nil)
+
 // NewEasyPay creates a new EasyPay provider.
 // config keys: pid, pkey, apiBase, notifyUrl, returnUrl, cid, cidAlipay, cidWxpay
 func init() {
@@ -149,7 +151,7 @@ func (e *EasyPay) createRedirectPayment(req payment.CreatePaymentRequest) (*paym
 	for k, v := range params {
 		q.Set(k, v)
 	}
-	payURL := e.apiBase() + "/submit.php?" + q.Encode()
+	payURL := e.easyPayEndpoint("/submit.php") + "?" + q.Encode()
 	return &payment.CreatePaymentResponse{PayURL: payURL}, nil
 }
 
@@ -171,7 +173,7 @@ func (e *EasyPay) createAPIPayment(ctx context.Context, req payment.CreatePaymen
 	params["sign"] = easyPaySign(params, e.config["pkey"])
 	params["sign_type"] = signTypeMD5
 
-	body, err := e.post(ctx, e.apiBase()+"/mapi.php", params)
+	body, err := e.postWithEndpointFallback(ctx, "/mapi.php", "/mapi", params)
 	if err != nil {
 		return nil, fmt.Errorf("easypay create: %w", err)
 	}
@@ -217,7 +219,7 @@ func (e *EasyPay) QueryOrder(ctx context.Context, tradeNo string) (*payment.Quer
 	q.Set("key", e.config["pkey"])
 	q.Set("out_trade_no", tradeNo)
 
-	body, err := e.get(ctx, e.apiBase()+"/api.php?"+q.Encode())
+	body, err := e.getWithEndpointFallback(ctx, "/api.php?"+q.Encode(), "/api?"+q.Encode())
 	if err != nil {
 		return nil, fmt.Errorf("easypay query: %w", err)
 	}
@@ -286,7 +288,7 @@ func (e *EasyPay) Refund(ctx context.Context, req payment.RefundRequest) (*payme
 	}
 	var firstErr error
 	for i, attempt := range attempts {
-		body, status, err := e.postRaw(ctx, e.apiBase()+"/api.php?act=refund", attempt.params)
+		body, status, err := e.postRawWithEndpointFallback(ctx, "/api.php?act=refund", "/api?act=refund", attempt.params)
 		if err != nil {
 			return nil, fmt.Errorf("easypay refund request: %w", err)
 		}
@@ -302,6 +304,26 @@ func (e *EasyPay) Refund(ctx context.Context, req payment.RefundRequest) (*payme
 		return &payment.RefundResponse{RefundID: attempt.refundID, Status: payment.ProviderStatusSuccess}, nil
 	}
 	return nil, firstErr
+}
+
+func (e *EasyPay) CancelPayment(ctx context.Context, tradeNo string) error {
+	tradeNo = strings.TrimSpace(tradeNo)
+	if tradeNo == "" {
+		return fmt.Errorf("easypay close missing order identifier")
+	}
+	params := map[string]string{
+		"pid":          e.config["pid"],
+		"key":          e.config["pkey"],
+		"out_trade_no": tradeNo,
+	}
+	body, status, err := e.postRawWithEndpointFallback(ctx, "/api.php?act=close", "/api?act=close", params)
+	if err != nil {
+		return fmt.Errorf("easypay close request: %w", err)
+	}
+	if err := parseEasyPayAPIActionResponse("close", status, body); err != nil {
+		return err
+	}
+	return nil
 }
 
 type easyPayRefundAttempt struct {
@@ -348,20 +370,24 @@ func isEasyPayRefundOrderNotFound(err error) bool {
 }
 
 func parseEasyPayRefundResponse(status int, body []byte) error {
+	return parseEasyPayAPIActionResponse("refund", status, body)
+}
+
+func parseEasyPayAPIActionResponse(action string, status int, body []byte) error {
 	summary := summarizeEasyPayResponse(body)
 	if status < http.StatusOK || status >= http.StatusMultipleChoices {
-		return fmt.Errorf("easypay refund HTTP %d: %s", status, summary)
+		return fmt.Errorf("easypay %s HTTP %d: %s", action, status, summary)
 	}
 
 	trimmed := strings.TrimSpace(string(body))
 	if trimmed == "" {
-		return fmt.Errorf("easypay refund empty response (HTTP %d): %s", status, summary)
+		return fmt.Errorf("easypay %s empty response (HTTP %d): %s", action, status, summary)
 	}
 
 	lower := strings.ToLower(trimmed)
 	if strings.HasPrefix(lower, "<!doctype html") || strings.HasPrefix(lower, "<html") ||
 		(strings.HasPrefix(lower, "<") && strings.Contains(lower, "html")) {
-		return fmt.Errorf("easypay refund non-JSON response (HTTP %d): %s", status, summary)
+		return fmt.Errorf("easypay %s non-JSON response (HTTP %d): %s", action, status, summary)
 	}
 
 	var resp struct {
@@ -369,14 +395,14 @@ func parseEasyPayRefundResponse(status int, body []byte) error {
 		Msg  string `json:"msg"`
 	}
 	if err := json.Unmarshal(body, &resp); err != nil {
-		return fmt.Errorf("easypay refund non-JSON response (HTTP %d): %s", status, summary)
+		return fmt.Errorf("easypay %s non-JSON response (HTTP %d): %s", action, status, summary)
 	}
 	if !easyPayResponseCodeIsSuccess(resp.Code) {
 		msg := strings.TrimSpace(resp.Msg)
 		if msg == "" {
 			msg = summary
 		}
-		return fmt.Errorf("easypay refund failed (HTTP %d): %s", status, msg)
+		return fmt.Errorf("easypay %s failed (HTTP %d): %s", action, status, msg)
 	}
 	return nil
 }
@@ -422,10 +448,54 @@ func (e *EasyPay) post(ctx context.Context, endpoint string, params map[string]s
 	return body, err
 }
 
-func (e *EasyPay) get(ctx context.Context, endpoint string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+func (e *EasyPay) easyPayEndpoint(path string) string {
+	return e.apiBase() + path
+}
+
+func (e *EasyPay) postWithEndpointFallback(ctx context.Context, primaryPath string, fallbackPath string, params map[string]string) ([]byte, error) {
+	body, _, err := e.postRawWithEndpointFallback(ctx, primaryPath, fallbackPath, params)
+	return body, err
+}
+
+func (e *EasyPay) postRawWithEndpointFallback(ctx context.Context, primaryPath string, fallbackPath string, params map[string]string) ([]byte, int, error) {
+	body, status, err := e.postRaw(ctx, e.easyPayEndpoint(primaryPath), params)
+	if err != nil {
+		return nil, status, err
+	}
+	if !shouldFallbackEasyPayEndpoint(status, body) {
+		return body, status, nil
+	}
+	fallbackBody, fallbackStatus, fallbackErr := e.postRaw(ctx, e.easyPayEndpoint(fallbackPath), params)
+	if fallbackErr != nil {
+		return body, status, nil
+	}
+	return fallbackBody, fallbackStatus, nil
+}
+
+func (e *EasyPay) getWithEndpointFallback(ctx context.Context, primaryPath string, fallbackPath string) ([]byte, error) {
+	body, status, err := e.getRaw(ctx, e.easyPayEndpoint(primaryPath))
 	if err != nil {
 		return nil, err
+	}
+	if !shouldFallbackEasyPayEndpoint(status, body) {
+		return body, nil
+	}
+	fallbackBody, _, fallbackErr := e.getRaw(ctx, e.easyPayEndpoint(fallbackPath))
+	if fallbackErr != nil {
+		return body, nil
+	}
+	return fallbackBody, nil
+}
+
+func (e *EasyPay) get(ctx context.Context, endpoint string) ([]byte, error) {
+	body, _, err := e.getRaw(ctx, endpoint)
+	return body, err
+}
+
+func (e *EasyPay) getRaw(ctx context.Context, endpoint string) ([]byte, int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, 0, err
 	}
 	client := e.httpClient
 	if client == nil {
@@ -433,14 +503,14 @@ func (e *EasyPay) get(ctx context.Context, endpoint string) ([]byte, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxEasypayResponseSize))
 	if err != nil {
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
-	return body, nil
+	return body, resp.StatusCode, nil
 }
 
 func (e *EasyPay) postRaw(ctx context.Context, endpoint string, params map[string]string) ([]byte, int, error) {
@@ -467,6 +537,20 @@ func (e *EasyPay) postRaw(ctx context.Context, endpoint string, params map[strin
 		return nil, resp.StatusCode, err
 	}
 	return body, resp.StatusCode, nil
+}
+
+func shouldFallbackEasyPayEndpoint(status int, body []byte) bool {
+	if status == http.StatusNotFound || status == http.StatusMethodNotAllowed {
+		return true
+	}
+	trimmed := strings.TrimSpace(string(body))
+	if trimmed == "" {
+		return false
+	}
+	lower := strings.ToLower(trimmed)
+	return strings.HasPrefix(lower, "<!doctype html") ||
+		strings.HasPrefix(lower, "<html") ||
+		(strings.HasPrefix(lower, "<") && strings.Contains(lower, "html"))
 }
 
 func easyPaySign(params map[string]string, pkey string) string {

@@ -140,6 +140,54 @@ func TestEasyPayRefundRetriesWithTradeNoWhenOutTradeNoNotFound(t *testing.T) {
 	}
 }
 
+func TestEasyPayCancelPaymentPostsCloseWithOutTradeNo(t *testing.T) {
+	t.Parallel()
+
+	var gotPath string
+	var gotQuery url.Values
+	var gotForm url.Values
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotQuery = r.URL.Query()
+		if err := r.ParseForm(); err != nil {
+			t.Errorf("ParseForm: %v", err)
+		}
+		gotForm = r.PostForm
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":1,"msg":"success"}`))
+	}))
+	defer server.Close()
+
+	provider := newTestEasyPay(t, server.URL+"/submit.php")
+	if err := provider.CancelPayment(context.Background(), "out-456"); err != nil {
+		t.Fatalf("CancelPayment returned error: %v", err)
+	}
+	if gotPath != "/api.php" {
+		t.Fatalf("close path = %q, want /api.php", gotPath)
+	}
+	if gotQuery.Get("act") != "close" {
+		t.Fatalf("close act query = %q, want close", gotQuery.Get("act"))
+	}
+	for key, want := range map[string]string{
+		"pid":          "pid-1",
+		"key":          "pkey-1",
+		"out_trade_no": "out-456",
+	} {
+		if got := gotForm.Get(key); got != want {
+			t.Fatalf("form[%s] = %q, want %q (form=%v)", key, got, want, gotForm)
+		}
+	}
+}
+
+func TestEasyPayCancelPaymentRequiresOrderIdentifier(t *testing.T) {
+	t.Parallel()
+
+	provider := newTestEasyPay(t, "https://example.com")
+	if err := provider.CancelPayment(context.Background(), " "); err == nil {
+		t.Fatal("CancelPayment returned nil error")
+	}
+}
+
 func TestEasyPayRefundResponseErrors(t *testing.T) {
 	t.Parallel()
 

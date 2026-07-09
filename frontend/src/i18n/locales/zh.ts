@@ -8,7 +8,7 @@ export default {
     switchToDark: '切换到深色模式',
     dashboard: '控制台',
     login: '登录',
-    getStarted: '立即开始',
+    getStarted: '立即注册',
     goToDashboard: '进入控制台',
     redesign: {
       nav: {
@@ -17,21 +17,21 @@ export default {
       },
       hero: {
         eyebrow: 'ikik',
-        title: '今天想调用哪个模型？',
-        lead: '账号托管，支持用户自行使用账号、私有池、拼车池、共享池',
+        title: '一个 Key 接入你的 AI 工具',
+        lead: '注册后创建 API Key，充值后按实际用量消耗，消费记录后台可查。',
         proofAria: '平台能力',
         proof: {
-          openai: 'OpenAI 兼容',
-          routing: '自动选择可用资源',
-          billing: '用量实时记录'
+          openai: '小额充值',
+          routing: 'Key 可管理',
+          billing: '用量可查'
         }
       },
       product: {
-        client: '你的请求',
+        client: '注册账号',
         gateway: 'API 入口',
-        pool: '返回结果',
-        apiSurface: '发送一个请求，剩下交给 ikik',
-        compatible: '在线'
+        pool: '接入工具',
+        apiSurface: '真实路径：注册、充值、创建 Key',
+        compatible: '可查询'
       },
       story: {
         title: '一次接入，持续可用',
@@ -119,14 +119,16 @@ export default {
     // 首页落地页文案（当前 HomeView.vue 使用）
     nav: {
       home: '首页',
-      usage: '用量'
+      usage: '用量',
+      purchase: '充值',
+      keys: '创建 Key'
     },
     hero: {
       eyebrow: '开放式 AI 账号协作网络',
       title: '让账号能力在用户之间{flow}',
       titleHighlight: '自由流动',
       lead: '{siteName}不再只是平台向用户提供服务，而是让个人用户提供账号、其他用户消费额度，平台完成调度中转、收益结算、邀请分成',
-      viewUsage: '查看用量',
+      viewUsage: '查询 Key 用量',
       consoleAria: '账号协作网络数据面板示意'
     },
     console: {

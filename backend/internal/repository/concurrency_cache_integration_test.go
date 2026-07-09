@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/service"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"ikik-api/internal/service"
 )
 
 // 测试用 TTL 配置（15 分钟，与默认值一致）
@@ -32,6 +32,14 @@ func TestConcurrencyCacheSuite(t *testing.T) {
 func (s *ConcurrencyCacheSuite) SetupTest() {
 	s.IntegrationRedisSuite.SetupTest()
 	s.cache = NewConcurrencyCache(s.rdb, testSlotTTLMinutes, int(testSlotTTL.Seconds()))
+}
+
+func (s *ConcurrencyCacheSuite) seedActiveIndex(indexKey string, id int64) {
+	score := float64(time.Now().Add(testSlotTTL).Unix())
+	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, indexKey, redis.Z{
+		Score:  score,
+		Member: fmt.Sprintf("%d", id),
+	}).Err())
 }
 
 func (s *ConcurrencyCacheSuite) TestAccountSlot_AcquireAndRelease() {
@@ -270,6 +278,8 @@ func (s *ConcurrencyCacheSuite) TestCleanupStaleProcessSlots() {
 	).Err())
 	require.NoError(s.T(), s.rdb.Set(s.ctx, userWaitKey, 3, time.Minute).Err())
 	require.NoError(s.T(), s.rdb.Set(s.ctx, accountWaitKey, 2, time.Minute).Err())
+	s.seedActiveIndex(accountActiveIndexKey, accountID)
+	s.seedActiveIndex(userActiveIndexKey, userID)
 
 	require.NoError(s.T(), s.cache.CleanupStaleProcessSlots(s.ctx, "keep-"))
 
@@ -456,6 +466,8 @@ func (s *ConcurrencyCacheSuite) TestCleanupStaleProcessSlots_RemovesOldPrefixesA
 	require.NoError(s.T(), s.rdb.Expire(s.ctx, userSlotKey, testSlotTTL).Err())
 	require.NoError(s.T(), s.rdb.Set(s.ctx, userWaitKey, 3, testSlotTTL).Err())
 	require.NoError(s.T(), s.rdb.Set(s.ctx, accountWaitKey, 2, testSlotTTL).Err())
+	s.seedActiveIndex(accountActiveIndexKey, accountID)
+	s.seedActiveIndex(userActiveIndexKey, userID)
 
 	require.NoError(s.T(), s.cache.CleanupStaleProcessSlots(s.ctx, "activeproc-"))
 
@@ -478,6 +490,7 @@ func (s *ConcurrencyCacheSuite) TestCleanupStaleProcessSlots_DeletesEmptySlotKey
 	accountSlotKey := fmt.Sprintf("%s%d", accountSlotKeyPrefix, accountID)
 	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, accountSlotKey, redis.Z{Score: float64(time.Now().Unix()), Member: "oldproc-1"}).Err())
 	require.NoError(s.T(), s.rdb.Expire(s.ctx, accountSlotKey, testSlotTTL).Err())
+	s.seedActiveIndex(accountActiveIndexKey, accountID)
 
 	require.NoError(s.T(), s.cache.CleanupStaleProcessSlots(s.ctx, "activeproc-"))
 

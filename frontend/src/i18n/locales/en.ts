@@ -8,7 +8,7 @@ export default {
     switchToDark: 'Switch to Dark Mode',
     dashboard: 'Dashboard',
     login: 'Login',
-    getStarted: 'Get Started',
+    getStarted: 'Sign Up Now',
     goToDashboard: 'Go to Dashboard',
     redesign: {
       nav: {
@@ -17,21 +17,21 @@ export default {
       },
       hero: {
         eyebrow: 'ikik',
-        title: 'Which model do you want to call today?',
-        lead: 'Account hosting for user-owned accounts, private pools, carpool pools, and shared pools',
+        title: 'One Key for Your AI Tools',
+        lead: 'Create an API Key after registration, recharge as needed, and track spend in the dashboard.',
         proofAria: 'Platform capabilities',
         proof: {
-          openai: 'OpenAI compatible',
-          routing: 'Available resource routing',
-          billing: 'Live usage records'
+          openai: 'Small recharges',
+          routing: 'Managed keys',
+          billing: 'Usage records'
         }
       },
       product: {
-        client: 'Your request',
+        client: 'Sign up',
         gateway: 'API entry',
-        pool: 'Response',
-        apiSurface: 'Send one request, let ikik handle the rest',
-        compatible: 'Online'
+        pool: 'Use in tools',
+        apiSurface: 'Real path: sign up, recharge, create a key',
+        compatible: 'Queryable'
       },
       story: {
         title: 'Connect once, keep running',
@@ -119,14 +119,16 @@ export default {
     // Landing page copy (used by the current HomeView.vue)
     nav: {
       home: 'Home',
-      usage: 'Usage'
+      usage: 'Usage',
+      purchase: 'Recharge',
+      keys: 'Create Key'
     },
     hero: {
       eyebrow: 'An open network for AI account collaboration',
       title: 'Where account power flows {flow} between people',
       titleHighlight: 'freely',
       lead: '{siteName} is no longer just a platform serving users — individuals contribute accounts, others spend the quota, and the platform handles routing, settlement and referral rewards.',
-      viewUsage: 'View Usage',
+      viewUsage: 'Query Key Usage',
       consoleAria: 'Illustration of the account collaboration dashboard'
     },
     console: {
@@ -7255,7 +7257,7 @@ export default {
         siteNamePlaceholder: 'ikik-api',
         siteNameHint: 'Displayed in emails and page titles',
         siteSubtitle: 'Site Subtitle',
-        siteSubtitlePlaceholder: 'Subscription to API Conversion Platform',
+        siteSubtitlePlaceholder: 'AI API access and usage management platform',
         siteSubtitleHint: 'Displayed on login and register pages',
         apiBaseUrl: 'API Base URL',
         apiBaseUrlPlaceholder: 'https://api.example.com',

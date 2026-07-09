@@ -47,8 +47,8 @@
               <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.baseAmount') }}</span>
               <span class="font-medium text-gray-900 dark:text-white">&#165;{{ baseAmount.toFixed(2) }}</span>
             </div>
-            <div v-if="hasAmountFields(order) && order.fee_rate > 0" class="flex justify-between">
-              <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.fee') }} ({{ order.fee_rate }}%)</span>
+            <div v-if="hasAmountFields(order) && orderFeeRate > 0" class="flex justify-between">
+              <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.fee') }} ({{ orderFeeRate }}%)</span>
               <span class="font-medium text-gray-900 dark:text-white">&#165;{{ feeAmount.toFixed(2) }}</span>
             </div>
             <div v-if="hasAmountFields(order)" class="flex justify-between">
@@ -201,15 +201,17 @@ const STATUS_REFRESH_MAX_ATTEMPTS = 15
 let statusRefreshTimer: ReturnType<typeof setTimeout> | null = null
 const refreshAttempts = ref(0)
 
+const orderFeeRate = computed(() => finiteNumberOrZero(order.value && 'fee_rate' in order.value ? order.value.fee_rate : 0))
+
 /** 充值金额 = pay_amount / (1 + fee_rate/100)，fee_rate=0 时等于 pay_amount */
 const baseAmount = computed(() => {
-  if (!hasAmountFields(order.value) || order.value.fee_rate <= 0) return hasAmountFields(order.value) ? order.value.pay_amount : 0
-  return Math.round((order.value.pay_amount / (1 + order.value.fee_rate / 100)) * 100) / 100
+  if (!hasAmountFields(order.value) || orderFeeRate.value <= 0) return hasAmountFields(order.value) ? order.value.pay_amount : 0
+  return Math.round((order.value.pay_amount / (1 + orderFeeRate.value / 100)) * 100) / 100
 })
 
 /** 手续费 = pay_amount - baseAmount */
 const feeAmount = computed(() => {
-  if (!hasAmountFields(order.value) || order.value.fee_rate <= 0) return 0
+  if (!hasAmountFields(order.value) || orderFeeRate.value <= 0) return 0
   return Math.round((order.value.pay_amount - baseAmount.value) * 100) / 100
 })
 
@@ -246,8 +248,10 @@ function hasAmountFields(nextOrder: ResolvedOrder | null): nextOrder is PaymentO
   return !!nextOrder
     && 'pay_amount' in nextOrder
     && typeof nextOrder.pay_amount === 'number'
+    && Number.isFinite(nextOrder.pay_amount)
     && 'amount' in nextOrder
     && typeof nextOrder.amount === 'number'
+    && Number.isFinite(nextOrder.amount)
 }
 
 function hasPaymentType(nextOrder: ResolvedOrder | null): nextOrder is PaymentOrder {
@@ -277,6 +281,10 @@ function isPendingStatus(status: string | null | undefined): boolean {
 function hasLocalAuthToken(): boolean {
   if (typeof window === 'undefined') return false
   return !!window.localStorage.getItem('auth_token')
+}
+
+function finiteNumberOrZero(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
 function shouldLoadShopOrder(paymentOrder: PaymentOrder | null): paymentOrder is PaymentOrder & { shop_order_id: number } {
@@ -409,6 +417,19 @@ async function resolveOrderFromOutTradeNo(outTradeNo: string): Promise<ResolvedO
   }
 }
 
+async function reconcileOrderFromOutTradeNo(outTradeNo: string): Promise<PaymentOrder | null> {
+  if (!hasLocalAuthToken()) {
+    return null
+  }
+
+  try {
+    const result = await paymentAPI.verifyOrder(outTradeNo)
+    return result.data
+  } catch (_err: unknown) {
+    return null
+  }
+}
+
 function clearStatusRefreshTimer(): void {
   if (statusRefreshTimer !== null) {
     clearTimeout(statusRefreshTimer)
@@ -521,6 +542,14 @@ onMounted(async () => {
   }
 
   const refreshOrder = async (): Promise<ResolvedOrder | null> => {
+    const refreshOutTradeNo = outTradeNo || order.value?.out_trade_no || ''
+    if (refreshOutTradeNo) {
+      const reconciledOrder = await reconcileOrderFromOutTradeNo(refreshOutTradeNo)
+      if (reconciledOrder) {
+        return reconciledOrder
+      }
+    }
+
     if (resumeToken) {
       const resolvedOrder = await resolveOrderFromResumeToken(resumeToken)
       if (resolvedOrder) {

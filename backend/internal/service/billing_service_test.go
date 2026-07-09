@@ -6,8 +6,8 @@ import (
 	"math"
 	"testing"
 
-	"ikik-api/internal/config"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/config"
 )
 
 func newTestBillingService() *BillingService {
@@ -135,6 +135,20 @@ func TestGetModelPricing_OpenAIGPT54Fallback(t *testing.T) {
 	require.Equal(t, 272000, pricing.LongContextInputThreshold)
 	require.InDelta(t, 2.0, pricing.LongContextInputMultiplier, 1e-12)
 	require.InDelta(t, 1.5, pricing.LongContextOutputMultiplier, 1e-12)
+}
+
+func TestGetModelPricing_OpenAIGPT56Fallbacks(t *testing.T) {
+	svc := newTestBillingService()
+
+	for _, model := range []string{"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"} {
+		pricing, err := svc.GetModelPricing(model)
+		require.NoError(t, err, "模型 %s", model)
+		require.NotNil(t, pricing)
+		require.InDelta(t, 2.5e-6, pricing.InputPricePerToken, 1e-12)
+		require.InDelta(t, 15e-6, pricing.OutputPricePerToken, 1e-12)
+		require.InDelta(t, 0.25e-6, pricing.CacheReadPricePerToken, 1e-12)
+		require.Equal(t, 272000, pricing.LongContextInputThreshold)
+	}
 }
 
 func TestGetModelPricing_OpenAIGPT54MiniFallback(t *testing.T) {

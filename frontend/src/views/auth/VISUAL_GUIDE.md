@@ -40,7 +40,7 @@ Centered: Both horizontally and vertically
 ┌─────────────────────────────────────────────┐
 │                                             │
 │         🔷 ikik-api                          │
-│    Subscription to API Conversion Platform  │
+│       AI API 接入与用量管理平台             │
 │                                             │
 │  ┌─────────────────────────────────────┐   │
 │  │                                     │   │
@@ -134,7 +134,7 @@ Centered: Both horizontally and vertically
 ┌─────────────────────────────────────────────┐
 │                                             │
 │         🔷 ikik-api                          │
-│    Subscription to API Conversion Platform  │
+│       AI API 接入与用量管理平台             │
 │                                             │
 │  ┌─────────────────────────────────────┐   │
 │  │                                     │   │
