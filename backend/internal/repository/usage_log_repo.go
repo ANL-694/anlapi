@@ -2802,8 +2802,8 @@ func normalizeAccountSharingPagination(page, pageSize int) (int, int) {
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	if pageSize > 100 {
-		pageSize = 100
+	if pageSize > 1000 {
+		pageSize = 1000
 	}
 	return page, pageSize
 }
@@ -2896,6 +2896,7 @@ func (r *usageLogRepository) getUserAccountSharingAccountStats(ctx context.Conte
 		paged_accounts AS (
 			SELECT *
 			FROM account_stats
+			WHERE share_mode = 'public'
 			ORDER BY
 				sort_account_cost DESC,
 				created_at DESC,
@@ -3022,11 +3023,15 @@ func (r *usageLogRepository) getUserAccountSharingAccountStats(ctx context.Conte
 	}
 	summary.TotalAccountCost = summary.SelfAccountCost + summary.ExternalAccountCost
 	summary.BalanceNetChange = summary.ExternalOwnerCredit - summary.SelfActualCost
+	publicAccountTotal := summary.OwnedAccounts - summary.PrivateAccounts
+	if publicAccountTotal < 0 {
+		publicAccountTotal = 0
+	}
 	accountPageInfo := usagestats.AccountSharingAccountPage{
-		Total:    summary.OwnedAccounts,
+		Total:    publicAccountTotal,
 		Page:     page,
 		PageSize: pageSize,
-		Pages:    accountSharingPages(summary.OwnedAccounts, pageSize),
+		Pages:    accountSharingPages(publicAccountTotal, pageSize),
 	}
 	return accounts, summary, accountPageInfo, nil
 }

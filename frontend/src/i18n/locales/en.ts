@@ -862,13 +862,13 @@ export default {
     ownerCredit: 'Owner Credit',
     platformFee: 'Platform Fee',
     balanceNetChange: 'Net Balance',
-    ownedAccountBreakdown: 'Owned Account Breakdown',
+    ownedAccountBreakdown: 'Shared Account Breakdown',
     totalAccountCost: 'Account Cost',
     account: 'Account',
     shareStatus: 'Share Status',
     selfUsage: 'Self',
     externalUsage: 'Others',
-    noOwnedAccountStats: 'No owned account usage in this range'
+    noOwnedAccountStats: 'No shared account usage in this range'
   },
 
   // Groups (shared)

@@ -862,13 +862,13 @@ export default {
     ownerCredit: '分成入账',
     platformFee: '平台留存',
     balanceNetChange: '余额净变化',
-    ownedAccountBreakdown: '账号明细',
+    ownedAccountBreakdown: '共享账号明细',
     totalAccountCost: '账号成本',
     account: '账号',
     shareStatus: '共享状态',
     selfUsage: '自己',
     externalUsage: '别人',
-    noOwnedAccountStats: '当前时间范围内暂无个人账号用量'
+    noOwnedAccountStats: '当前时间范围内暂无共享账号用量'
   },
 
   // Groups (shared)
