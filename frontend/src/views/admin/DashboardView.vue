@@ -289,6 +289,7 @@ import ModelDistributionChart from '@/components/charts/ModelDistributionChart.v
 import TokenUsageTrend from '@/components/charts/TokenUsageTrend.vue'
 import { UiIconButton } from '@/ui'
 import { useDarkMode } from '@/composables/useDarkMode'
+import { chartPaletteFor } from '@/utils/chartPalette'
 
 import {
   Chart as ChartJS,
@@ -465,7 +466,7 @@ const userTrendChartData = computed(() => {
   })
 
   const sortedDates = Array.from(allDates).sort()
-  const colors = ['#10a37f', '#6b6b6b', '#a3a3a3', '#4f8f7f', '#8b7d6b', '#4f4f4f', '#76b7a5', '#7f7f7f', '#3f6f64', '#b0b0b0', '#0d8f70', '#5f5f5f']
+  const colors = chartPaletteFor(userGroups.size)
 
   const datasets = Array.from(userGroups.values()).map((group, idx) => ({
     label: group.name,
