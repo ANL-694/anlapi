@@ -1,98 +1,100 @@
 <template>
   <AppLayout>
-    <div class="space-y-6">
+    <div class="usage-page">
       <UsageStatsCards :stats="usageStats" />
-      <!-- Charts Section -->
-      <div class="space-y-4">
-        <div class="card p-4">
-          <div class="flex flex-wrap items-center gap-4">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.timeRange') }}:</span>
+      <section class="usage-analytics">
+        <div class="usage-analytics-toolbar">
+          <div class="usage-filter-row">
+            <div class="usage-filter-control usage-filter-control--date">
+              <span class="usage-filter-label">{{ t('admin.dashboard.timeRange') }}</span>
               <DateRangePicker
                 v-model:start-date="startDate"
                 v-model:end-date="endDate"
                 @change="onDateRangeChange"
               />
             </div>
-            <div class="ml-auto flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.granularity') }}:</span>
+            <div class="usage-filter-control usage-filter-control--granularity">
+              <span class="usage-filter-label">{{ t('admin.dashboard.granularity') }}</span>
               <div class="w-28">
                 <Select v-model="granularity" :options="granularityOptions" @change="loadChartData" />
               </div>
             </div>
           </div>
         </div>
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <ModelDistributionChart
-            v-model:source="modelDistributionSource"
-            v-model:metric="modelDistributionMetric"
-            :model-stats="requestedModelStats"
-            :upstream-model-stats="upstreamModelStats"
-            :mapping-model-stats="mappingModelStats"
-            :loading="modelStatsLoading"
-            :show-source-toggle="true"
-            :show-metric-toggle="true"
-            :start-date="startDate"
-            :end-date="endDate"
-            :filters="breakdownFilters"
-          />
-          <GroupDistributionChart
-            v-model:metric="groupDistributionMetric"
-            :group-stats="groupStats"
-            :loading="chartsLoading"
-            :show-metric-toggle="true"
-            :start-date="startDate"
-            :end-date="endDate"
-            :filters="breakdownFilters"
-          />
+        <div class="usage-analytics-grid">
+          <div class="usage-analytics-panel usage-analytics-panel--trend">
+            <TokenUsageTrend size="large" :trend-data="trendData" :loading="chartsLoading" />
+          </div>
+          <div class="usage-analytics-panel">
+            <ModelDistributionChart
+              v-model:source="modelDistributionSource"
+              v-model:metric="modelDistributionMetric"
+              :model-stats="requestedModelStats"
+              :upstream-model-stats="upstreamModelStats"
+              :mapping-model-stats="mappingModelStats"
+              :loading="modelStatsLoading"
+              :show-source-toggle="true"
+              :show-metric-toggle="true"
+              :start-date="startDate"
+              :end-date="endDate"
+              :filters="breakdownFilters"
+            />
+          </div>
+          <div class="usage-analytics-panel">
+            <GroupDistributionChart
+              v-model:metric="groupDistributionMetric"
+              :group-stats="groupStats"
+              :loading="chartsLoading"
+              :show-metric-toggle="true"
+              :start-date="startDate"
+              :end-date="endDate"
+              :filters="breakdownFilters"
+            />
+          </div>
+          <div class="usage-analytics-panel usage-analytics-panel--wide">
+            <EndpointDistributionChart
+              v-model:source="endpointDistributionSource"
+              v-model:metric="endpointDistributionMetric"
+              :endpoint-stats="inboundEndpointStats"
+              :upstream-endpoint-stats="upstreamEndpointStats"
+              :endpoint-path-stats="endpointPathStats"
+              :loading="endpointStatsLoading"
+              :show-source-toggle="true"
+              :show-metric-toggle="true"
+              :title="t('usage.endpointDistribution')"
+              :start-date="startDate"
+              :end-date="endDate"
+              :filters="breakdownFilters"
+            />
+          </div>
         </div>
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <EndpointDistributionChart
-            v-model:source="endpointDistributionSource"
-            v-model:metric="endpointDistributionMetric"
-            :endpoint-stats="inboundEndpointStats"
-            :upstream-endpoint-stats="upstreamEndpointStats"
-            :endpoint-path-stats="endpointPathStats"
-            :loading="endpointStatsLoading"
-            :show-source-toggle="true"
-            :show-metric-toggle="true"
-            :title="t('usage.endpointDistribution')"
-            :start-date="startDate"
-            :end-date="endDate"
-            :filters="breakdownFilters"
-          />
-          <TokenUsageTrend :trend-data="trendData" :loading="chartsLoading" />
-        </div>
-      </div>
+      </section>
+      <section class="usage-records">
       <UsageFilters v-model="filters" :start-date="startDate" :end-date="endDate" :exporting="exporting" @change="applyFilters" @refresh="refreshData" @reset="resetFilters" @cleanup="openCleanupDialog" @export="exportToExcel">
         <template #after-reset>
           <div class="relative" ref="columnDropdownRef">
-            <button
+            <UiIconButton
+              :label="t('admin.users.columnSettings')"
               @click="showColumnDropdown = !showColumnDropdown"
-              class="btn btn-secondary px-2 md:px-3"
-              :title="t('admin.users.columnSettings')"
             >
-              <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
-              </svg>
-              <span class="hidden md:inline">{{ t('admin.users.columnSettings') }}</span>
-            </button>
+              <Icon name="grid" size="md" />
+            </UiIconButton>
             <div
               v-if="showColumnDropdown"
-              class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
+              class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-lg"
             >
               <button
                 v-for="col in toggleableColumns"
                 :key="col.key"
                 @click="toggleColumn(col.key)"
-                class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-[var(--app-muted-strong)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
               >
                 <span>{{ col.label }}</span>
                 <Icon
                   v-if="isColumnVisible(col.key)"
                   name="check"
                   size="sm"
-                  class="text-primary-500"
+                  class="text-[var(--app-text)]"
                   :stroke-width="2"
                 />
               </button>
@@ -112,6 +114,7 @@
         @ipGeoBatchFailed="handleIpGeoBatchFailed"
       />
       <Pagination v-if="pagination.total > 0" :page="pagination.page" :total="pagination.total" :page-size="pagination.page_size" @update:page="handlePageChange" @update:pageSize="handlePageSizeChange" />
+      </section>
     </div>
   </AppLayout>
   <UsageExportProgress :show="exportProgress.show" :progress="exportProgress.progress" :current="exportProgress.current" :total="exportProgress.total" :estimated-time="exportProgress.estimatedTime" @cancel="cancelExport" />
@@ -148,6 +151,7 @@ import UserBalanceHistoryModal from '@/components/admin/user/UserBalanceHistoryM
 import ModelDistributionChart from '@/components/charts/ModelDistributionChart.vue'; import GroupDistributionChart from '@/components/charts/GroupDistributionChart.vue'; import TokenUsageTrend from '@/components/charts/TokenUsageTrend.vue'
 import EndpointDistributionChart from '@/components/charts/EndpointDistributionChart.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 import type { AdminUsageLog, TrendDataPoint, ModelStat, GroupStat, EndpointStat, AdminUser } from '@/types'; import type { AdminUsageStatsResponse, AdminUsageQueryParams } from '@/api/admin/usage'
 import type { DashboardSnapshotV2Stats } from '@/api/admin/dashboard'
 
@@ -749,3 +753,122 @@ watch(modelDistributionSource, (source) => {
   void loadModelStats(source)
 })
 </script>
+
+<style scoped>
+.usage-page {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.usage-analytics {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: transparent;
+}
+
+.usage-analytics-toolbar {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.usage-filter-row,
+.usage-filter-control {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.usage-filter-row {
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.usage-filter-control {
+  gap: 0.5rem;
+}
+
+.usage-filter-label {
+  color: var(--ui-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.usage-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.usage-analytics-panel {
+  min-width: 0;
+  padding: 1rem 1.125rem;
+  border-top: 1px solid var(--ui-border);
+}
+
+.usage-analytics-panel:nth-child(3) {
+  border-left: 1px solid var(--ui-border);
+}
+
+.usage-analytics-panel--trend {
+  grid-column: 1 / -1;
+  border-top: 0;
+}
+
+.usage-analytics-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.usage-records {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .usage-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .usage-analytics-panel,
+  .usage-analytics-panel--trend,
+  .usage-analytics-panel--wide {
+    grid-column: auto;
+  }
+
+  .usage-analytics-panel:nth-child(3) {
+    border-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .usage-page {
+    gap: 1rem;
+  }
+
+  .usage-analytics-toolbar,
+  .usage-analytics-panel {
+    padding-inline: 0.875rem;
+  }
+
+  .usage-filter-row {
+    align-items: stretch;
+  }
+
+  .usage-filter-label {
+    display: none;
+  }
+
+  .usage-filter-control--date {
+    flex: 1 1 auto;
+  }
+
+  .usage-filter-control--granularity {
+    flex: 0 0 auto;
+  }
+}
+</style>

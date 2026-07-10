@@ -96,6 +96,7 @@ var migrationChecksumCompatibilityRules = map[string]migrationChecksumCompatibil
 	"155_image_generation_group_controls.sql":                 newMigrationChecksumCompatibilityRule("8a8bc4ad03b36bf001290c674a790597cf399ff79c7be298d6bb8071a66d8cf8", "f5afcb0b91287ca1422c2163a39471b4cddc3673d9e7ff71e2402b3088ab5e2e"),
 	"156_allow_email_oauth_provider_types.sql":                newMigrationChecksumCompatibilityRule("e5e3512fd7ff6e9225414bf79425fd8ddbf6d78a66998142bfb2441f8e7e4708", "deb09c00432066d3194255d952e8d1d78483ad885c43777f3b06a1c0369b1a02"),
 	"157_content_moderation.sql":                              newMigrationChecksumCompatibilityRule("f9545c941580e8cad2b6b5ca4c6522bf1a6335b5a5a04bdc2b143678b289df67", "ae967e621e3bf66bbce6dd0624ee6c647ac57643dbdb4449a3d7f77f6531937a"),
+	"190_allow_kiro_user_platform_quotas.sql":                 newMigrationChecksumCompatibilityRule("84759e7fd445111e8706e2433d1d98a2af39c5072e0ed058018e96ebf91ffec9", "bc174c2b9dd244f10090a322bb685c8fd6c3e8050777a07b3c92c08b1d8cae94"),
 }
 
 // ApplyMigrations 将嵌入的 SQL 迁移文件应用到指定的数据库。

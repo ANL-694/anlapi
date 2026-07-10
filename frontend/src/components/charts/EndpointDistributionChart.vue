@@ -1,20 +1,20 @@
 <template>
-  <div class="card p-4">
-    <div class="mb-4 flex items-center justify-between gap-3">
-      <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+  <section class="distribution-chart">
+    <div class="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+      <h3 class="text-sm font-semibold text-[var(--ui-text)]">
         {{ title || t('usage.endpointDistribution') }}
       </h3>
       <div class="flex flex-wrap items-center justify-end gap-2">
         <div
           v-if="showSourceToggle"
-          class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-gray-700 dark:bg-dark-800"
+          class="inline-flex rounded-lg bg-[var(--ui-surface-subtle)] p-0.5"
         >
           <button
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="source === 'inbound'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:source', 'inbound')"
           >
             {{ t('usage.inbound') }}
@@ -23,8 +23,8 @@
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="source === 'upstream'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:source', 'upstream')"
           >
             {{ t('usage.upstream') }}
@@ -33,8 +33,8 @@
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="source === 'path'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:source', 'path')"
           >
             {{ t('usage.path') }}
@@ -43,14 +43,14 @@
 
         <div
           v-if="showMetricToggle"
-          class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-gray-700 dark:bg-dark-800"
+          class="inline-flex rounded-lg bg-[var(--ui-surface-subtle)] p-0.5"
         >
           <button
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="metric === 'tokens'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:metric', 'tokens')"
           >
             {{ t('admin.dashboard.metricTokens') }}
@@ -59,8 +59,8 @@
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="metric === 'actual_cost'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:metric', 'actual_cost')"
           >
             {{ t('admin.dashboard.metricActualCost') }}
@@ -71,11 +71,11 @@
     <div v-if="loading" class="flex h-48 items-center justify-center">
       <LoadingSpinner />
     </div>
-    <div v-else-if="displayEndpointStats.length > 0 && chartData" class="flex items-center gap-6">
-      <div class="h-48 w-48">
+    <div v-else-if="displayEndpointStats.length > 0 && chartData" class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <div class="h-48 w-48 shrink-0 self-center">
         <Doughnut :data="chartData" :options="doughnutOptions" />
       </div>
-      <div class="max-h-48 flex-1 overflow-y-auto">
+      <div class="max-h-48 w-full min-w-0 flex-1 overflow-auto">
         <table class="w-full text-xs">
           <thead>
             <tr class="text-gray-500 dark:text-gray-400">
@@ -89,10 +89,10 @@
           <tbody>
             <template v-for="item in displayEndpointStats" :key="item.endpoint">
               <tr
-                class="border-t border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-dark-700/40"
+                class="cursor-pointer border-t border-[var(--ui-border)] transition-colors hover:bg-[var(--ui-surface-subtle)]"
                 @click="toggleBreakdown(item.endpoint)"
               >
-                <td class="max-w-[180px] truncate py-1.5 font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" :title="item.endpoint">
+                <td class="max-w-[180px] truncate py-1.5 font-medium text-[var(--ui-text)]" :title="item.endpoint">
                   <span class="inline-flex items-center gap-1">
                     <svg v-if="expandedKey === item.endpoint" class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     <svg v-else class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -105,10 +105,10 @@
                 <td class="py-1.5 text-right text-gray-600 dark:text-gray-400">
                   {{ formatTokens(item.total_tokens) }}
                 </td>
-                <td class="py-1.5 text-right text-green-600 dark:text-green-400">
+                <td class="py-1.5 text-right text-[var(--ui-text)]">
                   ${{ formatCost(item.actual_cost) }}
                 </td>
-                <td class="py-1.5 text-right text-gray-400 dark:text-gray-500">
+                <td class="py-1.5 text-right text-[var(--ui-text-tertiary)]">
                   ${{ formatCost(item.cost) }}
                 </td>
               </tr>
@@ -128,7 +128,7 @@
     <div v-else class="flex h-48 items-center justify-center text-sm text-gray-500 dark:text-gray-400">
       {{ t('admin.dashboard.noDataAvailable') }}
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -210,17 +210,17 @@ const toggleBreakdown = async (endpoint: string) => {
 
 const chartColors = [
   '#10a37f',
-  '#3b82f6',
-  '#45d09a',
-  '#ef4444',
-  '#f59e0b',
-  '#f97316',
-  '#2563eb',
-  '#10a37f',
-  '#2563eb',
-  '#60a5fa',
-  '#9b9ba7',
-  '#0a5c4b'
+  '#6b6b6b',
+  '#a3a3a3',
+  '#4f8f7f',
+  '#8b7d6b',
+  '#4f4f4f',
+  '#76b7a5',
+  '#7f7f7f',
+  '#3f6f64',
+  '#b0b0b0',
+  '#0d8f70',
+  '#5f5f5f'
 ]
 
 const displayEndpointStats = computed(() => {

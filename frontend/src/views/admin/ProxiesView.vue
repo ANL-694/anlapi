@@ -37,22 +37,21 @@
           </div>
 
           <!-- Right: All action buttons -->
-          <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <button
+          <div class="flex flex-1 flex-wrap items-center justify-end gap-1">
+            <UiIconButton
+              :label="t('common.refresh')"
               @click="loadProxies"
               :disabled="loading"
-              class="btn btn-secondary"
-              :title="t('common.refresh')"
             >
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
+            </UiIconButton>
             <button
               @click="handleBatchTest"
               :disabled="batchTesting || loading"
               class="btn btn-secondary"
               :title="t('admin.proxies.testConnection')"
             >
-              <Icon name="play" size="md" class="mr-2" />
+              <Icon name="play" size="md" />
               {{ t('admin.proxies.testConnection') }}
             </button>
             <button
@@ -61,25 +60,40 @@
               class="btn btn-secondary"
               :title="t('admin.proxies.batchQualityCheck')"
             >
-              <Icon name="shield" size="md" class="mr-2" :class="batchQualityChecking ? 'animate-pulse' : ''" />
+              <Icon name="shield" size="md" :class="batchQualityChecking ? 'animate-pulse' : ''" />
               {{ t('admin.proxies.batchQualityCheck') }}
             </button>
-            <button
-              @click="openBatchDelete"
-              :disabled="selectedCount === 0"
-              class="btn btn-danger"
-              :title="t('admin.proxies.batchDeleteAction')"
-            >
-              <Icon name="trash" size="md" class="mr-2" />
-              {{ t('admin.proxies.batchDeleteAction') }}
-            </button>
-            <button @click="showImportData = true" class="btn btn-secondary">
-              {{ t('admin.proxies.dataImport') }}
-            </button>
-            <button @click="showExportDataDialog = true" class="btn btn-secondary">
-              {{ selectedCount > 0 ? t('admin.proxies.dataExportSelected') : t('admin.proxies.dataExport') }}
-            </button>
-            <button @click="showCreateModal = true" class="btn btn-primary">
+            <UiMenu :label="t('common.more')">
+              <template #trigger="{ open, toggle }">
+                <UiIconButton
+                  :label="t('common.more')"
+                  aria-haspopup="menu"
+                  :aria-expanded="open"
+                  @click="toggle"
+                >
+                  <Icon name="more" size="md" />
+                </UiIconButton>
+              </template>
+              <template #default="{ close }">
+                <button @click="showImportData = true; close()">
+                  <Icon name="upload" size="sm" />
+                  {{ t('admin.proxies.dataImport') }}
+                </button>
+                <button @click="showExportDataDialog = true; close()">
+                  <Icon name="download" size="sm" />
+                  {{ selectedCount > 0 ? t('admin.proxies.dataExportSelected') : t('admin.proxies.dataExport') }}
+                </button>
+                <button
+                  :disabled="selectedCount === 0"
+                  style="color: var(--ui-danger)"
+                  @click="openBatchDelete(); close()"
+                >
+                  <Icon name="trash" size="sm" />
+                  {{ t('admin.proxies.batchDeleteAction') }}
+                </button>
+              </template>
+            </UiMenu>
+            <button @click="showCreateModal = true" class="btn btn-primary ml-1">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.proxies.createProxy') }}
             </button>
@@ -340,8 +354,6 @@
             <EmptyState
               :title="t('admin.proxies.noProxiesYet')"
               :description="t('admin.proxies.createFirstProxy')"
-              :action-text="t('admin.proxies.createProxy')"
-              @action="showCreateModal = true"
             />
           </template>
         </DataTable>
@@ -945,6 +957,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ImportDataModal from '@/components/admin/proxy/ImportDataModal.vue'
 import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton, UiMenu } from '@/ui'
 import PlatformTypeBadge from '@/components/common/PlatformTypeBadge.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { useSwipeSelect } from '@/composables/useSwipeSelect'

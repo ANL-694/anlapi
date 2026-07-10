@@ -1323,13 +1323,13 @@ const notifyVerifyEmailTemplate = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background-color: #f7f7f8; margin: 0; padding: 20px; color: #202123; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #d9d9e3; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px rgba(0,0,0,0.06); }
-        .header { background: #10a37f; color: #ffffff; padding: 30px; text-align: center; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; }
+        .header { background: #ffffff; color: #0d0d0d; padding: 28px 30px; text-align: left; border-bottom: 1px solid #e5e5e5; }
         .header h1 { margin: 0; font-size: 24px; }
         .content { padding: 40px 30px; text-align: center; }
-        .code { font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #202123; background-color: #f3f3f6; border: 1px solid #d9d9e3; padding: 20px 30px; border-radius: 10px; display: inline-block; margin: 20px 0; font-family: monospace; }
+        .code { font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #0d0d0d; background-color: #f7f7f8; border: 1px solid #e5e5e5; padding: 20px 30px; border-radius: 8px; display: inline-block; margin: 20px 0; font-family: monospace; }
         .info { color: #6e6e80; font-size: 14px; line-height: 1.6; margin-top: 20px; }
-        .footer { background-color: #f3f3f6; padding: 20px; text-align: center; color: #6e6e80; font-size: 12px; }
+        .footer { background-color: #ffffff; padding: 20px; border-top: 1px solid #e5e5e5; text-align: center; color: #6e6e80; font-size: 12px; }
     </style>
 </head>
 <body>

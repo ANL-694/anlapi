@@ -1,81 +1,52 @@
 <template>
   <AppLayout>
-    <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <section class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="space-y-2">
-          <div class="inline-flex items-center gap-2 rounded-full border border-[#d9d9e3] bg-[#f3f3f6] px-3 py-1 text-xs font-medium text-[#565869] dark:border-[#3f3f46] dark:bg-[#2f2f2f] dark:text-[#c5c5d2]">
-            <Icon name="users" size="sm" />
-            <span>{{ t('carpool.title') }}</span>
-          </div>
-          <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-[#202123] dark:text-[#ececf1]">
-              {{ t('carpool.title') }}
-            </h1>
-            <p class="mt-2 max-w-3xl text-sm text-[#6e6e80] dark:text-[#acacbe]">
-              {{ t('carpool.description') }}
-            </p>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-3">
-          <button type="button" class="btn btn-secondary" :disabled="loading" @click="loadOverview">
-            <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" class="mr-2" />
-            {{ t('common.refresh') }}
-          </button>
-          <button type="button" class="btn btn-primary" @click="openCreateDialog">
-            <Icon name="plus" size="md" class="mr-2" />
-            {{ t('carpool.createPool') }}
-          </button>
-        </div>
-      </section>
-
-      <section class="rounded-2xl border border-[#d9d9e3] bg-white/90 p-2 shadow-sm dark:border-[#3f3f46] dark:bg-[#171717]">
-        <div class="grid grid-cols-2 gap-2">
+    <UiPage width="wide">
+      <section class="carpool-command-bar">
+        <div class="carpool-tabs" role="tablist" :aria-label="t('carpool.title')">
           <button
             type="button"
-            class="rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
-            :class="activeTab === 'mine'
-              ? 'bg-[#171717] text-white dark:bg-[#ececf1] dark:text-[#171717]'
-              : 'text-[#6e6e80] hover:bg-[#f3f3f6] dark:text-[#c5c5d2] dark:hover:bg-[#171717]'"
+            role="tab"
+            :aria-selected="activeTab === 'mine'"
+            :class="['carpool-tab', { 'carpool-tab--active': activeTab === 'mine' }]"
             @click="activeTab = 'mine'"
           >
             {{ t('carpool.myPools') }}
           </button>
           <button
             type="button"
-            class="rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
-            :class="activeTab === 'invite'
-              ? 'bg-[#171717] text-white dark:bg-[#ececf1] dark:text-[#171717]'
-              : 'text-[#6e6e80] hover:bg-[#f3f3f6] dark:text-[#c5c5d2] dark:hover:bg-[#171717]'"
+            role="tab"
+            :aria-selected="activeTab === 'invite'"
+            :class="['carpool-tab', { 'carpool-tab--active': activeTab === 'invite' }]"
             @click="activeTab = 'invite'"
           >
             {{ t('carpool.joinByInvite') }}
+          </button>
+        </div>
+        <div class="carpool-actions">
+          <UiIconButton :label="t('common.refresh')" :disabled="loading" @click="loadOverview">
+            <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+          </UiIconButton>
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="openCreateDialog"
+          >
+            <Icon name="plus" size="md" class="mr-2" />
+            {{ t('carpool.createPool') }}
           </button>
         </div>
       </section>
 
       <section
         v-if="activeTab === 'mine' && mineOverview"
-        class="rounded-2xl border border-[#d9d9e3] bg-[#f7f7f8] p-4 shadow-sm dark:border-[#3f3f46] dark:bg-[#171717] sm:p-5"
+        class="carpool-overview"
       >
-        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#171717]">
-            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.totalPools') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">{{ carpoolStats.total }}</div>
-          </div>
-          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#171717]">
-            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.myOwnedPools') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">{{ carpoolStats.owned }}</div>
-          </div>
-          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#171717]">
-            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.joinedPools') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">{{ carpoolStats.joined }}</div>
-          </div>
-          <div class="rounded-xl bg-white/90 p-3 dark:bg-[#171717]">
-            <div class="text-xs text-[#6e6e80] dark:text-[#acacbe]">{{ t('carpool.pendingApplications') }}</div>
-            <div class="mt-1 text-lg font-semibold text-[#202123] dark:text-[#ececf1]">{{ carpoolStats.pending }}</div>
-          </div>
-        </div>
+        <UiMetricStrip :style="{ '--metric-columns': 4 }">
+          <UiMetric :label="t('carpool.totalPools')" :value="String(carpoolStats.total)" />
+          <UiMetric :label="t('carpool.myOwnedPools')" :value="String(carpoolStats.owned)" />
+          <UiMetric :label="t('carpool.joinedPools')" :value="String(carpoolStats.joined)" />
+          <UiMetric :label="t('carpool.pendingApplications')" :value="String(carpoolStats.pending)" />
+        </UiMetricStrip>
 
         <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
           <label class="min-w-0">
@@ -98,7 +69,7 @@
         </div>
       </section>
 
-      <section v-if="loading && !hasLoadedOnce" class="card p-10 text-center text-sm text-gray-500 dark:text-dark-400">
+      <section v-if="loading && !hasLoadedOnce" class="carpool-empty">
         {{ t('common.loading') }}
       </section>
 
@@ -114,17 +85,17 @@
               </span>
             </div>
 
-            <div v-if="ownedPools.length === 0" class="card p-8 text-sm text-gray-500 dark:text-dark-400">
+            <div v-if="ownedPools.length === 0" class="carpool-empty">
               {{ t('carpool.emptyOwned') }}
             </div>
-            <div v-else-if="filteredOwnedPools.length === 0" class="card p-8 text-sm text-gray-500 dark:text-dark-400">
+            <div v-else-if="filteredOwnedPools.length === 0" class="carpool-empty">
               {{ t('carpool.emptyFiltered') }}
             </div>
             <div v-else class="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <article
                 v-for="summary in pagedOwnedPools"
                 :key="`owned-${summary.pool.id}`"
-                class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 shadow-sm transition-colors dark:border-[#3f3f46] dark:bg-[#171717]"
+                class="carpool-pool-card"
               >
                 <div class="flex flex-col gap-4">
                   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -490,17 +461,17 @@
               </span>
             </div>
 
-            <div v-if="joinedPools.length === 0" class="card p-8 text-sm text-gray-500 dark:text-dark-400">
+            <div v-if="joinedPools.length === 0" class="carpool-empty">
               {{ t('carpool.emptyJoined') }}
             </div>
-            <div v-else-if="filteredJoinedPools.length === 0" class="card p-8 text-sm text-gray-500 dark:text-dark-400">
+            <div v-else-if="filteredJoinedPools.length === 0" class="carpool-empty">
               {{ t('carpool.emptyFiltered') }}
             </div>
             <div v-else class="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <article
                 v-for="summary in pagedJoinedPools"
                 :key="`joined-${summary.pool.id}`"
-                class="rounded-2xl border border-[#d9d9e3] bg-white/95 p-5 shadow-sm transition-colors dark:border-[#3f3f46] dark:bg-[#171717]"
+                class="carpool-pool-card"
               >
                 <div class="flex flex-col gap-4">
                   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -720,7 +691,7 @@
           </section>
         </template>
       </template>
-    </div>
+    </UiPage>
 
     <BaseDialog
       :show="showCreateDialog"
@@ -1446,6 +1417,7 @@ import GroupBadge from '@/components/common/GroupBadge.vue'
 import PlatformTypeBadge from '@/components/common/PlatformTypeBadge.vue'
 import UsageProgressBar from '@/components/account/UsageProgressBar.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton, UiMetric, UiMetricStrip, UiPage } from '@/ui'
 import { accountsAPI, carpoolsAPI } from '@/api'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
@@ -2462,3 +2434,87 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.carpool-command-bar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.carpool-tabs,
+.carpool-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.carpool-tabs {
+  gap: 1.25rem;
+}
+
+.carpool-actions {
+  flex: 0 0 auto;
+  gap: 0.5rem;
+  padding-bottom: 0.625rem;
+}
+
+.carpool-tab {
+  margin-bottom: -1px;
+  padding: 0.75rem 0 0.875rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ui-text-tertiary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.carpool-tab:hover {
+  color: var(--ui-text);
+}
+
+.carpool-tab--active {
+  border-bottom-color: var(--ui-text);
+  color: var(--ui-text);
+}
+
+.carpool-overview {
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.carpool-empty {
+  padding: 2rem 0;
+  border-top: 1px solid var(--ui-border);
+  color: var(--ui-text-tertiary);
+  font-size: 0.875rem;
+}
+
+.carpool-pool-card {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+@media (max-width: 640px) {
+  .carpool-command-bar {
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .carpool-tabs {
+    gap: 1rem;
+  }
+
+  .carpool-actions {
+    gap: 0.25rem;
+  }
+}
+</style>

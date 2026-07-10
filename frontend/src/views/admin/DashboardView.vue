@@ -8,13 +8,10 @@
 
       <template v-else-if="stats">
         <!-- Row 1: Core Stats -->
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div class="admin-metric-row grid grid-cols-2 lg:grid-cols-4">
           <!-- Total API Keys -->
           <div class="card p-4">
             <div class="flex items-center gap-3">
-	              <div class="rounded-xl bg-[var(--app-primary-soft)] p-2">
-	                <Icon name="key" size="md" class="text-[var(--app-primary)]" :stroke-width="2" />
-              </div>
               <div>
 	                <p class="text-xs font-medium text-[var(--app-muted)]">
                   {{ t('admin.dashboard.apiKeys') }}
@@ -32,9 +29,6 @@
           <!-- Service Accounts -->
           <div class="card p-4">
             <div class="flex items-center gap-3">
-	              <div class="rounded-xl bg-[var(--app-surface-muted)] p-2">
-	                <Icon name="server" size="md" class="text-[var(--app-muted-strong)]" :stroke-width="2" />
-              </div>
               <div>
 	                <p class="text-xs font-medium text-[var(--app-muted)]">
                   {{ t('admin.dashboard.accounts') }}
@@ -57,9 +51,6 @@
           <!-- Today Requests -->
           <div class="card p-4">
             <div class="flex items-center gap-3">
-	              <div class="rounded-xl bg-[var(--app-surface-muted)] p-2">
-	                <Icon name="chart" size="md" class="text-[var(--app-muted-strong)]" :stroke-width="2" />
-              </div>
               <div>
 	                <p class="text-xs font-medium text-[var(--app-muted)]">
                   {{ t('admin.dashboard.todayRequests') }}
@@ -77,9 +68,6 @@
           <!-- New Users Today -->
           <div class="card p-4">
             <div class="flex items-center gap-3">
-	              <div class="rounded-xl bg-[var(--app-primary-soft)] p-2">
-	                <Icon name="userPlus" size="md" class="text-[var(--app-primary)]" :stroke-width="2" />
-              </div>
               <div>
 	                <p class="text-xs font-medium text-[var(--app-muted)]">
                   {{ t('admin.dashboard.users') }}
@@ -96,13 +84,10 @@
         </div>
 
         <!-- Row 2: Token Stats -->
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div class="admin-metric-row grid grid-cols-2 lg:grid-cols-4">
           <!-- Today Tokens -->
           <div class="card p-4">
             <div class="flex items-center gap-3">
-	              <div class="rounded-xl bg-[var(--app-primary-soft)] p-2">
-	                <Icon name="cube" size="md" class="text-[var(--app-primary)]" :stroke-width="2" />
-              </div>
               <div>
 	                <p class="text-xs font-medium text-[var(--app-muted)]">
                   {{ t('admin.dashboard.todayTokens') }}
@@ -136,9 +121,6 @@
           <!-- Total Tokens -->
           <div class="card p-4">
             <div class="flex items-center gap-3">
-	              <div class="rounded-xl bg-[var(--app-surface-muted)] p-2">
-	                <Icon name="database" size="md" class="text-[var(--app-muted-strong)]" :stroke-width="2" />
-              </div>
               <div>
 	                <p class="text-xs font-medium text-[var(--app-muted)]">
                   {{ t('admin.dashboard.totalTokens') }}
@@ -172,9 +154,6 @@
           <!-- Performance (RPM/TPM) -->
           <div class="card p-4">
             <div class="flex items-center gap-3">
-	              <div class="rounded-xl bg-[var(--app-primary-soft)] p-2">
-	                <Icon name="bolt" size="md" class="text-[var(--app-primary)]" :stroke-width="2" />
-              </div>
               <div class="flex-1">
 	                <p class="text-xs font-medium text-[var(--app-muted)]">
                   {{ t('admin.dashboard.performance') }}
@@ -198,9 +177,6 @@
           <!-- Avg Response Time -->
           <div class="card p-4">
             <div class="flex items-center gap-3">
-	              <div class="rounded-xl bg-[var(--app-surface-muted)] p-2">
-	                <Icon name="clock" size="md" class="text-[var(--app-muted-strong)]" :stroke-width="2" />
-              </div>
               <div>
 	                <p class="text-xs font-medium text-[var(--app-muted)]">
                   {{ t('admin.dashboard.avgResponse') }}
@@ -219,25 +195,21 @@
         <!-- Charts Section -->
         <div class="space-y-6">
           <!-- Date Range Filter -->
-          <div class="card p-4">
-            <div class="flex flex-wrap items-center gap-4">
-              <div class="flex items-center gap-2">
-	                <span class="text-sm font-medium text-[var(--app-muted-strong)]"
-                  >{{ t('admin.dashboard.timeRange') }}:</span
-                >
+          <div class="admin-chart-toolbar">
+            <div class="admin-dashboard-filter-row">
+              <div class="admin-dashboard-filter-control admin-dashboard-filter-control--date">
+                <span class="admin-dashboard-filter-label">{{ t('admin.dashboard.timeRange') }}</span>
                 <DateRangePicker
                   v-model:start-date="startDate"
                   v-model:end-date="endDate"
                   @change="onDateRangeChange"
                 />
               </div>
-              <button @click="loadDashboardStats" :disabled="chartsLoading" class="btn btn-secondary">
-                {{ t('common.refresh') }}
-              </button>
-              <div class="ml-auto flex items-center gap-2">
-	                <span class="text-sm font-medium text-[var(--app-muted-strong)]"
-                  >{{ t('admin.dashboard.granularity') }}:</span
-                >
+              <UiIconButton :label="t('common.refresh')" :disabled="chartsLoading" @click="loadDashboardStats">
+                <Icon name="refresh" size="md" :class="chartsLoading ? 'animate-spin' : ''" />
+              </UiIconButton>
+              <div class="admin-dashboard-filter-control admin-dashboard-filter-control--granularity">
+                <span class="admin-dashboard-filter-label">{{ t('admin.dashboard.granularity') }}</span>
                 <div class="w-28">
                   <Select
                     v-model="granularity"
@@ -252,6 +224,7 @@
           <!-- Charts Grid -->
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <ModelDistributionChart
+              class="admin-chart-column"
               :model-stats="modelStats"
               :enable-ranking-view="true"
               :ranking-items="rankingItems"
@@ -265,13 +238,13 @@
               :end-date="endDate"
               @ranking-click="goToUserUsage"
             />
-            <TokenUsageTrend :trend-data="trendData" :loading="chartsLoading" />
+            <TokenUsageTrend class="admin-chart-column" size="large" :trend-data="trendData" :loading="chartsLoading" />
           </div>
 
           <!-- User Usage Trend (Full Width) -->
-          <div class="card p-4">
+          <div class="admin-chart-panel">
             <h3 class="mb-4 text-sm font-semibold text-[var(--app-text)]">
-              {{ t('admin.dashboard.recentUsage') }} (Top 12)
+              {{ t('admin.dashboard.recentUsage') }}
             </h3>
             <div class="h-64">
               <div v-if="userTrendLoading" class="flex h-full items-center justify-center">
@@ -309,11 +282,13 @@ import type {
 } from '@/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
-import Icon from '@/components/icons/Icon.vue'
 import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import Select from '@/components/common/Select.vue'
+import Icon from '@/components/icons/Icon.vue'
 import ModelDistributionChart from '@/components/charts/ModelDistributionChart.vue'
 import TokenUsageTrend from '@/components/charts/TokenUsageTrend.vue'
+import { UiIconButton } from '@/ui'
+import { useDarkMode } from '@/composables/useDarkMode'
 
 import {
   Chart as ChartJS,
@@ -386,15 +361,12 @@ const granularityOptions = computed(() => [
   { value: 'hour', label: t('admin.dashboard.hour') }
 ])
 
-// Dark mode detection
-const isDarkMode = computed(() => {
-  return document.documentElement.classList.contains('dark')
-})
+const isDarkMode = useDarkMode()
 
 // Chart colors
 const chartColors = computed(() => ({
-  text: isDarkMode.value ? '#c5c5d2' : '#565869',
-  grid: isDarkMode.value ? '#40414f' : '#d9d9e3'
+  text: isDarkMode.value ? '#b4b4b4' : '#676767',
+  grid: isDarkMode.value ? '#343434' : '#ececec'
 }))
 
 // Line chart options (for user trend chart)
@@ -434,10 +406,13 @@ const lineOptions = computed(() => ({
   scales: {
     x: {
       grid: {
-        color: chartColors.value.grid
+        display: false
       },
       ticks: {
         color: chartColors.value.text,
+        maxRotation: 0,
+        autoSkip: true,
+        maxTicksLimit: 8,
         font: {
           size: 10
         }
@@ -490,20 +465,7 @@ const userTrendChartData = computed(() => {
   })
 
   const sortedDates = Array.from(allDates).sort()
-  const colors = [
-    '#10a37f',
-    '#3b82f6',
-    '#45d09a',
-    '#ef4444',
-    '#f59e0b',
-    '#f97316',
-    '#2563eb',
-    '#10a37f',
-    '#2563eb',
-    '#60a5fa',
-    '#9b9ba7',
-    '#0a5c4b'
-  ]
+  const colors = ['#10a37f', '#6b6b6b', '#a3a3a3', '#4f8f7f', '#8b7d6b', '#4f4f4f', '#76b7a5', '#7f7f7f', '#3f6f64', '#b0b0b0', '#0d8f70', '#5f5f5f']
 
   const datasets = Array.from(userGroups.values()).map((group, idx) => ({
     label: group.name,
@@ -511,11 +473,14 @@ const userTrendChartData = computed(() => {
     borderColor: colors[idx % colors.length],
     backgroundColor: `${colors[idx % colors.length]}20`,
     fill: false,
-    tension: 0.3
+    tension: 0.28,
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 3
   }))
 
   return {
-    labels: sortedDates,
+    labels: sortedDates.map(formatChartDate),
     datasets
   }
 })
@@ -531,6 +496,17 @@ const formatTokens = (value: number | undefined): string => {
     return `${(value / 1_000).toFixed(2)}K`
   }
   return value.toLocaleString()
+}
+
+const formatChartDate = (value: string): string => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const hasTime = /T\d{2}:\d{2}/.test(value)
+  return new Intl.DateTimeFormat(undefined, hasTime
+    ? { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }
+    : { month: '2-digit', day: '2-digit' }
+  ).format(date)
 }
 
 const formatNumber = (value: number): string => {
@@ -700,4 +676,99 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.admin-metric-row {
+  column-gap: clamp(1rem, 3vw, 2.5rem);
+  row-gap: 1rem;
+  background: transparent;
+}
+
+.admin-metric-row > .card {
+  padding: 1rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-metric-row > .card > .flex {
+  gap: 0;
+}
+
+.admin-chart-toolbar,
+.admin-chart-panel,
+.admin-chart-column {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.admin-chart-toolbar {
+  padding: 0;
+}
+
+.admin-chart-panel,
+.admin-chart-column {
+  padding: 1rem 0 0;
+}
+
+.admin-dashboard-filter-row,
+.admin-dashboard-filter-control {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.admin-dashboard-filter-row {
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-dashboard-filter-control {
+  gap: 0.5rem;
+}
+
+.admin-dashboard-filter-control--granularity {
+  margin-left: auto;
+}
+
+.admin-dashboard-filter-control :deep(.date-picker-trigger),
+.admin-dashboard-filter-control :deep(.select-trigger) {
+  height: 2.625rem;
+  min-height: 2.625rem;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.admin-dashboard-filter-label {
+  color: var(--ui-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .admin-metric-row > .card {
+    padding: 0.875rem 0;
+  }
+
+  .admin-dashboard-filter-row {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+
+  .admin-dashboard-filter-label {
+    display: none;
+  }
+
+  .admin-dashboard-filter-control--date {
+    flex: 1 1 auto;
+  }
+
+  .admin-dashboard-filter-control--granularity {
+    flex: 0 0 auto;
+    margin-left: 0;
+  }
+}
 </style>

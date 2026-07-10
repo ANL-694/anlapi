@@ -5,14 +5,13 @@
         <div class="flex flex-wrap items-center gap-3">
           <!-- Right: Action buttons -->
           <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <button
+            <UiIconButton
+              :label="t('common.refresh')"
               @click="loadModules"
               :disabled="loading"
-              class="btn btn-secondary"
-              :title="t('common.refresh')"
             >
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
+            </UiIconButton>
           </div>
         </div>
       </template>
@@ -80,6 +79,7 @@ import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 
 const { t } = useI18n()
 const appStore = useAppStore()

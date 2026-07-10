@@ -1,36 +1,31 @@
 <template>
   <AppLayout>
-    <div class="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <h1 class="text-2xl font-semibold tracking-tight text-[var(--app-text)]">
-            {{ t('freeModels.title') }}
-          </h1>
-          <p class="mt-2 max-w-3xl text-sm leading-6 text-[var(--app-text-muted)]">
-            {{ t('freeModels.description') }}
-          </p>
-        </div>
-        <button
-          type="button"
-          class="btn btn-secondary btn-icon h-10 w-10 flex-none p-0"
+    <UiPage width="wide">
+      <div class="free-model-toolbar">
+        <SearchInput
+          v-model="searchQuery"
+          class="max-w-sm"
+          :placeholder="t('common.search')"
+          :debounce-ms="0"
+        />
+        <UiIconButton
+          :label="t('common.refresh')"
           :disabled="loading"
-          :title="t('common.refresh')"
           @click="loadAccounts"
         >
           <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-        </button>
+        </UiIconButton>
       </div>
 
       <section class="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <FreeModelProviderCard
-          v-for="provider in providers"
+          v-for="provider in filteredProviders"
           :key="provider.code"
           :provider="provider"
           :accounts="providerAccounts(provider)"
           :connection-label="connectionLabel(provider)"
-          :connection-badge-class="connectionBadgeClass(provider)"
           :health-label="healthLabel(provider)"
-          :health-badge-class="healthBadgeClass(provider)"
+          :health="providerHealth(provider)"
           :connected-summary="connectedSummary(provider)"
           @status="openStatusDialog(provider)"
           @connect="openConnectDialog(provider)"
@@ -63,7 +58,7 @@
         @test-account="runAccountTest"
         @delete-account="deleteAccount"
       />
-    </div>
+    </UiPage>
   </AppLayout>
 </template>
 
@@ -78,6 +73,8 @@ import FreeModelStatusDialog from '@/components/free-models/FreeModelStatusDialo
 import type { FreeModelAccount, FreeModelProvider, FreeModelTestState } from '@/components/free-models/types'
 import Icon from '@/components/icons/Icon.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import SearchInput from '@/components/common/SearchInput.vue'
+import { UiIconButton, UiPage } from '@/ui'
 import { useAppStore } from '@/stores/app'
 import type { CreateAccountRequest, UpdateAccountRequest } from '@/types'
 import { extractApiErrorMessage } from '@/utils/apiError'
@@ -250,6 +247,7 @@ const providers = computed<FreeModelProvider[]>(() => [
 ])
 
 const accounts = ref<FreeModelAccount[]>([])
+const searchQuery = ref('')
 const loading = ref(false)
 const creating = ref(false)
 const testingAccountID = ref<number | null>(null)
@@ -267,6 +265,15 @@ const modelsInput = ref('')
 
 const apiKeyCount = computed(() => parseApiKeys(apiKeysInput.value).length)
 const testingProvider = computed(() => testingAccountID.value != null)
+const filteredProviders = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return providers.value
+  return providers.value.filter((provider) =>
+    provider.name.toLowerCase().includes(query) ||
+    provider.code.toLowerCase().includes(query) ||
+    provider.models.some((model) => model.toLowerCase().includes(query))
+  )
+})
 
 function parseModels(input: string): string[] {
   const seen = new Set<string>()
@@ -355,12 +362,6 @@ function connectionLabel(provider: FreeModelProvider): string {
   return providerAccounts(provider).length > 0 ? t('freeModels.connected') : t('freeModels.notConnected')
 }
 
-function connectionBadgeClass(provider: FreeModelProvider): string {
-  return providerAccounts(provider).length > 0
-    ? 'bg-[var(--app-primary-soft)] text-[var(--app-primary)]'
-    : 'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)]'
-}
-
 function accountHasActiveLimit(account: FreeModelAccount): boolean {
   if (parseFutureTime(account.rate_limit_reset_at)) return true
   if (parseFutureTime(account.temp_unschedulable_until)) return true
@@ -383,15 +384,6 @@ function providerHealth(provider: FreeModelProvider): 'normal' | 'limited' | 'mo
 
 function healthLabel(provider: FreeModelProvider): string {
   return t(`freeModels.health.${providerHealth(provider)}`)
-}
-
-function healthBadgeClass(provider: FreeModelProvider): string {
-  const health = providerHealth(provider)
-  if (health === 'normal') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-  if (health === 'limited') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-  if (health === 'model_filtered') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-  if (health === 'error') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-  return 'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)]'
 }
 
 function connectedSummary(provider: FreeModelProvider): string {
@@ -759,3 +751,18 @@ async function deleteAccount(account: FreeModelAccount) {
 
 onMounted(loadAccounts)
 </script>
+
+<style scoped>
+.free-model-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .free-model-toolbar :deep(.relative) {
+    min-width: 0;
+  }
+}
+</style>

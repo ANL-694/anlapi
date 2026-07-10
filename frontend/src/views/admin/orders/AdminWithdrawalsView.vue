@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="space-y-4">
-      <div class="card p-4">
+      <div class="pb-1">
         <div class="flex flex-wrap items-center gap-3">
           <div class="flex-1 sm:max-w-72">
             <input v-model="keyword" type="text" placeholder="搜索邮箱或提现单号" class="input" @input="debounceLoad" />
@@ -9,9 +9,9 @@
           <Select v-model="filters.status" :options="statusOptions" class="w-36" @change="load" />
           <Select v-model="filters.payment_method" :options="methodOptions" class="w-36" @change="load" />
           <div class="ml-auto flex items-center gap-2">
-            <button class="btn btn-secondary" :disabled="loading" @click="load">
+            <UiIconButton :label="t('common.refresh')" :disabled="loading" @click="load">
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
+            </UiIconButton>
           </div>
         </div>
       </div>
@@ -135,6 +135,7 @@
 
 <script setup lang="ts">
 import { computed, defineComponent, h, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { adminPaymentAPI } from '@/api/admin/payment'
 import type { ReceiptCodePaymentMethod, WithdrawalRequest, WithdrawalStatus } from '@/types'
@@ -146,6 +147,7 @@ import Pagination from '@/components/common/Pagination.vue'
 import Select from '@/components/common/Select.vue'
 import type { Column } from '@/components/common/types'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 
 const InfoItem = defineComponent({
   props: { label: { type: String, required: true }, value: { type: String, required: true } },
@@ -157,6 +159,7 @@ const InfoItem = defineComponent({
   },
 })
 
+const { t } = useI18n()
 const appStore = useAppStore()
 const items = ref<WithdrawalRequest[]>([])
 const loading = ref(false)

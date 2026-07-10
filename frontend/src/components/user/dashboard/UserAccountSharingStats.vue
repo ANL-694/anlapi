@@ -1,20 +1,15 @@
 <template>
-  <div class="card relative overflow-hidden p-4">
+  <UiSection
+    class="dashboard-section"
+    :title="t('dashboard.accountSharingTitle')"
+    :description="`${stats?.start_date || '-'} - ${stats?.end_date || '-'}`"
+  >
+    <template #actions>
+      <span class="text-xs text-[var(--app-muted)]">{{ t('dashboard.accountSharingSettlement') }}</span>
+    </template>
+
     <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/50 backdrop-blur-sm dark:bg-dark-800/50">
       <LoadingSpinner size="md" />
-    </div>
-
-    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('dashboard.accountSharingTitle') }}</h3>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          {{ stats?.start_date || '-' }} - {{ stats?.end_date || '-' }}
-        </p>
-      </div>
-      <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-        <Icon name="shield" size="sm" />
-        <span>{{ t('dashboard.accountSharingSettlement') }}</span>
-      </div>
     </div>
 
     <div v-if="error" class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
@@ -22,60 +17,49 @@
     </div>
 
     <div v-else-if="summary" class="space-y-4">
-      <div class="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <div>
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.ownedAccounts') }}</p>
-          <p class="mt-1 text-xl font-bold text-gray-900 dark:text-white">{{ formatNumber(summary.owned_accounts) }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('dashboard.publicApproved') }} {{ summary.public_approved_accounts }}
-          </p>
-        </div>
-        <div>
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.selfAccountCost') }}</p>
-          <p class="mt-1 text-xl font-bold text-gray-900 dark:text-white">${{ formatCost(summary.self_account_cost) }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ formatNumber(summary.self_requests) }} {{ t('dashboard.requests') }}
-          </p>
-        </div>
-        <div>
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.externalConsumerCharge') }}</p>
-          <p class="mt-1 text-xl font-bold text-primary-600 dark:text-primary-300">${{ formatCost(summary.external_consumer_charge) }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ formatNumber(summary.external_requests) }} {{ t('dashboard.requests') }}
-          </p>
-        </div>
-        <div>
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.ownerCredit') }}</p>
-          <p class="mt-1 text-xl font-bold text-accent-600 dark:text-accent-300">${{ formatCost(summary.external_owner_credit) }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('dashboard.platformFee') }} ${{ formatCost(summary.external_platform_fee) }}
-          </p>
-        </div>
-        <div>
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.balanceNetChange') }}</p>
-          <p class="mt-1 text-xl font-bold" :class="summary.balance_net_change >= 0 ? 'text-accent-600 dark:text-accent-300' : 'text-rose-600 dark:text-rose-400'">
-            {{ summary.balance_net_change >= 0 ? '+' : '-' }}${{ formatCost(Math.abs(summary.balance_net_change)) }}
-          </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('dashboard.selfActualCost') }} ${{ formatCost(summary.self_actual_cost) }}
-          </p>
-        </div>
-      </div>
+      <UiMetricStrip :style="{ '--metric-columns': 5 }">
+        <UiMetric
+          :label="t('dashboard.ownedAccounts')"
+          :value="formatNumber(summary.owned_accounts)"
+          :detail="`${t('dashboard.publicApproved')} ${summary.public_approved_accounts}`"
+        />
+        <UiMetric
+          :label="t('dashboard.selfAccountCost')"
+          :value="`$${formatCost(summary.self_account_cost)}`"
+          :detail="`${formatNumber(summary.self_requests)} ${t('dashboard.requests')}`"
+        />
+        <UiMetric
+          :label="t('dashboard.externalConsumerCharge')"
+          :value="`$${formatCost(summary.external_consumer_charge)}`"
+          :detail="`${formatNumber(summary.external_requests)} ${t('dashboard.requests')}`"
+        />
+        <UiMetric
+          :label="t('dashboard.ownerCredit')"
+          :value="`$${formatCost(summary.external_owner_credit)}`"
+          :detail="`${t('dashboard.platformFee')} $${formatCost(summary.external_platform_fee)}`"
+        />
+        <UiMetric
+          :label="t('dashboard.balanceNetChange')"
+          :value="`${summary.balance_net_change >= 0 ? '+' : '-'}$${formatCost(Math.abs(summary.balance_net_change))}`"
+          :tone="summary.balance_net_change >= 0 ? 'success' : 'danger'"
+          :detail="`${t('dashboard.selfActualCost')} $${formatCost(summary.self_actual_cost)}`"
+        />
+      </UiMetricStrip>
 
-      <div class="grid grid-cols-2 gap-3 text-xs text-gray-600 dark:text-gray-300 lg:grid-cols-4">
-        <div class="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-700">
+      <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300 lg:grid-cols-4">
+        <div class="sharing-status-item">
           <span>{{ t('dashboard.privateMode') }}</span>
           <span class="font-semibold text-gray-900 dark:text-white">{{ summary.private_accounts }}</span>
         </div>
-        <div class="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-700">
+        <div class="sharing-status-item">
           <span>{{ t('dashboard.publicPending') }}</span>
           <span class="font-semibold text-primary-600 dark:text-primary-300">{{ summary.public_pending_accounts }}</span>
         </div>
-        <div class="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-700">
+        <div class="sharing-status-item">
           <span>{{ t('dashboard.publicApproved') }}</span>
           <span class="font-semibold text-accent-600 dark:text-accent-300">{{ summary.public_approved_accounts }}</span>
         </div>
-        <div class="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-700">
+        <div class="sharing-status-item">
           <span>{{ t('dashboard.publicSuspended') }}</span>
           <span class="font-semibold text-rose-600 dark:text-rose-400">{{ summary.public_suspended_accounts }}</span>
         </div>
@@ -83,7 +67,7 @@
 
       <div>
         <div class="mb-2 flex items-center justify-between">
-          <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400">
             {{ t('dashboard.ownedAccountBreakdown') }}
           </h4>
           <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('dashboard.totalAccountCost') }} ${{ formatCost(summary.total_account_cost) }}</span>
@@ -179,15 +163,15 @@
         </div>
       </div>
     </div>
-  </div>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Icon from '@/components/icons/Icon.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import Pagination from '@/components/common/Pagination.vue'
+import { UiMetric, UiMetricStrip, UiSection } from '@/ui'
 import type { AccountSharingAccountStat, AccountSharingDashboardStats } from '@/api/usage'
 import { formatCostFixed as formatCost, formatNumberLocaleString as formatNumber } from '@/utils/format'
 
@@ -245,3 +229,18 @@ function statusClass(account: AccountSharingAccountStat): string {
   return 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
 }
 </script>
+
+<style scoped>
+.dashboard-section {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ui-border);
+}
+
+.sharing-status-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+}
+</style>

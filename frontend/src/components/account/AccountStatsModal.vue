@@ -486,6 +486,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDarkMode } from '@/composables/useDarkMode'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -532,10 +533,7 @@ const emit = defineEmits<{
 const loading = ref(false)
 const stats = ref<AccountUsageStatsResponse | null>(null)
 
-// Dark mode detection
-const isDarkMode = computed(() => {
-  return document.documentElement.classList.contains('dark')
-})
+const isDarkMode = useDarkMode()
 
 // Chart colors
 const chartColors = computed(() => ({

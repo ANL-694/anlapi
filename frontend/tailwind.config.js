@@ -19,17 +19,17 @@ export default {
           950: '#171717'
         },
         primary: {
-          50: '#effcf7',
-          100: '#d9fbe9',
-          200: '#b8f3d6',
-          300: '#82e7bd',
-          400: '#45d09a',
-          500: '#10a37f',
-          600: '#0d8f70',
-          700: '#0b735c',
-          800: '#0a5c4b',
-          900: '#08483c',
-          950: '#042d26'
+          50: '#f7f7f7',
+          100: '#ededed',
+          200: '#d9d9d9',
+          300: '#b8b8b8',
+          400: '#737373',
+          500: '#171717',
+          600: '#0d0d0d',
+          700: '#080808',
+          800: '#050505',
+          900: '#020202',
+          950: '#000000'
         },
         accent: {
           50: '#eff6ff',
@@ -92,15 +92,15 @@ export default {
       boxShadow: {
         glass: '0 1px 2px rgba(0, 0, 0, 0.04)',
         'glass-sm': '0 1px 1px rgba(0, 0, 0, 0.03)',
-        glow: '0 1px 2px rgba(16, 163, 127, 0.12)',
-        'glow-lg': '0 4px 14px rgba(16, 163, 127, 0.16)',
+        glow: '0 1px 2px rgba(0, 0, 0, 0.08)',
+        'glow-lg': '0 4px 14px rgba(0, 0, 0, 0.12)',
         card: '0 1px 2px rgba(0, 0, 0, 0.04)',
         'card-hover': '0 4px 12px rgba(0, 0, 0, 0.08)',
         'inner-glow': 'inset 0 1px 0 rgba(255, 255, 255, 0.65)'
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-primary': 'linear-gradient(135deg, #10a37f 0%, #0d8f70 100%)',
+        'gradient-primary': 'linear-gradient(135deg, #171717 0%, #000000 100%)',
         'gradient-dark': 'linear-gradient(135deg, #343541 0%, #171717 100%)',
         'gradient-glass':
           'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
@@ -143,8 +143,8 @@ export default {
           '100%': { backgroundPosition: '200% 0' }
         },
         glow: {
-          '0%': { boxShadow: '0 1px 2px rgba(16, 163, 127, 0.10)' },
-          '100%': { boxShadow: '0 4px 14px rgba(16, 163, 127, 0.16)' }
+          '0%': { boxShadow: '0 1px 2px rgba(0, 0, 0, 0.06)' },
+          '100%': { boxShadow: '0 4px 14px rgba(0, 0, 0, 0.12)' }
         }
       },
       backdropBlur: {

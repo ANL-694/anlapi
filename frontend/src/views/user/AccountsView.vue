@@ -1,45 +1,34 @@
 <template>
   <AppLayout>
-    <TablePageLayout>
+    <UiPage width="wide" density="compact">
+      <TablePageLayout>
       <template #actions>
         <div class="flex flex-wrap items-center justify-end gap-3">
-          <button
-            type="button"
-            class="btn btn-secondary"
+          <UiIconButton
+            :label="t('common.refresh')"
             :disabled="loading"
-            :title="t('common.refresh')"
             @click="loadAccounts"
           >
             <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-          </button>
-          <button
-            type="button"
-            class="btn btn-secondary"
-            :disabled="selectedCount === 0"
-            @click="openBulkEditModal"
-          >
-            <Icon name="edit" size="md" class="mr-2" />
-            {{ t('admin.accounts.bulkActions.edit') }}
-          </button>
-          <button
-            type="button"
-            class="btn btn-secondary"
-            :disabled="exportingData"
-            @click="openExportDataDialog"
-          >
-            <Icon name="download" size="md" class="mr-2" />
-            {{ selectedCount > 0 ? t('userAccounts.exportSelected') : t('userAccounts.exportAccounts') }}
-          </button>
-          <button type="button" class="btn btn-secondary" @click="showProxyPoolModal = true">
-            <Icon name="server" size="md" class="mr-2" />
-            {{ t('userAccounts.proxyPool') }}
-          </button>
-          <button type="button" class="btn btn-secondary" @click="showImportModal = true">
-            <Icon name="upload" size="md" class="mr-2" />
-            {{ t('userAccounts.importAccounts') }}
-          </button>
+          </UiIconButton>
+          <UiMenu :label="t('common.more')">
+            <template #default="{ close }">
+              <button
+                type="button"
+                :disabled="exportingData"
+                @click="openExportDataDialog(); close()"
+              >
+                {{ selectedCount > 0 ? t('userAccounts.exportSelected') : t('userAccounts.exportAccounts') }}
+              </button>
+              <button type="button" @click="showProxyPoolModal = true; close()">
+                {{ t('userAccounts.proxyPool') }}
+              </button>
+              <button type="button" @click="showImportModal = true; close()">
+                {{ t('userAccounts.importAccounts') }}
+              </button>
+            </template>
+          </UiMenu>
           <button type="button" class="btn btn-primary" @click="showCreateModal = true">
-            <Icon name="plus" size="md" class="mr-2" />
             {{ t('userAccounts.createAccount') }}
           </button>
         </div>
@@ -83,23 +72,23 @@
       <template #table>
         <div
           v-if="selectedCount > 0"
-          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-primary-50 p-3 dark:bg-primary-900/20"
+          class="mb-4 flex flex-wrap items-center justify-between gap-3 border-y border-[var(--app-border)] py-3"
         >
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-sm font-medium text-primary-900 dark:text-primary-100">
+            <span class="text-sm font-medium text-[var(--app-text)]">
               {{ t('admin.accounts.bulkActions.selected', { count: selectedCount }) }}
             </span>
             <button
               type="button"
-              class="text-xs font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+              class="text-xs font-medium text-[var(--app-muted-strong)] hover:text-[var(--app-text)]"
               @click="selectVisible"
             >
               {{ t('admin.accounts.bulkActions.selectCurrentPage') }}
             </button>
-            <span class="text-gray-300 dark:text-primary-800">/</span>
+            <span class="text-[var(--app-border-strong)]">/</span>
             <button
               type="button"
-              class="text-xs font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+              class="text-xs font-medium text-[var(--app-muted-strong)] hover:text-[var(--app-text)]"
               @click="clearSelection"
             >
               {{ t('admin.accounts.bulkActions.clear') }}
@@ -115,10 +104,10 @@
             <button type="button" class="btn btn-secondary btn-sm" @click="bulkRevalidatePublicShare">
               {{ t('userAccounts.bulkRevalidateShare') }}
             </button>
-            <button type="button" class="btn btn-success btn-sm" @click="bulkToggleSchedulable(true)">
+            <button type="button" class="btn btn-secondary btn-sm" @click="bulkToggleSchedulable(true)">
               {{ t('admin.accounts.bulkActions.enableScheduling') }}
             </button>
-            <button type="button" class="btn btn-warning btn-sm" @click="bulkToggleSchedulable(false)">
+            <button type="button" class="btn btn-secondary btn-sm" @click="bulkToggleSchedulable(false)">
               {{ t('admin.accounts.bulkActions.disableScheduling') }}
             </button>
             <button type="button" class="btn btn-secondary btn-sm" @click="openBulkEditModal">
@@ -396,7 +385,8 @@
           @update:pageSize="handlePageSizeChange"
         />
       </template>
-    </TablePageLayout>
+      </TablePageLayout>
+    </UiPage>
 
     <CreateAccountModal
       :show="showCreateModal"
@@ -529,6 +519,7 @@ import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { useTableSelection } from '@/composables/useTableSelection'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
+import { UiIconButton, UiMenu, UiPage } from '@/ui'
 import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'

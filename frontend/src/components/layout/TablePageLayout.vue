@@ -60,7 +60,8 @@ onUnmounted(() => {
 
 /* 表格滚动容器 - 增强版表体滚动方案 */
 .table-scroll-container {
-  @apply overflow-hidden rounded-2xl;
+  @apply overflow-hidden;
+  border-radius: 0;
   border-color: var(--app-border);
   background: transparent;
   box-shadow: none;
@@ -79,7 +80,7 @@ onUnmounted(() => {
 }
 
 .table-scroll-container :deep(thead) {
-  background: var(--app-surface-muted);
+  background: var(--app-bg);
 }
 
 .table-scroll-container :deep(tbody) {
@@ -104,7 +105,7 @@ onUnmounted(() => {
 }
 
 .dark .table-scroll-container :deep(thead) {
-  background: var(--app-surface-muted);
+  background: var(--app-bg);
 }
 
 .dark .table-scroll-container :deep(th) {

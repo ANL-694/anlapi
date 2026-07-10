@@ -18,11 +18,6 @@
       <div class="mobile-data-empty">
         <slot name="empty">
           <div class="flex flex-col items-center">
-            <Icon
-              name="inbox"
-              size="xl"
-              class="mb-4 h-12 w-12 text-gray-400 dark:text-dark-500"
-            />
             <p class="text-lg font-medium text-[var(--app-text)]">
               {{ t('empty.noData') }}
             </p>
@@ -139,11 +134,6 @@
           >
             <slot name="empty">
               <div class="flex flex-col items-center">
-                <Icon
-                  name="inbox"
-                  size="xl"
-                  class="mb-4 h-12 w-12 text-gray-400 dark:text-dark-500"
-                />
                 <p class="text-lg font-medium text-[var(--app-text)]">
                   {{ t('empty.noData') }}
                 </p>
@@ -203,7 +193,6 @@ import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useI18n } from 'vue-i18n'
 import type { Column } from './types'
-import Icon from '@/components/icons/Icon.vue'
 
 const { t } = useI18n()
 
@@ -728,7 +717,7 @@ defineExpose({
   flex: 1;
   min-height: 0;
   isolation: isolate;
-  border-radius: 1rem;
+  border-radius: 0;
 }
 
 /* 表头容器，确保在滚动时覆盖表体内容 */
@@ -736,11 +725,11 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 200;
-  background-color: var(--app-surface);
+  background-color: var(--table-header-surface);
 }
 
 .dark .table-wrapper .table-header {
-  background-color: var(--app-surface);
+  background-color: var(--table-header-surface);
 }
 
 /* 表体保持在表头下方 */
@@ -754,11 +743,11 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 210; /* 必须高于所有表体内容 */
-  background-color: var(--app-surface);
+  background-color: var(--table-header-surface);
 }
 
 .dark .sticky-header-cell {
-  background-color: var(--app-surface);
+  background-color: var(--table-header-surface);
 }
 
 /* Sticky 列基础样式 */
@@ -794,11 +783,11 @@ defineExpose({
 
 /* 表体 sticky 列背景 */
 tbody .sticky-col {
-  background-color: var(--app-surface);
+  background-color: var(--table-surface);
 }
 
 .dark tbody .sticky-col {
-  background-color: var(--app-surface);
+  background-color: var(--table-surface);
 }
 
 /* hover 状态保持 */
@@ -860,19 +849,21 @@ tbody tr:hover .sticky-col {
   background: linear-gradient(to left, rgba(0, 0, 0, 0.2), transparent);
 }
 .table-wrapper {
-  --table-surface: var(--app-surface);
-  --table-header-surface: var(--app-surface);
+  --table-surface: var(--app-bg);
+  --table-header-surface: var(--app-bg);
   --table-hover-surface: var(--app-surface-muted);
   --table-border: var(--app-border);
   --table-header-border: var(--app-border);
   --table-shadow: rgba(0, 0, 0, 0.08);
   background: var(--table-surface);
-  border: 1px solid var(--app-border);
+  border: 0;
+  border-top: 1px solid var(--app-border);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .dark .table-wrapper {
-  --table-surface: var(--app-surface);
-  --table-header-surface: var(--app-surface);
+  --table-surface: var(--app-bg);
+  --table-header-surface: var(--app-bg);
   --table-hover-surface: var(--app-surface-muted);
   --table-border: var(--app-border);
   --table-header-border: var(--app-border);
@@ -947,26 +938,28 @@ tbody .sticky-col,
 
 .mobile-data-card,
 .mobile-data-empty {
-  border: 1px solid var(--app-border);
-  background: var(--app-surface);
-  border-radius: 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--app-border);
+  background: transparent;
+  border-radius: 0;
   color: var(--app-text);
   box-shadow: none;
 }
 
 .mobile-data-card {
-  padding: 1rem;
+  padding: 0.875rem 0;
 }
 
 .mobile-data-empty {
+  border-bottom: 0;
   padding: 3rem;
   text-align: center;
 }
 
 .dark .mobile-data-card,
 .dark .mobile-data-empty {
-  border-color: var(--app-border);
-  background: var(--app-surface);
+  border-bottom-color: var(--app-border);
+  background: transparent;
   color: var(--app-text);
   box-shadow: none;
 }

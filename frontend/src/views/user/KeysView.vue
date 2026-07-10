@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <TablePageLayout>
+    <UiPage width="wide" density="compact">
+      <TablePageLayout>
       <template #filters>
         <div class="flex flex-col gap-3">
           <div class="flex flex-wrap items-center gap-3">
@@ -33,16 +34,14 @@
 
       <template #actions>
         <div class="flex justify-end gap-3">
-        <button
+        <UiIconButton
+          :label="t('common.refresh')"
           @click="refreshKeyPageData"
           :disabled="loading"
-          class="btn btn-secondary"
-          :title="t('common.refresh')"
         >
           <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-        </button>
+        </UiIconButton>
         <button @click="openCreateModal" class="btn btn-primary" data-tour="keys-create-btn">
-          <Icon name="plus" size="md" class="mr-2" />
           {{ t('keys.createKey') }}
         </button>
       </div>
@@ -64,15 +63,15 @@
               <code class="code text-xs">
                 {{ maskApiKey(value) }}
               </code>
-              <button
+              <UiIconButton
+                size="sm"
+                :label="copiedKeyId === row.id ? t('keys.copied') : t('keys.copyToClipboard')"
                 @click="copyToClipboard(value, row.id)"
-	                class="rounded-lg p-1 transition-colors hover:bg-[var(--app-surface-muted)]"
                 :class="
                   copiedKeyId === row.id
                     ? 'text-green-500'
 	                    : 'text-[var(--app-muted)] hover:text-[var(--app-text)]'
                 "
-                :title="copiedKeyId === row.id ? t('keys.copied') : t('keys.copyToClipboard')"
               >
                 <Icon
                   v-if="copiedKeyId === row.id"
@@ -81,20 +80,18 @@
                   :stroke-width="2"
                 />
                 <Icon v-else name="clipboard" size="sm" />
-              </button>
+              </UiIconButton>
             </div>
           </template>
 
           <template #cell-name="{ value, row }">
             <div class="flex items-center gap-1.5">
 	              <span class="font-medium text-[var(--app-text)]">{{ value }}</span>
-              <Icon
+              <span
                 v-if="row.ip_whitelist?.length > 0 || row.ip_blacklist?.length > 0"
-                name="shield"
-                size="sm"
-                class="text-blue-500"
+                class="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ui-success)]"
                 :title="t('keys.ipRestrictionEnabled')"
-              />
+              ></span>
             </div>
           </template>
 
@@ -406,7 +403,8 @@
           @update:pageSize="handlePageSizeChange"
         />
       </template>
-    </TablePageLayout>
+      </TablePageLayout>
+    </UiPage>
 
     <!-- Create/Edit Modal -->
     <BaseDialog
@@ -1236,6 +1234,7 @@ const { t } = useI18n()
 import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
+import { UiIconButton, UiPage } from '@/ui'
 	import DataTable from '@/components/common/DataTable.vue'
 	import Pagination from '@/components/common/Pagination.vue'
 	import BaseDialog from '@/components/common/BaseDialog.vue'

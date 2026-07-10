@@ -30,16 +30,15 @@
           </div>
 
           <!-- Right: Actions -->
-          <div class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto">
-            <button
+          <div class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-1 lg:w-auto">
+            <UiIconButton
+              :label="t('common.refresh', 'Refresh')"
               @click="loadChannels"
               :disabled="loading"
-              class="btn btn-secondary"
-              :title="t('common.refresh', 'Refresh')"
             >
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
-            <button @click="openCreateDialog" class="btn btn-primary">
+            </UiIconButton>
+            <button @click="openCreateDialog" class="btn btn-primary ml-1">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.channels.createChannel', 'Create Channel') }}
             </button>
@@ -119,8 +118,6 @@
             <EmptyState
               :title="t('admin.channels.noChannelsYet', 'No Channels Yet')"
               :description="t('admin.channels.createFirstChannel', 'Create your first channel to manage model pricing')"
-              :action-text="t('admin.channels.createChannel', 'Create Channel')"
-              @action="openCreateDialog"
             />
           </template>
         </DataTable>
@@ -607,6 +604,7 @@ import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import Toggle from '@/components/common/Toggle.vue'
+import { UiIconButton } from '@/ui'
 import PricingEntryCard from '@/components/admin/channel/PricingEntryCard.vue'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { useKeyedDebouncedSearch } from '@/composables/useKeyedDebouncedSearch'

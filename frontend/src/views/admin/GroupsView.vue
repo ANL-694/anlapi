@@ -53,63 +53,56 @@
 
           <!-- Right: actions -->
           <div
-            class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto"
+            class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-1 lg:w-auto"
           >
-            <button
+            <UiIconButton
+              :label="t('common.refresh')"
               @click="loadGroups"
               :disabled="loading"
-              class="btn btn-secondary"
-              :title="t('common.refresh')"
             >
               <Icon
                 name="refresh"
                 size="md"
                 :class="loading ? 'animate-spin' : ''"
               />
-            </button>
+            </UiIconButton>
             <div class="relative" ref="columnDropdownRef">
-              <button
+              <UiIconButton
+                :label="t('admin.groups.columnSettings')"
                 @click="showColumnDropdown = !showColumnDropdown"
-                class="btn btn-secondary"
-                :title="t('admin.groups.columnSettings')"
               >
-                <Icon name="grid" size="md" class="mr-2" />
-                <span class="hidden md:inline">
-                  {{ t("admin.groups.columnSettings") }}
-                </span>
-              </button>
+                <Icon name="grid" size="md" />
+              </UiIconButton>
               <div
                 v-if="showColumnDropdown"
-                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
+                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-lg"
               >
                 <button
                   v-for="col in toggleableColumns"
                   :key="col.key"
                   @click="toggleColumn(col.key)"
-                  class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                  class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-[var(--app-muted-strong)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
                 >
                   <span>{{ col.label }}</span>
                   <Icon
                     v-if="isColumnVisible(col.key)"
                     name="check"
                     size="sm"
-                    class="text-primary-500"
+                    class="text-[var(--app-text)]"
                     :stroke-width="2"
                   />
                 </button>
               </div>
             </div>
-            <button
+            <UiIconButton
+              :label="t('admin.groups.sortOrder')"
               @click="openSortModal"
-              class="btn btn-secondary"
-              :title="t('admin.groups.sortOrder')"
             >
-              <Icon name="arrowsUpDown" size="md" class="mr-2" />
-              {{ t("admin.groups.sortOrder") }}
-            </button>
+              <Icon name="arrowsUpDown" size="md" />
+            </UiIconButton>
             <button
               @click="openCreateModal"
-              class="btn btn-primary"
+              class="btn btn-primary ml-1"
               data-tour="groups-create-btn"
             >
               <Icon name="plus" size="md" class="mr-2" />
@@ -395,8 +388,6 @@
             <EmptyState
               :title="t('admin.groups.noGroupsYet')"
               :description="t('admin.groups.createFirstGroup')"
-              :action-text="t('admin.groups.createGroup')"
-              @action="showCreateModal = true"
             />
           </template>
         </DataTable>
@@ -3255,6 +3246,7 @@ import EmptyState from "@/components/common/EmptyState.vue";
 import Select from "@/components/common/Select.vue";
 import PlatformIcon from "@/components/common/PlatformIcon.vue";
 import Icon from "@/components/icons/Icon.vue";
+import { UiIconButton } from "@/ui";
 import GroupRateMultipliersModal from "@/components/admin/group/GroupRateMultipliersModal.vue";
 import GroupRateScheduleModal from "@/components/admin/group/GroupRateScheduleModal.vue";
 import GroupRPMOverridesModal from "@/components/admin/group/GroupRPMOverridesModal.vue";

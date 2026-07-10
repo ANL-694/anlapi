@@ -1,49 +1,47 @@
 <template>
   <AppLayout>
-    <MonitorHero
-      :overall-status="overallStatus"
-      :interval-seconds="DEFAULT_INTERVAL_SECONDS"
-      :window="currentWindow"
-      :loading="loading"
-      :auto-refresh="autoRefresh"
-      @update:window="handleWindowChange"
-      @refresh="manualReload"
-    />
-
-    <div class="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
-      <AccountQuotaDashboardPanel
-        :dashboard="quotaPoolDashboard?.mine ?? null"
-        :loading="quotaPoolLoading"
-        :error="quotaPoolError"
-        :show-summary-breakdown="false"
-        :title="t('channelStatus.quotaPool.mineTitle')"
-        :subtitle="t('channelStatus.quotaPool.mineSubtitle')"
-        :empty-message="t('channelStatus.quotaPool.mineEmpty')"
-        :load-failed-message="t('channelStatus.quotaPool.loadFailed')"
-        @refresh="reloadQuotaPool(false)"
+    <UiPage width="wide" density="compact">
+      <MonitorHero
+        :overall-status="overallStatus"
+        :interval-seconds="DEFAULT_INTERVAL_SECONDS"
+        :window="currentWindow"
+        :loading="loading"
+        :auto-refresh="autoRefresh"
+        @update:window="handleWindowChange"
+        @refresh="manualReload"
       />
 
-      <AccountQuotaDashboardPanel
-        :dashboard="quotaPoolDashboard?.platform ?? null"
-        :loading="quotaPoolLoading"
-        :error="quotaPoolError"
-        :show-summary-breakdown="false"
-        :title="t('channelStatus.quotaPool.platformTitle')"
-        :subtitle="t('channelStatus.quotaPool.platformSubtitle')"
-        :empty-message="t('channelStatus.quotaPool.platformEmpty')"
-        :load-failed-message="t('channelStatus.quotaPool.loadFailed')"
-        @refresh="reloadQuotaPool(false)"
-      />
-    </div>
+      <div class="channel-quota-grid">
+        <ChannelQuotaSummary
+          :dashboard="quotaPoolDashboard?.mine ?? null"
+          :loading="quotaPoolLoading"
+          :error="quotaPoolError"
+          :title="t('channelStatus.quotaPool.mineTitle')"
+          :empty-message="t('channelStatus.quotaPool.mineEmpty')"
+          :load-failed-message="t('channelStatus.quotaPool.loadFailed')"
+          @refresh="reloadQuotaPool(false)"
+        />
 
-    <MonitorCardGrid
-      :items="items"
-      :window="currentWindow"
-      :countdown-seconds="countdown"
-      :loading="loading"
-      :detail-cache="detailCache"
-      @card-click="openDetail"
-    />
+        <ChannelQuotaSummary
+          :dashboard="quotaPoolDashboard?.platform ?? null"
+          :loading="quotaPoolLoading"
+          :error="quotaPoolError"
+          :title="t('channelStatus.quotaPool.platformTitle')"
+          :empty-message="t('channelStatus.quotaPool.platformEmpty')"
+          :load-failed-message="t('channelStatus.quotaPool.loadFailed')"
+          @refresh="reloadQuotaPool(false)"
+        />
+      </div>
+
+      <MonitorCardGrid
+        :items="items"
+        :window="currentWindow"
+        :countdown-seconds="countdown"
+        :loading="loading"
+        :detail-cache="detailCache"
+        @card-click="openDetail"
+      />
+    </UiPage>
 
     <MonitorDetailDialog
       :show="showDetail"
@@ -68,7 +66,8 @@ import {
 } from '@/api/channelMonitor'
 import type { UserAccountQuotaPoolDashboard } from '@/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import AccountQuotaDashboardPanel from '@/components/account/AccountQuotaDashboard.vue'
+import { UiPage } from '@/ui'
+import ChannelQuotaSummary from '@/components/user/monitor/ChannelQuotaSummary.vue'
 import {
   accountQuotaGroupHealthRank,
   resolveAccountQuotaGroupHealth,
@@ -244,3 +243,17 @@ onBeforeUnmount(() => {
   if (quotaPoolAbortController) quotaPoolAbortController.abort()
 })
 </script>
+
+<style scoped>
+.channel-quota-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 1100px) {
+  .channel-quota-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

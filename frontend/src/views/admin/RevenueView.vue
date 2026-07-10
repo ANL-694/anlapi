@@ -1,16 +1,16 @@
 <template>
   <AppLayout>
-    <div class="space-y-6">
-      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div class="inline-flex max-w-full overflow-x-auto rounded-lg border border-gray-200 bg-white p-1 dark:border-dark-600 dark:bg-dark-800">
+    <UiPage width="wide">
+      <div class="flex flex-col gap-3">
+        <div class="revenue-tabs">
           <button
             v-for="tab in revenueTabs"
             :key="tab.key"
             type="button"
-            class="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+            class="revenue-tab"
             :class="activeRevenueTab === tab.key
-              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700'"
+              ? 'revenue-tab--active'
+              : ''"
             :aria-pressed="activeRevenueTab === tab.key"
             @click="activeRevenueTab = tab.key"
           >
@@ -18,7 +18,7 @@
           </button>
         </div>
 
-        <div v-if="activeRevenueTab === 'overview'" class="flex flex-col gap-3 xl:flex-row xl:flex-wrap xl:items-end xl:justify-end">
+        <div v-if="activeRevenueTab === 'overview'" class="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
           <div ref="userSearchRef" class="relative w-full sm:w-[280px]">
             <label class="input-label">{{ t('common.email') }}</label>
             <div class="relative">
@@ -72,15 +72,15 @@
             </div>
           </div>
 
-          <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1 dark:border-dark-600 dark:bg-dark-800">
+          <div class="revenue-segment">
             <button
               v-for="option in DAYS_OPTIONS"
               :key="option"
               type="button"
-              class="min-w-[64px] rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+              class="revenue-segment-button"
               :class="selectedRangeDays === option
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700'"
+                ? 'revenue-segment-button--active'
+                : ''"
               :disabled="isRangeDisabled(option)"
               @click="setRangeDays(option)"
             >
@@ -88,30 +88,30 @@
             </button>
           </div>
 
-          <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1 dark:border-dark-600 dark:bg-dark-800">
+          <div class="revenue-segment">
             <button
               v-for="option in granularityOptions"
               :key="option.value"
               type="button"
-              class="min-w-[72px] rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+              class="revenue-segment-button"
               :class="granularity === option.value
-                ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700'"
+                ? 'revenue-segment-button--active'
+                : ''"
               @click="setGranularity(option.value)"
             >
               {{ option.label }}
             </button>
           </div>
 
-          <button
-            type="button"
-            class="btn btn-secondary h-10"
-            :disabled="loading"
-            :title="t('common.refresh')"
-            @click="loadSummary"
-          >
-            <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-          </button>
+          <div class="flex justify-end lg:ml-auto">
+            <UiIconButton
+              :label="t('common.refresh')"
+              :disabled="loading"
+              @click="loadSummary"
+            >
+              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+            </UiIconButton>
+          </div>
         </div>
       </div>
 
@@ -120,25 +120,23 @@
       </div>
 
       <template v-else-if="activeRevenueTab === 'overview' && summary">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="revenue-metrics">
           <div
             v-for="card in statCards"
             :key="card.key"
-            class="card min-h-[124px] border-l-4 p-5"
-            :class="card.borderClass"
+            class="revenue-metric"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ card.label }}</p>
                 <p class="mt-2 break-words text-2xl font-semibold text-gray-900 dark:text-white">{{ card.value }}</p>
               </div>
-              <span class="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full" :class="card.dotClass"></span>
             </div>
             <p class="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">{{ card.meta }}</p>
           </div>
         </div>
 
-        <section class="card p-5">
+        <section class="revenue-section">
           <div class="mb-4 flex items-center justify-between gap-3">
             <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.revenue.chart.title') }}</h3>
             <span class="text-sm text-gray-500 dark:text-gray-400">{{ summary.start_date }} - {{ summary.end_date }}</span>
@@ -152,7 +150,7 @@
         </section>
 
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <section class="card p-5">
+          <section class="revenue-section">
             <h3 class="mb-4 text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.revenue.sections.usage') }}</h3>
             <div class="divide-y divide-gray-100 dark:divide-dark-700">
               <div v-for="row in usageRows" :key="row.key" class="flex items-center justify-between gap-4 py-3">
@@ -162,7 +160,7 @@
             </div>
           </section>
 
-          <section class="card p-5">
+          <section class="revenue-section">
             <h3 class="mb-4 text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.revenue.sections.cash') }}</h3>
             <div class="divide-y divide-gray-100 dark:divide-dark-700">
               <div v-for="row in cashRows" :key="row.key" class="flex items-center justify-between gap-4 py-3">
@@ -172,7 +170,7 @@
             </div>
           </section>
 
-          <section class="card p-5">
+          <section class="revenue-section">
             <h3 class="mb-4 text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.revenue.sections.adjustments') }}</h3>
             <div class="divide-y divide-gray-100 dark:divide-dark-700">
               <div v-for="row in adjustmentRows" :key="row.key" class="flex items-center justify-between gap-4 py-3">
@@ -183,21 +181,21 @@
           </section>
         </div>
 
-        <section class="card p-5">
+        <section class="revenue-section">
           <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.revenue.sections.breakdown') }}</h3>
               <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ activeBreakdownHint }}</p>
             </div>
-            <div class="inline-flex max-w-full overflow-x-auto rounded-lg border border-gray-200 bg-white p-1 dark:border-dark-600 dark:bg-dark-800">
+            <div class="revenue-segment max-w-full overflow-x-auto">
               <button
                 v-for="tab in breakdownTabs"
                 :key="tab.key"
                 type="button"
-                class="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+                class="revenue-segment-button whitespace-nowrap"
                 :class="activeBreakdown === tab.key
-                  ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700'"
+                  ? 'revenue-segment-button--active'
+                  : ''"
                 :aria-pressed="activeBreakdown === tab.key"
                 @click="activeBreakdown = tab.key"
               >
@@ -265,7 +263,7 @@
 
       <SharePolicyPanel v-else-if="activeRevenueTab === 'sharePolicy'" />
       <ShareSettlementsPanel v-else-if="activeRevenueTab === 'shareSettlements'" />
-    </div>
+    </UiPage>
   </AppLayout>
 </template>
 
@@ -287,6 +285,7 @@ import { Line } from 'vue-chartjs'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton, UiPage } from '@/ui'
 import SharePolicyPanel from '@/components/admin/revenue/SharePolicyPanel.vue'
 import ShareSettlementsPanel from '@/components/admin/revenue/ShareSettlementsPanel.vue'
 import { revenueAPI } from '@/api/admin/revenue'
@@ -871,3 +870,97 @@ onUnmounted(() => {
   }
 })
 </script>
+
+<style scoped>
+.revenue-tabs {
+  display: flex;
+  max-width: 100%;
+  gap: 1.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.revenue-tab {
+  margin-bottom: -1px;
+  padding: 0.75rem 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ui-text-tertiary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.revenue-tab:hover,
+.revenue-tab--active {
+  color: var(--ui-text);
+}
+
+.revenue-tab--active {
+  border-bottom-color: var(--ui-text);
+}
+
+.revenue-segment {
+  display: inline-flex;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  padding: 0.1875rem;
+  background: transparent;
+}
+
+.revenue-segment-button {
+  min-width: 4rem;
+  border-radius: var(--ui-radius-md);
+  padding: 0.375rem 0.75rem;
+  color: var(--ui-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.revenue-segment-button:hover {
+  background: var(--ui-surface-hover);
+  color: var(--ui-text);
+}
+
+.revenue-segment-button--active {
+  background: var(--ui-brand);
+  color: var(--ui-brand-contrast);
+}
+
+.revenue-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.revenue-metric {
+  min-width: 0;
+  min-height: 6.5rem;
+}
+
+.revenue-section {
+  min-width: 0;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--ui-border);
+}
+
+.revenue-section :deep(th) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (max-width: 900px) {
+  .revenue-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .revenue-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

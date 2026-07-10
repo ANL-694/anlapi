@@ -1,28 +1,21 @@
 <template>
   <AppLayout>
-    <div class="store-page mx-auto w-full max-w-6xl space-y-5">
-      <section class="store-hero overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900">
-        <div class="grid gap-5 p-5 md:grid-cols-[1.4fr_0.8fr] md:p-6">
-          <div class="min-w-0">
-            <p class="text-sm font-medium text-primary-600 dark:text-primary-400">{{ t('store.badge') }}</p>
-            <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
-              {{ t('store.title') }}
-            </h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
-              {{ t('store.description') }}
-            </p>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="rounded-lg bg-gray-50 p-4 dark:bg-dark-800">
-              <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('store.productCount') }}</p>
-              <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ products.length }}</p>
-            </div>
-            <div class="rounded-lg bg-gray-50 p-4 dark:bg-dark-800">
-              <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('store.availableStock') }}</p>
-              <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ totalStock }}</p>
-            </div>
-          </div>
-        </div>
+    <UiPage width="wide">
+      <section class="store-summary">
+        <UiMetricStrip :style="{ '--metric-columns': authStore.isAuthenticated ? 4 : 2 }">
+          <UiMetric :label="t('store.productCount')" :value="products.length" />
+          <UiMetric :label="t('store.availableStock')" :value="totalStock" />
+          <UiMetric
+            v-if="authStore.isAuthenticated"
+            :label="t('payment.currentBalance')"
+            :value="`$${currentBalance.toFixed(2)}`"
+          />
+          <UiMetric
+            v-if="authStore.isAuthenticated"
+            :label="t('store.currentPoints')"
+            :value="formatPoints(currentPoints)"
+          />
+        </UiMetricStrip>
       </section>
 
       <div v-if="loading" class="flex justify-center py-16">
@@ -44,7 +37,7 @@
       </template>
 
       <template v-else>
-        <div class="flex gap-2 overflow-x-auto pb-1">
+        <nav class="store-categories" :aria-label="t('store.title')">
           <button
             type="button"
             class="store-filter"
@@ -63,11 +56,9 @@
           >
             {{ category.name }}
           </button>
-        </div>
+        </nav>
 
-        <div v-if="filteredProducts.length === 0" class="rounded-lg border border-gray-200 bg-white p-12 text-center dark:border-dark-700 dark:bg-dark-900">
-          <p class="text-gray-500 dark:text-dark-400">{{ t('store.empty') }}</p>
-        </div>
+        <EmptyState v-if="filteredProducts.length === 0" :title="t('store.empty')" />
 
         <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <article
@@ -78,32 +69,32 @@
             <div class="flex min-w-0 flex-1 flex-col">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="truncate text-xs font-medium text-primary-600 dark:text-primary-400">
+                  <p class="truncate text-xs font-medium text-[var(--ui-text-tertiary)]">
                     {{ product.category?.name || categoryName(product.category_id) }}
                   </p>
                   <h2 class="mt-1 line-clamp-2 text-lg font-semibold text-gray-900 dark:text-white">
                     {{ product.name }}
                   </h2>
                 </div>
-                <span class="shrink-0 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-dark-700 dark:text-dark-300">
+                <span class="shrink-0 text-xs font-medium text-[var(--ui-text-tertiary)]">
                   {{ product.stock_unlimited ? t('store.drawProductBadge') : t('store.stock', { count: product.stock }) }}
                 </span>
               </div>
-              <p class="mt-3 line-clamp-3 min-h-[3.75rem] text-sm leading-5 text-gray-500 dark:text-dark-400">
+              <p class="mt-3 line-clamp-3 min-h-[3.75rem] text-sm leading-5 text-[var(--ui-text-secondary)]">
                 {{ product.description || t('store.noDescription') }}
               </p>
-              <div v-if="isDrawProduct(product)" class="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-dark-800">
+              <div v-if="isDrawProduct(product)" class="store-draw-progress">
                 <div class="flex justify-between gap-3">
-                  <span class="text-gray-500 dark:text-dark-400">{{ t('store.drawProgress') }}</span>
-                  <span class="font-semibold text-gray-900 dark:text-white">{{ drawProgressText(product) }}</span>
+                  <span class="text-[var(--ui-text-tertiary)]">{{ t('store.drawProgress') }}</span>
+                  <span class="font-semibold text-[var(--ui-text)]">{{ drawProgressText(product) }}</span>
                 </div>
               </div>
               <div class="mt-4 flex items-end justify-between gap-3">
                 <div>
-                  <span v-if="product.original_price" class="text-sm text-gray-400 line-through dark:text-dark-500">
+                  <span v-if="product.original_price" class="text-sm text-[var(--ui-text-tertiary)] line-through">
                     ¥{{ product.original_price.toFixed(2) }}
                   </span>
-                  <div class="text-2xl font-bold text-gray-900 dark:text-white">¥{{ product.price.toFixed(2) }}</div>
+                  <div class="text-2xl font-semibold text-[var(--ui-text)]">¥{{ product.price.toFixed(2) }}</div>
                 </div>
                 <button
                   type="button"
@@ -118,20 +109,20 @@
           </article>
         </div>
       </template>
-    </div>
+    </UiPage>
 
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="checkoutProduct" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="closeCheckout">
-          <div class="w-full max-w-lg rounded-lg bg-white p-5 shadow-xl dark:bg-dark-900">
+          <div class="store-dialog w-full max-w-lg p-5">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ checkoutProduct.name }}</h2>
                 <p class="mt-1 text-sm text-gray-500 dark:text-dark-400">{{ t('store.checkoutTitle') }}</p>
               </div>
-              <button type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800" @click="closeCheckout">
+              <button type="button" class="store-close-button" :title="t('common.close')" @click="closeCheckout">
                 <span class="sr-only">{{ t('common.close') }}</span>
-                x
+                <Icon name="x" size="md" />
               </button>
             </div>
 
@@ -141,14 +132,14 @@
                 <input v-model.number="quantity" type="number" :min="checkoutMinQuantity" :max="checkoutMaxQuantity" class="input" />
               </div>
 
-              <div class="rounded-lg bg-gray-50 p-4 text-sm dark:bg-dark-800">
+              <div class="store-order-summary">
                 <div class="flex justify-between">
                   <span class="text-gray-500 dark:text-dark-400">{{ t('store.unitPrice') }}</span>
                   <span class="font-medium text-gray-900 dark:text-white">¥{{ checkoutProduct.price.toFixed(2) }}</span>
                 </div>
                 <div class="mt-2 flex justify-between">
                   <span class="text-gray-500 dark:text-dark-400">{{ t('store.totalAmount') }}</span>
-                  <span class="text-lg font-bold text-primary-600 dark:text-primary-400">¥{{ checkoutAmount.toFixed(2) }}</span>
+                  <span class="text-lg font-semibold text-[var(--ui-text)]">¥{{ checkoutAmount.toFixed(2) }}</span>
                 </div>
                 <div v-if="isCheckoutDrawProduct" class="mt-2 flex justify-between gap-3">
                   <span class="text-gray-500 dark:text-dark-400">{{ t('store.drawRewardRange') }}</span>
@@ -237,7 +228,7 @@
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="completedOrder" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="closeCompletedOrder">
-          <div class="w-full max-w-lg rounded-lg bg-white p-5 shadow-xl dark:bg-dark-900">
+          <div class="store-dialog w-full max-w-lg p-5">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('store.purchaseSuccess') }}</h2>
@@ -245,14 +236,14 @@
                   {{ t('store.deliveryReady', { orderNo: completedOrder.order_no }) }}
                 </p>
               </div>
-              <button type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800" @click="closeCompletedOrder">
+              <button type="button" class="store-close-button" :title="t('common.close')" @click="closeCompletedOrder">
                 <span class="sr-only">{{ t('common.close') }}</span>
-                x
+                <Icon name="x" size="md" />
               </button>
             </div>
 
             <div class="mt-5 space-y-4">
-              <div class="rounded-lg bg-gray-50 p-4 text-sm dark:bg-dark-800">
+              <div class="store-order-summary">
                 <div class="flex justify-between gap-3">
                   <span class="text-gray-500 dark:text-dark-400">{{ t('store.product') }}</span>
                   <span class="text-right font-medium text-gray-900 dark:text-white">{{ completedOrder.product_name }}</span>
@@ -327,6 +318,9 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import DeliveredFilesList from '@/components/store/DeliveredFilesList.vue'
 import PaymentMethodSelector from '@/components/payment/PaymentMethodSelector.vue'
 import PaymentStatusPanel from '@/components/payment/PaymentStatusPanel.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import Icon from '@/components/icons/Icon.vue'
+import { UiMetric, UiMetricStrip, UiPage } from '@/ui'
 import { METHOD_ORDER, getPaymentPopupFeatures } from '@/components/payment/providerConfig'
 import { decidePaymentLaunch, getVisibleMethods, normalizeVisibleMethod, type PaymentRecoverySnapshot } from '@/components/payment/paymentFlow'
 import type { CheckoutInfoResponse, CreateOrderResult } from '@/types/payment'
@@ -409,6 +403,10 @@ const canSubmitCheckout = computed(() => {
   if (payMethod.value === 'points') return canPayByPoints.value
   return isPlatformPaymentAllowed.value && !!selectedMethod.value && amountFitsMethod(checkoutAmount.value, selectedMethod.value)
 })
+
+function formatPoints(value: number): string {
+  return value.toFixed(10).replace(/\.?0+$/, '') || '0'
+}
 
 function emptyPaymentState(): PaymentRecoverySnapshot {
   return {
@@ -726,47 +724,59 @@ onMounted(async () => {
 
 <style scoped>
 .store-filter {
-  min-height: 2.75rem;
+  min-height: 2.25rem;
   flex: 0 0 auto;
-  border-radius: 0.5rem;
-  border: 1px solid rgb(229 231 235);
-  background: white;
-  padding: 0 1rem;
+  padding: 0 0.15rem;
+  border-bottom: 2px solid transparent;
   font-size: 0.875rem;
-  font-weight: 600;
-  color: rgb(75 85 99);
-}
-
-.dark .store-filter {
-  border-color: rgb(55 65 81);
-  background: rgb(17 24 39);
-  color: rgb(209 213 219);
+  font-weight: 500;
+  color: var(--ui-text-secondary);
 }
 
 .store-filter-active {
-  border-color: rgb(59 130 246);
-  background: rgb(239 246 255);
-  color: rgb(29 78 216);
+  border-bottom-color: var(--ui-text);
+  color: var(--ui-text);
 }
 
-.dark .store-filter-active {
-  border-color: rgb(96 165 250);
-  background: rgba(30, 64, 175, 0.35);
-  color: rgb(147 197 253);
+.store-summary,
+.store-product-card,
+.store-dialog {
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+.store-summary {
+  overflow: hidden;
+}
+
+.store-summary :deep(.ui-metric + .ui-metric) {
+  border-left: 1px solid var(--ui-border);
+}
+
+.store-categories {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ui-border);
+  scrollbar-width: none;
+}
+
+.store-categories::-webkit-scrollbar {
+  display: none;
 }
 
 .store-product-card {
   display: flex;
   min-width: 0;
-  border-radius: 0.5rem;
-  border: 1px solid rgb(229 231 235);
-  background: white;
-  padding: 1rem;
+  padding: 1.125rem;
 }
 
-.dark .store-product-card {
-  border-color: rgb(55 65 81);
-  background: rgb(17 24 39);
+.store-draw-progress {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ui-border);
+  font-size: 0.875rem;
 }
 
 .store-pay-option {
@@ -776,16 +786,11 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: center;
   gap: 0.25rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgb(209 213 219);
-  background: white;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface);
   padding: 0.75rem;
   text-align: left;
-}
-
-.dark .store-pay-option {
-  border-color: rgb(75 85 99);
-  background: rgb(31 41 55);
 }
 
 .store-pay-option:disabled {
@@ -794,12 +799,51 @@ onMounted(async () => {
 }
 
 .store-pay-option-active {
-  border-color: rgb(59 130 246);
-  background: rgb(239 246 255);
+  border-color: var(--ui-text);
+  background: var(--ui-surface-subtle);
 }
 
-.dark .store-pay-option-active {
-  border-color: rgb(96 165 250);
-  background: rgba(30, 64, 175, 0.35);
+.store-dialog {
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
+}
+
+.store-close-button {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-text-tertiary);
+}
+
+.store-close-button:hover {
+  background: var(--ui-surface-subtle);
+  color: var(--ui-text);
+}
+
+.store-order-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.875rem 0;
+  border-block: 1px solid var(--ui-border);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .store-summary :deep(.ui-metric + .ui-metric) {
+    border-left: 0;
+  }
+
+  .store-summary :deep(.ui-metric:nth-child(even)) {
+    border-left: 1px solid var(--ui-border);
+  }
+
+  .store-summary :deep(.ui-metric:nth-child(n + 3)) {
+    border-top: 1px solid var(--ui-border);
+  }
 }
 </style>

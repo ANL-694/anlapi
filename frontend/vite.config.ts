@@ -107,7 +107,7 @@ const mockPublicSettings = {
   doc_url: '',
   home_content: '',
   hide_ccs_import_button: false,
-  payment_enabled: false,
+  payment_enabled: true,
   purchase_subscription_enabled: false,
   purchase_subscription_url: '',
   risk_control_enabled: true,
@@ -122,14 +122,15 @@ const mockPublicSettings = {
   wechat_oauth_mobile_enabled: false,
   oidc_oauth_enabled: false,
   oidc_oauth_provider_name: 'OIDC',
-  github_oauth_enabled: false,
-  google_oauth_enabled: false,
+  github_oauth_enabled: true,
+  google_oauth_enabled: true,
   backend_mode_enabled: false,
   version: '1.0.2-local',
   balance_low_notify_enabled: false,
   account_quota_notify_enabled: false,
   balance_low_notify_threshold: 0,
   channel_monitor_enabled: true,
+  free_models_enabled: true,
   channel_monitor_default_interval_seconds: 60,
   available_channels_enabled: true,
   carpool_enabled: true,
@@ -142,8 +143,12 @@ const mockPublicSettings = {
 let mockAccountID = 1000
 let mockProxyID = 100
 let mockBatchTaskID = 1
+let mockApiKeyID = 2000
+let mockUsageLogID = 3000
 const mockAccounts: Array<Record<string, unknown>> = []
 const mockProxies: Array<Record<string, unknown>> = []
+const mockApiKeys: Array<Record<string, unknown>> = []
+const mockUsageLogs: Array<Record<string, unknown>> = []
 
 function nowISO(): string {
   return new Date().toISOString()
@@ -243,6 +248,272 @@ function createMockAccount(payload: Record<string, unknown>): Record<string, unk
   }
   mockAccounts.unshift(account)
   return account
+}
+
+function resolveMockGroup(groupId: unknown): Record<string, unknown> | null {
+  if (groupId === null || groupId === undefined || groupId === '') {
+    return null
+  }
+  return mockGroups.find((group) => group.id === Number(groupId)) || null
+}
+
+function createMockApiKey(payload: Record<string, unknown> = {}): Record<string, unknown> {
+  const createdAt = nowISO()
+  const group = resolveMockGroup(payload.group_id ?? 1)
+  const key = {
+    id: ++mockApiKeyID,
+    user_id: mockUser.id,
+    key: String(payload.custom_key || `sk-local-${mockApiKeyID.toString(16)}${'a'.repeat(42)}`),
+    name: String(payload.name || `Local Key ${mockApiKeyID}`),
+    group_id: group ? group.id : null,
+    group_routes: payload.group_routes || (group ? [{
+      group_id: group.id,
+      priority: 100,
+      weight: 1,
+      enabled: true,
+      cooldown_seconds: 0,
+      group
+    }] : []),
+    status: payload.status || 'active',
+    ip_whitelist: payload.ip_whitelist || [],
+    ip_blacklist: payload.ip_blacklist || [],
+    last_used_at: payload.last_used_at || new Date(Date.now() - 36 * 60 * 1000).toISOString(),
+    quota: payload.quota ?? 100,
+    quota_used: payload.quota_used ?? 18.42,
+    expires_at: payload.expires_at ?? null,
+    created_at: createdAt,
+    updated_at: createdAt,
+    current_concurrency: payload.current_concurrency ?? 0,
+    group,
+    rate_limit_5h: payload.rate_limit_5h ?? 0,
+    rate_limit_1d: payload.rate_limit_1d ?? 0,
+    rate_limit_7d: payload.rate_limit_7d ?? 0,
+    usage_5h: payload.usage_5h ?? 0,
+    usage_1d: payload.usage_1d ?? 0,
+    usage_7d: payload.usage_7d ?? 0,
+    window_5h_start: null,
+    window_1d_start: null,
+    window_7d_start: null,
+    reset_5h_at: null,
+    reset_1d_at: null,
+    reset_7d_at: null
+  }
+  mockApiKeys.unshift(key)
+  return key
+}
+
+function seedMockApiKeys(): void {
+  if (mockApiKeys.length > 0) return
+  createMockApiKey({
+    name: 'Production Gateway',
+    group_id: 1,
+    quota: 300,
+    quota_used: 42.35,
+    current_concurrency: 2,
+    rate_limit_5h: 50,
+    rate_limit_7d: 200,
+    usage_5h: 12.4,
+    usage_7d: 64.8
+  })
+  createMockApiKey({
+    name: 'Claude Workspace',
+    group_id: 2,
+    quota: 0,
+    quota_used: 0,
+    ip_whitelist: ['203.0.113.12'],
+    current_concurrency: 1
+  })
+  createMockApiKey({
+    name: 'Mobile Test Key',
+    group_id: null,
+    status: 'inactive',
+    quota: 50,
+    quota_used: 6.7
+  })
+}
+
+function createMockUsageLog(payload: Record<string, unknown>): void {
+  const apiKey = mockApiKeys.find((key) => Number(key.id) === Number(payload.api_key_id)) || mockApiKeys[0]
+  const inputTokens = Number(payload.input_tokens || 0)
+  const outputTokens = Number(payload.output_tokens || 0)
+  const cacheCreationTokens = Number(payload.cache_creation_tokens || 0)
+  const cacheReadTokens = Number(payload.cache_read_tokens || 0)
+  const totalCost = Number(payload.total_cost || 0)
+  const actualCost = Number(payload.actual_cost ?? totalCost)
+
+  mockUsageLogs.push({
+    id: ++mockUsageLogID,
+    user_id: mockUser.id,
+    api_key_id: Number(apiKey?.id || 0),
+    account_id: Number(payload.account_id || 6459),
+    request_id: String(payload.request_id || `req-local-${mockUsageLogID}`),
+    model: String(payload.model || 'gpt-5.5'),
+    service_tier: payload.service_tier || 'default',
+    reasoning_effort: payload.reasoning_effort ?? null,
+    inbound_endpoint: payload.inbound_endpoint || '/v1/responses',
+    upstream_endpoint: payload.upstream_endpoint || 'https://api.openai.com/v1/responses',
+    group_id: payload.group_id ?? apiKey?.group_id ?? null,
+    subscription_id: payload.subscription_id ?? null,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    cache_creation_tokens: cacheCreationTokens,
+    cache_read_tokens: cacheReadTokens,
+    cache_creation_5m_tokens: Number(payload.cache_creation_5m_tokens || 0),
+    cache_creation_1h_tokens: Number(payload.cache_creation_1h_tokens || 0),
+    reasoning_tokens: Number(payload.reasoning_tokens || 0),
+    input_cost: Number(payload.input_cost || 0),
+    output_cost: Number(payload.output_cost || 0),
+    cache_creation_cost: Number(payload.cache_creation_cost || 0),
+    cache_read_cost: Number(payload.cache_read_cost || 0),
+    total_cost: totalCost,
+    actual_cost: actualCost,
+    rate_multiplier: Number(payload.rate_multiplier || 1),
+    points_deducted: Number(payload.points_deducted || 0),
+    balance_deducted: Number(payload.balance_deducted ?? actualCost),
+    billing_wallet_type: payload.billing_wallet_type || 'balance',
+    billing_type: Number(payload.billing_type || 0),
+    request_type: payload.request_type || (payload.stream === false ? 'sync' : 'stream'),
+    stream: payload.stream !== false,
+    openai_ws_mode: Boolean(payload.openai_ws_mode),
+    duration_ms: Number(payload.duration_ms || 4200),
+    first_token_ms: payload.first_token_ms ?? 860,
+    image_count: Number(payload.image_count || 0),
+    image_size: payload.image_size ?? null,
+    image_output_tokens: Number(payload.image_output_tokens || 0),
+    image_output_cost: Number(payload.image_output_cost || 0),
+    user_agent: payload.user_agent || 'codex-cli/0.1.0',
+    cache_ttl_overridden: Boolean(payload.cache_ttl_overridden),
+    billing_mode: payload.billing_mode || 'token',
+    created_at: payload.created_at || nowISO(),
+    api_key: apiKey,
+    group: apiKey?.group || null,
+    subscription: null
+  })
+}
+
+function seedMockUsageLogs(): void {
+  if (mockUsageLogs.length > 0) return
+  seedMockApiKeys()
+  const productionKey = mockApiKeys.find((key) => key.name === 'Production Gateway')
+  const claudeKey = mockApiKeys.find((key) => key.name === 'Claude Workspace')
+  const mobileKey = mockApiKeys.find((key) => key.name === 'Mobile Test Key')
+
+  createMockUsageLog({
+    api_key_id: productionKey?.id,
+    model: 'gpt-5.5',
+    reasoning_effort: 'high',
+    reasoning_tokens: 18432,
+    input_tokens: 48260,
+    output_tokens: 9214,
+    cache_read_tokens: 28640,
+    total_cost: 0.3842,
+    actual_cost: 0.2689,
+    duration_ms: 12400,
+    first_token_ms: 780,
+    billing_wallet_type: 'subscription',
+    billing_type: 1,
+    balance_deducted: 0,
+    user_agent: 'codex-cli/0.1.0',
+    created_at: new Date(Date.now() - 7 * 60 * 1000).toISOString()
+  })
+  createMockUsageLog({
+    api_key_id: claudeKey?.id,
+    model: 'claude-sonnet-4.6',
+    input_tokens: 32680,
+    output_tokens: 6840,
+    cache_creation_tokens: 4096,
+    cache_creation_5m_tokens: 4096,
+    cache_read_tokens: 16384,
+    total_cost: 0.2921,
+    actual_cost: 0.2045,
+    duration_ms: 8900,
+    first_token_ms: 620,
+    inbound_endpoint: '/v1/messages',
+    upstream_endpoint: 'https://api.anthropic.com/v1/messages',
+    billing_wallet_type: 'balance',
+    created_at: new Date(Date.now() - 54 * 60 * 1000).toISOString()
+  })
+  createMockUsageLog({
+    api_key_id: productionKey?.id,
+    model: 'gpt-5.4-mini',
+    reasoning_effort: 'low',
+    reasoning_tokens: 2048,
+    input_tokens: 12400,
+    output_tokens: 2310,
+    cache_read_tokens: 8192,
+    total_cost: 0.0648,
+    actual_cost: 0.0454,
+    duration_ms: 3100,
+    first_token_ms: 410,
+    openai_ws_mode: true,
+    request_type: 'ws_v2',
+    created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+  })
+  createMockUsageLog({
+    api_key_id: mobileKey?.id,
+    model: 'gemini-3.1-pro',
+    input_tokens: 22600,
+    output_tokens: 5180,
+    total_cost: 0.146,
+    actual_cost: 0.1022,
+    duration_ms: 7100,
+    first_token_ms: 940,
+    inbound_endpoint: '/v1beta/models/gemini-3.1-pro:streamGenerateContent',
+    upstream_endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:streamGenerateContent',
+    user_agent: 'GeminiCLI/1.4.2',
+    created_at: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString()
+  })
+  createMockUsageLog({
+    api_key_id: claudeKey?.id,
+    model: 'claude-opus-4.7',
+    input_tokens: 58600,
+    output_tokens: 11200,
+    cache_creation_tokens: 12288,
+    cache_creation_1h_tokens: 12288,
+    cache_read_tokens: 32768,
+    total_cost: 0.824,
+    actual_cost: 0.5768,
+    duration_ms: 18100,
+    first_token_ms: 1260,
+    inbound_endpoint: '/v1/messages',
+    billing_wallet_type: 'mixed',
+    points_deducted: 0.2,
+    balance_deducted: 0.3768,
+    created_at: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString()
+  })
+}
+
+function filteredMockUsageLogs(url: URL): Array<Record<string, unknown>> {
+  seedMockUsageLogs()
+  const apiKeyID = Number(url.searchParams.get('api_key_id') || 0)
+  const filtered = apiKeyID > 0
+    ? mockUsageLogs.filter((log) => Number(log.api_key_id) === apiKeyID)
+    : mockUsageLogs
+  const sortOrder = url.searchParams.get('sort_order') === 'asc' ? 1 : -1
+  return [...filtered].sort((a, b) => (
+    String(a.created_at).localeCompare(String(b.created_at)) * sortOrder
+  ))
+}
+
+function mockUsageStats(url: URL): Record<string, unknown> {
+  const logs = filteredMockUsageLogs(url)
+  const sum = (key: string) => logs.reduce((total, log) => total + Number(log[key] || 0), 0)
+  const models = logs.reduce<Record<string, number>>((result, log) => {
+    const model = String(log.model || 'unknown')
+    result[model] = (result[model] || 0) + 1
+    return result
+  }, {})
+  return {
+    total_requests: logs.length,
+    total_input_tokens: sum('input_tokens'),
+    total_output_tokens: sum('output_tokens'),
+    total_cache_tokens: sum('cache_creation_tokens') + sum('cache_read_tokens'),
+    total_tokens: sum('input_tokens') + sum('output_tokens') + sum('cache_creation_tokens') + sum('cache_read_tokens'),
+    total_cost: sum('total_cost'),
+    total_actual_cost: sum('actual_cost'),
+    average_duration_ms: logs.length ? sum('duration_ms') / logs.length : 0,
+    models
+  }
 }
 
 function mockUsageInfo(): Record<string, unknown> {
@@ -553,6 +824,28 @@ function localMockApiPlugin(enabled: boolean): Plugin {
           return
         }
 
+        if (path === '/api/v1/admin/payment/config') {
+          sendJson(res, 200, success({
+            enabled: true,
+            min_amount: 1,
+            max_amount: 10000,
+            daily_limit: 50000,
+            order_timeout_minutes: 15,
+            max_pending_orders: 5,
+            enabled_payment_types: ['balance'],
+            balance_disabled: false,
+            balance_recharge_multiplier: 1,
+            subscription_usd_to_cny_rate: 7.2,
+            recharge_fee_rate: 0,
+            load_balance_strategy: 'round_robin',
+            product_name_prefix: 'ikik-api',
+            product_name_suffix: '',
+            help_image_url: '',
+            help_text: ''
+          }))
+          return
+        }
+
         if (path === '/api/v1/admin/dashboard/snapshot-v2') {
           const startDate = url.searchParams.get('start_date') || ''
           const endDate = url.searchParams.get('end_date') || ''
@@ -707,13 +1000,389 @@ function localMockApiPlugin(enabled: boolean): Plugin {
           return
         }
 
+        if (path === '/api/v1/usage/dashboard/api-keys-usage' && req.method === 'POST') {
+          const body = await readBody(req)
+          const payload = parseJsonBody<{ api_key_ids?: unknown[] }>(body)
+          const ids = Array.isArray(payload.api_key_ids) ? payload.api_key_ids.map(Number) : []
+          const stats = Object.fromEntries(ids.map((id) => [
+            String(id),
+            {
+              api_key_id: id,
+              today_actual_cost: Number((id % 7 * 0.127 + 0.42).toFixed(4)),
+              total_actual_cost: Number((id % 11 * 1.37 + 8.6).toFixed(4))
+            }
+          ]))
+          sendJson(res, 200, success({ stats }))
+          return
+        }
+
+        if (path === '/api/v1/usage/stats') {
+          sendJson(res, 200, success(mockUsageStats(url)))
+          return
+        }
+
         if (path === '/api/v1/usage') {
-          sendJson(res, 200, success(paginateItems([], url)))
+          sendJson(res, 200, success(paginateItems(filteredMockUsageLogs(url), url)))
+          return
+        }
+
+        if (path === '/api/v1/payment/orders/my') {
+          const orders = [
+            {
+              id: 2026071001,
+              user_id: 1,
+              amount: 100,
+              pay_amount: 100,
+              currency: 'CNY',
+              fee_rate: 0,
+              payment_type: 'alipay',
+              out_trade_no: 'IK202607100001',
+              status: 'COMPLETED',
+              order_type: 'balance',
+              created_at: '2026-07-10T04:20:00Z',
+              expires_at: '2026-07-10T04:50:00Z',
+              paid_at: '2026-07-10T04:21:00Z',
+              completed_at: '2026-07-10T04:21:00Z',
+              refund_amount: 0,
+              provider_instance_id: 'alipay-local'
+            },
+            {
+              id: 2026070902,
+              user_id: 1,
+              amount: 199,
+              pay_amount: 199,
+              currency: 'CNY',
+              fee_rate: 0,
+              payment_type: 'alipay',
+              out_trade_no: 'IK202607090002',
+              status: 'COMPLETED',
+              order_type: 'subscription',
+              created_at: '2026-07-09T08:12:00Z',
+              expires_at: '2026-07-09T08:42:00Z',
+              paid_at: '2026-07-09T08:13:00Z',
+              completed_at: '2026-07-09T08:13:00Z',
+              refund_amount: 0,
+              plan_id: 2,
+              provider_instance_id: 'alipay-local'
+            },
+            {
+              id: 2026070803,
+              user_id: 1,
+              amount: 50,
+              pay_amount: 50,
+              currency: 'CNY',
+              fee_rate: 0,
+              payment_type: 'alipay',
+              out_trade_no: 'IK202607080003',
+              status: 'PENDING',
+              order_type: 'balance',
+              created_at: '2026-07-08T13:45:00Z',
+              expires_at: '2026-07-08T14:15:00Z',
+              refund_amount: 0,
+              provider_instance_id: 'alipay-local'
+            }
+          ]
+          const status = url.searchParams.get('status')
+          const filtered = status ? orders.filter((order) => order.status === status) : orders
+          sendJson(res, 200, success(paginateItems(filtered, url)))
+          return
+        }
+
+        if (path === '/api/v1/payment/orders/refund-eligible-providers') {
+          sendJson(res, 200, success({ provider_instance_ids: [] }))
+          return
+        }
+
+        if (path === '/api/v1/shop/categories') {
+          sendJson(res, 200, success([
+            { id: 1, name: '订阅与额度', description: '', enabled: true, sort_order: 1, product_count: 2 },
+            { id: 2, name: '活动', description: '', enabled: true, sort_order: 2, product_count: 1 }
+          ]))
+          return
+        }
+
+        if (path === '/api/v1/shop/products') {
+          const categories = {
+            1: { id: 1, name: '订阅与额度', description: '', enabled: true, sort_order: 1 },
+            2: { id: 2, name: '活动', description: '', enabled: true, sort_order: 2 }
+          }
+          const products = [
+            {
+              id: 11,
+              category_id: 1,
+              category: categories[1],
+              name: 'OpenAI Pro 30 天',
+              cover_url: null,
+              description: '适用于持续开发与高频模型调用',
+              price: 99,
+              original_price: 129,
+              stock: 36,
+              enabled: true,
+              sort_order: 1,
+              min_purchase: 1,
+              max_purchase: 3,
+              auto_delivery: true,
+              product_type: 'card_key',
+              balance_only: false,
+              allow_balance_payment: true,
+              allow_points_payment: false,
+              allow_platform_payment: true,
+              draw_config: null,
+              draw_progress: null,
+              stock_unlimited: false
+            },
+            {
+              id: 12,
+              category_id: 1,
+              category: categories[1],
+              name: 'Claude Max 30 天',
+              cover_url: null,
+              description: '适用于 Sonnet、Opus 和长上下文任务',
+              price: 199,
+              original_price: 239,
+              stock: 18,
+              enabled: true,
+              sort_order: 2,
+              min_purchase: 1,
+              max_purchase: 2,
+              auto_delivery: true,
+              product_type: 'card_key',
+              balance_only: false,
+              allow_balance_payment: true,
+              allow_points_payment: true,
+              allow_platform_payment: true,
+              draw_config: null,
+              draw_progress: null,
+              stock_unlimited: false
+            },
+            {
+              id: 13,
+              category_id: 2,
+              category: categories[2],
+              name: '余额随机包',
+              cover_url: null,
+              description: '购买后立即获得随机余额',
+              price: 10,
+              original_price: null,
+              stock: 0,
+              enabled: true,
+              sort_order: 3,
+              min_purchase: 1,
+              max_purchase: 1,
+              auto_delivery: true,
+              product_type: 'balance_draw',
+              balance_only: true,
+              allow_balance_payment: true,
+              allow_points_payment: false,
+              allow_platform_payment: false,
+              draw_config: { enabled: true, min_amount: 2, max_amount: 20, guarantee_count: 10, return_rate: 1 },
+              draw_progress: { drawn_count: 4, guarantee_count: 10 },
+              stock_unlimited: true
+            }
+          ]
+          sendJson(res, 200, success(paginateItems(products, url)))
+          return
+        }
+
+        if (path === '/api/v1/shop/draw-progress') {
+          sendJson(res, 200, success({ 13: { drawn_count: 4, guarantee_count: 10 } }))
+          return
+        }
+
+        if (path === '/api/v1/payment/checkout-info') {
+          sendJson(res, 200, success({
+            methods: {
+              alipay: {
+                currency: 'CNY',
+                daily_limit: 5000,
+                daily_used: 0,
+                daily_remaining: 5000,
+                single_min: 5,
+                single_max: 1000,
+                fee_rate: 0,
+                available: true
+              }
+            },
+            global_min: 5,
+            global_max: 1000,
+            min_amount: 5,
+            max_amount: 1000,
+            plans: [{
+              id: 1,
+              group_id: 1,
+              group_platform: 'openai',
+              group_name: 'OpenAI Pro',
+              rate_multiplier: 1,
+              daily_limit_usd: null,
+              weekly_limit_usd: 50,
+              monthly_limit_usd: null,
+              supported_model_scopes: ['gpt-5.5', 'gpt-5.4-mini'],
+              name: 'Pro',
+              description: '适合持续开发与日常高频调用，包含 GPT-5.5 与 Codex 模型。',
+              price: 99,
+              original_price: 129,
+              validity_days: 30,
+              validity_unit: 'day',
+              features: ['GPT-5.5', 'Codex', '50 USD weekly'],
+              for_sale: true,
+              sort_order: 1
+            }, {
+              id: 2,
+              group_id: 2,
+              group_platform: 'anthropic',
+              group_name: 'Claude Max',
+              rate_multiplier: 1,
+              daily_limit_usd: null,
+              weekly_limit_usd: 110,
+              monthly_limit_usd: null,
+              supported_model_scopes: ['claude-sonnet-4.6', 'claude-opus-4.7'],
+              name: 'Max',
+              description: '面向重度推理与长上下文任务，支持 Sonnet、Opus 与 1M 上下文模型。',
+              price: 199,
+              original_price: 239,
+              validity_days: 30,
+              validity_unit: 'day',
+              features: ['Sonnet 4.6', 'Opus 4.7', '110 USD weekly'],
+              for_sale: true,
+              sort_order: 2
+            }, {
+              id: 3,
+              group_id: 3,
+              group_platform: 'custom',
+              group_name: 'All Models',
+              rate_multiplier: 1,
+              daily_limit_usd: null,
+              weekly_limit_usd: 220,
+              monthly_limit_usd: null,
+              supported_model_scopes: ['gpt-5.5', 'claude-opus-4.7', 'gemini-3.1-pro'],
+              name: 'Ultra',
+              description: '全模型开放，适合多模型工作流与高强度使用。',
+              price: 329,
+              validity_days: 30,
+              validity_unit: 'day',
+              features: ['All models', '220 USD weekly', 'Priority routing'],
+              for_sale: true,
+              sort_order: 3
+            }],
+            balance_disabled: false,
+            balance_recharge_multiplier: 1,
+            balance_pricing_tiers: [],
+            recharge_fee_rate: 0,
+            help_text: '',
+            help_image_url: '',
+            stripe_publishable_key: ''
+          }))
           return
         }
 
         if (path === '/api/v1/subscriptions/active') {
           sendJson(res, 200, success([]))
+          return
+        }
+
+        if (path === '/api/v1/subscriptions') {
+          sendJson(res, 200, success([
+            {
+              id: 101,
+              user_id: 1,
+              group_id: 1,
+              status: 'active',
+              daily_usage_usd: 0,
+              weekly_usage_usd: 18.42,
+              monthly_usage_usd: 0,
+              daily_window_start: null,
+              weekly_window_start: '2026-07-07T00:00:00Z',
+              monthly_window_start: null,
+              created_at: '2026-07-01T00:00:00Z',
+              updated_at: nowISO(),
+              expires_at: '2026-08-01T00:00:00Z',
+              group: {
+                ...mockGroups[0],
+                name: 'OpenAI Pro',
+                description: 'GPT-5.5 and Codex',
+                weekly_limit_usd: 50
+              }
+            },
+            {
+              id: 102,
+              user_id: 1,
+              group_id: 2,
+              status: 'active',
+              daily_usage_usd: 12.8,
+              weekly_usage_usd: 76.35,
+              monthly_usage_usd: 0,
+              daily_window_start: '2026-07-10T00:00:00Z',
+              weekly_window_start: '2026-07-07T00:00:00Z',
+              monthly_window_start: null,
+              created_at: '2026-07-03T00:00:00Z',
+              updated_at: nowISO(),
+              expires_at: '2026-08-03T00:00:00Z',
+              group: {
+                ...mockGroups[1],
+                name: 'Claude Max',
+                description: 'Sonnet and Opus',
+                daily_limit_usd: 25,
+                weekly_limit_usd: 110
+              }
+            }
+          ]))
+          return
+        }
+
+        if (path === '/api/v1/user/aff') {
+          sendJson(res, 200, success({
+            user_id: 1,
+            aff_code: 'IKIK2026',
+            inviter_id: null,
+            inviter_bound_at: null,
+            invite_reward_expires_at: null,
+            aff_count: 3,
+            aff_quota: 18.72,
+            aff_frozen_quota: 0,
+            aff_history_quota: 68.45,
+            period_start_at: url.searchParams.get('period_start_at'),
+            period_end_at: url.searchParams.get('period_end_at'),
+            period_rebate: 6.84,
+            effective_rebate_rate_percent: 12.5,
+            invitees: [
+              {
+                user_id: 2,
+                email: 'lin***@example.com',
+                username: 'Lin',
+                created_at: '2026-07-08T09:20:00Z',
+                invite_bind_source: 'registration',
+                status: 'active',
+                period_consumption: 24.6,
+                period_rebate: 3.08,
+                history_consumption: 186.2,
+                total_rebate: 23.28
+              },
+              {
+                user_id: 3,
+                email: 'nt***@example.com',
+                username: 'NTTD',
+                created_at: '2026-07-06T12:10:00Z',
+                invite_bind_source: 'registration',
+                status: 'active',
+                period_consumption: 18.4,
+                period_rebate: 2.3,
+                history_consumption: 142.8,
+                total_rebate: 17.85
+              },
+              {
+                user_id: 4,
+                email: 'dev***@example.com',
+                username: 'Developer',
+                created_at: '2026-07-02T03:45:00Z',
+                invite_bind_source: 'admin',
+                status: 'active',
+                period_consumption: 11.7,
+                period_rebate: 1.46,
+                history_consumption: 98.6,
+                total_rebate: 12.32
+              }
+            ]
+          }))
           return
         }
 
@@ -732,6 +1401,54 @@ function localMockApiPlugin(enabled: boolean): Plugin {
           return
         }
 
+        if (path === '/api/v1/keys' && req.method === 'GET') {
+          seedMockApiKeys()
+          sendJson(res, 200, success(paginateItems(mockApiKeys, url)))
+          return
+        }
+
+        if (path === '/api/v1/keys' && req.method === 'POST') {
+          const body = await readBody(req)
+          sendJson(res, 200, success(createMockApiKey(parseJsonBody(body))))
+          return
+        }
+
+        if (path.startsWith('/api/v1/keys/')) {
+          seedMockApiKeys()
+          const id = Number(path.split('/').pop() || 0)
+          const key = mockApiKeys.find((item) => Number(item.id) === id)
+          if (!key) {
+            sendJson(res, 404, { code: 404, message: 'key not found' })
+            return
+          }
+
+          if (req.method === 'GET') {
+            sendJson(res, 200, success(key))
+            return
+          }
+
+          if (req.method === 'PUT') {
+            const body = await readBody(req)
+            const payload = parseJsonBody(body)
+            const group = Object.prototype.hasOwnProperty.call(payload, 'group_id')
+              ? resolveMockGroup(payload.group_id)
+              : resolveMockGroup(key.group_id)
+            Object.assign(key, payload, {
+              group_id: group ? group.id : null,
+              group,
+              updated_at: nowISO()
+            })
+            sendJson(res, 200, success(key))
+            return
+          }
+
+          if (req.method === 'DELETE') {
+            mockApiKeys.splice(mockApiKeys.indexOf(key), 1)
+            sendJson(res, 200, success({ message: 'deleted' }))
+            return
+          }
+        }
+
         if (path === '/api/v1/channels/available') {
           sendJson(res, 200, success([
             {
@@ -746,10 +1463,10 @@ function localMockApiPlugin(enabled: boolean): Plugin {
                     platform: 'openai',
                     pricing: {
                       billing_mode: 'token',
-                      input_price: 2,
-                      output_price: 8,
-                      cache_write_price: 0.5,
-                      cache_read_price: 0.1,
+                      input_price: 0.000002,
+                      output_price: 0.000008,
+                      cache_write_price: 0.0000005,
+                      cache_read_price: 0.0000001,
                       image_output_price: null,
                       per_request_price: null,
                       intervals: []
@@ -764,10 +1481,10 @@ function localMockApiPlugin(enabled: boolean): Plugin {
                     platform: 'anthropic',
                     pricing: {
                       billing_mode: 'token',
-                      input_price: 3,
-                      output_price: 15,
-                      cache_write_price: 3.75,
-                      cache_read_price: 0.3,
+                      input_price: 0.000003,
+                      output_price: 0.000015,
+                      cache_write_price: 0.00000375,
+                      cache_read_price: 0.0000003,
                       image_output_price: null,
                       per_request_price: null,
                       intervals: []
@@ -781,21 +1498,151 @@ function localMockApiPlugin(enabled: boolean): Plugin {
         }
 
         if (path === '/api/v1/accounts/quota-dashboard') {
-          sendJson(res, 200, success({
+          const quotaDimension = {
+            enabled_account_count: 0,
+            exhausted_account_count: 0,
+            limit: 0,
+            used: 0,
+            remaining: 0,
+            utilization: 0
+          }
+          const makeQuotaDashboard = (
+            accountCount: number,
+            schedulableCount: number,
+            limitedCount: number,
+            groupName: string,
+            platform: string,
+            fiveHourUsage: number,
+            weeklyUsage: number
+          ) => ({
             generated_at: nowISO(),
+            summaries: [],
             totals: {
-              account_count: mockAccounts.length,
-              schedulable_account_count: mockAccounts.length,
-              rate_limited_account_count: 0,
+              platform: 'all',
+              type: 'all',
+              account_count: accountCount,
+              active_account_count: accountCount,
+              schedulable_account_count: schedulableCount,
+              rate_limited_account_count: limitedCount,
               error_account_count: 0,
               disabled_account_count: 0,
-              daily: null,
-              weekly: null,
-              total: null,
-              openai_windows: []
+              quota_account_count: accountCount,
+              unlimited_account_count: 0,
+              daily: quotaDimension,
+              weekly: quotaDimension,
+              total: quotaDimension,
+              usage_windows: []
             },
-            groups: [],
-            issues: []
+            group_summaries: [{
+              group_id: platform === 'openai' ? 1 : 2,
+              group_name: groupName,
+              group_status: 'active',
+              platform,
+              account_count: accountCount,
+              active_account_count: accountCount,
+              schedulable_account_count: schedulableCount,
+              rate_limited_account_count: limitedCount,
+              error_account_count: 0,
+              disabled_account_count: 0,
+              quota_account_count: accountCount,
+              unlimited_account_count: 0,
+              daily: quotaDimension,
+              weekly: quotaDimension,
+              total: quotaDimension,
+              usage_windows: [{
+                window: '5h',
+                account_count: accountCount,
+                known_account_count: accountCount,
+                average_utilization: fiveHourUsage,
+                remaining_capacity_percent: Math.max(0, 100 - fiveHourUsage)
+              }, {
+                window: '7d',
+                account_count: accountCount,
+                known_account_count: accountCount,
+                average_utilization: weeklyUsage,
+                remaining_capacity_percent: Math.max(0, 100 - weeklyUsage)
+              }]
+            }]
+          })
+          sendJson(res, 200, success({
+            generated_at: nowISO(),
+            mine: makeQuotaDashboard(3, 2, 1, 'OpenAI Local', 'openai', 42.5, 61.8),
+            platform: makeQuotaDashboard(8, 7, 1, 'Claude Local', 'anthropic', 35.2, 48.4)
+          }))
+          return
+        }
+
+        if (path === '/api/v1/channel-monitors') {
+          const makeTimeline = (status: string, latency: number) => Array.from({ length: 18 }, (_, index) => ({
+            status: index === 5 && status === 'operational' ? 'degraded' : status,
+            latency_ms: latency + ((index % 4) * 35),
+            ping_latency_ms: 95 + ((index % 3) * 12),
+            checked_at: new Date(Date.now() - index * 60_000).toISOString()
+          }))
+          sendJson(res, 200, success({
+            items: [{
+              id: 1,
+              name: 'OpenAI Primary',
+              provider: 'openai',
+              group_name: 'OpenAI Local',
+              primary_model: 'gpt-5.5',
+              primary_status: 'operational',
+              primary_latency_ms: 820,
+              primary_ping_latency_ms: 108,
+              availability_7d: 99.96,
+              extra_models: [{ model: 'gpt-5.4-mini', status: 'operational', latency_ms: 610 }],
+              timeline: makeTimeline('operational', 820)
+            }, {
+              id: 2,
+              name: 'Claude Primary',
+              provider: 'anthropic',
+              group_name: 'Claude Local',
+              primary_model: 'claude-sonnet-4.6',
+              primary_status: 'operational',
+              primary_latency_ms: 940,
+              primary_ping_latency_ms: 126,
+              availability_7d: 99.82,
+              extra_models: [{ model: 'claude-opus-4.7', status: 'operational', latency_ms: 1180 }],
+              timeline: makeTimeline('operational', 940)
+            }, {
+              id: 3,
+              name: 'Gemini Backup',
+              provider: 'gemini',
+              group_name: 'Gemini',
+              primary_model: 'gemini-3.1-pro',
+              primary_status: 'degraded',
+              primary_latency_ms: 1640,
+              primary_ping_latency_ms: 182,
+              availability_7d: 97.42,
+              extra_models: [],
+              timeline: makeTimeline('degraded', 1640)
+            }]
+          }))
+          return
+        }
+
+        const monitorStatusMatch = path.match(/^\/api\/v1\/channel-monitors\/(\d+)\/status$/)
+        if (monitorStatusMatch) {
+          const monitorID = Number(monitorStatusMatch[1])
+          const model = monitorID === 1
+            ? 'gpt-5.5'
+            : monitorID === 2
+              ? 'claude-sonnet-4.6'
+              : 'gemini-3.1-pro'
+          sendJson(res, 200, success({
+            id: monitorID,
+            name: model,
+            provider: monitorID === 1 ? 'openai' : monitorID === 2 ? 'anthropic' : 'gemini',
+            group_name: monitorID === 1 ? 'OpenAI Local' : monitorID === 2 ? 'Claude Local' : 'Gemini',
+            models: [{
+              model,
+              latest_status: monitorID === 3 ? 'degraded' : 'operational',
+              latest_latency_ms: monitorID === 3 ? 1640 : 880,
+              availability_7d: monitorID === 3 ? 97.42 : 99.9,
+              availability_15d: monitorID === 3 ? 97.8 : 99.85,
+              availability_30d: monitorID === 3 ? 98.1 : 99.8,
+              avg_latency_7d_ms: monitorID === 3 ? 1510 : 860
+            }]
           }))
           return
         }

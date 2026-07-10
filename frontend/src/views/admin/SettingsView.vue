@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-4xl space-y-6">
+    <div class="settings-page mx-auto max-w-4xl space-y-6">
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div
@@ -9,7 +9,7 @@
       </div>
 
       <!-- Settings Form -->
-      <form v-else @submit.prevent="saveSettings" class="space-y-6" novalidate>
+      <form v-else @submit.prevent="saveSettings" class="settings-form space-y-6" novalidate>
         <!-- Tab Navigation -->
         <div class="sticky top-0 z-10 overflow-x-auto settings-tabs-scroll">
           <nav
@@ -10667,6 +10667,8 @@ watch(
 
 /* Scroll container: thin scrollbar on PC, auto-hide on mobile */
 .settings-tabs-scroll {
+  background: var(--app-bg);
+  border-bottom: 1px solid var(--app-border);
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
@@ -10694,63 +10696,75 @@ watch(
 }
 
 .settings-tabs {
-  @apply inline-flex min-w-full gap-0.5 rounded-2xl
-         border border-gray-100 bg-white/80 p-1 backdrop-blur-sm
-         dark:border-dark-700/50 dark:bg-dark-800/80;
-  box-shadow:
-    0 1px 3px rgb(0 0 0 / 0.04),
-    0 1px 2px rgb(0 0 0 / 0.02);
+  @apply inline-flex min-w-max gap-5;
+  background: var(--app-bg);
+  box-shadow: none;
 }
 
 @media (min-width: 640px) {
   .settings-tabs {
-    @apply flex;
+    @apply flex min-w-full;
   }
 }
 
 .settings-tab {
-  @apply relative flex flex-1 items-center justify-center gap-1.5
-         whitespace-nowrap rounded-xl px-2.5 py-2
-         text-sm font-medium
-         text-gray-500 dark:text-dark-400
-         transition-all duration-200 ease-out;
+  @apply relative flex flex-none items-center justify-center gap-1.5
+         whitespace-nowrap border-b-2 border-transparent px-0.5 py-3
+         text-sm font-medium transition-colors duration-150;
+  color: var(--app-muted);
+  letter-spacing: 0;
 }
 
 .settings-tab:hover:not(.settings-tab-active) {
-  @apply text-gray-700 dark:text-gray-300;
-  background: rgb(0 0 0 / 0.03);
-}
-
-:root.dark .settings-tab:hover:not(.settings-tab-active) {
-  background: rgb(255 255 255 / 0.04);
+  color: var(--app-text);
+  background: transparent;
 }
 
 .settings-tab-active {
-  @apply text-primary-600 dark:text-primary-400;
-  background: linear-gradient(
-    135deg,
-    rgba(16, 163, 127, 0.08),
-    rgba(127, 147, 98, 0.03)
-  );
-  box-shadow: 0 1px 2px rgba(16, 163, 127, 0.1);
-}
-
-:root.dark .settings-tab-active {
-  background: linear-gradient(
-    135deg,
-    rgba(16, 163, 127, 0.12),
-    rgba(127, 147, 98, 0.05)
-  );
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  border-bottom-color: var(--app-text);
+  background: transparent;
+  color: var(--app-text);
+  box-shadow: none;
 }
 
 .settings-tab-icon {
-  @apply flex h-6 w-6 items-center justify-center rounded-lg
-         transition-all duration-200;
+  @apply flex h-5 w-5 items-center justify-center;
 }
 
 .settings-tab-active .settings-tab-icon {
-  @apply bg-primary-500/15 text-primary-600
-         dark:bg-primary-400/15 dark:text-primary-400;
+  background: transparent;
+  color: var(--app-text);
+}
+
+.settings-form :deep(.card) {
+  border: 0;
+  border-bottom: 1px solid var(--app-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.settings-form :deep(.card > [class*="border-b"]:first-child) {
+  border-bottom-color: transparent;
+}
+
+@media (max-width: 639px) {
+  .settings-page {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
+
+  .settings-tabs {
+    gap: 1.25rem;
+  }
+
+  .settings-form :deep(.card > [class*="px-6"]) {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .settings-form :deep(.card > [class*="p-6"]) {
+    padding: 0.75rem;
+  }
 }
 </style>
