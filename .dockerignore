@@ -30,6 +30,8 @@ output/
 # Node modules (will be installed in container)
 frontend/node_modules/
 node_modules/
+# Local pnpm 10/11 approval metadata is incompatible with the pinned pnpm 9 builder.
+frontend/pnpm-workspace.yaml
 
 # Go build cache (will be built in container)
 backend/vendor/

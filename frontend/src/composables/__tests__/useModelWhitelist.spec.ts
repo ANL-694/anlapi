@@ -13,6 +13,7 @@ describe('useModelWhitelist', () => {
     expect(models).toContain('gpt-5.4')
     expect(models).toContain('gpt-5.4-mini')
     expect(models).toContain('gpt-5.4-2026-03-05')
+    expect(models).toContain('gpt-5.6')
   })
 
   it('openai 模型列表不再暴露已下线的 ChatGPT 登录 Codex 模型', () => {
@@ -29,23 +30,23 @@ describe('useModelWhitelist', () => {
   it('antigravity 模型列表包含图片模型兼容项', () => {
     const models = getModelsByPlatform('antigravity')
 
-    expect(models).not.toContain('gemini-2.5-flash-image')
-    expect(models).not.toContain('gemini-3.1-flash-image')
-    expect(models).not.toContain('gemini-3-pro-image')
+    expect(models).toContain('gemini-2.5-flash-image')
+    expect(models).toContain('gemini-3.1-flash-image')
+    expect(models).toContain('gemini-3-pro-image')
   })
 
   it('gemini 模型列表包含原生生图模型', () => {
     const models = getModelsByPlatform('gemini')
 
-    expect(models).not.toContain('gemini-2.5-flash-image')
-    expect(models).not.toContain('gemini-3.1-flash-image')
+    expect(models).toContain('gemini-2.5-flash-image')
+    expect(models).toContain('gemini-3.1-flash-image')
   })
 
   it('antigravity 模型列表会把新的 Gemini 图片模型排在前面', () => {
     const models = getModelsByPlatform('antigravity')
 
-    expect(models).not.toContain('gemini-3.1-flash-image')
-    expect(models).not.toContain('gemini-2.5-flash-image')
+    expect(models.indexOf('gemini-3.1-flash-image')).toBeLessThan(models.indexOf('gemini-2.5-flash'))
+    expect(models.indexOf('gemini-2.5-flash-image')).toBeLessThan(models.indexOf('gemini-2.5-flash-lite'))
   })
 
   it('whitelist 模式会忽略通配符条目', () => {

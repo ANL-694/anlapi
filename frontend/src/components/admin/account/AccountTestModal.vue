@@ -281,7 +281,10 @@ const loadAvailableModels = async () => {
 }
 
 const getUserDefaultTestModels = (account: Account): ClaudeModel[] => {
-  switch (account.platform) {
+	if (account.extra?.claude_web_session === true) {
+		return [{ id: 'claude-sonnet-5', type: 'model', display_name: 'Claude Sonnet 5', created_at: '' }]
+	}
+	switch (account.platform) {
     case 'openai':
       return [{ id: 'gpt-5.5', type: 'model', display_name: 'gpt-5.5', created_at: '' }]
     case 'gemini':

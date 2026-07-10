@@ -1988,7 +1988,9 @@ const (
 // IsAnthropicOAuthOrSetupToken 判断是否为 Anthropic OAuth 或 SetupToken 类型账号
 // 仅这两类账号支持 5h 窗口额度控制和会话数量控制
 func (a *Account) IsAnthropicOAuthOrSetupToken() bool {
-	return a.Platform == PlatformAnthropic && (a.Type == AccountTypeOAuth || a.Type == AccountTypeSetupToken)
+	return a.Platform == PlatformAnthropic &&
+		!a.IsClaudeWebSession() &&
+		(a.Type == AccountTypeOAuth || a.Type == AccountTypeSetupToken)
 }
 
 // IsTLSFingerprintEnabled 检查是否启用 TLS 指纹伪装

@@ -4044,6 +4044,9 @@ func (s *GatewayService) isModelSupportedByAccountWithContext(ctx context.Contex
 
 // isModelSupportedByAccount 根据账户平台检查模型支持（无 context，用于非 Antigravity 平台）
 func (s *GatewayService) isModelSupportedByAccount(account *Account, requestedModel string) bool {
+	if account != nil && account.IsClaudeWebSession() {
+		return IsClaudeWebModelSupported(resolveClaudeWebModel(account, requestedModel))
+	}
 	if account.Platform == PlatformAntigravity {
 		if strings.TrimSpace(requestedModel) == "" {
 			return true
@@ -4727,6 +4730,9 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 	startTime := time.Now()
 	if parsed == nil {
 		return nil, fmt.Errorf("parse request: empty request")
+	}
+	if account != nil && account.IsClaudeWebSession() {
+		return s.forwardClaudeWebMessages(ctx, c, account, parsed)
 	}
 
 	// Web Search 模拟：纯 web_search 请求时，直接调用搜索 API 构造响应
@@ -9637,6 +9643,15 @@ func (s *GatewayService) ForwardCountTokens(ctx context.Context, c *gin.Context,
 	if parsed == nil {
 		s.countTokensError(c, http.StatusBadRequest, "invalid_request_error", "Request body is empty")
 		return fmt.Errorf("parse request: empty request")
+	}
+	if account != nil && account.IsClaudeWebSession() {
+		_, inputTokens, err := buildClaudeWebPrompt(parsed.Body.Bytes())
+		if err != nil {
+			s.countTokensError(c, http.StatusBadRequest, "invalid_request_error", err.Error())
+			return err
+		}
+		c.JSON(http.StatusOK, gin.H{"input_tokens": inputTokens})
+		return nil
 	}
 
 	if account != nil && account.IsAnthropicAPIKeyPassthroughEnabled() {

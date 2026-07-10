@@ -343,6 +343,7 @@
       :hint="t('admin.accounts.credentialImportHint')"
       :warning="t('admin.accounts.credentialImportWarning')"
       form-id="admin-credential-import-form"
+      allow-claude-web-import
       :importer="importAdminCredentials"
       @close="showCredentialImport = false"
       @imported="handleCredentialImported"
@@ -1484,11 +1485,17 @@ const handleBulkUpdated = () => {
 
 function importAdminCredentials(
   contents: string[],
-  options?: { kiroConfigImport?: boolean }
+  options?: {
+    kiroConfigImport?: boolean
+    claudeWebImport?: boolean
+    claudeWebAuthMode?: 'session_key' | 'full_cookie'
+  }
 ): Promise<ImportCredentialContentsResponse> {
   return adminAPI.accounts.importCredentialContents({
     contents,
     kiro_config_import: options?.kiroConfigImport,
+    claude_web_import: options?.claudeWebImport,
+    claude_web_auth_mode: options?.claudeWebAuthMode,
     priority: 50,
     group_ids: [],
     auto_pause_on_expired: true

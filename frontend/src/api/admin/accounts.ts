@@ -603,6 +603,8 @@ export async function importData(payload: {
 }
 
 export interface AdminImportCredentialContentsRequest extends ImportCredentialContentsRequest {
+  claude_web_import?: boolean
+  claude_web_auth_mode?: 'session_key' | 'full_cookie'
   owner_user_id?: number | null
   share_status?: 'pending' | 'approved' | 'suspended'
   share_policy_id?: number | null

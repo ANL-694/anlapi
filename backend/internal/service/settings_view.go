@@ -500,7 +500,10 @@ const (
 )
 
 // OpenAIFastPolicyRule 单条 OpenAI fast/flex 策略规则
+const OpenAIFastPolicyActionForcePriority = "force_priority"
+
 type OpenAIFastPolicyRule struct {
+	UserIDs              []int64  `json:"user_ids,omitempty"`
 	ServiceTier          string   `json:"service_tier"`                     // "priority" | "flex" | "auto" | "default" | "scale" | "all"
 	Action               string   `json:"action"`                           // "pass" | "filter" | "block"
 	Scope                string   `json:"scope"`                            // "all" | "oauth" | "apikey" | "bedrock"

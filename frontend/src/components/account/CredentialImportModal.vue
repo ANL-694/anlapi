@@ -24,6 +24,7 @@
           v-model="kiroConfigImport"
           type="checkbox"
           class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-dark-600 dark:bg-dark-800"
+          @change="handleKiroModeChange"
         />
         <span class="min-w-0">
           <span class="block font-medium text-gray-900 dark:text-white">
@@ -31,6 +32,45 @@
           </span>
           <span class="mt-1 block text-xs text-gray-500 dark:text-dark-400">
             {{ t('userAccounts.importKiroConfigModeHint') }}
+          </span>
+        </span>
+      </label>
+
+      <label
+        v-if="allowClaudeWebImport"
+        class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-dark-700 dark:bg-dark-900 dark:text-dark-200"
+      >
+        <input
+          v-model="claudeWebImport"
+          type="checkbox"
+          class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-dark-600 dark:bg-dark-800"
+          @change="handleClaudeWebModeChange"
+        />
+        <span class="min-w-0">
+          <span class="block font-medium text-gray-900 dark:text-white">
+            {{ t('admin.accounts.importClaudeWebMode') }}
+          </span>
+          <span class="mt-1 block text-xs text-gray-500 dark:text-dark-400">
+            {{ t('admin.accounts.importClaudeWebModeHint') }}
+          </span>
+        </span>
+      </label>
+
+      <label
+        v-if="allowClaudeWebImport && claudeWebImport"
+        class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-dark-700 dark:bg-dark-900 dark:text-dark-200"
+      >
+        <input
+          v-model="claudeWebFullCookie"
+          type="checkbox"
+          class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-dark-600 dark:bg-dark-800"
+        />
+        <span class="min-w-0">
+          <span class="block font-medium text-gray-900 dark:text-white">
+            {{ t('admin.accounts.importClaudeWebFullCookie') }}
+          </span>
+          <span class="mt-1 block text-xs text-gray-500 dark:text-dark-400">
+            {{ t('admin.accounts.importClaudeWebFullCookieHint') }}
           </span>
         </span>
       </label>
@@ -182,6 +222,7 @@ interface Props {
   hint: string
   warning: string
   formId?: string
+  allowClaudeWebImport?: boolean
   importer: (contents: string[], options?: CredentialImportOptions) => Promise<ImportCredentialContentsResponse>
 }
 
@@ -205,12 +246,15 @@ interface CredentialImportResult {
 
 interface CredentialImportOptions {
   kiroConfigImport?: boolean
+  claudeWebImport?: boolean
+  claudeWebAuthMode?: 'session_key' | 'full_cookie'
 }
 
 const CREDENTIAL_IMPORT_BATCH_SIZE = 3
 
 const props = withDefaults(defineProps<Props>(), {
-  formId: 'credential-import-form'
+  formId: 'credential-import-form',
+  allowClaudeWebImport: false
 })
 const emit = defineEmits<Emits>()
 
@@ -220,6 +264,8 @@ const appStore = useAppStore()
 const importing = ref(false)
 const importMode = ref<'text' | 'file'>('text')
 const kiroConfigImport = ref(false)
+const claudeWebImport = ref(false)
+const claudeWebFullCookie = ref(false)
 const textContent = ref('')
 const files = ref<File[]>([])
 const result = ref<CredentialImportResult | null>(null)
@@ -238,6 +284,8 @@ watch(
     if (open) {
       importMode.value = 'text'
       kiroConfigImport.value = false
+      claudeWebImport.value = false
+      claudeWebFullCookie.value = false
       textContent.value = ''
       files.value = []
       result.value = null
@@ -262,6 +310,20 @@ function openDirectoryPicker(): void {
 function handleClose(): void {
   if (importing.value) return
   emit('close')
+}
+
+function handleKiroModeChange(): void {
+  if (kiroConfigImport.value) {
+    claudeWebImport.value = false
+  }
+}
+
+function handleClaudeWebModeChange(): void {
+  if (claudeWebImport.value) {
+    kiroConfigImport.value = false
+    return
+  }
+  claudeWebFullCookie.value = false
 }
 
 function handleFileChange(event: Event): void {
@@ -387,7 +449,9 @@ async function handleImport(): Promise<void> {
     const batches = contents.flatMap(splitCredentialImportContent)
     for (const batch of batches) {
       const response = await props.importer([batch], {
-        kiroConfigImport: kiroConfigImport.value
+        kiroConfigImport: kiroConfigImport.value,
+        claudeWebImport: claudeWebImport.value,
+        claudeWebAuthMode: claudeWebFullCookie.value ? 'full_cookie' : 'session_key'
       })
 
       nextResult.created += response.created

@@ -44,3 +44,13 @@ func TestResponsesUsageTopLevelCacheWriteFallback(t *testing.T) {
 	require.NotNil(t, chat.PromptTokensDetails)
 	require.Equal(t, 12, chat.PromptTokensDetails.CacheCreationTokens)
 }
+
+func TestResponsesUsageNestedZeroOverridesTopLevelCacheWrite(t *testing.T) {
+	var usage ResponsesUsage
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"input_tokens": 50,
+		"cache_write_input_tokens": 12,
+		"input_tokens_details": {"cache_write_tokens": 0}
+	}`), &usage))
+	require.Zero(t, usage.CacheCreationInputTokens)
+}

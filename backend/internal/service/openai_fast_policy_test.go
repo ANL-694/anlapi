@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
-	"ikik-api/internal/config"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/config"
 )
 
 type openAIFastPolicyRepoStub struct {
@@ -283,4 +283,59 @@ func TestSetOpenAIFastPolicySettings_Validation(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got.Rules, 1)
 	require.Equal(t, OpenAIFastTierPriority, got.Rules[0].ServiceTier)
+}
+
+func TestEvaluateOpenAIFastPolicy_UserRulesTakePriority(t *testing.T) {
+	settings := &OpenAIFastPolicySettings{Rules: []OpenAIFastPolicyRule{
+		{
+			ServiceTier: OpenAIFastTierPriority,
+			Action:      BetaPolicyActionBlock,
+			Scope:       BetaPolicyScopeAll,
+		},
+		{
+			ServiceTier: OpenAIFastTierPriority,
+			Action:      BetaPolicyActionPass,
+			Scope:       BetaPolicyScopeAll,
+			UserIDs:     []int64{42},
+		},
+	}}
+	account := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
+
+	action, _ := evaluateOpenAIFastPolicyWithSettings(settings, 42, account, "gpt-5.5", OpenAIFastTierPriority)
+	require.Equal(t, BetaPolicyActionPass, action)
+
+	action, _ = evaluateOpenAIFastPolicyWithSettings(settings, 7, account, "gpt-5.5", OpenAIFastTierPriority)
+	require.Equal(t, BetaPolicyActionBlock, action)
+}
+
+func TestApplyOpenAIFastPolicyToBody_ForcePriority(t *testing.T) {
+	settings := &OpenAIFastPolicySettings{Rules: []OpenAIFastPolicyRule{{
+		ServiceTier: OpenAIFastTierAny,
+		Action:      OpenAIFastPolicyActionForcePriority,
+		Scope:       BetaPolicyScopeAll,
+	}}}
+	svc := newOpenAIGatewayServiceWithSettings(t, settings)
+	account := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
+
+	updated, err := svc.applyOpenAIFastPolicyToBody(context.Background(), account, "gpt-5.5", []byte(`{"model":"gpt-5.5","service_tier":"flex"}`))
+	require.NoError(t, err)
+	require.JSONEq(t, `{"model":"gpt-5.5","service_tier":"priority"}`, string(updated))
+}
+
+func TestSetOpenAIFastPolicySettings_RejectsInvalidUserIDs(t *testing.T) {
+	repo := &openAIFastPolicyRepoStub{values: map[string]string{}}
+	svc := NewSettingService(repo, &config.Config{})
+	base := OpenAIFastPolicyRule{
+		ServiceTier: OpenAIFastTierPriority,
+		Action:      BetaPolicyActionPass,
+		Scope:       BetaPolicyScopeAll,
+	}
+
+	invalid := base
+	invalid.UserIDs = []int64{0}
+	require.Error(t, svc.SetOpenAIFastPolicySettings(context.Background(), &OpenAIFastPolicySettings{Rules: []OpenAIFastPolicyRule{invalid}}))
+
+	duplicate := base
+	duplicate.UserIDs = []int64{42, 42}
+	require.Error(t, svc.SetOpenAIFastPolicySettings(context.Background(), &OpenAIFastPolicySettings{Rules: []OpenAIFastPolicyRule{duplicate}}))
 }

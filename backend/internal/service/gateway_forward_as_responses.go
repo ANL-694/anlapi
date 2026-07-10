@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"ikik-api/internal/pkg/apicompat"
 	"ikik-api/internal/pkg/claude"
 	"ikik-api/internal/pkg/logger"
 	"ikik-api/internal/util/responseheaders"
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 // ForwardAsResponses accepts an OpenAI Responses API request body, converts it
@@ -57,7 +57,7 @@ func (s *GatewayService) ForwardAsResponses(
 	// 4. Model mapping
 	mappedModel := originalModel
 	reasoningEffort := ExtractResponsesReasoningEffortFromBody(body)
-	if account.Type == AccountTypeAPIKey || account.Type == AccountTypeServiceAccount {
+	if account.IsClaudeWebSession() || account.Type == AccountTypeAPIKey || account.Type == AccountTypeServiceAccount {
 		mappedModel = account.GetMappedModel(originalModel)
 	}
 	if mappedModel == originalModel && account.Platform == PlatformAnthropic && account.Type == AccountTypeServiceAccount {
@@ -65,7 +65,7 @@ func (s *GatewayService) ForwardAsResponses(
 		if normalized != originalModel {
 			mappedModel = normalized
 		}
-	} else if mappedModel == originalModel && account.Platform == PlatformAnthropic && account.Type != AccountTypeAPIKey {
+	} else if mappedModel == originalModel && account.Platform == PlatformAnthropic && account.Type != AccountTypeAPIKey && !account.IsClaudeWebSession() {
 		normalized := claude.NormalizeModelID(originalModel)
 		if normalized != originalModel {
 			mappedModel = normalized
@@ -84,6 +84,20 @@ func (s *GatewayService) ForwardAsResponses(
 	anthropicBody, err := json.Marshal(anthropicReq)
 	if err != nil {
 		return nil, fmt.Errorf("marshal anthropic request: %w", err)
+	}
+	if account.IsClaudeWebSession() {
+		return s.forwardClaudeWebAsResponses(
+			ctx,
+			c,
+			account,
+			anthropicBody,
+			originalModel,
+			mappedModel,
+			clientStream,
+			reasoningEffort,
+			startTime,
+			parsed,
+		)
 	}
 
 	// 6. Apply Claude Code mimicry for OAuth accounts (non-Claude-Code endpoints).

@@ -124,7 +124,7 @@ func TestGPT56PricingAndChannelCacheWriteOverride(t *testing.T) {
 	require.InDelta(t, 2.5e-6, pricing.InputPricePerToken, 1e-15)
 	require.InDelta(t, 3.125e-6, pricing.CacheCreationPricePerToken, 1e-15)
 	require.InDelta(t, 6.25e-6, pricing.CacheCreationPricePerTokenPriority, 1e-15)
-	require.Zero(t, pricing.LongContextInputThreshold)
+	require.Equal(t, openAIGPT54LongContextInputThreshold, pricing.LongContextInputThreshold)
 
 	cost, err := svc.CalculateCostWithServiceTier("gpt-5.6-terra", UsageTokens{
 		InputTokens:         100,
@@ -148,4 +148,16 @@ func TestGPT56PricingAndChannelCacheWriteOverride(t *testing.T) {
 	baseAgain, err := svc.GetModelPricing("gpt-5.6-terra")
 	require.NoError(t, err)
 	require.InDelta(t, 3.125e-6, baseAgain.CacheCreationPricePerToken, 1e-15)
+}
+
+func TestOpenAIUsageNestedZeroOverridesTopLevelCacheAliases(t *testing.T) {
+	usage, ok := openAIUsageFromGJSON(gjson.Parse(`{
+		"input_tokens": 100,
+		"cache_creation_input_tokens": 45,
+		"cache_read_tokens": 30,
+		"input_tokens_details": {"cache_write_tokens": 0, "cached_tokens": 0}
+	}`))
+	require.True(t, ok)
+	require.Zero(t, usage.CacheCreationInputTokens)
+	require.Zero(t, usage.CacheReadInputTokens)
 }

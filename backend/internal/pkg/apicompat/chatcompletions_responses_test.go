@@ -381,6 +381,21 @@ func TestChatCompletionsToResponses_ServiceTier(t *testing.T) {
 	assert.Equal(t, "flex", resp.ServiceTier)
 }
 
+func TestChatCompletionsToResponses_ParallelToolCalls(t *testing.T) {
+	for _, value := range []bool{false, true} {
+		req := &ChatCompletionsRequest{
+			Model:             "gpt-5.6",
+			ParallelToolCalls: &value,
+			Messages:          []ChatMessage{{Role: "user", Content: json.RawMessage(`"Hi"`)}},
+		}
+
+		resp, err := ChatCompletionsToResponses(req)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ParallelToolCalls)
+		require.Equal(t, value, *resp.ParallelToolCalls)
+	}
+}
+
 func TestChatCompletionsToResponses_AssistantWithTextAndToolCalls(t *testing.T) {
 	req := &ChatCompletionsRequest{
 		Model: "gpt-4o",

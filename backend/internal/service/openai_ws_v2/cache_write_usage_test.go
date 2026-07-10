@@ -24,3 +24,18 @@ func TestParseUsageAndAccumulateIncludesCacheWrite(t *testing.T) {
 	require.Equal(t, 25, usage.CacheCreationInputTokens)
 	require.Equal(t, usage, state.usage)
 }
+
+func TestParseUsageNestedZeroOverridesTopLevelCacheWrite(t *testing.T) {
+	state := &relayState{}
+	message := []byte(`{
+		"type":"response.completed",
+		"response":{"usage":{
+			"input_tokens":100,
+			"cache_creation_input_tokens":25,
+			"input_tokens_details":{"cache_write_tokens":0}
+		}}
+	}`)
+
+	usage := parseUsageAndAccumulate(state, message, "response.completed", nil)
+	require.Zero(t, usage.CacheCreationInputTokens)
+}

@@ -179,6 +179,17 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 	if strings.TrimSpace(token) == "" {
 		return errors.New("token is empty")
 	}
+	isCodexCLI := false
+	if c != nil {
+		isCodexCLI = openai.IsCodexOfficialClientByHeaders(c.GetHeader("User-Agent"), c.GetHeader("originator"))
+	}
+	if s.cfg != nil && s.cfg.Gateway.ForceCodexCLI {
+		isCodexCLI = true
+	}
+	codexImageGenerationExplicitToolPolicy := codexImageGenerationExplicitToolPolicyAllow
+	if isCodexCLI {
+		codexImageGenerationExplicitToolPolicy = account.CodexImageGenerationExplicitToolPolicy()
+	}
 	requestModel := strings.TrimSpace(gjson.GetBytes(firstClientMessage, "model").String())
 	requestPreviousResponseID := strings.TrimSpace(gjson.GetBytes(firstClientMessage, "previous_response_id").String())
 	logOpenAIWSV2Passthrough(
@@ -204,6 +215,15 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 	// silently passed through, defeating the policy on every frame after
 	// the first.
 	capturedSessionModel := openAIWSPassthroughPolicyModelForFrame(account, firstClientMessage)
+	if (isCodexCLI && codexImageGenerationExplicitToolPolicy == codexImageGenerationExplicitToolPolicyStrip) || isCodexSparkModel(capturedSessionModel) {
+		stripped, changed, stripErr := stripOpenAIImageGenerationToolsFromRawPayload(firstClientMessage)
+		if stripErr != nil {
+			return fmt.Errorf("strip image generation declarations from first ws frame: %w", stripErr)
+		}
+		if changed {
+			firstClientMessage = stripped
+		}
+	}
 	updatedFirst, blocked, policyErr := s.applyOpenAIFastPolicyToWSResponseCreate(ctx, account, capturedSessionModel, firstClientMessage)
 	if policyErr != nil {
 		return fmt.Errorf("apply openai fast policy on first ws frame: %w", policyErr)
@@ -261,13 +281,6 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 		account.ProxyID != nil && account.Proxy != nil,
 	)
 
-	isCodexCLI := false
-	if c != nil {
-		isCodexCLI = openai.IsCodexOfficialClientByHeaders(c.GetHeader("User-Agent"), c.GetHeader("originator"))
-	}
-	if s.cfg != nil && s.cfg.Gateway.ForceCodexCLI {
-		isCodexCLI = true
-	}
 	headers, _ := s.buildOpenAIWSHeaders(c, account, token, wsDecision, isCodexCLI, "", "", "")
 	proxyURL := ""
 	if account.ProxyID != nil && account.Proxy != nil {
@@ -335,6 +348,15 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 			model := openAIWSPassthroughPolicyModelForFrame(account, payload)
 			if model == "" {
 				model = capturedSessionModel
+			}
+			if (isCodexCLI && codexImageGenerationExplicitToolPolicy == codexImageGenerationExplicitToolPolicyStrip) || isCodexSparkModel(model) {
+				stripped, changed, stripErr := stripOpenAIImageGenerationToolsFromRawPayload(payload)
+				if stripErr != nil {
+					return payload, nil, stripErr
+				}
+				if changed {
+					payload = stripped
+				}
 			}
 			if strings.TrimSpace(gjson.GetBytes(payload, "type").String()) == "response.create" && hooks != nil && hooks.BeforeRequest != nil {
 				turn := int(completedTurns.Load()) + 1

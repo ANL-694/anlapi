@@ -42,7 +42,7 @@ const (
 	openaiPlatformAPIURL            = "https://api.openai.com/v1/responses"
 	openaiPlatformAPIInputTokensURL = "https://api.openai.com/v1/responses/input_tokens"
 	openaiStickySessionTTL          = time.Hour // 缁ɑ鈧傜窗鐠囨紙TL
-	codexCLIUserAgent               = "codex_cli_rs/0.125.0 (Ubuntu 22.4.0; x86_64) xterm-256color"
+	codexCLIUserAgent               = "codex_cli_rs/0.144.1 (Ubuntu 22.4.0; x86_64) xterm-256color"
 	// codex_cli_only 閹锋帞绮烽弮璺哄礋娑擃亣顕Ч鍌氥仈閺冦儱绻旈梹鍨娑撳﹪妾洪敍鍫濈摟缁楋讣绱?	// codex_cli_only rejected request header values are truncated for diagnostics.
 	codexCLIOnlyHeaderValueMaxBytes = 256
 
@@ -57,7 +57,7 @@ const (
 	openAIWSRetryBackoffMaxDefault     = 2 * time.Second
 	openAIWSRetryJitterRatioDefault    = 0.2
 	openAICompactSessionSeedKey        = "openai_compact_session_seed"
-	codexCLIVersion                    = "0.125.0"
+	codexCLIVersion                    = "0.144.1"
 	// Codex rate limit snapshots are throttled to avoid write amplification.
 	openAICodexSnapshotPersistMinInterval = 30 * time.Second
 )
@@ -2363,6 +2363,10 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 	}
 
 	isCodexCLI := openai.IsCodexOfficialClientByHeaders(c.GetHeader("User-Agent"), c.GetHeader("originator")) || (s.cfg != nil && s.cfg.Gateway.ForceCodexCLI)
+	codexImageGenerationExplicitToolPolicy := codexImageGenerationExplicitToolPolicyAllow
+	if isCodexCLI {
+		codexImageGenerationExplicitToolPolicy = account.CodexImageGenerationExplicitToolPolicy()
+	}
 	wsDecision := s.getOpenAIWSProtocolResolver().Resolve(account)
 	clientTransport := GetOpenAIClientTransport(c)
 	// 娴犲懎鍘戠拋?WS 閸忋儳鐝拠閿嬬湴鐠?WS 娑撳﹥鐖堕敍宀勪缉閸忓秴鍤悳?HTTP -> WS 閸楀繗顔呭ǎ椋庢暏閵?
@@ -2396,9 +2400,20 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 	}
 	passthroughEnabled := account.IsOpenAIPassthroughEnabled()
 	if passthroughEnabled {
+		if isCodexCLI && codexImageGenerationExplicitToolPolicy == codexImageGenerationExplicitToolPolicyStrip {
+			strippedBody, changed, stripErr := stripOpenAIImageGenerationToolsFromRawPayload(body)
+			if stripErr != nil {
+				return nil, stripErr
+			}
+			if changed {
+				body = strippedBody
+				originalBody = strippedBody
+				logger.LegacyPrintf("service.openai_gateway", "[OpenAI] Stripped /responses image generation declarations for Codex client by account policy")
+			}
+		}
 		// 闁繋绱堕崚鍡樻暜閸欘亪娓剁憰浣戒氦闁插繑褰侀崣鏍х摟濞堢绱濋柆鍨帳閻戭叀鐭惧鍕弿闁?Unmarshal閵?
 		mappedModel := account.GetMappedModel(reqModel)
-		reasoningEffort := extractOpenAIReasoningEffortFromBody(body, mappedModel)
+		reasoningEffort := extractOpenAIReasoningEffortFromBody(body, mappedModel, reqModel)
 		return s.forwardOpenAIPassthrough(ctx, c, account, originalBody, reqModel, reasoningEffort, reqStream, startTime)
 	}
 
@@ -2441,10 +2456,8 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 		markPatchSet("instructions", instructions)
 	}
 
-	codexImageGenerationExplicitToolPolicy := codexImageGenerationExplicitToolPolicyAllow
 	codexImageGenerationBridgeEnabled := true
 	if isCodexCLI {
-		codexImageGenerationExplicitToolPolicy = account.CodexImageGenerationExplicitToolPolicy()
 		if override := account.CodexImageGenerationBridgeOverride(); override != nil {
 			codexImageGenerationBridgeEnabled = *override
 		}
@@ -2696,6 +2709,10 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 				delete(reqBody, "service_tier")
 				bodyModified = true
 				disablePatch()
+			case OpenAIFastPolicyActionForcePriority:
+				reqBody["service_tier"] = OpenAIFastTierPriority
+				bodyModified = true
+				markPatchSet("service_tier", OpenAIFastTierPriority)
 			default:
 				// pass閿涙俺瀚㈢€广垺鍩涚粩顖欑炊閻ㄥ嫭妲搁崚顐㈡倳 "fast"閿涘苯缍婃稉鈧崠鏍﹁礋 "priority"
 				// 閸氬骸鍟撻崶?body閿涘瞼鈥樻穱婵呯瑐濞撳憡鏁归崚鎵畱閺勵垰鍙鹃懗鍊熺槕閸掝偆娈戠憴鍕瘱閸婄鈧?
@@ -3066,7 +3083,7 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 			usage = &OpenAIUsage{}
 		}
 
-		reasoningEffort := extractOpenAIReasoningEffort(reqBody, firstNonEmpty(upstreamModel, billingModel, originalModel))
+		reasoningEffort := extractOpenAIReasoningEffort(reqBody, upstreamModel, billingModel, originalModel)
 		serviceTier := extractOpenAIServiceTier(reqBody)
 		imageSize := ""
 		imageBillingModel := ""
@@ -5987,6 +6004,15 @@ func deriveOpenAIReasoningEffortFromModel(model string) string {
 	return normalizeOpenAIReasoningEffortForModel(parts[len(parts)-1], modelID)
 }
 
+func deriveOpenAIReasoningEffortFromModelCandidates(models []string) string {
+	for _, model := range models {
+		if value := deriveOpenAIReasoningEffortFromModel(model); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
 type openAIRequestView struct {
 	body               []byte
 	Model              string
@@ -6176,17 +6202,17 @@ func detectOpenAIPassthroughInstructionsRejectReason(reqModel string, body []byt
 	return ""
 }
 
-func extractOpenAIReasoningEffortFromBody(body []byte, requestedModel string) *string {
+func extractOpenAIReasoningEffortFromBody(body []byte, modelCandidates ...string) *string {
 	reasoningEffort := extractOpenAIReasoningEffortRawFromBody(body)
 	if reasoningEffort != "" {
-		normalized := normalizeOpenAIReasoningEffortForModel(reasoningEffort, requestedModel)
+		normalized := normalizeOpenAIReasoningEffortForModel(reasoningEffort, firstNonEmpty(modelCandidates...))
 		if normalized == "" {
 			return nil
 		}
 		return &normalized
 	}
 
-	value := deriveOpenAIReasoningEffortFromModel(requestedModel)
+	value := deriveOpenAIReasoningEffortFromModelCandidates(modelCandidates)
 	if value == "" {
 		return nil
 	}
@@ -6323,37 +6349,54 @@ func (s *OpenAIGatewayService) evaluateOpenAIFastPolicy(ctx context.Context, acc
 		}
 		settings = fetched
 	}
-	return evaluateOpenAIFastPolicyWithSettings(settings, account, model, tier)
+	return evaluateOpenAIFastPolicyWithSettings(settings, AuthenticatedUserIDFromContext(ctx), account, model, tier)
 }
 
 // evaluateOpenAIFastPolicyWithSettings is the pure-function core extracted so
 // long-lived sessions (e.g. WS) can prefetch settings once and avoid hitting
 // the settingService on every frame. See WSSession entry and
 // openAIFastPolicySettingsFromContext for the caching glue.
-func evaluateOpenAIFastPolicyWithSettings(settings *OpenAIFastPolicySettings, account *Account, model, tier string) (action, errMsg string) {
+func evaluateOpenAIFastPolicyWithSettings(settings *OpenAIFastPolicySettings, userID int64, account *Account, model, tier string) (action, errMsg string) {
 	if settings == nil {
 		return BetaPolicyActionPass, ""
 	}
 	isOAuth := account != nil && account.IsOAuth()
 	isBedrock := account != nil && account.IsBedrock()
-	for _, rule := range settings.Rules {
-		if !betaPolicyScopeMatches(rule.Scope, isOAuth, isBedrock) {
-			continue
+	for _, userScoped := range []bool{true, false} {
+		for _, rule := range settings.Rules {
+			if (len(rule.UserIDs) > 0) != userScoped || !openAIFastPolicyUserMatches(rule.UserIDs, userID) {
+				continue
+			}
+			if !betaPolicyScopeMatches(rule.Scope, isOAuth, isBedrock) {
+				continue
+			}
+			ruleTier := strings.ToLower(strings.TrimSpace(rule.ServiceTier))
+			if ruleTier != "" && ruleTier != OpenAIFastTierAny && ruleTier != tier {
+				continue
+			}
+			eff := BetaPolicyRule{
+				Action:               rule.Action,
+				ErrorMessage:         rule.ErrorMessage,
+				ModelWhitelist:       rule.ModelWhitelist,
+				FallbackAction:       rule.FallbackAction,
+				FallbackErrorMessage: rule.FallbackErrorMessage,
+			}
+			return resolveRuleAction(eff, model)
 		}
-		ruleTier := strings.ToLower(strings.TrimSpace(rule.ServiceTier))
-		if ruleTier != "" && ruleTier != OpenAIFastTierAny && ruleTier != tier {
-			continue
-		}
-		eff := BetaPolicyRule{
-			Action:               rule.Action,
-			ErrorMessage:         rule.ErrorMessage,
-			ModelWhitelist:       rule.ModelWhitelist,
-			FallbackAction:       rule.FallbackAction,
-			FallbackErrorMessage: rule.FallbackErrorMessage,
-		}
-		return resolveRuleAction(eff, model)
 	}
 	return BetaPolicyActionPass, ""
+}
+
+func openAIFastPolicyUserMatches(ruleUserIDs []int64, userID int64) bool {
+	if len(ruleUserIDs) == 0 {
+		return true
+	}
+	for _, ruleUserID := range ruleUserIDs {
+		if ruleUserID == userID {
+			return true
+		}
+	}
+	return false
 }
 
 // openAIFastPolicyCtxKey 閺?context 娑擃參顣╅崣鏍畱 OpenAIFastPolicySettings 缂傛挸鐡?// 闁款噯绱濇禒鍛暏娴?WebSocket 闂€澶哥窗鐠囨繂鍞存径姘姎婢跺秶鏁ら崥灞肩娴犵晫鐡ラ悾銉ユ彥閻撗嶇礉闁灝鍘ゅВ蹇撴姎 DB 閸涙垝鑵戦妴?//
@@ -6416,6 +6459,12 @@ func (s *OpenAIGatewayService) applyOpenAIFastPolicyToBody(ctx context.Context, 
 			return body, fmt.Errorf("strip service_tier from body: %w", err)
 		}
 		return trimmed, nil
+	case OpenAIFastPolicyActionForcePriority:
+		updated, err := sjson.SetBytes(body, "service_tier", OpenAIFastTierPriority)
+		if err != nil {
+			return body, fmt.Errorf("force service_tier priority on body: %w", err)
+		}
+		return updated, nil
 	default:
 		// pass閿涙碍濡搁崚顐㈡倳閿涘牆顩?"fast"閿涘鍟撻崶鐐拌礋鐟欏嫯瀵栭崐纭风礄"priority"閿涘鈧?
 		if normTier == rawTier {
@@ -6510,6 +6559,12 @@ func (s *OpenAIGatewayService) applyOpenAIFastPolicyToWSResponseCreate(
 			return frame, nil, fmt.Errorf("strip service_tier from ws frame: %w", err)
 		}
 		return trimmed, nil, nil
+	case OpenAIFastPolicyActionForcePriority:
+		updated, err := sjson.SetBytes(frame, "service_tier", OpenAIFastTierPriority)
+		if err != nil {
+			return frame, nil, fmt.Errorf("force service_tier priority on ws frame: %w", err)
+		}
+		return updated, nil, nil
 	default:
 		return frame, nil, nil
 	}
@@ -6818,15 +6873,15 @@ func getOpenAIRequestBodyMap(c *gin.Context, body []byte) (map[string]any, error
 	return reqBody, nil
 }
 
-func extractOpenAIReasoningEffort(reqBody map[string]any, requestedModel string) *string {
-	if value, present := getOpenAIReasoningEffortFromReqBody(reqBody, requestedModel); present {
+func extractOpenAIReasoningEffort(reqBody map[string]any, modelCandidates ...string) *string {
+	if value, present := getOpenAIReasoningEffortFromReqBody(reqBody, firstNonEmpty(modelCandidates...)); present {
 		if value == "" {
 			return nil
 		}
 		return &value
 	}
 
-	value := deriveOpenAIReasoningEffortFromModel(requestedModel)
+	value := deriveOpenAIReasoningEffortFromModelCandidates(modelCandidates)
 	if value == "" {
 		return nil
 	}
@@ -6860,14 +6915,4 @@ func normalizeOpenAIReasoningEffortForModel(raw, model string) string {
 		return "max"
 	}
 	return normalizeOpenAIReasoningEffort(raw)
-}
-
-func isOpenAIGPT56Model(model string) bool {
-	normalized := canonicalizeOpenAIModelAliasSpelling(model)
-	for _, prefix := range []string{"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"} {
-		if normalized == prefix || strings.HasPrefix(normalized, prefix+"-") {
-			return true
-		}
-	}
-	return false
 }

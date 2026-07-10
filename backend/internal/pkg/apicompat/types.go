@@ -165,19 +165,20 @@ type AnthropicDelta struct {
 
 // ResponsesRequest is the request body for POST /v1/responses.
 type ResponsesRequest struct {
-	Model           string              `json:"model"`
-	Instructions    string              `json:"instructions,omitempty"`
-	Input           json.RawMessage     `json:"input"` // string or []ResponsesInputItem
-	MaxOutputTokens *int                `json:"max_output_tokens,omitempty"`
-	Temperature     *float64            `json:"temperature,omitempty"`
-	TopP            *float64            `json:"top_p,omitempty"`
-	Stream          bool                `json:"stream,omitempty"`
-	Tools           []ResponsesTool     `json:"tools,omitempty"`
-	Include         []string            `json:"include,omitempty"`
-	Store           *bool               `json:"store,omitempty"`
-	Reasoning       *ResponsesReasoning `json:"reasoning,omitempty"`
-	ToolChoice      json.RawMessage     `json:"tool_choice,omitempty"`
-	ServiceTier     string              `json:"service_tier,omitempty"`
+	Model             string              `json:"model"`
+	Instructions      string              `json:"instructions,omitempty"`
+	Input             json.RawMessage     `json:"input"` // string or []ResponsesInputItem
+	MaxOutputTokens   *int                `json:"max_output_tokens,omitempty"`
+	Temperature       *float64            `json:"temperature,omitempty"`
+	TopP              *float64            `json:"top_p,omitempty"`
+	Stream            bool                `json:"stream,omitempty"`
+	Tools             []ResponsesTool     `json:"tools,omitempty"`
+	ParallelToolCalls *bool               `json:"parallel_tool_calls,omitempty"`
+	Include           []string            `json:"include,omitempty"`
+	Store             *bool               `json:"store,omitempty"`
+	Reasoning         *ResponsesReasoning `json:"reasoning,omitempty"`
+	ToolChoice        json.RawMessage     `json:"tool_choice,omitempty"`
+	ServiceTier       string              `json:"service_tier,omitempty"`
 }
 
 // ResponsesReasoning configures reasoning effort in the Responses API.
@@ -313,6 +314,10 @@ type ResponsesUsage struct {
 
 func (u *ResponsesUsage) UnmarshalJSON(data []byte) error {
 	type responsesUsageAlias ResponsesUsage
+	type cacheTokenPresence struct {
+		CacheCreationTokens *int `json:"cache_creation_tokens"`
+		CacheWriteTokens    *int `json:"cache_write_tokens"`
+	}
 	var aux struct {
 		responsesUsageAlias
 		PromptTokens            int                           `json:"prompt_tokens"`
@@ -324,6 +329,13 @@ func (u *ResponsesUsage) UnmarshalJSON(data []byte) error {
 		CompletionTokensDetails *ResponsesOutputTokensDetails `json:"completion_tokens_details,omitempty"`
 	}
 	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var nestedPresence struct {
+		InputTokensDetails  *cacheTokenPresence `json:"input_tokens_details"`
+		PromptTokensDetails *cacheTokenPresence `json:"prompt_tokens_details"`
+	}
+	if err := json.Unmarshal(data, &nestedPresence); err != nil {
 		return err
 	}
 	*u = ResponsesUsage(aux.responsesUsageAlias)
@@ -348,6 +360,20 @@ func (u *ResponsesUsage) UnmarshalJSON(data []byte) error {
 	}
 	if u.OutputTokensDetails == nil && aux.CompletionTokensDetails != nil {
 		u.OutputTokensDetails = aux.CompletionTokensDetails
+	}
+	var canonicalCacheCreationTokens *int
+	switch {
+	case nestedPresence.InputTokensDetails != nil && nestedPresence.InputTokensDetails.CacheWriteTokens != nil:
+		canonicalCacheCreationTokens = nestedPresence.InputTokensDetails.CacheWriteTokens
+	case nestedPresence.PromptTokensDetails != nil && nestedPresence.PromptTokensDetails.CacheWriteTokens != nil:
+		canonicalCacheCreationTokens = nestedPresence.PromptTokensDetails.CacheWriteTokens
+	case nestedPresence.InputTokensDetails != nil && nestedPresence.InputTokensDetails.CacheCreationTokens != nil:
+		canonicalCacheCreationTokens = nestedPresence.InputTokensDetails.CacheCreationTokens
+	case nestedPresence.PromptTokensDetails != nil && nestedPresence.PromptTokensDetails.CacheCreationTokens != nil:
+		canonicalCacheCreationTokens = nestedPresence.PromptTokensDetails.CacheCreationTokens
+	}
+	if canonicalCacheCreationTokens != nil {
+		u.CacheCreationInputTokens = max(*canonicalCacheCreationTokens, 0)
 	}
 	if u.TotalTokens == 0 && (u.InputTokens != 0 || u.OutputTokens != 0) {
 		u.TotalTokens = u.InputTokens + u.OutputTokens
@@ -430,6 +456,7 @@ type ChatCompletionsRequest struct {
 	Stream              bool               `json:"stream,omitempty"`
 	StreamOptions       *ChatStreamOptions `json:"stream_options,omitempty"`
 	Tools               []ChatTool         `json:"tools,omitempty"`
+	ParallelToolCalls   *bool              `json:"parallel_tool_calls,omitempty"`
 	ToolChoice          json.RawMessage    `json:"tool_choice,omitempty"`
 	ReasoningEffort     string             `json:"reasoning_effort,omitempty"` // "low" | "medium" | "high" | "xhigh"
 	ServiceTier         string             `json:"service_tier,omitempty"`
