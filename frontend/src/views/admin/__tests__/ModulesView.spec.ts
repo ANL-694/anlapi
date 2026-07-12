@@ -95,10 +95,8 @@ function mountView() {
 }
 
 function findRefreshButton(wrapper: VueWrapper): DOMWrapper<HTMLButtonElement> {
-  const button = wrapper
-    .findAll<HTMLButtonElement>('button')
-    .find((item) => item.attributes('title') === 'common.refresh')
-  if (!button) {
+  const button = wrapper.find<HTMLButtonElement>('button[aria-label="common.refresh"]')
+  if (!button.exists()) {
     throw new Error('refresh button not found')
   }
   return button
