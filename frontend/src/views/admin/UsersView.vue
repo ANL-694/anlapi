@@ -124,67 +124,63 @@
           </div>
 
           <!-- Right: Actions and Settings -->
-          <div class="flex flex-wrap items-center justify-end gap-2">
-            <!-- Mobile: Secondary buttons (icon only) -->
-            <div class="flex items-center gap-2 md:contents">
+          <div class="flex w-full items-center justify-end gap-1 sm:w-auto">
+            <div class="flex items-center gap-1">
               <!-- Refresh Button -->
-              <button
+              <UiIconButton
+                :label="t('common.refresh')"
                 @click="loadUsers"
                 :disabled="loading"
-                class="btn btn-secondary px-2 md:px-3"
-                :title="t('common.refresh')"
               >
                 <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-              </button>
+              </UiIconButton>
               <!-- Filter Settings Dropdown -->
               <div class="relative" ref="filterDropdownRef">
-                <button
+                <UiIconButton
+                  :label="t('admin.users.filterSettings')"
                   @click="showFilterDropdown = !showFilterDropdown"
-                  class="btn btn-secondary px-2 md:px-3"
-                  :title="t('admin.users.filterSettings')"
                 >
-                  <Icon name="filter" size="sm" class="md:mr-1.5" />
-                  <span class="hidden md:inline">{{ t('admin.users.filterSettings') }}</span>
-                </button>
+                  <Icon name="filter" size="md" />
+                </UiIconButton>
                 <!-- Dropdown menu -->
                 <div
                   v-if="showFilterDropdown"
-                  class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
+                  class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-lg"
                 >
                   <!-- Built-in filters -->
                   <button
                     v-for="filter in builtInFilters"
                     :key="filter.key"
                     @click="toggleBuiltInFilter(filter.key)"
-                    class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                    class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-[var(--app-muted-strong)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
                   >
                     <span>{{ filter.name }}</span>
                     <Icon
                       v-if="visibleFilters.has(filter.key)"
                       name="check"
                       size="sm"
-                      class="text-primary-500"
+                      class="text-[var(--app-text)]"
                       :stroke-width="2"
                     />
                   </button>
                   <!-- Divider if custom attributes exist -->
                   <div
                     v-if="filterableAttributes.length > 0"
-                    class="my-1 border-t border-gray-100 dark:border-dark-700"
+                    class="my-1 border-t border-[var(--app-border)]"
                   ></div>
                   <!-- Custom attribute filters -->
                   <button
                     v-for="attr in filterableAttributes"
                     :key="attr.id"
                     @click="toggleAttributeFilter(attr)"
-                    class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                    class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-[var(--app-muted-strong)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
                   >
                     <span>{{ attr.name }}</span>
                     <Icon
                       v-if="visibleFilters.has(`attr_${attr.id}`)"
                       name="check"
                       size="sm"
-                      class="text-primary-500"
+                      class="text-[var(--app-text)]"
                       :stroke-width="2"
                     />
                   </button>
@@ -192,51 +188,44 @@
               </div>
               <!-- Column Settings Dropdown -->
               <div class="relative" ref="columnDropdownRef">
-                <button
+                <UiIconButton
+                  :label="t('admin.users.columnSettings')"
                   @click="showColumnDropdown = !showColumnDropdown"
-                  class="btn btn-secondary px-2 md:px-3"
-                  :title="t('admin.users.columnSettings')"
                 >
-                  <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
-                  </svg>
-                  <span class="hidden md:inline">{{ t('admin.users.columnSettings') }}</span>
-                </button>
+                  <Icon name="grid" size="md" />
+                </UiIconButton>
                 <!-- Dropdown menu -->
                 <div
                   v-if="showColumnDropdown"
-                  class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
+                  class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-lg"
                 >
                   <button
                     v-for="col in toggleableColumns"
                     :key="col.key"
                     @click="toggleColumn(col.key)"
-                    class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                    class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-[var(--app-muted-strong)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
                   >
                     <span>{{ col.label }}</span>
                     <Icon
                       v-if="isColumnVisible(col.key)"
                       name="check"
                       size="sm"
-                      class="text-primary-500"
+                      class="text-[var(--app-text)]"
                       :stroke-width="2"
                     />
                   </button>
                 </div>
               </div>
               <!-- Attributes Config Button -->
-              <button
+              <UiIconButton
+                :label="t('admin.users.attributes.configButton')"
                 @click="showAttributesModal = true"
-                class="btn btn-secondary px-2 md:px-3"
-                :title="t('admin.users.attributes.configButton')"
               >
-                <Icon name="cog" size="sm" class="md:mr-1.5" />
-                <span class="hidden md:inline">{{ t('admin.users.attributes.configButton') }}</span>
-              </button>
+                <Icon name="cog" size="md" />
+              </UiIconButton>
             </div>
 
-            <!-- Create User Button (full width on mobile, auto width on desktop) -->
-            <button @click="showCreateModal = true" class="btn btn-primary flex-1 md:flex-initial">
+            <button @click="showCreateModal = true" class="btn btn-primary ml-1 whitespace-nowrap">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.users.createUser') }}
             </button>
@@ -578,8 +567,6 @@
             <EmptyState
               :title="t('admin.users.noUsersYet')"
               :description="t('admin.users.createFirstUser')"
-              :action-text="t('admin.users.createUser')"
-              @action="showCreateModal = true"
             />
           </template>
         </DataTable>
@@ -738,6 +725,7 @@ import UserBalanceModal from '@/components/admin/user/UserBalanceModal.vue'
 import UserPointsModal from '@/components/admin/user/UserPointsModal.vue'
 import UserBalanceHistoryModal from '@/components/admin/user/UserBalanceHistoryModal.vue'
 import GroupReplaceModal from '@/components/admin/user/GroupReplaceModal.vue'
+import { UiIconButton } from '@/ui'
 
 const appStore = useAppStore()
 

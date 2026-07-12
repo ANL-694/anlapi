@@ -4,7 +4,7 @@
 
     <div
       class="app-workspace"
-      :class="[sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[268px]']"
+      :class="[sidebarCollapsed ? 'lg:ml-[64px]' : 'lg:ml-[260px]']"
     >
       <AppHeader />
 

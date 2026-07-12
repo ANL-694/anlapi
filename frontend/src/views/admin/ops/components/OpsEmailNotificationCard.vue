@@ -181,7 +181,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="rounded-3xl bg-[#ffffff] p-6 shadow-sm ring-1 ring-[#d9d9e3] dark:bg-[#212121] dark:ring-[#3f3f46]">
+  <div class="ops-panel">
     <div class="mb-4 flex items-start justify-between gap-4">
       <div>
         <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ t('admin.ops.email.title') }}</h3>

@@ -2,7 +2,7 @@
   <AppLayout>
     <div class="space-y-4">
       <!-- Filters -->
-      <div class="card p-4">
+      <div class="pb-1">
         <div class="flex flex-wrap items-center gap-3">
           <div class="flex-1 sm:max-w-64">
             <input v-model="orderSearch" type="text" :placeholder="t('payment.admin.searchOrders')" class="input" @input="debounceLoadOrders" />
@@ -11,9 +11,9 @@
           <Select v-model="orderFilters.payment_type" :options="paymentTypeFilterOptions" class="w-40" @change="loadOrders" />
           <Select v-model="orderFilters.order_type" :options="orderTypeFilterOptions" class="w-36" @change="loadOrders" />
           <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <button @click="loadOrders" :disabled="ordersLoading" class="btn btn-secondary" :title="t('common.refresh')">
+            <UiIconButton :label="t('common.refresh')" @click="loadOrders" :disabled="ordersLoading">
               <Icon name="refresh" size="md" :class="ordersLoading ? 'animate-spin' : ''" />
-            </button>
+            </UiIconButton>
           </div>
         </div>
       </div>
@@ -233,6 +233,7 @@ import AdminRefundDialog from '@/components/admin/payment/AdminRefundDialog.vue'
 import OrderStatusBadge from '@/components/payment/OrderStatusBadge.vue'
 import OrderTable from '@/components/payment/OrderTable.vue'
 import DeliveredFilesList from '@/components/store/DeliveredFilesList.vue'
+import { UiIconButton } from '@/ui'
 
 const { t } = useI18n()
 const appStore = useAppStore()

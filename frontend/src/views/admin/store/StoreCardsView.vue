@@ -6,8 +6,13 @@
           <Select v-model="filters.product_id" :options="productOptionsWithAll" class="w-full sm:w-56" @change="loadCards" />
           <Select v-model="filters.status" :options="statusOptionsWithAll" class="w-full sm:w-40" @change="loadCards" />
           <div class="flex flex-1 justify-end gap-2">
-            <button class="btn btn-secondary" :disabled="loading" @click="loadCards">{{ t('common.refresh') }}</button>
-            <button class="btn btn-primary" :disabled="productOptions.length === 0" @click="openImport">{{ t('admin.store.importCards') }}</button>
+            <UiIconButton :label="t('common.refresh')" :disabled="loading" @click="loadCards">
+              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+            </UiIconButton>
+            <button class="btn btn-primary" :disabled="productOptions.length === 0" @click="openImport">
+              <Icon name="plus" size="sm" />
+              {{ t('admin.store.importCards') }}
+            </button>
           </div>
         </div>
       </template>
@@ -33,7 +38,9 @@
           </template>
           <template #cell-sold_at="{ value }">{{ formatSoldAt(value) }}</template>
           <template #cell-actions="{ row }">
-            <button v-if="row.status === 'unused'" class="btn btn-danger btn-sm" @click="deleteCard(row)">{{ t('common.delete') }}</button>
+            <UiIconButton v-if="row.status === 'unused'" :label="t('common.delete')" size="sm" tone="danger" @click="deleteCard(row)">
+              <Icon name="trash" size="sm" />
+            </UiIconButton>
             <span v-else>-</span>
           </template>
         </DataTable>
@@ -102,6 +109,8 @@ import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Select from '@/components/common/Select.vue'
+import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 
 const { t } = useI18n()
 const appStore = useAppStore()

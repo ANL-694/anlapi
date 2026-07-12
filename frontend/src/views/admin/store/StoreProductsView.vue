@@ -5,8 +5,13 @@
         <div class="flex flex-wrap items-center gap-3">
           <input v-model="keyword" class="input flex-1 sm:max-w-72" :placeholder="t('admin.store.searchProducts')" @input="handleSearch" />
           <div class="flex flex-1 justify-end gap-2">
-            <button class="btn btn-secondary" :disabled="loading" @click="loadProducts">{{ t('common.refresh') }}</button>
-            <button class="btn btn-primary" @click="openCreate">{{ t('admin.store.createProduct') }}</button>
+            <UiIconButton :label="t('common.refresh')" :disabled="loading" @click="loadProducts">
+              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+            </UiIconButton>
+            <button class="btn btn-primary" @click="openCreate">
+              <Icon name="plus" size="sm" />
+              {{ t('admin.store.createProduct') }}
+            </button>
           </div>
         </div>
       </template>
@@ -22,8 +27,12 @@
           </template>
           <template #cell-actions="{ row }">
             <div class="flex justify-end gap-2">
-              <button class="btn btn-secondary btn-sm" @click="openEdit(row)">{{ t('common.edit') }}</button>
-              <button class="btn btn-danger btn-sm" @click="deleteProduct(row)">{{ t('common.delete') }}</button>
+              <UiIconButton :label="t('common.edit')" size="sm" @click="openEdit(row)">
+                <Icon name="edit" size="sm" />
+              </UiIconButton>
+              <UiIconButton :label="t('common.delete')" size="sm" tone="danger" @click="deleteProduct(row)">
+                <Icon name="trash" size="sm" />
+              </UiIconButton>
             </div>
           </template>
         </DataTable>
@@ -146,6 +155,8 @@ import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
+import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 
 const { t } = useI18n()
 const appStore = useAppStore()

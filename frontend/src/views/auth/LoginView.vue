@@ -1,6 +1,6 @@
 <template>
   <AuthLayout>
-    <div class="space-y-6">
+    <div class="auth-login-stack">
       <!-- Title -->
       <div class="text-center">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
@@ -11,40 +11,29 @@
         </p>
       </div>
       <!-- Login Form -->
-      <form @submit.prevent="handleLogin" class="space-y-5">
+      <form @submit.prevent="handleLogin" class="auth-login-form">
         <!-- Email Input -->
-        <div>
-          <label for="email" class="input-label">
+        <div class="auth-floating-field">
+          <input
+            id="email"
+            v-model="formData.email"
+            type="email"
+            required
+            autofocus
+            autocomplete="email"
+            :disabled="formControlsDisabled"
+            class="input auth-floating-input"
+            :class="{ 'input-error': errors.email }"
+            placeholder=" "
+          />
+          <label for="email" class="auth-floating-label">
             {{ t('auth.emailLabel') }}
           </label>
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="mail" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
-            <input
-              id="email"
-              v-model="formData.email"
-              type="email"
-              required
-              autofocus
-              autocomplete="email"
-              :disabled="formControlsDisabled"
-              class="input pl-11"
-              :class="{ 'input-error': errors.email }"
-              :placeholder="t('auth.emailPlaceholder')"
-            />
-          </div>
         </div>
 
         <!-- Password Input -->
-        <div>
-          <label for="password" class="input-label">
-            {{ t('auth.passwordLabel') }}
-          </label>
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="lock" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
+        <div class="auth-password-group">
+          <div class="auth-floating-field">
             <input
               id="password"
               v-model="formData.password"
@@ -52,10 +41,13 @@
               required
               autocomplete="current-password"
               :disabled="formControlsDisabled"
-              class="input pl-11 pr-11"
+              class="input auth-floating-input pr-11"
               :class="{ 'input-error': errors.password }"
-              :placeholder="t('auth.passwordPlaceholder')"
+              placeholder=" "
             />
+            <label for="password" class="auth-floating-label">
+              {{ t('auth.passwordLabel') }}
+            </label>
             <button
               type="button"
               @click="showPassword = !showPassword"
@@ -66,8 +58,7 @@
               <Icon v-else name="eye" size="md" />
             </button>
           </div>
-          <div class="mt-1 flex items-center justify-between">
-            <span></span>
+          <div class="auth-password-actions">
             <router-link
               v-if="passwordResetEnabled && !backendModeEnabled"
               to="/forgot-password"
@@ -79,7 +70,7 @@
         </div>
 
         <!-- Turnstile Widget -->
-        <div v-if="turnstileEnabled && turnstileSiteKey">
+        <div v-if="turnstileEnabled && turnstileSiteKey" class="auth-verification">
           <TurnstileWidget
             ref="turnstileRef"
             :site-key="turnstileSiteKey"
@@ -98,7 +89,7 @@
         >
           <svg
             v-if="isLoading"
-            class="-ml-1 mr-2 h-4 w-4 animate-spin text-white"
+            class="h-4 w-4 animate-spin"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -116,7 +107,6 @@
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <Icon v-else name="login" size="md" class="mr-2" />
           {{ isLoading ? t('auth.signingIn') : t('auth.signIn') }}
         </button>
 
@@ -133,48 +123,6 @@
           @reject="rejectLoginAgreement"
           @open="showAgreementModal = true"
         />
-
-        <div v-if="showOAuthLogin" class="space-y-3 pt-1">
-          <div class="flex items-center gap-3">
-            <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
-            <span class="text-xs text-gray-500 dark:text-dark-400">
-              {{ t('auth.oauthOrContinue') }}
-            </span>
-            <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
-          </div>
-
-          <EmailOAuthButtons
-            :disabled="submitDisabled"
-            :github-enabled="githubOAuthEnabled"
-            :google-enabled="googleOAuthEnabled"
-            :login-agreement-revision="loginAgreementRevision"
-            :before-start="validateAgreementBeforeOAuth"
-            :show-divider="false"
-          />
-
-          <LinuxDoOAuthSection
-            v-if="linuxdoOAuthEnabled"
-            :disabled="submitDisabled"
-            :login-agreement-revision="loginAgreementRevision"
-            :before-start="validateAgreementBeforeOAuth"
-            :show-divider="false"
-          />
-          <WechatOAuthSection
-            v-if="wechatOAuthEnabled"
-            :disabled="submitDisabled"
-            :login-agreement-revision="loginAgreementRevision"
-            :before-start="validateAgreementBeforeOAuth"
-            :show-divider="false"
-          />
-          <OidcOAuthSection
-            v-if="oidcOAuthEnabled"
-            :disabled="submitDisabled"
-            :login-agreement-revision="loginAgreementRevision"
-            :provider-name="oidcOAuthProviderName"
-            :before-start="validateAgreementBeforeOAuth"
-            :show-divider="false"
-          />
-        </div>
       </form>
     </div>
 
@@ -208,16 +156,12 @@ import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { AuthLayout } from '@/components/layout'
-import LinuxDoOAuthSection from '@/components/auth/LinuxDoOAuthSection.vue'
-import OidcOAuthSection from '@/components/auth/OidcOAuthSection.vue'
-import WechatOAuthSection from '@/components/auth/WechatOAuthSection.vue'
-import EmailOAuthButtons from '@/components/auth/EmailOAuthButtons.vue'
 import LoginAgreementPrompt from '@/components/auth/LoginAgreementPrompt.vue'
 import TotpLoginModal from '@/components/auth/TotpLoginModal.vue'
 import Icon from '@/components/icons/Icon.vue'
 import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import { useAuthStore, useAppStore } from '@/stores'
-import { getPublicSettings, isTotp2FARequired, isWeChatWebOAuthEnabled } from '@/api/auth'
+import { getPublicSettings, isTotp2FARequired } from '@/api/auth'
 import type { LoginAgreementDocument, TotpLoginResponse } from '@/types'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import { clearAllAffiliateReferralCodes } from '@/utils/oauthAffiliate'
@@ -241,13 +185,7 @@ const publicSettingsLoaded = ref<boolean>(false)
 // Public settings
 const turnstileEnabled = ref<boolean>(false)
 const turnstileSiteKey = ref<string>('')
-const linuxdoOAuthEnabled = ref<boolean>(false)
-const wechatOAuthEnabled = ref<boolean>(false)
 const backendModeEnabled = ref<boolean>(false)
-const oidcOAuthEnabled = ref<boolean>(false)
-const oidcOAuthProviderName = ref<string>('OIDC')
-const githubOAuthEnabled = ref<boolean>(false)
-const googleOAuthEnabled = ref<boolean>(false)
 const passwordResetEnabled = ref<boolean>(false)
 const loginAgreementEnabled = ref<boolean>(false)
 const loginAgreementMode = ref<'modal' | 'checkbox' | string>('modal')
@@ -291,16 +229,6 @@ const formControlsDisabled = computed(() => isLoading.value || !publicSettingsLo
 
 const submitDisabled = computed(() => isLoading.value || !publicSettingsLoaded.value)
 
-const showOAuthLogin = computed(
-  () =>
-    !backendModeEnabled.value &&
-    (linuxdoOAuthEnabled.value ||
-      wechatOAuthEnabled.value ||
-      oidcOAuthEnabled.value ||
-      githubOAuthEnabled.value ||
-      googleOAuthEnabled.value)
-)
-
 watch(validationToastMessage, (value, previousValue) => {
   if (value && value !== previousValue) {
     appStore.showError(value)
@@ -322,13 +250,6 @@ onMounted(async () => {
     const settings = await getPublicSettings()
     turnstileEnabled.value = settings.turnstile_enabled
     turnstileSiteKey.value = settings.turnstile_site_key || ''
-    linuxdoOAuthEnabled.value = settings.linuxdo_oauth_enabled
-    wechatOAuthEnabled.value = isWeChatWebOAuthEnabled(settings)
-    backendModeEnabled.value = settings.backend_mode_enabled
-    oidcOAuthEnabled.value = settings.oidc_oauth_enabled
-    oidcOAuthProviderName.value = settings.oidc_oauth_provider_name || 'OIDC'
-    githubOAuthEnabled.value = Boolean(settings.github_oauth_enabled)
-    googleOAuthEnabled.value = Boolean(settings.google_oauth_enabled)
     backendModeEnabled.value = settings.backend_mode_enabled
     passwordResetEnabled.value = settings.password_reset_enabled
     applyLoginAgreementSettings(settings)
@@ -416,10 +337,6 @@ function validateAgreementBeforeSubmit(): boolean {
     showAgreementModal.value = true
   }
   return false
-}
-
-function validateAgreementBeforeOAuth(): boolean {
-  return validateAgreementBeforeSubmit()
 }
 
 // ==================== Turnstile Handlers ====================
@@ -570,6 +487,74 @@ function handle2FACancel(): void {
   totpUserEmailMasked.value = ''
 }
 </script>
+
+<style scoped>
+.auth-login-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.auth-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-floating-field {
+  position: relative;
+}
+
+.auth-floating-input {
+  height: 3.25rem;
+  padding: 1.125rem 1rem 0.375rem;
+}
+
+.auth-floating-label {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  color: var(--ui-text-tertiary);
+  font-size: 0.9375rem;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transform-origin: left top;
+  transition: top 140ms ease, transform 140ms ease, font-size 140ms ease, color 140ms ease;
+}
+
+.auth-floating-input:focus + .auth-floating-label,
+.auth-floating-input:not(:placeholder-shown) + .auth-floating-label {
+  top: 0.55rem;
+  color: var(--ui-text-secondary);
+  font-size: 0.6875rem;
+  transform: none;
+}
+
+.auth-password-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.auth-password-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.auth-verification {
+  display: flex;
+  max-width: 100%;
+  justify-content: center;
+  overflow: hidden;
+}
+
+@media (max-width: 420px) {
+  .auth-login-stack {
+    gap: 1.5rem;
+  }
+}
+</style>
 
 <style scoped>
 .fade-enter-active,

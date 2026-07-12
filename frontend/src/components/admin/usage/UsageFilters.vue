@@ -1,11 +1,11 @@
 <template>
-  <div class="card p-6">
+  <div class="py-1">
     <!-- Toolbar: left filters (multi-line) + right actions -->
     <div class="flex flex-wrap items-end justify-between gap-4">
       <!-- Left: filters (allowed to wrap to multiple rows) -->
-      <div class="flex flex-1 flex-wrap items-end gap-4">
+      <div class="usage-filter-grid">
         <!-- User Search -->
-        <div ref="userSearchRef" class="usage-filter-dropdown relative w-full sm:w-auto sm:min-w-[240px]">
+        <div ref="userSearchRef" class="usage-filter-dropdown usage-filter-field usage-filter-field--wide relative">
           <label class="input-label">{{ t('admin.usage.userFilter') }}</label>
           <input
             v-model="userKeyword"
@@ -22,18 +22,18 @@
             class="absolute right-2 top-9 text-gray-400"
             aria-label="Clear user filter"
           >
-            ✕
+            <Icon name="x" size="sm" />
           </button>
           <div
             v-if="showUserDropdown && (userResults.length > 0 || userKeyword)"
-            class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white shadow-lg dark:bg-gray-800"
+            class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-lg"
           >
             <button
               v-for="u in userResults"
               :key="u.id"
               type="button"
               @click="selectUser(u)"
-              class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+              class="w-full rounded-md px-3 py-2 text-left hover:bg-[var(--app-surface-muted)]"
             >
               <span>{{ u.email }}</span>
               <span class="ml-2 text-xs text-gray-400">#{{ u.id }}</span>
@@ -42,7 +42,7 @@
         </div>
 
         <!-- API Key Search -->
-        <div ref="apiKeySearchRef" class="usage-filter-dropdown relative w-full sm:w-auto sm:min-w-[240px]">
+        <div ref="apiKeySearchRef" class="usage-filter-dropdown usage-filter-field usage-filter-field--wide relative">
           <label class="input-label">{{ t('usage.apiKeyFilter') }}</label>
           <input
             v-model="apiKeyKeyword"
@@ -59,18 +59,18 @@
             class="absolute right-2 top-9 text-gray-400"
             aria-label="Clear API key filter"
           >
-            ✕
+            <Icon name="x" size="sm" />
           </button>
           <div
             v-if="showApiKeyDropdown && apiKeyResults.length > 0"
-            class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white shadow-lg dark:bg-gray-800"
+            class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-lg"
           >
             <button
               v-for="k in apiKeyResults"
               :key="k.id"
               type="button"
               @click="selectApiKey(k)"
-              class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+              class="w-full rounded-md px-3 py-2 text-left hover:bg-[var(--app-surface-muted)]"
             >
               <span class="truncate">{{ k.name || `#${k.id}` }}</span>
               <span class="ml-2 text-xs text-gray-400">#{{ k.id }}</span>
@@ -79,13 +79,13 @@
         </div>
 
         <!-- Model Filter -->
-        <div class="w-full sm:w-auto sm:min-w-[220px]">
+        <div class="usage-filter-field">
           <label class="input-label">{{ t('usage.model') }}</label>
           <Select v-model="filters.model" :options="modelOptions" searchable @change="emitChange" />
         </div>
 
         <!-- Account Filter -->
-        <div ref="accountSearchRef" class="usage-filter-dropdown relative w-full sm:w-auto sm:min-w-[220px]">
+        <div ref="accountSearchRef" class="usage-filter-dropdown usage-filter-field relative">
           <label class="input-label">{{ t('admin.usage.account') }}</label>
           <input
             v-model="accountKeyword"
@@ -102,18 +102,18 @@
             class="absolute right-2 top-9 text-gray-400"
             aria-label="Clear account filter"
           >
-            ✕
+            <Icon name="x" size="sm" />
           </button>
           <div
             v-if="showAccountDropdown && (accountResults.length > 0 || accountKeyword)"
-            class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white shadow-lg dark:bg-gray-800"
+            class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-lg"
           >
             <button
               v-for="a in accountResults"
               :key="a.id"
               type="button"
               @click="selectAccount(a)"
-              class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+              class="w-full rounded-md px-3 py-2 text-left hover:bg-[var(--app-surface-muted)]"
             >
               <span class="truncate">{{ a.name }}</span>
               <span class="ml-2 text-xs text-gray-400">#{{ a.id }}</span>
@@ -122,25 +122,25 @@
         </div>
 
         <!-- Request Type Filter -->
-        <div class="w-full sm:w-auto sm:min-w-[180px]">
+        <div class="usage-filter-field">
           <label class="input-label">{{ t('usage.type') }}</label>
           <Select v-model="filters.request_type" :options="requestTypeOptions" @change="emitChange" />
         </div>
 
         <!-- Billing Type Filter -->
-        <div class="w-full sm:w-auto sm:min-w-[200px]">
+        <div class="usage-filter-field">
           <label class="input-label">{{ t('admin.usage.billingType') }}</label>
           <Select v-model="filters.billing_type" :options="billingTypeOptions" @change="emitChange" />
         </div>
 
         <!-- Billing Mode Filter -->
-        <div class="w-full sm:w-auto sm:min-w-[200px]">
+        <div class="usage-filter-field">
           <label class="input-label">{{ t('admin.usage.billingMode') }}</label>
           <Select v-model="filters.billing_mode" :options="billingModeOptions" @change="emitChange" />
         </div>
 
         <!-- Group Filter -->
-        <div class="w-full sm:w-auto sm:min-w-[200px]">
+        <div class="usage-filter-field">
           <label class="input-label">{{ t('admin.usage.group') }}</label>
           <Select v-model="filters.group_id" :options="groupOptions" searchable @change="emitChange" />
         </div>
@@ -149,10 +149,10 @@
 
       <!-- Right: actions -->
       <div v-if="showActions" class="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
-        <button type="button" @click="$emit('refresh')" class="btn btn-secondary">
-          {{ t('common.refresh') }}
-        </button>
-        <button type="button" @click="$emit('reset')" class="btn btn-secondary">
+        <UiIconButton :label="t('common.refresh')" @click="$emit('refresh')">
+          <Icon name="refresh" size="md" />
+        </UiIconButton>
+        <button type="button" @click="$emit('reset')" class="btn btn-ghost">
           {{ t('common.reset') }}
         </button>
         <slot name="after-reset" />
@@ -172,6 +172,8 @@ import { ref, onMounted, onUnmounted, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
 import Select, { type SelectOption } from '@/components/common/Select.vue'
+import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 import type { SimpleApiKey, SimpleUser } from '@/api/admin/usage'
 
 type ModelValue = Record<string, any>
@@ -449,3 +451,31 @@ onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick)
 })
 </script>
+
+<style scoped>
+.usage-filter-grid {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 48rem;
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+  align-items: end;
+  gap: 1rem;
+}
+
+.usage-filter-field {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .usage-filter-grid {
+    flex-basis: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.875rem 0.75rem;
+  }
+
+  .usage-filter-field--wide {
+    grid-column: 1 / -1;
+  }
+}
+</style>

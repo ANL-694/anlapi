@@ -174,7 +174,7 @@ const appStore = useAppStore()
 const pageRef = ref<HTMLElement | null>(null)
 
 const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'ikik-api')
-const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
+const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '/anl-icon.png?v=20260712-3')
 const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
 const sanitizedHomeContent = computed(() => DOMPurify.sanitize(homeContent.value))
 const isHomeContentUrl = computed(() => {

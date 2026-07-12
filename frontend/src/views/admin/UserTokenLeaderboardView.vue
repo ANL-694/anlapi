@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
-      <div class="card p-4">
+      <div class="border-y border-[var(--app-border)] py-4">
         <div class="flex flex-wrap items-center gap-4">
           <div class="flex items-center gap-2">
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.timeRange') }}:</span>
@@ -19,10 +19,10 @@
                 <Select v-model="limit" :options="limitOptions" @change="loadRanking" />
               </div>
             </div>
-            <button type="button" class="btn btn-secondary" @click="loadRanking">
-              {{ t('common.refresh') }}
-            </button>
-            <button type="button" class="btn btn-secondary" @click="resetFilters">
+            <UiIconButton :label="t('common.refresh')" @click="loadRanking">
+              <Icon name="refresh" size="md" />
+            </UiIconButton>
+            <button type="button" class="btn btn-ghost" @click="resetFilters">
               {{ t('common.reset') }}
             </button>
           </div>
@@ -62,6 +62,8 @@ import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import Select from '@/components/common/Select.vue'
 import UsageFilters from '@/components/admin/usage/UsageFilters.vue'
 import UserTokenLeaderboard from '@/components/admin/usage/UserTokenLeaderboard.vue'
+import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 
 const { t } = useI18n()
 const router = useRouter()

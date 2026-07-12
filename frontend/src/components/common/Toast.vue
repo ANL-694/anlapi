@@ -17,37 +17,34 @@
           v-for="toast in toasts"
           :key="toast.id"
           :class="[
-            'pointer-events-auto w-full overflow-hidden rounded-lg border shadow-[0_18px_45px_-28px_rgba(66,45,27,0.65)] backdrop-blur',
-            'bg-[#ffffff]/95 text-[#202123] dark:bg-[#212121]/95 dark:text-[#ececf1]',
-            'border-[#d9d9e3] dark:border-[#565869]',
+            'pointer-events-auto w-full overflow-hidden border',
+            'bg-[var(--app-surface)] text-[var(--app-text)]',
+            'border-[var(--app-border-strong)]',
             'sm:w-[22rem]'
           ]"
+          style="border-radius: var(--ui-radius-lg); box-shadow: var(--ui-shadow-popover)"
         >
-          <div class="p-4">
+          <div class="px-4 py-3.5">
             <div class="flex items-start gap-3">
               <!-- Icon -->
-              <div class="mt-0.5 flex-shrink-0">
-                <div :class="['rounded-md p-1.5', getIconWrapColor(toast.type)]">
-                  <Icon
-                    :name="getToastIconName(toast.type)"
-                    size="sm"
-                    :class="getIconColor(toast.type)"
-                    aria-hidden="true"
-                  />
-                </div>
-              </div>
+              <Icon
+                :name="getToastIconName(toast.type)"
+                size="md"
+                :class="['mt-0.5 flex-shrink-0', getIconColor(toast.type)]"
+                aria-hidden="true"
+              />
 
               <!-- Content -->
               <div class="min-w-0 flex-1">
-                <p v-if="toast.title" class="text-sm font-semibold text-[#202123] dark:text-[#ececf1]">
+                <p v-if="toast.title" class="text-sm font-semibold text-[var(--app-text)]">
                   {{ toast.title }}
                 </p>
                 <p
                   :class="[
                     'text-sm leading-relaxed',
                     toast.title
-                      ? 'mt-1 text-[#6f6257] dark:text-[#d5cabd]'
-                      : 'text-[#202123] dark:text-[#ececf1]'
+                      ? 'mt-1 text-[var(--app-muted-strong)]'
+                      : 'text-[var(--app-text)]'
                   ]"
                 >
                   {{ toast.message }}
@@ -57,7 +54,7 @@
               <!-- Close button -->
               <button
                 @click="removeToast(toast.id)"
-                class="-m-1 flex-shrink-0 rounded-md p-1 text-[#6e6e80] transition-colors hover:bg-[#f3f3f6] hover:text-[#202123] dark:text-[#acacbe] dark:hover:bg-[#343541] dark:hover:text-[#ececf1]"
+                class="-m-1 flex-shrink-0 rounded-md p-1 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
                 aria-label="Close notification"
               >
                 <Icon name="x" size="sm" />
@@ -66,7 +63,7 @@
           </div>
 
           <!-- Progress bar -->
-          <div v-if="toast.duration" class="h-1 bg-[#efe5d8] dark:bg-[#3a3129]">
+          <div v-if="toast.duration" class="h-0.5 bg-transparent">
             <div
               :class="['h-full toast-progress', getProgressBarColor(toast.type)]"
               :style="{ animationDuration: `${toast.duration}ms` }"
@@ -103,30 +100,20 @@ const getToastIconName = (type: string): 'checkCircle' | 'xCircle' | 'exclamatio
 
 const getIconColor = (type: string): string => {
   const colors: Record<string, string> = {
-    success: 'text-[#287750]',
-    error: 'text-[#b42318]',
-    warning: 'text-[#a15c07]',
-    info: 'text-[#9a5a38]'
-  }
-  return colors[type] || colors.info
-}
-
-const getIconWrapColor = (type: string): string => {
-  const colors: Record<string, string> = {
-    success: 'bg-[#eaf5ee] dark:bg-[#20392b]',
-    error: 'bg-[#fff0ed] dark:bg-[#3d241f]',
-    warning: 'bg-[#fff3d6] dark:bg-[#3c2c16]',
-    info: 'bg-[#f4ebe1] dark:bg-[#3b2d24]'
+    success: 'text-[#10a37f]',
+    error: 'text-[#d92d20]',
+    warning: 'text-[#b7791f]',
+    info: 'text-[var(--app-muted-strong)]'
   }
   return colors[type] || colors.info
 }
 
 const getProgressBarColor = (type: string): string => {
   const colors: Record<string, string> = {
-    success: 'bg-[#2f855a]',
-    error: 'bg-[#c2412d]',
-    warning: 'bg-[#d89122]',
-    info: 'bg-[#10a37f]'
+    success: 'bg-[#10a37f]',
+    error: 'bg-[#d92d20]',
+    warning: 'bg-[#b7791f]',
+    info: 'bg-[var(--app-text)]'
   }
   return colors[type] || colors.info
 }

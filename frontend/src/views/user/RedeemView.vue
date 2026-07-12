@@ -1,30 +1,14 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-2xl space-y-6">
-      <!-- Current Balance Card -->
-      <div class="card overflow-hidden">
-        <div class="bg-gradient-to-br from-primary-500 to-primary-600 px-6 py-8 text-center">
-          <div
-            class="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm"
-          >
-            <Icon name="creditCard" size="xl" class="text-white" />
-          </div>
-          <p class="text-sm font-medium text-primary-100">{{ t('redeem.currentBalance') }}</p>
-          <p class="mt-2 text-4xl font-bold text-white">
-            ${{ user?.balance?.toFixed(2) || '0.00' }}
-          </p>
-          <p class="mt-2 text-sm text-primary-100">
-            {{ t('redeem.concurrency') }}: {{ user?.concurrency || 0 }} {{ t('redeem.requests') }}
-          </p>
-          <p class="mt-1 text-sm text-primary-100">
-            {{ t('redeem.points') }}: {{ formatPoints(user?.points_balance || 0) }}
-          </p>
-        </div>
-      </div>
+    <UiPage width="narrow">
+      <div class="redeem-panel redeem-primary">
+        <UiMetricStrip class="redeem-metrics" :style="{ '--metric-columns': 3 }">
+          <UiMetric :label="t('redeem.currentBalance')" :value="`$${user?.balance?.toFixed(2) || '0.00'}`" />
+          <UiMetric :label="t('redeem.concurrency')" :value="user?.concurrency || 0" :detail="t('redeem.requests')" />
+          <UiMetric :label="t('redeem.points')" :value="formatPoints(user?.points_balance || 0)" />
+        </UiMetricStrip>
 
-      <!-- Redeem Form -->
-      <div class="card">
-        <div class="p-6">
+        <div class="redeem-form-section">
           <form @submit.prevent="handleRedeem" class="space-y-5">
             <div>
               <label for="code" class="input-label">
@@ -32,7 +16,7 @@
               </label>
               <div class="relative mt-1">
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                  <Icon name="gift" size="md" class="text-gray-400 dark:text-dark-500" />
+                  <Icon name="gift" size="md" class="text-[var(--ui-text-tertiary)]" />
                 </div>
                 <input
                   id="code"
@@ -173,50 +157,35 @@
         </div>
       </transition>
 
-      <!-- Information Card -->
-      <div
-        class="card border-primary-200 bg-primary-50 dark:border-primary-800/50 dark:bg-primary-900/20"
-      >
-        <div class="p-6">
-          <div class="flex items-start gap-4">
-            <div
-              class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-900/30"
-            >
-              <Icon name="infoCircle" size="md" class="text-primary-600 dark:text-primary-400" />
-            </div>
-            <div class="flex-1">
-              <h3 class="text-sm font-semibold text-primary-800 dark:text-primary-300">
-                {{ t('redeem.aboutCodes') }}
-              </h3>
-              <ul
-                class="mt-2 list-inside list-disc space-y-1 text-sm text-primary-700 dark:text-primary-400"
-              >
-                <li>{{ t('redeem.codeRule1') }}</li>
-                <li>{{ t('redeem.codeRule2') }}</li>
-                <li>
-                  {{ t('redeem.codeRule3') }}
-                  <span
-                    v-if="contactInfo"
-                    class="ml-1.5 inline-flex items-center rounded-md bg-primary-200/50 px-2 py-0.5 text-xs font-medium text-primary-800 dark:bg-primary-800/40 dark:text-primary-200"
-                  >
-                    {{ contactInfo }}
-                  </span>
-                </li>
-                <li>{{ t('redeem.codeRule4') }}</li>
-              </ul>
-            </div>
+      <div class="redeem-help">
+        <div class="flex items-start gap-3">
+          <div class="redeem-help-icon">
+              <Icon name="infoCircle" size="md" class="text-[var(--ui-text-secondary)]" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-semibold text-[var(--ui-text)]">
+              {{ t('redeem.aboutCodes') }}
+            </h3>
+            <ul class="mt-2 space-y-1 text-sm text-[var(--ui-text-secondary)]">
+              <li>{{ t('redeem.codeRule1') }}</li>
+              <li>{{ t('redeem.codeRule2') }}</li>
+              <li>
+                {{ t('redeem.codeRule3') }}
+                <span v-if="contactInfo" class="ml-1 text-[var(--ui-text)]">{{ contactInfo }}</span>
+              </li>
+              <li>{{ t('redeem.codeRule4') }}</li>
+            </ul>
           </div>
         </div>
       </div>
 
-      <!-- Recent Activity -->
-      <div class="card">
-        <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+      <section class="redeem-history">
+        <div class="redeem-history-header">
+          <h2 class="text-base font-semibold text-[var(--ui-text)]">
             {{ t('redeem.recentActivity') }}
           </h2>
         </div>
-        <div class="p-6">
+        <div>
           <!-- Loading State -->
           <div v-if="loadingHistory" class="flex items-center justify-center py-8">
             <svg class="h-6 w-6 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
@@ -241,7 +210,7 @@
             <div
               v-for="item in history"
               :key="item.id"
-              class="flex items-center justify-between rounded-xl bg-gray-50 p-4 dark:bg-dark-800"
+              class="flex items-center justify-between border-b border-[var(--ui-border)] p-4 last:border-b-0"
             >
               <div class="flex items-center gap-4">
                 <div
@@ -355,19 +324,15 @@
           </div>
 
           <!-- Empty State -->
-          <div v-else class="empty-state py-8">
-            <div
-              class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 dark:bg-dark-800"
-            >
-              <Icon name="clock" size="xl" class="text-gray-400 dark:text-dark-500" />
-            </div>
-            <p class="text-sm text-gray-500 dark:text-dark-400">
+          <div v-else class="redeem-history-empty">
+            <Icon name="clock" size="md" class="text-[var(--ui-text-tertiary)]" />
+            <p class="text-sm text-[var(--ui-text-tertiary)]">
               {{ t('redeem.historyWillAppear') }}
             </p>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </UiPage>
   </AppLayout>
 </template>
 
@@ -380,6 +345,7 @@ import { useSubscriptionStore } from '@/stores/subscriptions'
 import { redeemAPI, authAPI, type RedeemHistoryItem } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiMetric, UiMetricStrip, UiPage } from '@/ui'
 import { formatDateTime } from '@/utils/format'
 
 const { t } = useI18n()
@@ -533,6 +499,76 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.redeem-panel {
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+.redeem-metrics {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.redeem-metrics :deep(.ui-metric + .ui-metric) {
+  border-left: 1px solid var(--ui-border);
+}
+
+.redeem-form-section {
+  padding: 1.25rem;
+}
+
+.redeem-help {
+  padding: 0.25rem 0.25rem 0;
+}
+
+.redeem-help-icon {
+  display: flex;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.redeem-history {
+  border-top: 1px solid var(--ui-border);
+  padding-top: 1rem;
+}
+
+.redeem-history-header {
+  padding: 0 0 0.75rem;
+}
+
+.redeem-history-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 0;
+}
+
+@media (max-width: 520px) {
+  .redeem-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 0;
+  }
+
+  .redeem-metrics :deep(.ui-metric) {
+    padding-inline: 0.625rem;
+  }
+
+  .redeem-metrics :deep(.ui-metric:last-child:nth-child(odd)) {
+    grid-column: auto;
+  }
+
+  .redeem-form-section {
+    padding: 1rem;
+  }
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: all 0.3s ease;

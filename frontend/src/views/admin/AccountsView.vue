@@ -21,23 +21,17 @@
             <template #after>
               <!-- Auto Refresh Dropdown -->
               <div class="relative" ref="autoRefreshDropdownRef">
-                <button
+                <UiIconButton
+                  :label="autoRefreshEnabled
+                    ? t('admin.accounts.autoRefreshCountdown', { seconds: autoRefreshCountdown })
+                    : t('admin.accounts.autoRefresh')"
                   @click="
                     showAutoRefreshDropdown = !showAutoRefreshDropdown;
                     showColumnDropdown = false
                   "
-                  class="btn btn-secondary px-2 md:px-3"
-                  :title="t('admin.accounts.autoRefresh')"
                 >
                   <Icon name="refresh" size="sm" :class="[autoRefreshEnabled ? 'animate-spin' : '']" />
-                  <span class="hidden md:inline">
-                    {{
-                      autoRefreshEnabled
-                        ? t('admin.accounts.autoRefreshCountdown', { seconds: autoRefreshCountdown })
-                        : t('admin.accounts.autoRefresh')
-                    }}
-                  </span>
-                </button>
+                </UiIconButton>
                 <div
                   v-if="showAutoRefreshDropdown"
                   class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
@@ -64,41 +58,17 @@
                 </div>
               </div>
 
-              <!-- Error Passthrough Rules -->
-              <button
-                @click="showErrorPassthrough = true"
-                class="btn btn-secondary"
-                :title="t('admin.errorPassthrough.title')"
-              >
-                <Icon name="shield" size="md" class="mr-1.5" />
-                <span class="hidden md:inline">{{ t('admin.errorPassthrough.title') }}</span>
-              </button>
-
-              <!-- TLS Fingerprint Profiles -->
-              <button
-                @click="showTLSFingerprintProfiles = true"
-                class="btn btn-secondary"
-                :title="t('admin.tlsFingerprintProfiles.title')"
-              >
-                <Icon name="lock" size="md" class="mr-1.5" />
-                <span class="hidden md:inline">{{ t('admin.tlsFingerprintProfiles.title') }}</span>
-              </button>
-
               <!-- Column Settings Dropdown -->
               <div class="relative" ref="columnDropdownRef">
-                <button
+                <UiIconButton
+                  :label="t('admin.users.columnSettings')"
                   @click="
                     showColumnDropdown = !showColumnDropdown;
                     showAutoRefreshDropdown = false
                   "
-                  class="btn btn-secondary px-2 md:px-3"
-                  :title="t('admin.users.columnSettings')"
                 >
-                  <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
-                  </svg>
-                  <span class="hidden md:inline">{{ t('admin.users.columnSettings') }}</span>
-                </button>
+                  <Icon name="grid" size="md" />
+                </UiIconButton>
                 <!-- Dropdown menu -->
                 <div
                   v-if="showColumnDropdown"
@@ -119,6 +89,12 @@
               </div>
             </template>
             <template #beforeCreate>
+              <button type="button" @click="showErrorPassthrough = true">
+                {{ t('admin.errorPassthrough.title') }}
+              </button>
+              <button type="button" @click="showTLSFingerprintProfiles = true">
+                {{ t('admin.tlsFingerprintProfiles.title') }}
+              </button>
               <button @click="showCredentialImport = true" class="btn btn-secondary">
                 {{ t('admin.accounts.credentialImport') }}
               </button>
@@ -433,6 +409,7 @@ import AccountCapacityCell from '@/components/account/AccountCapacityCell.vue'
 import CredentialImportModal from '@/components/account/CredentialImportModal.vue'
 import PlatformTypeBadge from '@/components/common/PlatformTypeBadge.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 import ErrorPassthroughRulesModal from '@/components/admin/ErrorPassthroughRulesModal.vue'
 import TLSFingerprintProfilesModal from '@/components/admin/TLSFingerprintProfilesModal.vue'
 import { buildOpenAIUsageRefreshKey } from '@/utils/accountUsageRefresh'

@@ -403,6 +403,7 @@ type BetaPolicySettings struct {
 
 // OpenAIFastPolicyRule OpenAI fast/flex 策略规则 DTO
 type OpenAIFastPolicyRule struct {
+	UserIDs              []int64  `json:"user_ids,omitempty"`
 	ServiceTier          string   `json:"service_tier"`
 	Action               string   `json:"action"`
 	Scope                string   `json:"scope"`

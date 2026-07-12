@@ -4152,6 +4152,7 @@ func (s *SettingService) SetOpenAIFastPolicySettings(ctx context.Context, settin
 
 	validActions := map[string]bool{
 		BetaPolicyActionPass: true, BetaPolicyActionFilter: true, BetaPolicyActionBlock: true,
+		OpenAIFastPolicyActionForcePriority: true,
 	}
 	validScopes := map[string]bool{
 		BetaPolicyScopeAll: true, BetaPolicyScopeOAuth: true, BetaPolicyScopeAPIKey: true, BetaPolicyScopeBedrock: true,
@@ -4174,6 +4175,16 @@ func (s *SettingService) SetOpenAIFastPolicySettings(ctx context.Context, settin
 		}
 		if !validScopes[rule.Scope] {
 			return fmt.Errorf("rule[%d]: invalid scope %q", i, rule.Scope)
+		}
+		seenUserIDs := make(map[int64]struct{}, len(rule.UserIDs))
+		for j, userID := range rule.UserIDs {
+			if userID <= 0 {
+				return fmt.Errorf("rule[%d]: user_ids[%d] must be positive", i, j)
+			}
+			if _, exists := seenUserIDs[userID]; exists {
+				return fmt.Errorf("rule[%d]: user_ids[%d] duplicates user_id %d", i, j, userID)
+			}
+			seenUserIDs[userID] = struct{}{}
 		}
 		for j, pattern := range rule.ModelWhitelist {
 			trimmed := strings.TrimSpace(pattern)

@@ -1,14 +1,9 @@
 <template>
-  <div class="card p-4">
+  <section class="border-y border-[var(--app-border)] py-5">
     <div class="mb-4 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2">
-        <span class="rounded-lg bg-amber-100 p-2 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
-          <Icon name="fire" size="sm" />
-        </span>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-          {{ t('admin.usage.tokenLeaderboardTitle') }}
-        </h3>
-      </div>
+      <h3 class="text-sm font-semibold text-[var(--app-text)]">
+        {{ t('admin.usage.tokenLeaderboardTitle') }}
+      </h3>
       <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
         {{ t('admin.usage.tokenLeaderboardTop', { count: maxRows }) }}
       </span>
@@ -66,9 +61,9 @@
               >
                 {{ userLabel(item) }}
               </button>
-              <div class="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-gray-100 dark:bg-dark-700">
+              <div class="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-[var(--app-surface-muted)]">
                 <div
-                  class="h-full rounded-full bg-amber-500"
+                  class="h-full rounded-full bg-[var(--app-text)]"
                   :style="{ width: `${tokenPercent(item.total_tokens)}%` }"
                 />
               </div>
@@ -86,13 +81,12 @@
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Icon from '@/components/icons/Icon.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import type { UserBreakdownItem } from '@/types'
 
@@ -123,10 +117,8 @@ const tokenPercent = (tokens: number): number => {
 }
 
 const rankClass = (index: number): string => {
-  if (index === 0) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
-  if (index === 1) return 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
-  if (index === 2) return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-  return 'bg-gray-100 text-gray-500 dark:bg-dark-700 dark:text-gray-400'
+  if (index === 0) return 'bg-[var(--app-text)] text-[var(--app-bg)]'
+  return 'bg-[var(--app-surface-muted)] text-[var(--app-muted-strong)]'
 }
 
 const formatTokens = (value: number): string => {

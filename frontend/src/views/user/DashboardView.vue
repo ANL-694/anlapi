@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="space-y-6">
+    <UiPage width="wide">
       <div v-if="loading" class="flex items-center justify-center py-12">
         <LoadingSpinner />
       </div>
@@ -17,6 +17,7 @@
           @granularityChange="loadTimeRangeData"
           @refresh="refreshAll"
         />
+        <UserDashboardPlatformUsage :stats="stats" />
         <UserAccountSharingStats
           :stats="accountSharingStats"
           :loading="loadingAccountSharing"
@@ -26,16 +27,9 @@
           @update:page="handleAccountSharingPageChange"
           @update:pageSize="handleAccountSharingPageSizeChange"
         />
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div class="lg:col-span-2">
-            <UserDashboardRecentUsage :data="recentUsage" :loading="loadingUsage" />
-          </div>
-          <div class="lg:col-span-1">
-            <UserDashboardQuickActions />
-          </div>
-        </div>
+        <UserDashboardRecentUsage :data="recentUsage" :loading="loadingUsage" />
       </template>
-    </div>
+    </UiPage>
   </AppLayout>
 </template>
 
@@ -45,10 +39,11 @@ import { useAuthStore } from '@/stores/auth'
 import { usageAPI, type AccountSharingDashboardStats, type UserDashboardStats as UserStatsType } from '@/api/usage'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import { UiPage } from '@/ui'
 import UserDashboardStats from '@/components/user/dashboard/UserDashboardStats.vue'
+import UserDashboardPlatformUsage from '@/components/user/dashboard/UserDashboardPlatformUsage.vue'
 import UserDashboardCharts from '@/components/user/dashboard/UserDashboardCharts.vue'
 import UserDashboardRecentUsage from '@/components/user/dashboard/UserDashboardRecentUsage.vue'
-import UserDashboardQuickActions from '@/components/user/dashboard/UserDashboardQuickActions.vue'
 import UserAccountSharingStats from '@/components/user/dashboard/UserAccountSharingStats.vue'
 import type { ModelStat, TrendDataPoint, UsageLog } from '@/types'
 

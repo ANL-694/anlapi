@@ -436,7 +436,7 @@ onUnmounted(() => {
 <style scoped>
 .select-trigger {
   @apply flex w-full items-center justify-between gap-2;
-  @apply rounded-xl px-4 py-2.5 text-sm;
+  @apply px-3 py-2.5 text-sm;
   @apply transition-colors duration-150;
   @apply focus:outline-none;
   @apply cursor-pointer;
@@ -444,6 +444,7 @@ onUnmounted(() => {
   border: 1px solid var(--app-border);
   color: var(--app-text);
   box-shadow: none;
+  border-radius: var(--ui-radius-lg);
 }
 
 .select-trigger:hover {
@@ -462,13 +463,13 @@ onUnmounted(() => {
 }
 
 .select-trigger-open {
-  border-color: rgba(16, 163, 127, 0.62);
-  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.14);
+  border-color: var(--ui-text-secondary);
+  box-shadow: 0 0 0 3px var(--ui-focus);
 }
 
 .dark .select-trigger-open {
-  border-color: rgba(16, 163, 127, 0.72);
-  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.18);
+  border-color: var(--ui-text-secondary);
+  box-shadow: 0 0 0 3px var(--ui-focus);
 }
 
 .select-trigger-error {
@@ -501,7 +502,6 @@ onUnmounted(() => {
 <style>
 .select-dropdown-portal {
   @apply min-w-0;
-  @apply rounded-xl;
   @apply overflow-hidden;
   background: var(--app-surface);
   border: 1px solid var(--app-border);
@@ -510,6 +510,7 @@ onUnmounted(() => {
   min-width: min(200px, calc(100vw - 1rem));
   max-width: calc(100vw - 1rem);
   pointer-events: auto !important;
+  border-radius: var(--ui-radius-lg);
 }
 
 .dark .select-dropdown-portal {

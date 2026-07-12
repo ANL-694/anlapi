@@ -1,9 +1,8 @@
 <template>
   <AppLayout>
-    <div class="space-y-4">
-      <!-- Filters -->
-      <div class="card p-4">
-        <div class="flex flex-wrap items-center gap-3">
+    <UiPage width="wide" density="compact">
+      <section class="orders-panel">
+        <div class="orders-toolbar">
           <Select v-model="currentFilter" :options="statusFilters" class="w-36" @change="fetchOrders" />
           <div class="flex flex-1 items-center justify-end gap-2">
             <button @click="fetchOrders" :disabled="loading" class="btn btn-secondary" :title="t('common.refresh')">
@@ -12,27 +11,28 @@
             <button class="btn btn-primary" @click="router.push('/purchase')">{{ t('payment.result.backToRecharge') }}</button>
           </div>
         </div>
-      </div>
 
-      <!-- Table -->
-      <OrderTable :orders="orders" :loading="loading">
-        <template #actions="{ row }">
-          <div class="flex flex-wrap items-center gap-2">
-            <button v-if="canViewStoreCards(row)" @click="openStoreOrderDialog(row)" class="inline-flex min-h-[2.25rem] items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20">
-              <Icon name="key" size="sm" />
-              <span>{{ t('payment.orders.viewCards') }}</span>
-            </button>
-            <button v-if="row.status === 'PENDING'" @click="handleCancel(row.id)" class="inline-flex min-h-[2.25rem] items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
-              <Icon name="x" size="sm" />
-              <span>{{ t('payment.orders.cancel') }}</span>
-            </button>
-            <button v-if="canRequestRefund(row)" @click="openRefundDialog(row)" class="inline-flex min-h-[2.25rem] items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
-              <Icon name="dollar" size="sm" />
-              <span>{{ t('payment.orders.requestRefund') }}</span>
-            </button>
-          </div>
-        </template>
-      </OrderTable>
+        <div class="orders-table">
+          <OrderTable :orders="orders" :loading="loading">
+            <template #actions="{ row }">
+              <div class="flex flex-wrap items-center gap-2">
+                <button v-if="canViewStoreCards(row)" @click="openStoreOrderDialog(row)" class="inline-flex min-h-[2.25rem] items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[var(--ui-text-secondary)] hover:bg-[var(--ui-surface-subtle)] hover:text-[var(--ui-text)]">
+                  <Icon name="key" size="sm" />
+                  <span>{{ t('payment.orders.viewCards') }}</span>
+                </button>
+                <button v-if="row.status === 'PENDING'" @click="handleCancel(row.id)" class="inline-flex min-h-[2.25rem] items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[var(--ui-warning)] hover:bg-[var(--ui-warning-soft)]">
+                  <Icon name="x" size="sm" />
+                  <span>{{ t('payment.orders.cancel') }}</span>
+                </button>
+                <button v-if="canRequestRefund(row)" @click="openRefundDialog(row)" class="inline-flex min-h-[2.25rem] items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[var(--ui-text-secondary)] hover:bg-[var(--ui-surface-subtle)] hover:text-[var(--ui-text)]">
+                  <Icon name="dollar" size="sm" />
+                  <span>{{ t('payment.orders.requestRefund') }}</span>
+                </button>
+              </div>
+            </template>
+          </OrderTable>
+        </div>
+      </section>
 
       <!-- Pagination -->
       <Pagination
@@ -43,7 +43,7 @@
         @update:page="handlePageChange"
         @update:pageSize="handlePageSizeChange"
       />
-    </div>
+    </UiPage>
 
     <!-- Cancel Confirm Dialog -->
     <BaseDialog :show="!!cancelTargetId" :title="t('payment.orders.cancel')" width="narrow" @close="cancelTargetId = null">
@@ -178,6 +178,7 @@ import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
 import OrderTable from '@/components/payment/OrderTable.vue'
 import DeliveredFilesList from '@/components/store/DeliveredFilesList.vue'
+import { UiPage } from '@/ui'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -307,3 +308,53 @@ async function loadRefundEligibility() {
 
 onMounted(() => { fetchOrders(); loadRefundEligibility() })
 </script>
+
+<style scoped>
+.orders-panel {
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+.orders-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.orders-table :deep(.table-wrapper) {
+  border: 0;
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  .orders-toolbar {
+    padding: 0.75rem;
+  }
+
+  .orders-toolbar > div {
+    width: auto;
+  }
+
+  .orders-table {
+    padding: 0.75rem;
+  }
+
+  .orders-table :deep(.mobile-data-card) {
+    padding: 0.875rem 0;
+    border: 0;
+    border-bottom: 1px solid var(--ui-border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .orders-table :deep(.mobile-data-card:last-child) {
+    border-bottom: 0;
+  }
+}
+</style>

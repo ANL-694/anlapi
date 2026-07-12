@@ -1,8 +1,8 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-4xl space-y-6">
+    <UiPage width="standard" density="compact" class="purchase-shell">
       <div v-if="loading" class="flex items-center justify-center py-20">
-        <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-[var(--ui-text)] border-t-transparent"></div>
       </div>
       <template v-else-if="externalPurchaseEnabled">
         <section
@@ -68,10 +68,11 @@
       </template>
       <template v-else>
         <!-- Tab Switcher (hide during payment and subscription confirm) -->
-        <div v-if="tabs.length > 1 && paymentPhase === 'select' && !selectedPlan" class="flex space-x-1 rounded-lg border border-[#d9d9e3] bg-[#f3f3f6] p-1 dark:border-[#3f3f46] dark:bg-[#212121]">
+        <div v-if="tabs.length > 1 && paymentPhase === 'select' && !selectedPlan" class="purchase-tabs" role="tablist">
           <button v-for="tab in tabs" :key="tab.key"
-            class="flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all"
-            :class="activeTab === tab.key ? 'bg-[#ffffff] text-[#171717] shadow-sm dark:bg-[#2f2f2f] dark:text-[#ececf1]' : 'text-[#6e6e80] hover:text-[#171717] dark:text-[#c5c5d2] dark:hover:text-[#ececf1]'"
+            role="tab"
+            :aria-selected="activeTab === tab.key"
+            :class="['purchase-tab', { 'purchase-tab--active': activeTab === tab.key }]"
             @click="activeTab = tab.key">{{ tab.label }}</button>
         </div>
         <!-- Payment in progress (shared by recharge and subscription) -->
@@ -92,40 +93,45 @@
         <template v-else>
           <!-- Top-up Tab -->
           <template v-if="activeTab === 'recharge'">
-            <!-- Recharge Account Card -->
-            <div class="card p-5">
-              <p class="text-xs font-medium text-gray-400 dark:text-gray-500">{{ t('payment.rechargeAccount') }}</p>
-              <p class="mt-1 text-base font-semibold text-gray-900 dark:text-white">{{ user?.username || '' }}</p>
-              <p class="mt-0.5 text-sm font-medium text-green-600 dark:text-green-400">{{ t('payment.currentBalance') }}: {{ user?.balance?.toFixed(2) || '0.00' }}</p>
+            <div class="purchase-account">
+              <div>
+                <p>{{ t('payment.rechargeAccount') }}</p>
+                <strong>{{ user?.username || '' }}</strong>
+              </div>
+              <div class="purchase-balance">
+                <p>{{ t('payment.currentBalance') }}</p>
+                <strong>${{ user?.balance?.toFixed(2) || '0.00' }}</strong>
+              </div>
             </div>
-            <div v-if="enabledMethods.length === 0" class="card py-16 text-center">
-              <p class="text-gray-500 dark:text-gray-400">{{ t('payment.notAvailable') }}</p>
+            <div v-if="enabledMethods.length === 0" class="purchase-panel py-16 text-center">
+              <p class="text-[var(--ui-text-tertiary)]">{{ t('payment.notAvailable') }}</p>
             </div>
             <template v-else>
-            <div class="card p-6">
+            <section class="purchase-panel">
+            <div class="purchase-section">
               <AmountInput
                 v-model="amount"
                 :amounts="RECHARGE_QUICK_AMOUNTS"
                 :min="rechargeMinAmount"
                 :max="rechargeMaxAmount"
               />
-              <p v-if="rechargeAmountHint" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <p v-if="rechargeAmountHint" class="mt-2 text-xs text-[var(--ui-text-tertiary)]">
                 {{ rechargeAmountHint }}
               </p>
               <p v-if="amountError" class="mt-2 text-xs text-amber-600 dark:text-amber-300">{{ amountError }}</p>
             </div>
-            <div v-if="enabledMethods.length >= 1" class="card p-6">
+            <div v-if="enabledMethods.length >= 1" class="purchase-section">
               <PaymentMethodSelector
                 :methods="methodOptions"
                 :selected="selectedMethod"
                 @select="selectedMethod = $event"
               />
             </div>
-            <div v-if="validAmount > 0" class="card p-6">
+            <div v-if="validAmount > 0" class="purchase-section">
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between">
-                  <span class="text-gray-500 dark:text-gray-400">{{ t('payment.paymentAmount') }}</span>
-                  <span class="text-gray-900 dark:text-white">¥{{ validAmount.toFixed(2) }}</span>
+                  <span class="text-[var(--ui-text-tertiary)]">{{ t('payment.paymentAmount') }}</span>
+                  <span class="text-[var(--ui-text)]">¥{{ validAmount.toFixed(2) }}</span>
                 </div>
                 <div v-if="feeRate > 0" class="flex justify-between">
                   <span class="text-gray-500 dark:text-gray-400">{{ t('payment.fee') }} ({{ feeRate }}%)</span>
@@ -144,7 +150,8 @@
                 </p>
               </div>
             </div>
-            <button :class="['btn w-full py-3 text-base font-medium', paymentButtonClass]" :disabled="!canSubmit || submitting" @click="handleSubmitRecharge">
+            </section>
+            <button class="btn btn-primary w-full py-3 text-base font-medium" :disabled="!canSubmit || submitting" @click="handleSubmitRecharge">
               <span v-if="submitting" class="flex items-center justify-center gap-2">
                 <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                 {{ t('common.processing') }}
@@ -283,7 +290,7 @@
           </div>
         </div>
       </template>
-    </div>
+    </UiPage>
     <!-- Renewal Plan Selection Modal -->
     <Teleport to="body">
       <Transition name="modal">
@@ -353,6 +360,7 @@ import { platformLabel } from '@/utils/platformColors'
 import SubscriptionPlanCard from '@/components/payment/SubscriptionPlanCard.vue'
 import PaymentStatusPanel from '@/components/payment/PaymentStatusPanel.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiPage } from '@/ui'
 import type { PaymentMethodOption } from '@/components/payment/PaymentMethodSelector.vue'
 import { formatPaymentAmount, normalizePaymentCurrency } from '@/components/payment/currency'
 import { buildPaymentErrorToastMessage, describePaymentScenarioError } from './paymentUx'
@@ -772,16 +780,6 @@ watch(() => [validAmount.value, selectedMethod.value] as const, ([amt, method]) 
   if (amt <= 0 || amountFitsMethod(amt, method)) return
   const available = enabledMethods.value.find((m) => amountFitsMethod(amt, m))
   if (available) selectedMethod.value = available
-})
-
-// Payment button class: follows selected payment method color
-const paymentButtonClass = computed(() => {
-  const m = selectedMethod.value
-  if (!m) return 'btn-primary'
-  if (m.includes('alipay')) return 'btn-alipay'
-  if (m.includes('wxpay')) return 'btn-wxpay'
-  if (m === 'stripe') return 'btn-stripe'
-  return 'btn-primary'
 })
 
 // Renewal modal state
@@ -1245,3 +1243,90 @@ onMounted(async () => {
   subscriptionStore.fetchActiveSubscriptions().catch(() => {})
 })
 </script>
+
+<style scoped>
+.purchase-tabs {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.purchase-tab {
+  position: relative;
+  min-height: 2.75rem;
+  color: var(--ui-text-tertiary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.purchase-tab::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: transparent;
+  content: '';
+}
+
+.purchase-tab:hover,
+.purchase-tab--active {
+  color: var(--ui-text);
+}
+
+.purchase-tab--active::after {
+  background: var(--ui-text);
+}
+
+.purchase-account {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+.purchase-account p {
+  color: var(--ui-text-tertiary);
+  font-size: 0.75rem;
+}
+
+.purchase-account strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--ui-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.purchase-balance {
+  text-align: right;
+}
+
+.purchase-panel {
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+.purchase-section {
+  padding: 1.125rem;
+}
+
+.purchase-section:not(:last-child) {
+  border-bottom: 1px solid var(--ui-border);
+}
+
+@media (max-width: 640px) {
+  .purchase-account,
+  .purchase-section {
+    padding: 0.875rem;
+  }
+}
+</style>

@@ -2,97 +2,35 @@
   <AppLayout>
     <TablePageLayout>
       <template #actions>
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <!-- Total Requests -->
-          <div class="card p-4">
-          <div class="flex items-center gap-3">
-            <div class="rounded-xl bg-[var(--app-primary-soft)] p-2">
-              <Icon name="document" size="md" class="text-[var(--app-primary)]" />
-            </div>
-            <div>
-              <p class="text-xs font-medium text-[var(--app-muted)]">
-                {{ t('usage.totalRequests') }}
-              </p>
-              <p class="text-xl font-bold text-[var(--app-text)]">
-                {{ usageStats?.total_requests?.toLocaleString() || '0' }}
-              </p>
-              <p class="text-xs text-[var(--app-muted)]">
-                {{ t('usage.inSelectedRange') }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Total Tokens -->
-        <div class="card p-4">
-          <div class="flex items-center gap-3">
-            <div class="rounded-xl bg-[var(--app-surface-muted)] p-2">
-              <Icon name="cube" size="md" class="text-[var(--app-muted-strong)]" />
-            </div>
-            <div>
-              <p class="text-xs font-medium text-[var(--app-muted)]">
-                {{ t('usage.totalTokens') }}
-              </p>
-              <p class="text-xl font-bold text-[var(--app-text)]">
-                {{ formatTokens(usageStats?.total_tokens || 0) }}
-              </p>
-              <p class="text-xs text-[var(--app-muted)]">
-                {{ t('usage.in') }}: {{ formatTokens(usageStats?.total_input_tokens || 0) }} /
-                {{ t('usage.out') }}: {{ formatTokens(usageStats?.total_output_tokens || 0) }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Total Cost -->
-        <div class="card p-4">
-          <div class="flex items-center gap-3">
-            <div class="rounded-xl bg-[var(--app-primary-soft)] p-2">
-              <Icon name="dollar" size="md" class="text-[var(--app-primary)]" />
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="text-xs font-medium text-[var(--app-muted)]">
-                {{ t('usage.totalCost') }}
-              </p>
-              <p class="text-xl font-bold text-[var(--app-primary-hover)]">
-                ${{ (usageStats?.total_actual_cost || 0).toFixed(4) }}
-              </p>
-              <p class="text-xs text-[var(--app-muted)]">
-                {{ t('usage.actualCost') }} /
-                <span class="line-through">${{ (usageStats?.total_cost || 0).toFixed(4) }}</span>
-                {{ t('usage.standardCost') }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Average Duration -->
-        <div class="card p-4">
-          <div class="flex items-center gap-3">
-            <div class="rounded-xl bg-[var(--app-surface-muted)] p-2">
-              <Icon name="clock" size="md" class="text-[var(--app-muted-strong)]" />
-            </div>
-            <div>
-              <p class="text-xs font-medium text-[var(--app-muted)]">
-                {{ t('usage.avgDuration') }}
-              </p>
-              <p class="text-xl font-bold text-[var(--app-text)]">
-                {{ formatDuration(usageStats?.average_duration_ms || 0) }}
-              </p>
-              <p class="text-xs text-[var(--app-muted)]">{{ t('usage.perRequest') }}</p>
-            </div>
-          </div>
-        </div>
-        </div>
+        <UiMetricStrip :style="{ '--metric-columns': 4 }">
+          <UiMetric
+            :label="t('usage.totalRequests')"
+            :value="usageStats?.total_requests?.toLocaleString() || '0'"
+            :detail="t('usage.inSelectedRange')"
+          />
+          <UiMetric
+            :label="t('usage.totalTokens')"
+            :value="formatTokens(usageStats?.total_tokens || 0)"
+            :detail="`${t('usage.in')} ${formatTokens(usageStats?.total_input_tokens || 0)} · ${t('usage.out')} ${formatTokens(usageStats?.total_output_tokens || 0)}`"
+          />
+          <UiMetric
+            :label="t('usage.totalCost')"
+            :value="`$${(usageStats?.total_actual_cost || 0).toFixed(4)}`"
+            :detail="`${t('usage.standardCost')} $${(usageStats?.total_cost || 0).toFixed(4)}`"
+          />
+          <UiMetric
+            :label="t('usage.avgDuration')"
+            :value="formatDuration(usageStats?.average_duration_ms || 0)"
+            :detail="t('usage.perRequest')"
+          />
+        </UiMetricStrip>
       </template>
 
       <template #filters>
-        <div class="card">
-          <div class="px-6 py-4">
-          <div class="flex flex-wrap items-end gap-4">
-            <!-- API Key Filter -->
-            <div class="min-w-[180px]">
-              <label class="input-label">{{ t('usage.apiKeyFilter') }}</label>
+        <UiToolbar class="usage-toolbar">
+          <div class="usage-filter-controls">
+            <div class="usage-filter-field">
+              <label>{{ t('usage.apiKeyFilter') }}</label>
               <Select
                 v-model="filters.api_key_id"
                 :options="apiKeyOptions"
@@ -101,56 +39,35 @@
               />
             </div>
 
-            <!-- Date Range Filter -->
-            <div>
-              <label class="input-label">{{ t('usage.timeRange') }}</label>
+            <div class="usage-filter-field">
+              <label>{{ t('usage.timeRange') }}</label>
               <DateRangePicker
                 v-model:start-date="startDate"
                 v-model:end-date="endDate"
                 @change="onDateRangeChange"
               />
             </div>
-
-            <!-- Actions -->
-            <div class="ml-auto flex items-center gap-3">
-              <button @click="applyFilters" :disabled="loading" class="btn btn-secondary">
-                {{ t('common.refresh') }}
-              </button>
-              <button @click="resetFilters" class="btn btn-secondary">
-                {{ t('common.reset') }}
-              </button>
-              <button @click="exportToCSV" :disabled="exporting" class="btn btn-primary">
-                <svg
-                  v-if="exporting"
-                  class="-ml-1 mr-2 h-4 w-4 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  ></circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                {{ exporting ? t('usage.exporting') : t('usage.exportCsv') }}
-              </button>
-            </div>
           </div>
-        </div>
-        </div>
+
+          <template #actions>
+            <UiIconButton :label="t('common.refresh')" :disabled="loading" @click="applyFilters">
+              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+            </UiIconButton>
+            <button @click="resetFilters" class="btn btn-secondary">
+              {{ t('common.reset') }}
+            </button>
+            <button @click="exportToCSV" :disabled="exporting" class="btn btn-primary">
+              <Icon name="download" size="sm" :class="exporting ? 'animate-pulse' : ''" />
+              {{ exporting ? t('usage.exporting') : t('usage.exportCsv') }}
+            </button>
+          </template>
+        </UiToolbar>
       </template>
 
       <template #table>
-        <DataTable
-          :columns="columns"
+        <div class="usage-table-shell">
+          <DataTable
+          :columns="displayColumns"
           :data="usageLogs"
           :loading="loading"
           :server-side-sort="true"
@@ -353,7 +270,8 @@
           <template #empty>
             <EmptyState :message="t('usage.noRecords')" />
           </template>
-        </DataTable>
+          </DataTable>
+        </div>
       </template>
 
       <template #pagination>
@@ -542,7 +460,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { usageAPI, keysAPI } from '@/api'
@@ -554,6 +472,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import Select from '@/components/common/Select.vue'
 import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton, UiMetric, UiMetricStrip, UiToolbar } from '@/ui'
 import type { UsageLog, ApiKey, UsageQueryParams, UsageStatsResponse } from '@/types'
 import type { Column } from '@/components/common/types'
 import { formatDateTime, formatReasoningEffort } from '@/utils/format'
@@ -599,6 +518,28 @@ const columns = computed<Column[]>(() => [
   { key: 'created_at', label: t('usage.time'), sortable: true },
   { key: 'user_agent', label: t('usage.userAgent'), sortable: false }
 ])
+
+const compactViewport = ref(
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+)
+let usageViewportMediaQuery: MediaQueryList | null = null
+let usageViewportListener: ((event: MediaQueryListEvent) => void) | null = null
+const compactColumnKeys = new Set([
+  'api_key',
+  'model',
+  'reasoning_effort',
+  'reasoning_tokens',
+  'stream',
+  'tokens',
+  'cost',
+  'first_token',
+  'created_at'
+])
+const displayColumns = computed(() => (
+  compactViewport.value
+    ? columns.value.filter((column) => compactColumnKeys.has(column.key))
+    : columns.value
+))
 
 const usageLogs = ref<UsageLog[]>([])
 const apiKeys = ref<ApiKey[]>([])
@@ -1037,8 +978,77 @@ const hideTokenTooltip = () => {
 }
 
 onMounted(() => {
+  usageViewportMediaQuery = window.matchMedia('(max-width: 767px)')
+  compactViewport.value = usageViewportMediaQuery.matches
+  usageViewportListener = (event: MediaQueryListEvent) => {
+    compactViewport.value = event.matches
+  }
+  usageViewportMediaQuery.addEventListener('change', usageViewportListener)
   loadApiKeys()
   loadUsageLogs()
   loadUsageStats()
 })
+
+onUnmounted(() => {
+  if (usageViewportMediaQuery && usageViewportListener) {
+    usageViewportMediaQuery.removeEventListener('change', usageViewportListener)
+  }
+  usageViewportMediaQuery = null
+  usageViewportListener = null
+})
 </script>
+
+<style scoped>
+.usage-filter-controls {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.usage-filter-field {
+  min-width: 11rem;
+}
+
+.usage-filter-field > label {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: var(--ui-text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.usage-table-shell {
+  min-width: 0;
+}
+
+.usage-table-shell :deep(.table-wrapper) {
+  border: 0;
+  border-radius: 0;
+}
+
+.usage-table-shell :deep(.sticky-header-cell),
+.usage-table-shell :deep(.table-header) {
+  background: var(--ui-bg);
+}
+
+@media (max-width: 640px) {
+  .usage-filter-controls,
+  .usage-filter-field {
+    width: 100%;
+  }
+
+  .usage-filter-field {
+    min-width: 0;
+  }
+
+  .usage-toolbar :deep(.ui-toolbar-actions) {
+    width: 100%;
+  }
+
+  .usage-toolbar :deep(.ui-toolbar-actions .btn-primary) {
+    margin-left: auto;
+  }
+}
+</style>

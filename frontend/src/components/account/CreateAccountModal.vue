@@ -3687,12 +3687,6 @@ const showHeaderOverrideEditor = computed(() =>
   isHeaderOverridePlatform(form.platform)
 )
 
-watch(() => [form.platform, form.type, isUserScope.value], () => {
-  if (!showHeaderOverrideEditor.value) {
-    headerOverrideEnabled.value = false
-    headerOverrideRows.value = []
-  }
-})
 const customProtocolOptions = computed<Array<{ value: CustomAccountProtocol; label: string }>>(() => [
   { value: 'openai_chat_completions', label: t('admin.accounts.custom.protocolOptions.openaiChatCompletions') },
   { value: 'openai_responses', label: t('admin.accounts.custom.protocolOptions.openaiResponses') },
@@ -4063,6 +4057,13 @@ const form = reactive({
   rate_multiplier: 1,
   group_ids: [] as number[],
   expires_at: null as number | null
+})
+
+watch(() => [form.platform, form.type, isUserScope.value], () => {
+  if (!showHeaderOverrideEditor.value) {
+    headerOverrideEnabled.value = false
+    headerOverrideRows.value = []
+  }
 })
 
 const adminAccountLevelOptions = computed(() => [

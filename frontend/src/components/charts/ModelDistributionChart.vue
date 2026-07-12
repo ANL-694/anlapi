@@ -1,7 +1,7 @@
 <template>
-  <div class="card p-4">
-    <div class="mb-4 flex items-center justify-between gap-3">
-      <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+  <section class="distribution-chart">
+    <div class="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+      <h3 class="text-sm font-semibold text-[var(--ui-text)]">
         {{ !enableRankingView || activeView === 'model_distribution'
           ? t('admin.dashboard.modelDistribution')
           : t('admin.dashboard.spendingRankingTitle') }}
@@ -9,14 +9,14 @@
       <div class="flex flex-wrap items-center justify-end gap-2">
         <div
           v-if="showSourceToggle"
-          class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-gray-700 dark:bg-dark-800"
+          class="inline-flex rounded-lg bg-[var(--ui-surface-subtle)] p-0.5"
         >
           <button
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="source === 'requested'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:source', 'requested')"
           >
             {{ t('usage.requestedModel') }}
@@ -25,8 +25,8 @@
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="source === 'upstream'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:source', 'upstream')"
           >
             {{ t('usage.upstreamModel') }}
@@ -35,8 +35,8 @@
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="source === 'mapping'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:source', 'mapping')"
           >
             {{ t('usage.mapping') }}
@@ -44,14 +44,14 @@
         </div>
         <div
           v-if="showMetricToggle"
-          class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-gray-700 dark:bg-dark-800"
+          class="inline-flex rounded-lg bg-[var(--ui-surface-subtle)] p-0.5"
         >
           <button
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="metric === 'tokens'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:metric', 'tokens')"
           >
             {{ t('admin.dashboard.metricTokens') }}
@@ -60,21 +60,21 @@
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="metric === 'actual_cost'
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+              ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+              : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'"
             @click="emit('update:metric', 'actual_cost')"
           >
             {{ t('admin.dashboard.metricActualCost') }}
           </button>
         </div>
-        <div v-if="enableRankingView" class="inline-flex rounded-lg bg-gray-100 p-1 dark:bg-dark-800">
+        <div v-if="enableRankingView" class="inline-flex rounded-lg bg-[var(--ui-surface-subtle)] p-0.5">
           <button
             type="button"
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="
               activeView === 'model_distribution'
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+                : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'
             "
             @click="activeView = 'model_distribution'"
           >
@@ -85,8 +85,8 @@
             class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
             :class="
               activeView === 'spending_ranking'
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                ? 'bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-sm'
+                : 'text-[var(--ui-text-secondary)] hover:text-[var(--ui-text)]'
             "
             @click="activeView = 'spending_ranking'"
           >
@@ -101,12 +101,12 @@
     </div>
     <div
       v-else-if="activeView === 'model_distribution' && displayModelStats.length > 0 && chartData"
-      class="flex items-center gap-6"
+      class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6"
     >
-      <div class="h-48 w-48">
+      <div class="h-48 w-48 shrink-0 self-center">
         <Doughnut :data="chartData" :options="doughnutOptions" />
       </div>
-      <div class="max-h-48 flex-1 overflow-y-auto">
+      <div class="max-h-48 w-full min-w-0 flex-1 overflow-auto">
         <table class="w-full text-xs">
           <thead>
             <tr class="text-gray-500 dark:text-gray-400">
@@ -121,11 +121,11 @@
           <tbody>
             <template v-for="model in displayModelStats" :key="model.model">
               <tr
-                class="border-t border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-dark-700/40"
+                class="cursor-pointer border-t border-[var(--ui-border)] transition-colors hover:bg-[var(--ui-surface-subtle)]"
                 @click="toggleBreakdown('model', model.model)"
               >
                 <td
-                  class="max-w-[100px] truncate py-1.5 font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  class="max-w-[100px] truncate py-1.5 font-medium text-[var(--ui-text)]"
                   :title="model.model"
                 >
                   <span class="inline-flex items-center gap-1">
@@ -140,13 +140,13 @@
                 <td class="py-1.5 text-right text-gray-600 dark:text-gray-400">
                   {{ formatTokens(model.total_tokens) }}
                 </td>
-                <td class="py-1.5 text-right text-green-600 dark:text-green-400">
+                <td class="py-1.5 text-right text-[var(--ui-text)]">
                   ${{ formatCost(model.actual_cost) }}
                 </td>
-                <td class="py-1.5 text-right text-orange-500 dark:text-orange-400">
+                <td class="py-1.5 text-right text-[var(--ui-text-secondary)]">
                   ${{ formatCost(model.account_cost) }}
                 </td>
-                <td class="py-1.5 text-right text-gray-400 dark:text-gray-500">
+                <td class="py-1.5 text-right text-[var(--ui-text-tertiary)]">
                   ${{ formatCost(model.cost) }}
                 </td>
               </tr>
@@ -179,11 +179,11 @@
     >
       {{ t('admin.dashboard.failedToLoad') }}
     </div>
-    <div v-else-if="rankingDisplayItems.length > 0 && rankingChartData" class="flex items-center gap-6">
-      <div class="h-48 w-48">
+    <div v-else-if="rankingDisplayItems.length > 0 && rankingChartData" class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <div class="h-48 w-48 shrink-0 self-center">
         <Doughnut :data="rankingChartData" :options="rankingDoughnutOptions" />
       </div>
-      <div class="max-h-48 flex-1 overflow-y-auto">
+      <div class="max-h-48 w-full min-w-0 flex-1 overflow-auto">
         <table class="w-full text-xs">
           <thead>
             <tr class="text-gray-500 dark:text-gray-400">
@@ -197,10 +197,10 @@
             <tr
               v-for="(item, index) in rankingDisplayItems"
               :key="item.isOther ? 'others' : `${item.user_id}-${index}`"
-              class="border-t border-gray-100 transition-colors dark:border-gray-700"
+              class="border-t border-[var(--ui-border)] transition-colors"
               :class="item.isOther
-                ? 'bg-gray-50/70 dark:bg-dark-700/20'
-                : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-700/40'"
+                ? 'bg-[var(--ui-surface-subtle)]'
+                : 'cursor-pointer hover:bg-[var(--ui-surface-subtle)]'"
               @click="item.isOther ? undefined : emit('ranking-click', item)"
             >
               <td class="py-1.5">
@@ -222,7 +222,7 @@
               <td class="py-1.5 text-right text-gray-600 dark:text-gray-400">
                 {{ formatTokens(item.tokens) }}
               </td>
-              <td class="py-1.5 text-right text-green-600 dark:text-green-400">
+              <td class="py-1.5 text-right text-[var(--ui-text)]">
                 ${{ formatCost(item.actual_cost) }}
               </td>
             </tr>
@@ -236,7 +236,7 @@
     >
       {{ t('admin.dashboard.noDataAvailable') }}
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -248,6 +248,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import UserBreakdownSubTable from './UserBreakdownSubTable.vue'
 import type { ModelStat, UserSpendingRankingItem, UserBreakdownItem } from '@/types'
 import { getUserBreakdown } from '@/api/admin/dashboard'
+import { chartPaletteFor } from '@/utils/chartPalette'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -330,21 +331,6 @@ const emit = defineEmits<{
 const enableRankingView = computed(() => props.enableRankingView)
 const activeView = ref<'model_distribution' | 'spending_ranking'>('model_distribution')
 
-const chartColors = [
-  '#10a37f',
-  '#3b82f6',
-  '#45d09a',
-  '#ef4444',
-  '#f59e0b',
-  '#f97316',
-  '#2563eb',
-  '#10a37f',
-  '#2563eb',
-  '#60a5fa',
-  '#9b9ba7',
-  '#0a5c4b'
-]
-
 const displayModelStats = computed(() => {
   const sourceStats = props.source === 'upstream'
     ? props.upstreamModelStats
@@ -365,7 +351,7 @@ const chartData = computed(() => {
     datasets: [
       {
         data: displayModelStats.value.map((m) => props.metric === 'actual_cost' ? m.actual_cost : m.total_tokens),
-        backgroundColor: chartColors.slice(0, displayModelStats.value.length),
+        backgroundColor: chartPaletteFor(displayModelStats.value.length),
         borderWidth: 0
       }
     ]
@@ -377,12 +363,12 @@ const rankingChartData = computed(() => {
 
   const labels = props.rankingItems.map((item, index) => `#${index + 1} ${getRankingUserLabel(item)}`)
   const data = props.rankingItems.map((item) => item.actual_cost)
-  const backgroundColor = chartColors.slice(0, props.rankingItems.length)
+  const backgroundColor = chartPaletteFor(props.rankingItems.length)
 
   if (otherRankingItem.value) {
     labels.push(t('admin.dashboard.spendingRankingOther'))
     data.push(otherRankingItem.value.actual_cost)
-    backgroundColor.push('#9b9ba7')
+    backgroundColor.push('#64748B')
   }
 
   return {

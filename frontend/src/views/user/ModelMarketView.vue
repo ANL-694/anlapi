@@ -1,245 +1,106 @@
 <template>
   <AppLayout>
-    <TablePageLayout>
-      <template #filters>
-        <div class="flex flex-col gap-4">
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <div class="relative sm:col-span-2 xl:col-span-2">
-              <Icon
-                name="search"
-                size="md"
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]"
-              />
-              <input
-                v-model="filters.search"
-                type="text"
-                :placeholder="t('modelMarket.searchPlaceholder')"
-                class="input pl-10"
-              />
-            </div>
-
-            <select v-model="filters.platform" class="input">
-              <option value="">{{ t('modelMarket.filters.allPlatforms') }}</option>
-              <option v-for="platform in filterOptions.platforms" :key="platform" :value="platform">
-                {{ platformLabel(platform) }}
-              </option>
-            </select>
-
-            <select v-model="filters.channel" class="input">
-              <option value="">{{ t('modelMarket.filters.allChannels') }}</option>
-              <option v-for="channel in filterOptions.channels" :key="channel" :value="channel">
-                {{ channel }}
-              </option>
-            </select>
-
-            <select v-model="filters.pricing" class="input">
-              <option value="all">{{ t('modelMarket.filters.allPricing') }}</option>
-              <option value="with">{{ t('modelMarket.filters.withPricing') }}</option>
-              <option value="without">{{ t('modelMarket.filters.withoutPricing') }}</option>
-            </select>
-          </div>
-
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-2 text-xs text-[var(--app-muted-strong)]">
-              <span class="rounded-full bg-[var(--app-surface-muted)] px-2.5 py-1">
-                {{ t('modelMarket.summary.groups', { count: filteredItems.length }) }}
-              </span>
-              <span class="rounded-full bg-[var(--app-surface-muted)] px-2.5 py-1">
-                {{ t('modelMarket.summary.models', { count: filteredModelCount }) }}
-              </span>
-              <span class="rounded-full bg-[var(--app-surface-muted)] px-2.5 py-1">
-                {{ t('modelMarket.summary.channels', { count: channels.length }) }}
-              </span>
-            </div>
-
-            <button
-              class="btn btn-secondary"
-              :disabled="loading"
-              :title="t('common.refresh', 'Refresh')"
-              @click="loadMarket"
-            >
-              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
-          </div>
-        </div>
-      </template>
-
-      <template #table>
-        <div class="space-y-3 md:hidden">
-          <div v-if="loading" class="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)]">
-            <Icon name="refresh" size="lg" class="animate-spin text-[var(--app-muted)]" />
-          </div>
-
-          <div v-else-if="filteredItems.length === 0" class="flex min-h-40 flex-col items-center justify-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 text-center">
-            <Icon name="inbox" size="xl" class="mb-3 h-12 w-12 text-[var(--app-muted)]" />
-            <p class="text-sm text-[var(--app-muted-strong)]">{{ t('modelMarket.empty') }}</p>
-          </div>
-
-          <template v-else>
-            <article
-              v-for="item in filteredItems"
-              :key="`mobile-${item.group.id}`"
-              class="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-none"
-            >
-              <button
-                type="button"
-                class="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
-                :aria-expanded="isMarketGroupExpanded(item.group.id)"
-                @click="toggleMarketGroup(item.group.id)"
-              >
-                <div class="min-w-0 flex-1 space-y-2">
-                  <GroupBadge
-                    :name="item.group.name"
-                    :platform="item.group.platform as GroupPlatform"
-                    :subscription-type="(item.group.subscription_type || 'standard') as SubscriptionType"
-                    :rate-multiplier="item.group.rate_multiplier"
-                    :user-rate-multiplier="userGroupRates[item.group.id] ?? null"
-                    always-show-rate
-                  />
-                  <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--app-muted-strong)]">
-                    <span
-                      :class="[
-                        'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-medium',
-                        platformBadgeClass(item.platform)
-                      ]"
-                    >
-                      <PlatformIcon :platform="item.platform as GroupPlatform" size="xs" />
-                      {{ item.platform }}
-                    </span>
-                    <span class="rounded-full bg-[var(--app-surface-muted)] px-2 py-0.5">
-                      {{ item.models.length }} {{ t('modelMarket.columns.models') }}
-                    </span>
-                    <span class="rounded-full bg-[var(--app-surface-muted)] px-2 py-0.5">
-                      {{ item.channels.length }} {{ t('modelMarket.columns.channels') }}
-                    </span>
-                  </div>
-                </div>
-                <Icon
-                  :name="isMarketGroupExpanded(item.group.id) ? 'chevronUp' : 'chevronDown'"
-                  size="sm"
-                  class="mt-1 flex-shrink-0 text-[var(--app-muted)]"
-                />
-              </button>
-
-              <div
-                v-if="isMarketGroupExpanded(item.group.id)"
-                class="space-y-3 border-t border-[var(--app-border)] px-4 py-3"
-              >
-                <div class="flex flex-wrap gap-1.5">
-                  <span
-                    v-for="channel in item.channels"
-                    :key="`mobile-channel-${item.group.id}-${channel.name}`"
-                    class="max-w-full truncate rounded-md bg-[var(--app-surface-muted)] px-2 py-1 text-xs text-[var(--app-muted-strong)]"
-                    :title="channel.description || channel.name"
-                  >
-                    {{ channel.name }}
-                  </span>
-                </div>
-
-                <div class="flex flex-wrap gap-1.5">
-                  <SupportedModelChip
-                    v-for="model in item.models"
-                    :key="`mobile-${model.platform}-${model.name}`"
-                    :model="model"
-                    pricing-key-prefix="availableChannels.pricing"
-                    :no-pricing-label="model.pricing_conflict
-                      ? t('modelMarket.pricingVaries')
-                      : t('availableChannels.noPricing')"
-                    :show-platform="false"
-                    :platform-hint="item.platform"
-                  />
-                </div>
-              </div>
-            </article>
-          </template>
+    <UiPage width="wide" density="compact">
+      <div class="market-toolbar">
+        <div class="market-search">
+          <Icon name="search" size="md" />
+          <input
+            v-model="filters.search"
+            type="search"
+            :placeholder="t('modelMarket.searchPlaceholder')"
+          />
         </div>
 
-        <div class="hidden md:grid md:gap-3">
-          <div v-if="loading" class="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)]">
-            <Icon name="refresh" size="lg" class="animate-spin text-[var(--app-muted)]" />
-          </div>
+        <button
+          type="button"
+          class="market-filter-toggle"
+          :aria-expanded="showMobileFilters"
+          :aria-label="t('modelMarket.filters.advanced')"
+          :title="t('modelMarket.filters.advanced')"
+          @click="showMobileFilters = !showMobileFilters"
+        >
+          <Icon name="filter" size="md" />
+        </button>
 
-          <div v-else-if="filteredItems.length === 0" class="flex min-h-40 flex-col items-center justify-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 text-center">
-            <Icon name="inbox" size="xl" class="mb-3 h-12 w-12 text-[var(--app-muted)]" />
-            <p class="text-sm text-[var(--app-muted-strong)]">{{ t('modelMarket.empty') }}</p>
-          </div>
+        <div class="market-filters" :class="{ 'market-filters--open': showMobileFilters }">
+          <select v-model="filters.platform" class="input" :aria-label="t('modelMarket.filters.allPlatforms')">
+            <option value="">{{ t('modelMarket.filters.allPlatforms') }}</option>
+            <option v-for="platform in filterOptions.platforms" :key="platform" :value="platform">
+              {{ platformLabel(platform) }}
+            </option>
+          </select>
 
-          <article
-            v-else
-            v-for="item in filteredItems"
-            :key="item.group.id"
-            class="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-4 shadow-none"
+          <select v-model="filters.channel" class="input" :aria-label="t('modelMarket.filters.allChannels')">
+            <option value="">{{ t('modelMarket.filters.allChannels') }}</option>
+            <option v-for="channel in filterOptions.channels" :key="channel" :value="channel">
+              {{ channel }}
+            </option>
+          </select>
+
+          <select v-model="filters.pricing" class="input" :aria-label="t('modelMarket.filters.allPricing')">
+            <option value="all">{{ t('modelMarket.filters.allPricing') }}</option>
+            <option value="with">{{ t('modelMarket.filters.withPricing') }}</option>
+            <option value="without">{{ t('modelMarket.filters.withoutPricing') }}</option>
+          </select>
+        </div>
+
+        <UiIconButton :label="t('common.refresh')" :disabled="loading" @click="loadMarket">
+          <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+        </UiIconButton>
+      </div>
+
+      <div class="market-navigation">
+        <div class="market-categories" role="tablist" :aria-label="t('modelMarket.columns.model')">
+          <button
+            v-for="category in categoryOptions"
+            :key="category.key"
+            type="button"
+            role="tab"
+            :aria-selected="filters.category === category.key"
+            :class="['market-category', { 'market-category--active': filters.category === category.key }]"
+            @click="filters.category = category.key"
           >
-            <div class="grid gap-4 lg:grid-cols-[minmax(220px,0.8fr)_minmax(180px,0.6fr)_minmax(360px,1.4fr)] lg:items-start">
-              <div class="min-w-0 space-y-2">
-                <GroupBadge
-                  :name="item.group.name"
-                  :platform="item.group.platform as GroupPlatform"
-                  :subscription-type="(item.group.subscription_type || 'standard') as SubscriptionType"
-                  :rate-multiplier="item.group.rate_multiplier"
-                  :user-rate-multiplier="userGroupRates[item.group.id] ?? null"
-                  always-show-rate
-                />
-                <div class="flex flex-wrap items-center gap-2 text-xs text-[var(--app-muted-strong)]">
-                  <span
-                    :class="[
-                      'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium',
-                      platformBadgeClass(item.platform)
-                    ]"
-                  >
-                    <PlatformIcon :platform="item.platform as GroupPlatform" size="xs" />
-                    {{ item.platform }}
-                  </span>
-                  <span
-                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                    :class="item.has_pricing
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
-                      : 'bg-[var(--app-surface-muted)] text-[var(--app-muted-strong)]'"
-                  >
-                    {{ item.has_pricing ? t('modelMarket.pricingConfigured') : t('availableChannels.noPricing') }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="min-w-0">
-                <div class="mb-2 text-xs font-medium text-[var(--app-muted)]">
-                  {{ t('modelMarket.columns.channels') }}
-                </div>
-                <div class="flex flex-wrap gap-1.5">
-                  <span
-                    v-for="channel in item.channels"
-                    :key="channel.name"
-                    class="max-w-full truncate rounded-md bg-[var(--app-surface-muted)] px-2 py-1 text-xs font-medium text-[var(--app-muted-strong)]"
-                    :title="channel.description || channel.name"
-                  >
-                    {{ channel.name }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="min-w-0">
-                <div class="mb-2 text-xs font-medium text-[var(--app-muted)]">
-                  {{ t('modelMarket.columns.models') }}
-                </div>
-                <div class="flex flex-wrap gap-1.5">
-                  <SupportedModelChip
-                    v-for="model in item.models"
-                    :key="`${model.platform}-${model.name}`"
-                    :model="model"
-                    pricing-key-prefix="availableChannels.pricing"
-                    :no-pricing-label="model.pricing_conflict
-                      ? t('modelMarket.pricingVaries')
-                      : t('availableChannels.noPricing')"
-                    :show-platform="false"
-                    :platform-hint="item.platform"
-                  />
-                </div>
-              </div>
-            </div>
-          </article>
+            {{ t(`modelMarket.categories.${category.key}`) }}
+            <span>{{ category.count }}</span>
+          </button>
         </div>
-      </template>
-    </TablePageLayout>
+
+        <div class="market-summary">
+          <span>{{ t('modelMarket.summary.visibleModels', { count: filteredItems.length }) }}</span>
+          <span aria-hidden="true">·</span>
+          <span>{{ t('modelMarket.summary.groups', { count: filteredGroupCount }) }}</span>
+          <span aria-hidden="true">·</span>
+          <span>{{ t('modelMarket.summary.channels', { count: filteredChannelCount }) }}</span>
+          <button v-if="hasActiveFilters" type="button" @click="clearFilters">
+            {{ t('modelMarket.clearFilters') }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="loading" class="market-loading">
+        <Icon name="refresh" size="lg" class="animate-spin" />
+      </div>
+
+      <div v-else-if="filteredItems.length === 0" class="market-empty">
+        <Icon name="inbox" size="xl" />
+        <p>{{ t('modelMarket.empty') }}</p>
+      </div>
+
+      <div v-else class="market-grid">
+        <ModelMarketCard
+          v-for="item in filteredItems"
+          :key="item.key"
+          :item="item"
+          @select="selectedItem = $event"
+        />
+      </div>
+    </UiPage>
+
+    <ModelMarketDetailDialog
+      :item="selectedItem"
+      :user-group-rates="userGroupRates"
+      @close="selectedItem = null"
+    />
   </AppLayout>
 </template>
 
@@ -247,23 +108,24 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
-import PlatformIcon from '@/components/common/PlatformIcon.vue'
-import GroupBadge from '@/components/common/GroupBadge.vue'
-import SupportedModelChip from '@/components/channels/SupportedModelChip.vue'
+import ModelMarketCard from '@/components/channels/model-market/ModelMarketCard.vue'
+import ModelMarketDetailDialog from '@/components/channels/model-market/ModelMarketDetailDialog.vue'
 import userChannelsAPI, { type UserAvailableChannel } from '@/api/channels'
 import userGroupsAPI from '@/api/groups'
 import { useAppStore } from '@/stores/app'
-import type { GroupPlatform, SubscriptionType } from '@/types'
+import { UiIconButton, UiPage } from '@/ui'
 import { extractApiErrorMessage } from '@/utils/apiError'
-import { platformBadgeClass, platformLabel } from '@/utils/platformColors'
+import { platformLabel } from '@/utils/platformColors'
 import {
-  buildModelMarketItems,
-  countModelMarketModels,
-  filterModelMarketItems,
-  getModelMarketFilterOptions,
-  type ModelMarketFilters
+  buildModelCatalogItems,
+  countModelCatalogChannels,
+  countModelCatalogGroups,
+  filterModelCatalogItems,
+  getModelCatalogFilterOptions,
+  type ModelMarketCatalogItem,
+  type ModelMarketCategoryKey,
+  type ModelMarketFilters,
 } from '@/utils/modelMarket'
 
 const { t } = useI18n()
@@ -272,31 +134,57 @@ const appStore = useAppStore()
 const channels = ref<UserAvailableChannel[]>([])
 const userGroupRates = ref<Record<number, number>>({})
 const loading = ref(false)
+const showMobileFilters = ref(false)
+const selectedItem = ref<ModelMarketCatalogItem | null>(null)
 const filters = reactive<ModelMarketFilters>({
   search: '',
+  category: 'all',
   platform: '',
   channel: '',
-  pricing: 'all'
+  pricing: 'all',
 })
 
-const marketItems = computed(() => buildModelMarketItems(channels.value))
-const filterOptions = computed(() => getModelMarketFilterOptions(marketItems.value))
-const filteredItems = computed(() => filterModelMarketItems(marketItems.value, filters))
-const filteredModelCount = computed(() => countModelMarketModels(filteredItems.value))
-const expandedMarketGroupIds = ref<Set<number>>(new Set())
+const categoryOrder: ModelMarketCategoryKey[] = [
+  'all',
+  'openai',
+  'anthropic',
+  'gemini',
+  'qwen',
+  'deepseek',
+  'zhipu',
+  'image',
+  'embedding',
+  'other',
+]
 
-function isMarketGroupExpanded(groupId: number): boolean {
-  return expandedMarketGroupIds.value.has(groupId)
-}
+const catalogItems = computed(() => buildModelCatalogItems(channels.value))
+const filterOptions = computed(() => getModelCatalogFilterOptions(catalogItems.value))
+const filteredItems = computed(() => filterModelCatalogItems(catalogItems.value, filters))
+const filteredGroupCount = computed(() => countModelCatalogGroups(filteredItems.value))
+const filteredChannelCount = computed(() => countModelCatalogChannels(filteredItems.value))
+const categoryOptions = computed(() => categoryOrder
+  .map((key) => ({
+    key,
+    count: key === 'all'
+      ? catalogItems.value.length
+      : catalogItems.value.filter((item) => item.category === key).length,
+  }))
+  .filter((item) => item.key === 'all' || item.count > 0))
 
-function toggleMarketGroup(groupId: number) {
-  const next = new Set(expandedMarketGroupIds.value)
-  if (next.has(groupId)) {
-    next.delete(groupId)
-  } else {
-    next.add(groupId)
-  }
-  expandedMarketGroupIds.value = next
+const hasActiveFilters = computed(() => (
+  filters.search.trim() !== '' ||
+  filters.category !== 'all' ||
+  filters.platform !== '' ||
+  filters.channel !== '' ||
+  filters.pricing !== 'all'
+))
+
+function clearFilters() {
+  filters.search = ''
+  filters.category = 'all'
+  filters.platform = ''
+  filters.channel = ''
+  filters.pricing = 'all'
 }
 
 async function loadMarket() {
@@ -307,7 +195,7 @@ async function loadMarket() {
       userGroupsAPI.getUserGroupRates().catch((err: unknown) => {
         console.error('Failed to load user group rates:', err)
         return {} as Record<number, number>
-      })
+      }),
     ])
     channels.value = list
     userGroupRates.value = rates
@@ -320,3 +208,225 @@ async function loadMarket() {
 
 onMounted(loadMarket)
 </script>
+
+<style scoped>
+.market-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.market-search {
+  display: flex;
+  min-width: 16rem;
+  max-width: 34rem;
+  flex: 1 1 24rem;
+  height: 2.625rem;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+  color: var(--ui-text-tertiary);
+}
+
+.market-search:focus-within {
+  border-color: var(--ui-border-strong);
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+.market-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ui-text);
+  font-size: 0.875rem;
+}
+
+.market-search input::placeholder {
+  color: var(--ui-text-tertiary);
+}
+
+.market-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.market-filters .input {
+  width: 9.75rem;
+  min-height: 2.625rem;
+}
+
+.market-filter-toggle {
+  display: none;
+  width: 2.625rem;
+  height: 2.625rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  color: var(--ui-text-secondary);
+}
+
+.market-navigation {
+  min-width: 0;
+}
+
+.market-categories {
+  display: flex;
+  min-width: 0;
+  gap: 1.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ui-border);
+  scrollbar-width: none;
+}
+
+.market-categories::-webkit-scrollbar {
+  display: none;
+}
+
+.market-category {
+  position: relative;
+  display: inline-flex;
+  min-height: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ui-text-tertiary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.market-category::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: transparent;
+  content: '';
+}
+
+.market-category:hover,
+.market-category--active {
+  color: var(--ui-text);
+}
+
+.market-category--active::after {
+  background: var(--ui-text);
+}
+
+.market-category span {
+  color: var(--ui-text-tertiary);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-summary {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  padding-top: 0.75rem;
+  color: var(--ui-text-tertiary);
+  font-size: 0.75rem;
+}
+
+.market-summary button {
+  margin-left: 0.375rem;
+  color: var(--ui-text);
+  font-weight: 500;
+}
+
+.market-summary button:hover {
+  text-decoration: underline;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.market-loading,
+.market-empty {
+  display: flex;
+  min-height: 16rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-text-tertiary);
+}
+
+.market-empty {
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 1200px) {
+  .market-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .market-filters .input {
+    width: 8.5rem;
+  }
+}
+
+@media (max-width: 820px) {
+  .market-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .market-search {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .market-filter-toggle {
+    display: inline-flex;
+  }
+
+  .market-filters {
+    display: none;
+    width: 100%;
+    order: 4;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .market-filters--open {
+    display: grid;
+  }
+
+  .market-filters .input {
+    width: 100%;
+  }
+
+  .market-filters .input:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .market-grid {
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+  }
+
+  .market-categories {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+  }
+
+  .market-summary {
+    white-space: nowrap;
+  }
+}
+</style>

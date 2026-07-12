@@ -92,27 +92,22 @@
           </div>
 
           <!-- Right: Actions -->
-          <div class="ml-auto flex flex-wrap items-center justify-end gap-3">
-            <button
+          <div class="ml-auto flex flex-wrap items-center justify-end gap-1">
+            <UiIconButton
+              :label="t('common.refresh')"
               @click="loadSubscriptions"
               :disabled="loading"
-              class="btn btn-secondary"
-              :title="t('common.refresh')"
             >
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
+            </UiIconButton>
             <!-- Column Settings Dropdown -->
             <div class="relative" ref="columnDropdownRef">
-              <button
+              <UiIconButton
+                :label="t('admin.users.columnSettings')"
                 @click="showColumnDropdown = !showColumnDropdown"
-                class="btn btn-secondary px-2 md:px-3"
-                :title="t('admin.users.columnSettings')"
               >
-                <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
-                </svg>
-                <span class="hidden md:inline">{{ t('admin.users.columnSettings') }}</span>
-              </button>
+                <Icon name="grid" size="md" />
+              </UiIconButton>
               <!-- Dropdown menu -->
               <div
                 v-if="showColumnDropdown"
@@ -152,14 +147,13 @@
                 </div>
               </div>
             </div>
-            <button
+            <UiIconButton
+              :label="t('admin.subscriptions.guide.showGuide')"
               @click="showGuideModal = true"
-              class="btn btn-secondary"
-              :title="t('admin.subscriptions.guide.showGuide')"
             >
               <Icon name="questionCircle" size="md" />
-            </button>
-            <button @click="showAssignModal = true" class="btn btn-primary">
+            </UiIconButton>
+            <button @click="showAssignModal = true" class="btn btn-primary ml-1">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.subscriptions.assignSubscription') }}
             </button>
@@ -419,8 +413,6 @@
             <EmptyState
               :title="t('admin.subscriptions.noSubscriptionsYet')"
               :description="t('admin.subscriptions.assignFirstSubscription')"
-              :action-text="t('admin.subscriptions.assignSubscription')"
-              @action="showAssignModal = true"
             />
           </template>
         </DataTable>
@@ -777,6 +769,7 @@ import Select from '@/components/common/Select.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
 import GroupOptionItem from '@/components/common/GroupOptionItem.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { UiIconButton } from '@/ui'
 
 const { t } = useI18n()
 const appStore = useAppStore()
