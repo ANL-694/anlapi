@@ -309,7 +309,10 @@ const loadAvailableModels = async () => {
 }
 
 const getUserDefaultTestModels = (account: Account): ClaudeModel[] => {
-  const mappedModels = getAccountMappedTestModels(account)
+	if (account.extra?.claude_web_session === true) {
+		return [{ id: 'claude-sonnet-5', type: 'model', display_name: 'Claude Sonnet 5', created_at: '' }]
+	}
+	const mappedModels = getAccountMappedTestModels(account)
   if (mappedModels.length > 0) return mappedModels
 
   switch (account.platform) {

@@ -272,9 +272,15 @@ func (s *ConcurrencyCacheSuite) TestCleanupStaleProcessSlots() {
 		redis.Z{Score: float64(now), Member: "oldproc-1"},
 		redis.Z{Score: float64(now), Member: "keep-1"},
 	).Err())
+	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, accountActiveIndexKey,
+		redis.Z{Score: float64(now), Member: fmt.Sprintf("%d", accountID)},
+	).Err())
 	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, userKey,
 		redis.Z{Score: float64(now), Member: "oldproc-2"},
 		redis.Z{Score: float64(now), Member: "keep-2"},
+	).Err())
+	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, userActiveIndexKey,
+		redis.Z{Score: float64(now), Member: fmt.Sprintf("%d", userID)},
 	).Err())
 	require.NoError(s.T(), s.rdb.Set(s.ctx, userWaitKey, 3, time.Minute).Err())
 	require.NoError(s.T(), s.rdb.Set(s.ctx, accountWaitKey, 2, time.Minute).Err())
@@ -458,10 +464,16 @@ func (s *ConcurrencyCacheSuite) TestCleanupStaleProcessSlots_RemovesOldPrefixesA
 		redis.Z{Score: now, Member: "oldproc-1"},
 		redis.Z{Score: now, Member: "activeproc-1"},
 	).Err())
+	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, accountActiveIndexKey,
+		redis.Z{Score: now, Member: fmt.Sprintf("%d", accountID)},
+	).Err())
 	require.NoError(s.T(), s.rdb.Expire(s.ctx, accountSlotKey, testSlotTTL).Err())
 	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, userSlotKey,
 		redis.Z{Score: now, Member: "oldproc-2"},
 		redis.Z{Score: now, Member: "activeproc-2"},
+	).Err())
+	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, userActiveIndexKey,
+		redis.Z{Score: now, Member: fmt.Sprintf("%d", userID)},
 	).Err())
 	require.NoError(s.T(), s.rdb.Expire(s.ctx, userSlotKey, testSlotTTL).Err())
 	require.NoError(s.T(), s.rdb.Set(s.ctx, userWaitKey, 3, testSlotTTL).Err())
@@ -489,6 +501,9 @@ func (s *ConcurrencyCacheSuite) TestCleanupStaleProcessSlots_DeletesEmptySlotKey
 	accountID := int64(903)
 	accountSlotKey := fmt.Sprintf("%s%d", accountSlotKeyPrefix, accountID)
 	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, accountSlotKey, redis.Z{Score: float64(time.Now().Unix()), Member: "oldproc-1"}).Err())
+	require.NoError(s.T(), s.rdb.ZAdd(s.ctx, accountActiveIndexKey,
+		redis.Z{Score: float64(time.Now().Unix()), Member: fmt.Sprintf("%d", accountID)},
+	).Err())
 	require.NoError(s.T(), s.rdb.Expire(s.ctx, accountSlotKey, testSlotTTL).Err())
 	s.seedActiveIndex(accountActiveIndexKey, accountID)
 

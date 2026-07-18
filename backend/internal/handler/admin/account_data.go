@@ -38,6 +38,8 @@ type DataImportRequest struct {
 type CredentialImportRequest struct {
 	Contents                []string `json:"contents" binding:"required"`
 	KiroConfigImport        bool     `json:"kiro_config_import"`
+	ClaudeWebImport         bool     `json:"claude_web_import"`
+	ClaudeWebAuthMode       string   `json:"claude_web_auth_mode" binding:"omitempty,oneof=session_key full_cookie"`
 	OwnerUserID             *int64   `json:"owner_user_id"`
 	ShareMode               string   `json:"share_mode" binding:"omitempty,oneof=private public"`
 	ShareStatus             string   `json:"share_status" binding:"omitempty,oneof=pending approved suspended"`
@@ -146,7 +148,9 @@ func (h *AccountHandler) ImportCredentials(c *gin.Context) {
 	}
 
 	sources, parseErrors := service.ParseAccountCredentialImportContentsWithOptions(req.Contents, service.AccountCredentialImportOptions{
-		KiroConfigImport: req.KiroConfigImport,
+		KiroConfigImport:  req.KiroConfigImport,
+		ClaudeWebImport:   req.ClaudeWebImport,
+		ClaudeWebAuthMode: req.ClaudeWebAuthMode,
 	})
 	if len(sources) == 0 && len(parseErrors) == 0 {
 		response.BadRequest(c, "No importable account credentials found")
@@ -282,6 +286,16 @@ func (h *AccountHandler) createAccountFromCredentialImportSource(
 		}
 		if input.Name == "" {
 			input.Name = fmt.Sprintf("Claude OAuth Account #%d", sequence)
+		}
+	case service.AccountCredentialImportKindClaudeWebSession:
+		input.Platform = service.PlatformAnthropic
+		input.Credentials = source.Credentials
+		input.Extra = source.Extra
+		if defaults.Concurrency <= 0 {
+			input.Concurrency = 1
+		}
+		if input.Name == "" {
+			input.Name = service.DeriveAccountCredentialImportName(input.Platform, input.Credentials, input.Extra, sequence)
 		}
 	case service.AccountCredentialImportKindKiroConfig:
 		if h.kiroOAuthService == nil {

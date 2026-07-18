@@ -210,8 +210,54 @@ func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int
 	if account.Platform == PlatformAntigravity {
 		return s.routeAntigravityTest(c, account, modelID, prompt)
 	}
+	if account.IsClaudeWebSession() {
+		return s.testClaudeWebAccountConnection(c, account, modelID, prompt)
+	}
 
 	return s.testClaudeAccountConnection(c, account, modelID)
+}
+
+func (s *AccountTestService) testClaudeWebAccountConnection(c *gin.Context, account *Account, modelID string, prompt string) error {
+	testModelID := resolveClaudeWebModel(account, modelID)
+	testPrompt := strings.TrimSpace(prompt)
+	if testPrompt == "" {
+		testPrompt = "Reply with OK."
+	}
+	payload := map[string]any{
+		"model": testModelID,
+		"messages": []map[string]any{
+			{
+				"role": "user",
+				"content": []map[string]any{
+					{"type": "text", "text": testPrompt},
+				},
+			},
+		},
+		"max_tokens": 64,
+		"stream":     true,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return s.sendErrorAndEnd(c, "Failed to create Claude Web test payload")
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
+	c.Writer.Flush()
+	s.sendEvent(c, TestEvent{Type: "test_start", Model: testModelID})
+	s.sendEvent(c, TestEvent{Type: "status", Text: "Testing Claude Web session"})
+
+	resp, err := startClaudeWebAnthropicStream(c.Request.Context(), account, payloadBytes, claudeWebStreamOptions{
+		Model:        testModelID,
+		ThinkingMode: "auto",
+	})
+	if err != nil {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Claude Web request failed: %s", err.Error()))
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return s.processClaudeStream(c, resp.Body)
 }
 
 // testClaudeAccountConnection tests an Anthropic Claude account's connection

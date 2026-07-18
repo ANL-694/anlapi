@@ -73,6 +73,52 @@ func TestParseAccountCredentialImportContentsKiroConfigRequiresSwitch(t *testing
 	require.Equal(t, "kiro_config", sources[0].Extra["import_source"])
 }
 
+func TestParseAccountCredentialImportContentsClaudeWebNestedArrayRequiresSwitch(t *testing.T) {
+	content := `[[
+		{
+			"email":"first@example.com",
+			"uuid":"account-1",
+			"org_uuid":"org-1",
+			"org_name":"First Organization",
+			"cookies":{
+				"sessionKey":"sk-ant-sid02-first",
+				"sessionKeyLC":"123",
+				"routingHint":"routing-1",
+				"__cf_bm":"cf-1",
+				"_cfuvid":"cfuvid-1"
+			},
+			"saved_at":"2026-07-09T03:37:14Z"
+		},
+		{
+			"email_address":"second@example.com",
+			"uuid":"account-2",
+			"org_uuid":"org-2",
+			"cookies":{"sessionKey":"sk-ant-sid02-second"}
+		}
+	]]`
+
+	sources, errs := ParseAccountCredentialImportContents([]string{content})
+	require.Empty(t, sources)
+	require.NotEmpty(t, errs)
+
+	sources, errs = ParseAccountCredentialImportContentsWithOptions([]string{content}, AccountCredentialImportOptions{
+		ClaudeWebImport: true,
+	})
+	require.Empty(t, errs)
+	require.Len(t, sources, 2)
+	require.Equal(t, AccountCredentialImportKindClaudeWebSession, sources[0].Kind)
+	require.Equal(t, PlatformAnthropic, sources[0].Platform)
+	require.Equal(t, "first@example.com", sources[0].Name)
+	require.Equal(t, "sk-ant-sid02-first", sources[0].Credentials[ClaudeWebSessionKeyCredential])
+	require.Equal(t, "org-1", sources[0].Credentials[ClaudeWebOrganizationCredential])
+	require.NotContains(t, sources[0].Credentials, ClaudeWebBrowserCookieCredential)
+	require.NotContains(t, sources[0].Credentials, ClaudeWebRoutingHintCredential)
+	require.NotContains(t, sources[0].Credentials, ClaudeWebCFBMCredential)
+	require.Equal(t, true, sources[0].Extra[ClaudeWebSessionExtraKey])
+	require.Equal(t, "2026-07-09T03:37:14Z", sources[0].Extra["saved_at"])
+	require.Equal(t, "second@example.com", sources[1].Name)
+}
+
 func importTestJWT(t *testing.T, claims map[string]any) string {
 	t.Helper()
 	header, err := json.Marshal(map[string]any{"alg": "none", "typ": "JWT"})

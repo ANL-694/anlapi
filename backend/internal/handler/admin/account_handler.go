@@ -2443,6 +2443,22 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 	}
 
 	// Handle Claude/Anthropic accounts
+	// Claude Web sessions expose the upstream model allowlist in the test picker.
+	if account.IsClaudeWebSession() {
+		modelIDs := service.ClaudeWebSupportedModels()
+		models := make([]claude.Model, 0, len(modelIDs))
+		for _, modelID := range modelIDs {
+			models = append(models, claude.Model{
+				ID:          modelID,
+				Type:        "model",
+				DisplayName: modelID,
+				CreatedAt:   "",
+			})
+		}
+		response.Success(c, models)
+		return
+	}
+
 	// For OAuth and Setup-Token accounts: return default models
 	if account.IsOAuth() {
 		response.Success(c, claude.DefaultModels)

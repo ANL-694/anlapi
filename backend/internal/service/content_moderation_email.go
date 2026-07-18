@@ -27,12 +27,12 @@ func buildContentModerationViolationEmailBody(siteName string, log *ContentModer
 <html>
 <body style="margin:0;padding:0;background:#f7f7f8;color:#202123;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
   <div style="max-width:680px;margin:0 auto;padding:32px 20px;">
-    <div style="height:8px;background:#dc2626;border-radius:14px 14px 0 0;"></div>
-    <div style="background:#ffffff;border:1px solid #d9d9e3;border-top:0;border-radius:0 0 14px 14px;padding:40px 48px;box-shadow:0 12px 32px rgba(0,0,0,0.06);">
+    <div style="height:4px;background:#dc2626;border-radius:8px 8px 0 0;"></div>
+    <div style="background:#ffffff;border:1px solid #e5e5e5;border-top:0;border-radius:0 0 8px 8px;padding:40px 48px;">
       <div style="letter-spacing:4px;color:#6e6e80;font-size:14px;text-transform:uppercase;">Risk Control / 风控提醒</div>
       <h1 style="margin:20px 0 28px;font-size:30px;line-height:1.25;">账户触发内容审计规则</h1>
       <p style="font-size:17px;line-height:1.9;margin:0 0 24px;">尊敬的用户 <strong>%s</strong>，您的 API 请求在内容审计中触发平台风控策略。详情如下。</p>
-      <div style="background:#f3f3f6;border:1px solid #d9d9e3;border-radius:12px;padding:22px 28px;margin:28px 0;">
+      <div style="background:#f7f7f8;border:1px solid #e5e5e5;border-radius:8px;padding:22px 28px;margin:28px 0;">
         <h2 style="margin:0 0 18px;color:#dc2626;font-size:18px;">触发详情</h2>
         <table style="width:100%%;border-collapse:collapse;font-size:16px;">
           <tr><td style="padding:12px 0;color:#6e6e80;border-bottom:1px solid #d9d9e3;">触发时间</td><td style="padding:12px 0;border-bottom:1px solid #d9d9e3;">%s</td></tr>
@@ -76,12 +76,12 @@ func buildContentModerationAccountDisabledEmailBody(siteName string, log *Conten
 <html>
 <body style="margin:0;padding:0;background:#f7f7f8;color:#202123;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
   <div style="max-width:680px;margin:0 auto;padding:32px 20px;">
-    <div style="height:8px;background:#dc2626;border-radius:14px 14px 0 0;"></div>
-    <div style="background:#ffffff;border:1px solid #d9d9e3;border-top:0;border-radius:0 0 14px 14px;padding:40px 48px;box-shadow:0 12px 32px rgba(0,0,0,0.06);">
+    <div style="height:4px;background:#dc2626;border-radius:8px 8px 0 0;"></div>
+    <div style="background:#ffffff;border:1px solid #e5e5e5;border-top:0;border-radius:0 0 8px 8px;padding:40px 48px;">
       <div style="letter-spacing:4px;color:#6e6e80;font-size:14px;text-transform:uppercase;">Risk Control / 账户封禁</div>
       <h1 style="margin:20px 0 28px;font-size:30px;line-height:1.25;">账户已被自动禁用</h1>
       <p style="font-size:17px;line-height:1.9;margin:0 0 24px;">尊敬的用户 <strong>%s</strong>，您的账户在计数周期内多次触发平台风控策略，系统已自动禁用该账户。详情如下。</p>
-      <div style="background:#f3f3f6;border:1px solid #d9d9e3;border-radius:12px;padding:22px 28px;margin:28px 0;">
+      <div style="background:#f7f7f8;border:1px solid #e5e5e5;border-radius:8px;padding:22px 28px;margin:28px 0;">
         <h2 style="margin:0 0 18px;color:#dc2626;font-size:18px;">封禁详情</h2>
         <table style="width:100%%;border-collapse:collapse;font-size:16px;">
           <tr><td style="padding:12px 0;color:#6e6e80;border-bottom:1px solid #d9d9e3;">封禁时间</td><td style="padding:12px 0;border-bottom:1px solid #d9d9e3;">%s</td></tr>

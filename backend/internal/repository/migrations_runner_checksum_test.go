@@ -189,6 +189,26 @@ func TestIsMigrationChecksumCompatible(t *testing.T) {
 		require.True(t, ok)
 	})
 
+	t.Run("190允许ANL与IK已发布的Kiro配额迁移校验值", func(t *testing.T) {
+		for _, pair := range [][2]string{
+			{
+				"8fcf5f16706084f5c5ecf90739e282f179fe35242704996237ec38d0c9381a36",
+				"df301b9d0da73640e8089f9615d7be8cff3808f167ed09b09bfb85fa0562c887",
+			},
+			{
+				"bc174c2b9dd244f10090a322bb685c8fd6c3e8050777a07b3c92c08b1d8cae94",
+				"84759e7fd445111e8706e2433d1d98a2af39c5072e0ed058018e96ebf91ffec9",
+			},
+		} {
+			ok := isMigrationChecksumCompatible(
+				"190_allow_kiro_user_platform_quotas.sql",
+				pair[0],
+				pair[1],
+			)
+			require.True(t, ok)
+		}
+	})
+
 	t.Run("119未知checksum不兼容", func(t *testing.T) {
 		ok := isMigrationChecksumCompatible(
 			"119_enforce_payment_orders_out_trade_no_unique.sql",

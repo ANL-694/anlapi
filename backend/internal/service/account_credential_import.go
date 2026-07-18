@@ -5,9 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
+	"time"
 
 	"ikik-api/internal/pkg/openai"
+
+	"github.com/google/uuid"
 )
 
 const MaxAccountCredentialImportItems = 200
@@ -20,6 +24,7 @@ const (
 	AccountCredentialImportKindOAuthCredentials   AccountCredentialImportKind = "oauth_credentials"
 	AccountCredentialImportKindOpenAIRefreshToken AccountCredentialImportKind = "openai_refresh_token"
 	AccountCredentialImportKindClaudeSessionKey   AccountCredentialImportKind = "claude_session_key"
+	AccountCredentialImportKindClaudeWebSession   AccountCredentialImportKind = "claude_web_session"
 	AccountCredentialImportKindKiroConfig         AccountCredentialImportKind = "kiro_config"
 )
 
@@ -55,7 +60,9 @@ type AccountCredentialImportResult struct {
 }
 
 type AccountCredentialImportOptions struct {
-	KiroConfigImport bool
+	KiroConfigImport  bool
+	ClaudeWebImport   bool
+	ClaudeWebAuthMode string
 }
 
 func ParseAccountCredentialImportContents(contents []string) ([]AccountCredentialImportSource, []AccountCredentialImportError) {
@@ -244,6 +251,11 @@ func accountCredentialImportSourceFromMap(item map[string]any, opts AccountCrede
 			return source, err
 		}
 	}
+	if opts.ClaudeWebImport {
+		if source, handled, err := accountCredentialImportSourceFromClaudeWeb(item, opts.ClaudeWebAuthMode); handled || err != nil {
+			return source, err
+		}
+	}
 
 	if source, handled, err := accountCredentialImportSourceFromCodexManagerExport(item); handled || err != nil {
 		return source, err
@@ -378,6 +390,147 @@ func accountCredentialImportSourceFromMap(item map[string]any, opts AccountCrede
 		return accountCredentialImportSourceFromString(value, name, notes)
 	}
 	return AccountCredentialImportSource{}, fmt.Errorf("unsupported credential import item")
+}
+
+func accountCredentialImportSourceFromClaudeWeb(item map[string]any, requestedAuthMode string) (AccountCredentialImportSource, bool, error) {
+	cookies := importMapField(item, "cookies")
+	browserCookie := strings.TrimSpace(importStringField(item, "cookie", "browser_cookie", "browserCookie"))
+	if len(cookies) == 0 && browserCookie == "" {
+		return AccountCredentialImportSource{}, false, nil
+	}
+	if browserCookie == "" {
+		browserCookie = claudeWebCookieHeader(cookies)
+	}
+
+	sessionKey := credentialImportFirstNonEmptyString(
+		importStringField(cookies, "sessionKey", "session_key"),
+		claudeWebCookieValue(browserCookie, "sessionKey"),
+	)
+	if sessionKey == "" {
+		return AccountCredentialImportSource{}, true, fmt.Errorf("claude Web cookies must include sessionKey")
+	}
+	if _, ok := extractClaudeSessionKey(sessionKey); !ok {
+		return AccountCredentialImportSource{}, true, fmt.Errorf("invalid Claude Web sessionKey")
+	}
+
+	email := credentialImportFirstNonEmptyString(
+		importStringField(item, "email_address", "emailAddress"),
+		importStringField(item, "email"),
+	)
+	accountUUID := importStringField(item, "uuid", "account_uuid", "accountUUID")
+	orgUUID := credentialImportFirstNonEmptyString(
+		importStringField(item, "org_uuid", "orgUUID", "organization_uuid", "organizationUUID"),
+		claudeWebCookieValue(browserCookie, "lastActiveOrg"),
+	)
+	authMode := normalizeClaudeWebImportAuthMode(requestedAuthMode, importStringField(item, "auth_mode", "authMode", "cookie_mode", "cookieMode"))
+	if authMode == ClaudeWebAuthModeFullCookie && browserCookie == "" {
+		return AccountCredentialImportSource{}, true, fmt.Errorf("claude Web full-cookie mode requires browser cookies")
+	}
+
+	credentials := map[string]any{
+		ClaudeWebSessionKeyCredential: sessionKey,
+		ClaudeWebAuthModeCredential:   authMode,
+	}
+	setString := func(key, value string) {
+		if value = strings.TrimSpace(value); value != "" {
+			credentials[key] = value
+		}
+	}
+	sessionKeyLC := credentialImportFirstNonEmptyString(
+		importStringField(cookies, "sessionKeyLC", "session_key_lc"),
+		claudeWebCookieValue(browserCookie, "sessionKeyLC"),
+	)
+	if sessionKeyLC == "" {
+		sessionKeyLC = fmt.Sprintf("%d", time.Now().UnixMilli())
+	}
+	setString(ClaudeWebSessionKeyLCCredential, sessionKeyLC)
+	if authMode == ClaudeWebAuthModeFullCookie {
+		setString(ClaudeWebRoutingHintCredential, importStringField(cookies, "routingHint", "routing_hint"))
+		setString(ClaudeWebCFBMCredential, importStringField(cookies, "__cf_bm", "cf_bm"))
+		setString(ClaudeWebCFUVIDCredential, importStringField(cookies, "_cfuvid", "cfuvid"))
+		setString(ClaudeWebBrowserCookieCredential, browserCookie)
+	}
+	setString(ClaudeWebOrganizationCredential, orgUUID)
+	setString(ClaudeWebAccountUUIDCredential, accountUUID)
+	setString(ClaudeWebEmailCredential, email)
+	setString(ClaudeWebDeviceIDCredential, credentialImportFirstNonEmptyString(
+		importStringField(cookies, "anthropic-device-id", "anthropic_device_id"),
+		claudeWebCookieValue(browserCookie, "anthropic-device-id"),
+		uuid.NewString(),
+	))
+	setString(ClaudeWebActivitySessionCredential, credentialImportFirstNonEmptyString(
+		importStringField(cookies, "activitySessionId", "activity_session_id"),
+		claudeWebCookieValue(browserCookie, "activitySessionId"),
+		uuid.NewString(),
+	))
+	setString(ClaudeWebAnonymousIDCredential, credentialImportFirstNonEmptyString(
+		importStringField(cookies, "ajs_anonymous_id", "anonymous_id"),
+		claudeWebCookieValue(browserCookie, "ajs_anonymous_id"),
+		"claudeai.v1."+uuid.NewString(),
+	))
+	setString(ClaudeWebSSIDCredential, credentialImportFirstNonEmptyString(
+		importStringField(cookies, "__ssid", "ssid"),
+		claudeWebCookieValue(browserCookie, "__ssid"),
+		uuid.NewString(),
+	))
+
+	extra := map[string]any{
+		ClaudeWebSessionExtraKey: true,
+		"credential_format":      "claude_web",
+	}
+	if value := importStringField(item, "org_name", "orgName", "organization_name", "organizationName"); value != "" {
+		extra["org_name"] = value
+	}
+	if value := importStringField(item, "saved_at", "savedAt"); value != "" {
+		extra["saved_at"] = value
+	}
+
+	name := credentialImportFirstNonEmptyString(email, importStringField(item, "name"), importStringField(item, "org_name", "orgName"))
+	return AccountCredentialImportSource{
+		Kind:        AccountCredentialImportKindClaudeWebSession,
+		Name:        name,
+		Platform:    PlatformAnthropic,
+		Credentials: credentials,
+		Extra:       extra,
+	}, true, nil
+}
+
+func normalizeClaudeWebImportAuthMode(requested, embedded string) string {
+	for _, value := range []string{requested, embedded} {
+		switch strings.ToLower(strings.TrimSpace(value)) {
+		case ClaudeWebAuthModeFullCookie, "cookie", "full":
+			return ClaudeWebAuthModeFullCookie
+		case ClaudeWebAuthModeSessionKey, "session", "bearer":
+			return ClaudeWebAuthModeSessionKey
+		}
+	}
+	return ClaudeWebAuthModeSessionKey
+}
+
+func claudeWebCookieHeader(cookies map[string]any) string {
+	keys := make([]string, 0, len(cookies))
+	for key, value := range cookies {
+		if strings.TrimSpace(key) == "" || strings.TrimSpace(fmt.Sprint(value)) == "" {
+			continue
+		}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, key := range keys {
+		parts = append(parts, strings.TrimSpace(key)+"="+strings.TrimSpace(fmt.Sprint(cookies[key])))
+	}
+	return strings.Join(parts, "; ")
+}
+
+func claudeWebCookieValue(cookieHeader, name string) string {
+	for _, part := range strings.Split(cookieHeader, ";") {
+		keyValue := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(keyValue) == 2 && keyValue[0] == name {
+			return strings.TrimSpace(keyValue[1])
+		}
+	}
+	return ""
 }
 
 func accountCredentialImportSourceFromCodexManagerExport(item map[string]any) (AccountCredentialImportSource, bool, error) {

@@ -572,10 +572,10 @@ const broadcastHTMLTemplate = `<!DOCTYPE html>
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%" style="background-color:#f7f7f8;padding:28px 12px;">
         <tr>
             <td align="center">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background-color:#ffffff;border:1px solid #d9d9e3;border-radius:14px;overflow:hidden;box-shadow:0 12px 34px rgba(0,0,0,0.06);">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background-color:#ffffff;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;">
                     <tr>
-                        <td style="padding:30px 34px 24px;border-bottom:1px solid #d9d9e3;background-color:#f3f3f6;color:#202123;">
-                            <div style="display:inline-block;padding:5px 9px;border-radius:999px;background-color:#e6f6f1;color:#0d8f70;font-size:12px;line-height:1;font-weight:600;">%s</div>
+                        <td style="padding:30px 34px 24px;border-bottom:1px solid #e5e5e5;background-color:#ffffff;color:#0d0d0d;">
+                            <div style="display:inline-block;color:#6e6e80;font-size:12px;line-height:1;font-weight:600;">%s</div>
                             <h1 style="margin:14px 0 0;font-size:24px;line-height:1.35;font-weight:650;letter-spacing:0;color:#202123;">%s</h1>
                         </td>
                     </tr>
@@ -585,7 +585,7 @@ const broadcastHTMLTemplate = `<!DOCTYPE html>
                         </td>
                     </tr>
                     <tr>
-                        <td style="background-color:#f3f3f6;padding:18px 34px;border-top:1px solid #d9d9e3;color:#6e6e80;font-size:12px;line-height:1.6;text-align:center;">
+                        <td style="background-color:#ffffff;padding:18px 34px;border-top:1px solid #e5e5e5;color:#6e6e80;font-size:12px;line-height:1.6;text-align:center;">
                             %s
                         </td>
                     </tr>

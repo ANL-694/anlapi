@@ -19,7 +19,7 @@
           <span class="auth-logo">
             <img
               v-if="settingsLoaded"
-              :src="siteLogo || '/anl-icon.png?v=20260712-3'"
+			  :src="siteLogo || '/anl-icon.png?v=20260712-3'"
               alt=""
               class="h-full w-full object-contain"
             />
