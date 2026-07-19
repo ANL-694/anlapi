@@ -11,7 +11,7 @@ import (
 	"ikik-api/internal/config"
 )
 
-func TestNormalizeOpenAIReasoningEffortForGPT56(t *testing.T) {
+func TestNormalizeOpenAIReasoningEffortForGPT56CacheWriteSuite(t *testing.T) {
 	tests := []struct {
 		name  string
 		raw   string

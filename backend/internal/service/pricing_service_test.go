@@ -16,8 +16,12 @@ func TestParsePricingData_ParsesPriorityAndServiceTierFields(t *testing.T) {
 			"output_cost_per_token": 0.000015,
 			"output_cost_per_token_priority": 0.00003,
 			"cache_creation_input_token_cost": 0.0000025,
+			"cache_creation_input_token_cost_priority": 0.000005,
 			"cache_read_input_token_cost": 0.00000025,
 			"cache_read_input_token_cost_priority": 0.0000005,
+			"long_context_input_token_threshold": 272000,
+			"long_context_input_cost_multiplier": 2,
+			"long_context_output_cost_multiplier": 1.5,
 			"supports_service_tier": true,
 			"supports_prompt_caching": true,
 			"litellm_provider": "openai",
@@ -31,7 +35,11 @@ func TestParsePricingData_ParsesPriorityAndServiceTierFields(t *testing.T) {
 	require.NotNil(t, pricing)
 	require.InDelta(t, 5e-6, pricing.InputCostPerTokenPriority, 1e-12)
 	require.InDelta(t, 3e-5, pricing.OutputCostPerTokenPriority, 1e-12)
+	require.InDelta(t, 5e-6, pricing.CacheCreationInputTokenCostPriority, 1e-12)
 	require.InDelta(t, 5e-7, pricing.CacheReadInputTokenCostPriority, 1e-12)
+	require.Equal(t, 272000, pricing.LongContextInputTokenThreshold)
+	require.InDelta(t, 2.0, pricing.LongContextInputCostMultiplier, 1e-12)
+	require.InDelta(t, 1.5, pricing.LongContextOutputCostMultiplier, 1e-12)
 	require.True(t, pricing.SupportsServiceTier)
 }
 

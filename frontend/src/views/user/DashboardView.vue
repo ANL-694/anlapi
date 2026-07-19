@@ -18,6 +18,7 @@
           @refresh="refreshAll"
         />
         <UserDashboardPlatformUsage :stats="stats" />
+        <UserDashboardPlatformQuotas :quotas="platformQuotas" :loading="loadingPlatformQuotas" />
         <UserAccountSharingStats
           :stats="accountSharingStats"
           :loading="loadingAccountSharing"
@@ -37,11 +38,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usageAPI, type AccountSharingDashboardStats, type UserDashboardStats as UserStatsType } from '@/api/usage'
+import { userAPI } from '@/api/user'
+import { PLATFORM_QUOTA_PLATFORMS, type PlatformQuotaRecord } from '@/api/platformQuotas'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { UiPage } from '@/ui'
 import UserDashboardStats from '@/components/user/dashboard/UserDashboardStats.vue'
 import UserDashboardPlatformUsage from '@/components/user/dashboard/UserDashboardPlatformUsage.vue'
+import UserDashboardPlatformQuotas from '@/components/user/dashboard/UserDashboardPlatformQuotas.vue'
 import UserDashboardCharts from '@/components/user/dashboard/UserDashboardCharts.vue'
 import UserDashboardRecentUsage from '@/components/user/dashboard/UserDashboardRecentUsage.vue'
 import UserAccountSharingStats from '@/components/user/dashboard/UserAccountSharingStats.vue'
@@ -55,12 +59,14 @@ const loading = ref(false)
 const loadingUsage = ref(false)
 const loadingCharts = ref(false)
 const loadingAccountSharing = ref(false)
+const loadingPlatformQuotas = ref(false)
 const accountSharingError = ref('')
 
 const trendData = ref<TrendDataPoint[]>([])
 const modelStats = ref<ModelStat[]>([])
 const recentUsage = ref<UsageLog[]>([])
 const accountSharingStats = ref<AccountSharingDashboardStats | null>(null)
+const platformQuotas = ref<PlatformQuotaRecord[]>([])
 const accountSharingPage = ref(1)
 const accountSharingPageSize = ref(20)
 
@@ -141,6 +147,21 @@ const loadRecent = async () => {
   }
 }
 
+const loadPlatformQuotas = async () => {
+  loadingPlatformQuotas.value = true
+  try {
+    const response = await userAPI.getPlatformQuotas()
+    platformQuotas.value = [...(response.platform_quotas || [])].sort(
+      (a, b) => PLATFORM_QUOTA_PLATFORMS.indexOf(a.platform) - PLATFORM_QUOTA_PLATFORMS.indexOf(b.platform)
+    )
+  } catch (error) {
+    console.error('Failed to load platform quotas:', error)
+    platformQuotas.value = []
+  } finally {
+    loadingPlatformQuotas.value = false
+  }
+}
+
 const loadTimeRangeData = () => {
   accountSharingPage.value = 1
   void loadCharts()
@@ -163,6 +184,7 @@ const refreshAll = () => {
   void loadCharts()
   void loadAccountSharing()
   void loadRecent()
+  void loadPlatformQuotas()
 }
 
 onMounted(() => {

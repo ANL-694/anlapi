@@ -121,6 +121,8 @@ backend/config.yaml
 deploy/config.yaml
 backend/.installed
 tests
+!deploy/tests/
+!deploy/tests/**
 CLAUDE.md
 .claude
 /scripts/

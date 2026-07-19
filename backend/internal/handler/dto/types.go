@@ -23,6 +23,7 @@ type User struct {
 	LastActiveAt        *time.Time `json:"last_active_at,omitempty"`
 	CreatedAt           time.Time  `json:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at"`
+	DeletedAt           *time.Time `json:"deleted_at,omitempty"`
 
 	// 余额不足通知
 	BalanceNotifyEnabled       bool               `json:"balance_notify_enabled"`
@@ -109,6 +110,10 @@ type Group struct {
 	Platform             string  `json:"platform"`
 	RequiredAccountLevel string  `json:"required_account_level"`
 	RateMultiplier       float64 `json:"rate_multiplier"`
+	PeakRateEnabled      bool    `json:"peak_rate_enabled"`
+	PeakStart            string  `json:"peak_start"`
+	PeakEnd              string  `json:"peak_end"`
+	PeakRateMultiplier   float64 `json:"peak_rate_multiplier"`
 	IsExclusive          bool    `json:"is_exclusive"`
 	Status               string  `json:"status"`
 	OwnerUserID          *int64  `json:"owner_user_id,omitempty"`
@@ -120,12 +125,21 @@ type Group struct {
 	MonthlyLimitUSD  *float64 `json:"monthly_limit_usd"`
 
 	// 图片生成计费配置（仅 antigravity 平台使用）
-	AllowImageGeneration bool     `json:"allow_image_generation"`
-	ImageRateIndependent bool     `json:"image_rate_independent"`
-	ImageRateMultiplier  float64  `json:"image_rate_multiplier"`
-	ImagePrice1K         *float64 `json:"image_price_1k"`
-	ImagePrice2K         *float64 `json:"image_price_2k"`
-	ImagePrice4K         *float64 `json:"image_price_4k"`
+	AllowImageGeneration         bool     `json:"allow_image_generation"`
+	AllowBatchImageGeneration    bool     `json:"allow_batch_image_generation"`
+	ImageRateIndependent         bool     `json:"image_rate_independent"`
+	ImageRateMultiplier          float64  `json:"image_rate_multiplier"`
+	ImagePrice1K                 *float64 `json:"image_price_1k"`
+	ImagePrice2K                 *float64 `json:"image_price_2k"`
+	ImagePrice4K                 *float64 `json:"image_price_4k"`
+	BatchImageDiscountMultiplier float64  `json:"batch_image_discount_multiplier"`
+	BatchImageHoldMultiplier     float64  `json:"batch_image_hold_multiplier"`
+	VideoRateIndependent         bool     `json:"video_rate_independent"`
+	VideoRateMultiplier          float64  `json:"video_rate_multiplier"`
+	VideoPrice480P               *float64 `json:"video_price_480p"`
+	VideoPrice720P               *float64 `json:"video_price_720p"`
+	VideoPrice1080P              *float64 `json:"video_price_1080p"`
+	WebSearchPricePerCall        *float64 `json:"web_search_price_per_call"`
 
 	// Claude Code 客户端限制
 	ClaudeCodeOnly  bool   `json:"claude_code_only"`
@@ -222,6 +236,8 @@ type Account struct {
 	SessionWindowStart  *time.Time `json:"session_window_start"`
 	SessionWindowEnd    *time.Time `json:"session_window_end"`
 	SessionWindowStatus string     `json:"session_window_status"`
+	ParentAccountID     *int64     `json:"parent_account_id,omitempty"`
+	QuotaDimension      string     `json:"quota_dimension,omitempty"`
 
 	// 5h窗口费用控制（仅 Anthropic OAuth/SetupToken 账号有效）
 	// 从 extra 字段提取，方便前端显示和编辑

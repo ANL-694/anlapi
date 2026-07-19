@@ -32,7 +32,13 @@ func TestAnthropicToResponses_BasicText(t *testing.T) {
 	var items []ResponsesInputItem
 	require.NoError(t, json.Unmarshal(resp.Input, &items))
 	require.Len(t, items, 1)
+	assert.Equal(t, "message", items[0].Type)
 	assert.Equal(t, "user", items[0].Role)
+	var parts []ResponsesContentPart
+	require.NoError(t, json.Unmarshal(items[0].Content, &parts))
+	require.Len(t, parts, 1)
+	assert.Equal(t, "input_text", parts[0].Type)
+	assert.Equal(t, "Hello", parts[0].Text)
 }
 
 func TestAnthropicToResponses_SystemPrompt(t *testing.T) {
@@ -49,7 +55,12 @@ func TestAnthropicToResponses_SystemPrompt(t *testing.T) {
 		var items []ResponsesInputItem
 		require.NoError(t, json.Unmarshal(resp.Input, &items))
 		require.Len(t, items, 2)
-		assert.Equal(t, "system", items[0].Role)
+		assert.Equal(t, "developer", items[0].Role)
+		var parts []ResponsesContentPart
+		require.NoError(t, json.Unmarshal(items[0].Content, &parts))
+		require.Len(t, parts, 1)
+		assert.Equal(t, "input_text", parts[0].Type)
+		assert.Equal(t, "You are helpful.", parts[0].Text)
 	})
 
 	t.Run("array", func(t *testing.T) {
@@ -65,11 +76,33 @@ func TestAnthropicToResponses_SystemPrompt(t *testing.T) {
 		var items []ResponsesInputItem
 		require.NoError(t, json.Unmarshal(resp.Input, &items))
 		require.Len(t, items, 2)
-		assert.Equal(t, "system", items[0].Role)
-		// System text should be joined with double newline.
-		var text string
-		require.NoError(t, json.Unmarshal(items[0].Content, &text))
-		assert.Equal(t, "Part 1\n\nPart 2", text)
+		assert.Equal(t, "developer", items[0].Role)
+		var parts []ResponsesContentPart
+		require.NoError(t, json.Unmarshal(items[0].Content, &parts))
+		require.Len(t, parts, 2)
+		assert.Equal(t, "input_text", parts[0].Type)
+		assert.Equal(t, "Part 1", parts[0].Text)
+		assert.Equal(t, "input_text", parts[1].Type)
+		assert.Equal(t, "Part 2", parts[1].Text)
+	})
+
+	t.Run("billing header skipped", func(t *testing.T) {
+		req := &AnthropicRequest{
+			Model:     "gpt-5.2",
+			MaxTokens: 100,
+			System:    json.RawMessage(`[{"type":"text","text":"x-anthropic-billing-header: cc_version=1;"},{"type":"text","text":"Project prompt"}]`),
+			Messages:  []AnthropicMessage{{Role: "user", Content: json.RawMessage(`"Hi"`)}},
+		}
+		resp, err := AnthropicToResponses(req)
+		require.NoError(t, err)
+
+		var items []ResponsesInputItem
+		require.NoError(t, json.Unmarshal(resp.Input, &items))
+		require.Len(t, items, 2)
+		var parts []ResponsesContentPart
+		require.NoError(t, json.Unmarshal(items[0].Content, &parts))
+		require.Len(t, parts, 1)
+		assert.Equal(t, "Project prompt", parts[0].Text)
 	})
 }
 
@@ -104,10 +137,10 @@ func TestAnthropicToResponses_ToolUse(t *testing.T) {
 	assert.Equal(t, "user", items[0].Role)
 	assert.Equal(t, "assistant", items[1].Role)
 	assert.Equal(t, "function_call", items[2].Type)
-	assert.Equal(t, "fc_call_1", items[2].CallID)
+	assert.Equal(t, "call_1", items[2].CallID)
 	assert.Empty(t, items[2].ID)
 	assert.Equal(t, "function_call_output", items[3].Type)
-	assert.Equal(t, "fc_call_1", items[3].CallID)
+	assert.Equal(t, "call_1", items[3].CallID)
 	assert.Equal(t, `"Sunny, 72°F"`, string(items[3].Output))
 }
 
@@ -535,18 +568,17 @@ func TestStreamingReadToolDropsEmptyPages(t *testing.T) {
 		OutputIndex: 0,
 		Delta:       `{"file_path":"/tmp/demo.py","limit":2000,"offset":0,"pages":""}`,
 	}, state)
-	assert.Len(t, events, 0)
+	require.Len(t, events, 1, "Read tool deltas must be streamed like any other tool")
+	assert.Equal(t, "content_block_delta", events[0].Type)
+	assert.Equal(t, "input_json_delta", events[0].Delta.Type)
 
 	events = ResponsesEventToAnthropicEvents(&ResponsesStreamEvent{
 		Type:        "response.function_call_arguments.done",
 		OutputIndex: 0,
 		Arguments:   `{"file_path":"/tmp/demo.py","limit":2000,"offset":0,"pages":""}`,
 	}, state)
-	require.Len(t, events, 2)
-	assert.Equal(t, "content_block_delta", events[0].Type)
-	assert.Equal(t, "input_json_delta", events[0].Delta.Type)
-	assert.JSONEq(t, `{"file_path":"/tmp/demo.py","limit":2000,"offset":0}`, events[0].Delta.PartialJSON)
-	assert.Equal(t, "content_block_stop", events[1].Type)
+	require.Len(t, events, 1, "after streaming deltas, .done should just close the block")
+	assert.Equal(t, "content_block_stop", events[0].Type)
 }
 
 func TestStreamingReasoning(t *testing.T) {
@@ -788,8 +820,8 @@ func TestAnthropicToResponses_ThinkingEnabled(t *testing.T) {
 	resp, err := AnthropicToResponses(req)
 	require.NoError(t, err)
 	require.NotNil(t, resp.Reasoning)
-	// thinking.type is ignored for effort; default high applies.
-	assert.Equal(t, "high", resp.Reasoning.Effort)
+	// thinking.type is ignored for effort; Codex bridge default medium applies.
+	assert.Equal(t, "medium", resp.Reasoning.Effort)
 	assert.Equal(t, "auto", resp.Reasoning.Summary)
 	assert.Contains(t, resp.Include, "reasoning.encrypted_content")
 	assert.NotContains(t, resp.Include, "reasoning.summary")
@@ -806,8 +838,8 @@ func TestAnthropicToResponses_ThinkingAdaptive(t *testing.T) {
 	resp, err := AnthropicToResponses(req)
 	require.NoError(t, err)
 	require.NotNil(t, resp.Reasoning)
-	// thinking.type is ignored for effort; default high applies.
-	assert.Equal(t, "high", resp.Reasoning.Effort)
+	// thinking.type is ignored for effort; Codex bridge default medium applies.
+	assert.Equal(t, "medium", resp.Reasoning.Effort)
 	assert.Equal(t, "auto", resp.Reasoning.Summary)
 	assert.NotContains(t, resp.Include, "reasoning.summary")
 }
@@ -822,9 +854,9 @@ func TestAnthropicToResponses_ThinkingDisabled(t *testing.T) {
 
 	resp, err := AnthropicToResponses(req)
 	require.NoError(t, err)
-	// Default effort applies (high → high) even when thinking is disabled.
+	// Default effort applies (medium) even when thinking is disabled.
 	require.NotNil(t, resp.Reasoning)
-	assert.Equal(t, "high", resp.Reasoning.Effort)
+	assert.Equal(t, "medium", resp.Reasoning.Effort)
 }
 
 func TestAnthropicToResponses_NoThinking(t *testing.T) {
@@ -836,9 +868,9 @@ func TestAnthropicToResponses_NoThinking(t *testing.T) {
 
 	resp, err := AnthropicToResponses(req)
 	require.NoError(t, err)
-	// Default effort applies (high → high) when no thinking/output_config is set.
+	// Default effort applies (medium) when no thinking/output_config is set.
 	require.NotNil(t, resp.Reasoning)
-	assert.Equal(t, "high", resp.Reasoning.Effort)
+	assert.Equal(t, "medium", resp.Reasoning.Effort)
 }
 
 // ---------------------------------------------------------------------------
@@ -846,7 +878,7 @@ func TestAnthropicToResponses_NoThinking(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAnthropicToResponses_OutputConfigOverridesDefault(t *testing.T) {
-	// Default is high, but output_config.effort="low" overrides. low→low after mapping.
+	// Default is medium, but output_config.effort="low" overrides. low→low after mapping.
 	req := &AnthropicRequest{
 		Model:        "gpt-5.2",
 		MaxTokens:    1024,
@@ -912,7 +944,7 @@ func TestAnthropicToResponses_OutputConfigMax(t *testing.T) {
 }
 
 func TestAnthropicToResponses_NoOutputConfig(t *testing.T) {
-	// No output_config → default high regardless of thinking.type.
+	// No output_config → default medium regardless of thinking.type.
 	req := &AnthropicRequest{
 		Model:     "gpt-5.2",
 		MaxTokens: 1024,
@@ -923,11 +955,11 @@ func TestAnthropicToResponses_NoOutputConfig(t *testing.T) {
 	resp, err := AnthropicToResponses(req)
 	require.NoError(t, err)
 	require.NotNil(t, resp.Reasoning)
-	assert.Equal(t, "high", resp.Reasoning.Effort)
+	assert.Equal(t, "medium", resp.Reasoning.Effort)
 }
 
 func TestAnthropicToResponses_OutputConfigWithoutEffort(t *testing.T) {
-	// output_config present but effort empty (e.g. only format set) → default high.
+	// output_config present but effort empty (e.g. only format set) → default medium.
 	req := &AnthropicRequest{
 		Model:        "gpt-5.2",
 		MaxTokens:    1024,
@@ -938,7 +970,7 @@ func TestAnthropicToResponses_OutputConfigWithoutEffort(t *testing.T) {
 	resp, err := AnthropicToResponses(req)
 	require.NoError(t, err)
 	require.NotNil(t, resp.Reasoning)
-	assert.Equal(t, "high", resp.Reasoning.Effort)
+	assert.Equal(t, "medium", resp.Reasoning.Effort)
 }
 
 // ---------------------------------------------------------------------------
@@ -1110,7 +1142,7 @@ func TestAnthropicToResponses_ToolResultWithImage(t *testing.T) {
 
 	// function_call_output should have text-only output (no image).
 	assert.Equal(t, "function_call_output", items[2].Type)
-	assert.Equal(t, "fc_toolu_1", items[2].CallID)
+	assert.Equal(t, "toolu_1", items[2].CallID)
 	assert.Equal(t, `"(empty)"`, string(items[2].Output))
 
 	// Image should be in a separate user message.

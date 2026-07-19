@@ -30,6 +30,7 @@ import (
 	"ikik-api/internal/pkg/openai"
 	"ikik-api/internal/pkg/timezone"
 	"ikik-api/internal/pkg/xai"
+	"ikik-api/internal/securityaudit"
 	middleware2 "ikik-api/internal/server/middleware"
 	"ikik-api/internal/service"
 
@@ -70,6 +71,7 @@ func explicitStickySessionIDFromHeaders(c *gin.Context) string {
 // GatewayHandler handles API gateway requests
 type GatewayHandler struct {
 	gatewayService            *service.GatewayService
+	openAIGatewayService      *service.OpenAIGatewayService
 	geminiCompatService       *service.GeminiMessagesCompatService
 	antigravityGatewayService *service.AntigravityGatewayService
 	platformRegistry          *gatewayplatform.Registry
@@ -79,6 +81,8 @@ type GatewayHandler struct {
 	apiKeyService             *service.APIKeyService
 	usageRecordWorkerPool     *service.UsageRecordWorkerPool
 	errorPassthroughService   *service.ErrorPassthroughService
+	contentModerationService  *service.ContentModerationService
+	securityAuditCoordinator  *securityaudit.Coordinator
 	preFlightHooks            *gatewayhook.Chain
 	concurrencyHelper         *ConcurrencyHelper
 	userMsgQueueHelper        *UserMsgQueueHelper
@@ -92,22 +96,68 @@ type GatewayHandler struct {
 // NewGatewayHandler creates a new GatewayHandler
 func NewGatewayHandler(
 	gatewayService *service.GatewayService,
-	geminiCompatService *service.GeminiMessagesCompatService,
-	antigravityGatewayService *service.AntigravityGatewayService,
-	platformRegistry *gatewayplatform.Registry,
-	userService *service.UserService,
-	concurrencyService *service.ConcurrencyService,
-	billingCacheService *service.BillingCacheService,
-	usageService *service.UsageService,
-	apiKeyService *service.APIKeyService,
-	usageRecordWorkerPool *service.UsageRecordWorkerPool,
-	errorPassthroughService *service.ErrorPassthroughService,
-	preFlightHooks *gatewayhook.Chain,
-	userMsgQueueService *service.UserMessageQueueService,
-	cfg *config.Config,
-	settingService *service.SettingService,
-	carpoolService *service.CarpoolService,
+	extraDeps ...any,
 ) *GatewayHandler {
+	var (
+		openAIGatewayService      *service.OpenAIGatewayService
+		geminiCompatService       *service.GeminiMessagesCompatService
+		antigravityGatewayService *service.AntigravityGatewayService
+		platformRegistry          *gatewayplatform.Registry
+		userService               *service.UserService
+		concurrencyService        *service.ConcurrencyService
+		billingCacheService       *service.BillingCacheService
+		usageService              *service.UsageService
+		apiKeyService             *service.APIKeyService
+		usageRecordWorkerPool     *service.UsageRecordWorkerPool
+		errorPassthroughService   *service.ErrorPassthroughService
+		contentModerationService  *service.ContentModerationService
+		securityAuditCoordinator  *securityaudit.Coordinator
+		preFlightHooks            *gatewayhook.Chain
+		userMsgQueueService       *service.UserMessageQueueService
+		cfg                       *config.Config
+		settingService            *service.SettingService
+		carpoolService            *service.CarpoolService
+	)
+	for _, dep := range extraDeps {
+		switch value := dep.(type) {
+		case *service.OpenAIGatewayService:
+			openAIGatewayService = value
+		case *service.GeminiMessagesCompatService:
+			geminiCompatService = value
+		case *service.AntigravityGatewayService:
+			antigravityGatewayService = value
+		case *gatewayplatform.Registry:
+			platformRegistry = value
+		case *service.UserService:
+			userService = value
+		case *service.ConcurrencyService:
+			concurrencyService = value
+		case *service.BillingCacheService:
+			billingCacheService = value
+		case *service.UsageService:
+			usageService = value
+		case *service.APIKeyService:
+			apiKeyService = value
+		case *service.UsageRecordWorkerPool:
+			usageRecordWorkerPool = value
+		case *service.ErrorPassthroughService:
+			errorPassthroughService = value
+		case *service.ContentModerationService:
+			contentModerationService = value
+		case *securityaudit.Coordinator:
+			securityAuditCoordinator = value
+		case *gatewayhook.Chain:
+			preFlightHooks = value
+		case *service.UserMessageQueueService:
+			userMsgQueueService = value
+		case *config.Config:
+			cfg = value
+		case *service.SettingService:
+			settingService = value
+		case *service.CarpoolService:
+			carpoolService = value
+		}
+	}
 	pingInterval := time.Duration(0)
 	maxAccountSwitches := 10
 	maxAccountSwitchesGemini := 3
@@ -129,6 +179,7 @@ func NewGatewayHandler(
 
 	return &GatewayHandler{
 		gatewayService:            gatewayService,
+		openAIGatewayService:      openAIGatewayService,
 		geminiCompatService:       geminiCompatService,
 		antigravityGatewayService: antigravityGatewayService,
 		platformRegistry:          platformRegistry,
@@ -138,6 +189,8 @@ func NewGatewayHandler(
 		apiKeyService:             apiKeyService,
 		usageRecordWorkerPool:     usageRecordWorkerPool,
 		errorPassthroughService:   errorPassthroughService,
+		contentModerationService:  contentModerationService,
+		securityAuditCoordinator:  securityAuditCoordinator,
 		preFlightHooks:            preFlightHooks,
 		concurrencyHelper:         NewConcurrencyHelper(concurrencyService, SSEPingFormatClaude, pingInterval),
 		userMsgQueueHelper:        umqHelper,
@@ -197,6 +250,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
 		return
 	}
+	body = parsedReq.Body.Bytes()
 	reqModel := parsedReq.Model
 	reqStream := parsedReq.Stream
 	requestedModel := reqModel
@@ -367,7 +421,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 
 	if platform == service.PlatformGemini {
 		routeCtx := gatewayRouteContext(c.Request.Context(), apiKey, apiKey.User.ID)
-		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, apiKey.User, apiKey, apiKey.Group, subscription); err != nil {
+		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, apiKey.User, apiKey, apiKey.Group, subscription, service.QuotaPlatform(routeCtx, apiKey)); err != nil {
 			reqLog.Info("gateway.billing_eligibility_check_failed", zap.Error(err))
 			status, code, message, retryAfter := billingErrorDetails(err)
 			if retryAfter > 0 {
@@ -411,6 +465,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					c.Request = c.Request.WithContext(ctx)
 					continue
 				case FailoverCanceled:
+					failoverClientGone(c)
 					return
 				default: // FailoverExhausted
 					if fs.LastFailoverErr != nil {
@@ -529,7 +584,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 						h.handleFailoverExhausted(c, failoverErr, service.PlatformGemini, true)
 						return
 					}
-					action := fs.HandleFailoverError(c.Request.Context(), h.gatewayService, account.ID, account.Platform, failoverErr)
+					action := fs.HandleFailoverError(c.Request.Context(), h.gatewayService, account.ID, account.Platform, account.GetPoolModeRetryCount(), failoverErr)
 					switch action {
 					case FailoverContinue:
 						continue
@@ -537,6 +592,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 						h.handleFailoverExhausted(c, fs.LastFailoverErr, service.PlatformGemini, streamStarted)
 						return
 					case FailoverCanceled:
+						failoverClientGone(c)
 						return
 					}
 				}
@@ -585,6 +641,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 
 			// 使用量记录通过有界 worker 池提交，避免请求热路径创建无界 goroutine。
 			forceCacheBilling := fs.ForceCacheBilling
+			quotaPlatform := service.QuotaPlatform(c.Request.Context(), apiKey)
 			h.submitUsageRecordTask(func(ctx context.Context) {
 				if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
 					Result:             result,
@@ -599,6 +656,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					RequestPayloadHash: requestPayloadHash,
 					ForceCacheBilling:  forceCacheBilling,
 					APIKeyService:      h.apiKeyService,
+					QuotaPlatform:      quotaPlatform,
 					ChannelUsageFields: service.BuildAutoModelUsageFields(autoDecision, channelMapping, result.UpstreamModel),
 				}); err != nil {
 					logger.L().With(
@@ -680,7 +738,7 @@ routeLoop:
 		routeCtx := gatewayRouteContext(c.Request.Context(), currentAPIKey, currentAPIKey.User.ID)
 		routeBody := baseBody
 		channelMapping, _ := h.gatewayService.ResolveChannelMappingAndRestrict(routeCtx, currentAPIKey.GroupID, reqModel)
-		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription); err != nil {
+		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription, service.QuotaPlatform(routeCtx, currentAPIKey)); err != nil {
 			reqLog.Info("gateway.billing_eligibility_check_failed",
 				zap.Error(err),
 				zap.Int64p("group_id", currentAPIKey.GroupID),
@@ -756,6 +814,7 @@ routeLoop:
 					c.Request = c.Request.WithContext(ctx)
 					continue
 				case FailoverCanceled:
+					failoverClientGone(c)
 					return
 				default: // FailoverExhausted
 					if fs.LastFailoverErr != nil {
@@ -988,7 +1047,7 @@ routeLoop:
 						}
 						fallbackAPIKey := cloneAPIKeyWithGroup(apiKey, fallbackGroup)
 						fallbackCtx := gatewayRouteContext(c.Request.Context(), fallbackAPIKey, fallbackAPIKey.User.ID)
-						if err := h.billingCacheService.CheckBillingEligibility(fallbackCtx, fallbackAPIKey.User, fallbackAPIKey, fallbackGroup, nil); err != nil {
+						if err := h.billingCacheService.CheckBillingEligibility(fallbackCtx, fallbackAPIKey.User, fallbackAPIKey, fallbackGroup, nil, service.QuotaPlatform(fallbackCtx, fallbackAPIKey)); err != nil {
 							status, code, message, retryAfter := billingErrorDetails(err)
 							if retryAfter > 0 {
 								c.Header("Retry-After", strconv.Itoa(retryAfter))
@@ -1015,7 +1074,7 @@ routeLoop:
 						h.handleFailoverExhausted(c, failoverErr, account.Platform, true)
 						return
 					}
-					action := fs.HandleFailoverError(c.Request.Context(), h.gatewayService, account.ID, account.Platform, failoverErr)
+					action := fs.HandleFailoverError(c.Request.Context(), h.gatewayService, account.ID, account.Platform, account.GetPoolModeRetryCount(), failoverErr)
 					switch action {
 					case FailoverContinue:
 						continue
@@ -1027,6 +1086,7 @@ routeLoop:
 						h.handleFailoverExhausted(c, fs.LastFailoverErr, account.Platform, streamStarted)
 						return
 					case FailoverCanceled:
+						failoverClientGone(c)
 						return
 					}
 				}
@@ -1088,6 +1148,7 @@ routeLoop:
 
 			// 使用量记录通过有界 worker 池提交，避免请求热路径创建无界 goroutine。
 			forceCacheBilling := fs.ForceCacheBilling
+			quotaPlatform := service.QuotaPlatform(c.Request.Context(), currentAPIKey)
 			h.submitUsageRecordTask(func(ctx context.Context) {
 				if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
 					Result:             result,
@@ -1102,6 +1163,7 @@ routeLoop:
 					RequestPayloadHash: requestPayloadHash,
 					ForceCacheBilling:  forceCacheBilling,
 					APIKeyService:      h.apiKeyService,
+					QuotaPlatform:      quotaPlatform,
 					ChannelUsageFields: channelMapping.ToUsageFields(reqModel, result.UpstreamModel),
 				}); err != nil {
 					logger.L().With(
@@ -1199,6 +1261,10 @@ func (h *GatewayHandler) Models(c *gin.Context) {
 		})
 		return
 	}
+	if platform == service.PlatformGrok {
+		writeGrokModelsList(c, xai.DefaultModelIDs())
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"object": "list",
@@ -1206,7 +1272,11 @@ func (h *GatewayHandler) Models(c *gin.Context) {
 	})
 }
 
-func writeModelsList(c *gin.Context, modelIDs []string) {
+func writeModelsList(c *gin.Context, platform string, modelIDs []string) {
+	if platform == service.PlatformGrok {
+		writeGrokModelsList(c, modelIDs)
+		return
+	}
 	models := make([]claude.Model, 0, len(modelIDs))
 	for _, modelID := range modelIDs {
 		models = append(models, claude.Model{
@@ -1320,7 +1390,7 @@ func writeCustomModelsList(c *gin.Context, platform string, modelIDs []string) {
 		writeKiroModelsList(c, modelIDs)
 		return
 	}
-	writeModelsList(c, modelIDs)
+	writeModelsList(c, platform, modelIDs)
 }
 
 type gatewayModelListItem struct {
@@ -2093,7 +2163,7 @@ func carpoolUsageRemaining(windows []service.CarpoolUsageWindow) float64 {
 }
 
 // usageUnrestricted 处理 unrestricted 模式的响应（向后兼容）
-func (h *GatewayHandler) usageUnrestricted(c *gin.Context, ctx context.Context, apiKey *service.APIKey, subject middleware2.AuthSubject, usageData gin.H, modelStats any) {
+func (h *GatewayHandler) usageUnrestricted(c *gin.Context, ctx context.Context, apiKey *service.APIKey, subject middleware2.AuthSubject, usageData gin.H, modelStats any, _ ...any) {
 	// 订阅模式
 	if apiKey.Group != nil && apiKey.Group.IsSubscriptionType() {
 		resp := gin.H{
@@ -2109,13 +2179,14 @@ func (h *GatewayHandler) usageUnrestricted(c *gin.Context, ctx context.Context, 
 			remaining := h.calculateSubscriptionRemaining(apiKey.Group, subscription)
 			resp["remaining"] = remaining
 			resp["subscription"] = gin.H{
-				"daily_usage_usd":   subscription.DailyUsageUSD,
-				"weekly_usage_usd":  subscription.WeeklyUsageUSD,
-				"monthly_usage_usd": subscription.MonthlyUsageUSD,
-				"daily_limit_usd":   apiKey.Group.DailyLimitUSD,
-				"weekly_limit_usd":  apiKey.Group.WeeklyLimitUSD,
-				"monthly_limit_usd": apiKey.Group.MonthlyLimitUSD,
-				"expires_at":        subscription.ExpiresAt,
+				"daily_usage_usd":     subscription.DailyUsageUSD,
+				"weekly_usage_usd":    subscription.WeeklyUsageUSD,
+				"monthly_usage_usd":   subscription.MonthlyUsageUSD,
+				"daily_limit_usd":     apiKey.Group.DailyLimitUSD,
+				"weekly_limit_usd":    apiKey.Group.WeeklyLimitUSD,
+				"monthly_limit_usd":   apiKey.Group.MonthlyLimitUSD,
+				"weekly_window_start": subscription.WeeklyWindowStart,
+				"expires_at":          subscription.ExpiresAt,
 			}
 		}
 
@@ -2401,6 +2472,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
 		return
 	}
+	body = parsedReq.Body.Bytes()
 	// count_tokens 走 messages 严格校验时，复用已解析请求，避免二次反序列化。
 	SetClaudeCodeClientContext(c, body, parsedReq)
 	reqLog = reqLog.With(zap.String("model", parsedReq.Model), zap.Bool("stream", parsedReq.Stream))
@@ -2421,7 +2493,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 
 	// 校验 billing eligibility（订阅/余额）
 	// 【注意】不计算并发，但需要校验订阅/余额
-	if err := h.billingCacheService.CheckBillingEligibility(c.Request.Context(), apiKey.User, apiKey, apiKey.Group, subscription); err != nil {
+	if err := h.billingCacheService.CheckBillingEligibility(c.Request.Context(), apiKey.User, apiKey, apiKey.Group, subscription, service.QuotaPlatform(c.Request.Context(), apiKey)); err != nil {
 		status, code, message, retryAfter := billingErrorDetails(err)
 		if retryAfter > 0 {
 			c.Header("Retry-After", strconv.Itoa(retryAfter))

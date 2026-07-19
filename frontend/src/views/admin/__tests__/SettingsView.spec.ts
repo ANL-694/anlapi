@@ -169,6 +169,14 @@ vi.mock("vue-i18n", async () => {
     "admin.settings.payment.findProvider": "查看支持的支付方式",
     "admin.settings.openaiExperimentalScheduler.title": "OpenAI 实验调度策略",
     "admin.settings.openaiExperimentalScheduler.description": "默认关闭。开启后仅影响本网关在 OpenAI 账号间的实验性调度选择逻辑，不代表上游 OpenAI 官方能力。",
+    "admin.settings.openaiExperimentalScheduler.lowRatePriorityTitle": "低倍率优先",
+    "admin.settings.openaiExperimentalScheduler.lowRatePriorityDescription": "开启后优先选择计费倍率较低的账号；倍率相同时，再比较账号优先级和当前负载等。启用实验调度策略后，此开关不生效。",
+    "admin.settings.openaiExperimentalScheduler.oauthRateTitle": "OAuth 调度参考倍率",
+    "admin.settings.openaiExperimentalScheduler.oauthRatePriorityDescription": "同一分组同时包含 API Key 和 OAuth 账号时，OAuth 账号按此倍率与已探测的 API Key 计费倍率一起排序。",
+    "admin.settings.openaiExperimentalScheduler.oauthRateWeightedDescription": "同一分组同时包含 API Key 和 OAuth 账号时，计算“计费倍率”得分时，OAuth 账号按此倍率参与计算。",
+    "admin.settings.openaiExperimentalScheduler.subscriptionPriorityTitle": "订阅优先",
+    "admin.settings.openaiExperimentalScheduler.weightsTitle": "调度权值覆盖",
+    "admin.settings.openaiExperimentalScheduler.upstreamCostWeight": "计费倍率",
     "admin.settings.site.uploadImage": "上传图片",
     "admin.settings.site.remove": "移除",
   };
@@ -402,6 +410,8 @@ const baseSettingsResponse = {
   payment_visible_method_wxpay_source: "invalid-source",
   payment_visible_method_alipay_enabled: true,
   payment_visible_method_wxpay_enabled: true,
+  openai_low_upstream_rate_priority_enabled: false,
+  openai_oauth_scheduling_rate_multiplier: 1,
   openai_advanced_scheduler_enabled: false,
   balance_low_notify_enabled: false,
   balance_low_notify_threshold: 0,
@@ -585,6 +595,27 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_enabled");
   });
 
+  it("submits the admin recharge affiliate rebate setting", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      affiliate_enabled: true,
+      affiliate_admin_recharge_enabled: true,
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        affiliate_admin_recharge_enabled: true,
+      }),
+    );
+  });
+
   it("submits Anthropic cache TTL injection gateway setting", async () => {
     getSettings.mockResolvedValueOnce({
       ...baseSettingsResponse,
@@ -680,6 +711,66 @@ describe("admin SettingsView payment visible method controls", () => {
       "默认关闭。开启后仅影响本网关在 OpenAI 账号间的实验性调度选择逻辑",
     );
     expect(wrapper.text()).not.toContain("OpenAI 高级调度器");
+  });
+
+  it("places and explains rate controls for both scheduling modes", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+    expect(
+      wrapper.find('[data-testid="openai-oauth-scheduling-rate-multiplier"]').exists(),
+    ).toBe(false);
+
+    const lowRateToggle = wrapper.get('[data-testid="openai-low-rate-priority-toggle"]');
+    await lowRateToggle.setValue(true);
+    const priorityModeText = wrapper.text();
+    expect(priorityModeText).toContain(
+      "同一分组同时包含 API Key 和 OAuth 账号时，OAuth 账号按此倍率与已探测的 API Key 计费倍率一起排序。",
+    );
+    expect(priorityModeText.indexOf("低倍率优先")).toBeLessThan(
+      priorityModeText.indexOf("OAuth 调度参考倍率"),
+    );
+    expect(priorityModeText.indexOf("OAuth 调度参考倍率")).toBeLessThan(
+      priorityModeText.indexOf("OpenAI 实验调度策略"),
+    );
+
+    const oauthRateInput = wrapper.get(
+      '[data-testid="openai-oauth-scheduling-rate-multiplier"]',
+    );
+    await oauthRateInput.setValue("0.05");
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        openai_low_upstream_rate_priority_enabled: true,
+        openai_oauth_scheduling_rate_multiplier: 0.05,
+      }),
+    );
+
+    await wrapper
+      .get('[data-testid="openai-advanced-scheduler-toggle"]')
+      .setValue(true);
+    expect(
+      wrapper.find('[data-testid="openai-low-rate-priority-toggle"]').exists(),
+    ).toBe(false);
+    expect(
+      wrapper.find('[data-testid="openai-oauth-scheduling-rate-multiplier"]').exists(),
+    ).toBe(true);
+    const weightedModeText = wrapper.text();
+    expect(weightedModeText).toContain(
+      "同一分组同时包含 API Key 和 OAuth 账号时，计算“计费倍率”得分时，OAuth 账号按此倍率参与计算。",
+    );
+    expect(weightedModeText).not.toContain(
+      "OAuth 账号按此倍率与已探测的 API Key 计费倍率一起排序。",
+    );
+    expect(weightedModeText.indexOf("订阅优先")).toBeLessThan(
+      weightedModeText.indexOf("OAuth 调度参考倍率"),
+    );
+    expect(weightedModeText.indexOf("OAuth 调度参考倍率")).toBeLessThan(
+      weightedModeText.indexOf("调度权值覆盖"),
+    );
+    expect(weightedModeText).toContain("计费倍率");
   });
 
   it("passes translated upload and remove labels to the payment help image uploader", async () => {

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/pkg/pagination"
 )
 
 type ensureEmailCall struct {
@@ -50,6 +50,10 @@ func (s *emailSyncRepoStub) GetByID(_ context.Context, _ int64) (*User, error) {
 	}
 	cloned := *s.user
 	return &cloned, nil
+}
+
+func (s *emailSyncRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*User, error) {
+	return s.GetByID(ctx, id)
 }
 
 func (s *emailSyncRepoStub) GetByEmail(_ context.Context, _ string) (*User, error) {

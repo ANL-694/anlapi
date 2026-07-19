@@ -82,11 +82,20 @@ type APIKeyAuthGroupSnapshot struct {
 	WeeklyLimitUSD                  *float64 `json:"weekly_limit_usd,omitempty"`
 	MonthlyLimitUSD                 *float64 `json:"monthly_limit_usd,omitempty"`
 	AllowImageGeneration            bool     `json:"allow_image_generation"`
+	AllowBatchImageGeneration       bool     `json:"allow_batch_image_generation"`
 	ImageRateIndependent            bool     `json:"image_rate_independent"`
 	ImageRateMultiplier             float64  `json:"image_rate_multiplier"`
 	ImagePrice1K                    *float64 `json:"image_price_1k,omitempty"`
 	ImagePrice2K                    *float64 `json:"image_price_2k,omitempty"`
 	ImagePrice4K                    *float64 `json:"image_price_4k,omitempty"`
+	BatchImageDiscountMultiplier    float64  `json:"batch_image_discount_multiplier"`
+	BatchImageHoldMultiplier        float64  `json:"batch_image_hold_multiplier"`
+	VideoRateIndependent            bool     `json:"video_rate_independent"`
+	VideoRateMultiplier             float64  `json:"video_rate_multiplier"`
+	VideoPrice480P                  *float64 `json:"video_price_480p,omitempty"`
+	VideoPrice720P                  *float64 `json:"video_price_720p,omitempty"`
+	VideoPrice1080P                 *float64 `json:"video_price_1080p,omitempty"`
+	WebSearchPricePerCall           *float64 `json:"web_search_price_per_call,omitempty"`
 	ClaudeCodeOnly                  bool     `json:"claude_code_only"`
 	FallbackGroupID                 *int64   `json:"fallback_group_id,omitempty"`
 	FallbackGroupIDOnInvalidRequest *int64   `json:"fallback_group_id_on_invalid_request,omitempty"`
@@ -108,6 +117,11 @@ type APIKeyAuthGroupSnapshot struct {
 
 	// RPMLimit 分组级每分钟请求数上限（0 = 不限制）；用于 billing_cache_service.checkRPM 级联判断。
 	RPMLimit int `json:"rpm_limit"`
+
+	PeakRateEnabled    bool    `json:"peak_rate_enabled"`
+	PeakStart          string  `json:"peak_start"`
+	PeakEnd            string  `json:"peak_end"`
+	PeakRateMultiplier float64 `json:"peak_rate_multiplier"`
 
 	// Kiro 模拟缓存配置（仅 Kiro 分组生效）
 	KiroCacheEmulationEnabled   bool    `json:"kiro_cache_emulation_enabled"`

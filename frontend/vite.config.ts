@@ -1966,6 +1966,51 @@ function localMockApiPlugin(enabled: boolean): Plugin {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character] || character)
+}
+
+function isSafeImageUrl(value: string): boolean {
+  const trimmed = value.trim()
+  if ((trimmed.startsWith('/') && !trimmed.startsWith('//')) || /^data:image\//i.test(trimmed)) {
+    return true
+  }
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+type BrandingConfig = { site_name?: string; site_logo?: string }
+
+function injectBranding(html: string, config: BrandingConfig): string {
+  let brandedHtml = html
+  const siteName = config.site_name?.trim()
+  if (siteName) {
+    brandedHtml = brandedHtml.replace(
+      /<title>[^<]*<\/title>/i,
+      `<title>${escapeHtml(siteName)} - AI API Gateway</title>`,
+    )
+  }
+
+  const siteLogo = config.site_logo?.trim()
+  if (siteLogo && isSafeImageUrl(siteLogo)) {
+    brandedHtml = brandedHtml.replace(
+      /<link\s+rel=["']icon["'][^>]*>/i,
+      `<link rel="icon" href="${escapeHtml(siteLogo)}" />`,
+    )
+  }
+  return brandedHtml
+}
+
 /**
  * Vite 插件：开发模式下注入公开配置到 index.html
  * 与生产模式的后端注入行为保持一致，消除闪烁
@@ -1977,10 +2022,10 @@ function injectPublicSettings(backendUrl: string, localSettings?: unknown): Plug
     transformIndexHtml: {
       order: 'pre',
       async handler(html) {
-        if (localSettings) {
-          const settingsJson = JSON.stringify(localSettings).replace(/</g, '\\u003c')
-          const script = `<script>window.__APP_CONFIG__=${settingsJson};window.__APP_CONFIG__.api_base_url=window.location.origin;</script>`
-          return html.replace('</head>', `${script}\n</head>`)
+		if (localSettings) {
+			const settingsJson = JSON.stringify(localSettings).replace(/</g, '\\u003c')
+			const script = `<script>window.__APP_CONFIG__=${settingsJson};window.__APP_CONFIG__.api_base_url=window.location.origin;</script>`
+			return injectBranding(html, localSettings as BrandingConfig).replace('</head>', `${script}\n</head>`)
         }
 
         try {
@@ -1989,9 +2034,9 @@ function injectPublicSettings(backendUrl: string, localSettings?: unknown): Plug
           })
           if (response.ok) {
             const data = await response.json()
-            if (data.code === 0 && data.data) {
-              const script = `<script>window.__APP_CONFIG__=${JSON.stringify(data.data)};</script>`
-              return html.replace('</head>', `${script}\n</head>`)
+			if (data.code === 0 && data.data) {
+				const script = `<script>window.__APP_CONFIG__=${JSON.stringify(data.data)};</script>`
+				return injectBranding(html, data.data as BrandingConfig).replace('</head>', `${script}\n</head>`)
             }
           }
         } catch (e) {
@@ -2072,7 +2117,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/@airwallex/')) {
               return 'vendor-airwallex'
             }
-            if (id.includes('/@stripe/')) {
+            if (id.includes('/@stripe/stripe-js/')) {
               return 'vendor-stripe'
             }
 

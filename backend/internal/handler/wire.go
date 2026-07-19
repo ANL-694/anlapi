@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"ikik-api/internal/config"
 	"ikik-api/internal/handler/admin"
+	"ikik-api/internal/securityaudit"
 	"ikik-api/internal/service"
 
 	"github.com/google/wire"
@@ -13,6 +15,7 @@ func ProvideAdminHandlers(
 	userHandler *admin.UserHandler,
 	groupHandler *admin.GroupHandler,
 	accountHandler *admin.AccountHandler,
+	upstreamBillingProbe *service.UpstreamBillingProbeService,
 	accountSharePolicyHandler *admin.AccountSharePolicyHandler,
 	carpoolHandler *admin.CarpoolHandler,
 	announcementHandler *admin.AnnouncementHandler,
@@ -42,13 +45,17 @@ func ProvideAdminHandlers(
 	channelMonitorHandler *admin.ChannelMonitorHandler,
 	channelMonitorTemplateHandler *admin.ChannelMonitorRequestTemplateHandler,
 	contentModerationHandler *admin.ContentModerationHandler,
+	promptAuditHandler *securityaudit.PromptAdminHandler,
 	paymentHandler *admin.PaymentHandler,
 	revenueHandler *admin.RevenueHandler,
 	withdrawalHandler *admin.WithdrawalHandler,
 	shopHandler *admin.ShopHandler,
 	affiliateHandler *admin.AffiliateHandler,
+	complianceHandler *admin.ComplianceHandler,
+	auditLogHandler *admin.AuditLogHandler,
 	moduleHandler *admin.ModuleHandler,
 ) *AdminHandlers {
+	accountHandler.SetUpstreamBillingProbeService(upstreamBillingProbe)
 	return &AdminHandlers{
 		Dashboard:              dashboardHandler,
 		User:                   userHandler,
@@ -83,13 +90,83 @@ func ProvideAdminHandlers(
 		ChannelMonitor:         channelMonitorHandler,
 		ChannelMonitorTemplate: channelMonitorTemplateHandler,
 		ContentModeration:      contentModerationHandler,
+		PromptAudit:            promptAuditHandler,
 		Payment:                paymentHandler,
 		Revenue:                revenueHandler,
 		Withdrawal:             withdrawalHandler,
 		Shop:                   shopHandler,
 		Affiliate:              affiliateHandler,
+		Compliance:             complianceHandler,
+		AuditLog:               auditLogHandler,
 		Module:                 moduleHandler,
 	}
+}
+
+func ProvideGatewayHandler(
+	gatewayService *service.GatewayService,
+	openAIGatewayService *service.OpenAIGatewayService,
+	geminiCompatService *service.GeminiMessagesCompatService,
+	antigravityGatewayService *service.AntigravityGatewayService,
+	userService *service.UserService,
+	concurrencyService *service.ConcurrencyService,
+	billingCacheService *service.BillingCacheService,
+	usageService *service.UsageService,
+	apiKeyService *service.APIKeyService,
+	usageRecordWorkerPool *service.UsageRecordWorkerPool,
+	errorPassthroughService *service.ErrorPassthroughService,
+	contentModerationService *service.ContentModerationService,
+	userMsgQueueService *service.UserMessageQueueService,
+	cfg *config.Config,
+	settingService *service.SettingService,
+	coordinator *securityaudit.Coordinator,
+) *GatewayHandler {
+	h := NewGatewayHandler(gatewayService, openAIGatewayService, geminiCompatService, antigravityGatewayService,
+		userService, concurrencyService, billingCacheService, usageService, apiKeyService, usageRecordWorkerPool,
+		errorPassthroughService, contentModerationService, userMsgQueueService, cfg, settingService)
+	h.securityAuditCoordinator = coordinator
+	return h
+}
+
+func ProvideUserHandler(
+	userService *service.UserService,
+	authService *service.AuthService,
+	emailService *service.EmailService,
+	emailCache service.EmailCache,
+	affiliateService *service.AffiliateService,
+	userPlatformQuotaRepo service.UserPlatformQuotaRepository,
+) *UserHandler {
+	return NewUserHandler(userService, authService, emailService, emailCache, affiliateService, userPlatformQuotaRepo)
+}
+
+func ProvideOpenAIGatewayHandler(
+	gatewayService *service.OpenAIGatewayService,
+	concurrencyService *service.ConcurrencyService,
+	billingCacheService *service.BillingCacheService,
+	apiKeyService *service.APIKeyService,
+	usageRecordWorkerPool *service.UsageRecordWorkerPool,
+	errorPassthroughService *service.ErrorPassthroughService,
+	contentModerationService *service.ContentModerationService,
+	opsService *service.OpsService,
+	grokQuotaService *service.GrokQuotaService,
+	cfg *config.Config,
+	coordinator *securityaudit.Coordinator,
+) *OpenAIGatewayHandler {
+	h := NewOpenAIGatewayHandler(gatewayService, concurrencyService, billingCacheService, apiKeyService,
+		usageRecordWorkerPool, errorPassthroughService, contentModerationService, opsService, cfg)
+	h.securityAuditCoordinator = coordinator
+	h.grokMediaEligibilityProber = grokQuotaService
+	return h
+}
+
+func ProvideBatchImageHandler(
+	batchService *service.BatchImagePublicService,
+	download *service.BatchImageDownloadService,
+	cleanup *service.BatchImageCleanupService,
+	openAI *OpenAIGatewayHandler,
+) *BatchImageHandler {
+	h := NewBatchImageHandler(batchService, download, cleanup)
+	h.openAI = openAI
+	return h
 }
 
 // ProvideSystemHandler creates admin.SystemHandler with UpdateService
@@ -100,6 +177,22 @@ func ProvideSystemHandler(updateService *service.UpdateService, lockService *ser
 // ProvideSettingHandler creates SettingHandler with version from BuildInfo
 func ProvideSettingHandler(settingService *service.SettingService, buildInfo BuildInfo) *SettingHandler {
 	return NewSettingHandler(settingService, buildInfo.Version)
+}
+
+// ProvideAdminSettingHandler creates the admin setting handler with step-up dependencies.
+func ProvideAdminSettingHandler(
+	settingService *service.SettingService,
+	emailService *service.EmailService,
+	turnstileService *service.TurnstileService,
+	opsService *service.OpsService,
+	paymentConfigService *service.PaymentConfigService,
+	paymentService *service.PaymentService,
+	totpService *service.TotpService,
+	userService *service.UserService,
+) *admin.SettingHandler {
+	h := admin.NewSettingHandler(settingService, emailService, turnstileService, opsService, paymentConfigService, paymentService)
+	h.SetStepUpDeps(totpService, userService)
+	return h
 }
 
 func ProvideUserAccountHandler(
@@ -152,6 +245,8 @@ func ProvideHandlers(
 	paymentHandler *PaymentHandler,
 	paymentWebhookHandler *PaymentWebhookHandler,
 	availableChannelHandler *AvailableChannelHandler,
+	asyncImageHandler *AsyncImageHandler,
+	batchImageHandler *BatchImageHandler,
 	playgroundHandler *PlaygroundHandler,
 	receiptCodeHandler *ReceiptCodeHandler,
 	withdrawalHandler *WithdrawalHandler,
@@ -177,6 +272,8 @@ func ProvideHandlers(
 		Payment:          paymentHandler,
 		PaymentWebhook:   paymentWebhookHandler,
 		AvailableChannel: availableChannelHandler,
+		AsyncImage:       asyncImageHandler,
+		BatchImage:       batchImageHandler,
 		Playground:       playgroundHandler,
 		ReceiptCode:      receiptCodeHandler,
 		Withdrawal:       withdrawalHandler,
@@ -188,7 +285,7 @@ func ProvideHandlers(
 var ProviderSet = wire.NewSet(
 	// Top-level handlers
 	NewAuthHandler,
-	NewUserHandler,
+	ProvideUserHandler,
 	NewAPIKeyHandler,
 	ProvideUserAccountHandler,
 	NewUsageHandler,
@@ -198,13 +295,15 @@ var ProviderSet = wire.NewSet(
 	NewChannelMonitorUserHandler,
 	ProvideGatewayHookChain,
 	ProvideGatewayPlatformRegistry,
-	NewGatewayHandler,
-	NewOpenAIGatewayHandler,
+	ProvideGatewayHandler,
+	ProvideOpenAIGatewayHandler,
 	NewTotpHandler,
 	ProvideSettingHandler,
 	NewPaymentHandler,
 	NewPaymentWebhookHandler,
 	NewAvailableChannelHandler,
+	NewAsyncImageHandler,
+	ProvideBatchImageHandler,
 	NewPlaygroundHandler,
 	NewReceiptCodeHandler,
 	NewWithdrawalHandler,
@@ -212,9 +311,9 @@ var ProviderSet = wire.NewSet(
 
 	// Admin handlers
 	admin.NewDashboardHandler,
-	admin.NewUserHandler,
+	admin.ProvideUserHandler,
 	admin.NewGroupHandler,
-	admin.NewAccountHandler,
+	admin.ProvideAccountHandler,
 	admin.NewAccountSharePolicyHandler,
 	admin.NewCarpoolHandler,
 	admin.NewAnnouncementHandler,
@@ -230,7 +329,7 @@ var ProviderSet = wire.NewSet(
 	admin.NewProxyHandler,
 	admin.NewRedeemHandler,
 	admin.NewPromoHandler,
-	admin.NewSettingHandler,
+	ProvideAdminSettingHandler,
 	admin.NewOpsHandler,
 	ProvideSystemHandler,
 	admin.NewSubscriptionHandler,
@@ -249,6 +348,8 @@ var ProviderSet = wire.NewSet(
 	admin.NewWithdrawalHandler,
 	admin.NewShopHandler,
 	admin.NewAffiliateHandler,
+	admin.NewComplianceHandler,
+	admin.NewAuditLogHandler,
 	admin.NewModuleHandler,
 
 	// AdminHandlers and Handlers constructors

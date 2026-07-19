@@ -54,6 +54,13 @@ type OpsService struct {
 	geminiCompatService       *GeminiMessagesCompatService
 	antigravityGatewayService *AntigravityGatewayService
 	systemLogSink             *OpsSystemLogSink
+	quotaAutoPauseSink        func(OpsOpenAIAccountQuotaAutoPauseSettings)
+}
+
+func (s *OpsService) SetOpenAIQuotaAutoPauseSettingsSink(sink func(OpsOpenAIAccountQuotaAutoPauseSettings)) {
+	if s != nil {
+		s.quotaAutoPauseSink = sink
+	}
 }
 
 func NewOpsService(
@@ -206,6 +213,31 @@ func (s *OpsService) prepareErrorLogInput(ctx context.Context, entry *OpsInsertE
 		entry.ErrorType = "api_error"
 	}
 
+	// Account credential acquisition owns the final error when it follows an
+	// earlier inference attempt; stale inference status must not leak into it.
+	for i := len(entry.UpstreamErrors) - 1; i >= 0; i-- {
+		last := entry.UpstreamErrors[i]
+		if last == nil {
+			continue
+		}
+		if last.Stage == string(GatewayFailureStageAccountAuth) {
+			entry.ErrorPhase = string(GatewayFailureStageAccountAuth)
+			entry.ErrorOwner = "provider"
+			entry.ErrorSource = "gateway"
+			code := 0
+			entry.UpstreamStatusCode = &code
+			entry.UpstreamErrorMessage = nil
+			if message := strings.TrimSpace(last.Message); message != "" {
+				entry.UpstreamErrorMessage = &message
+			}
+			entry.UpstreamErrorDetail = nil
+			if detail := strings.TrimSpace(last.Detail); detail != "" {
+				entry.UpstreamErrorDetail = &detail
+			}
+		}
+		break
+	}
+
 	// Sanitize + trim request body (errors only).
 	if len(rawRequestBody) > 0 {
 		entry.RequestBodyJSON, entry.RequestBodyTruncated, entry.RequestBodyBytes = PrepareOpsRequestBodyForQueue(rawRequestBody)
@@ -218,7 +250,7 @@ func (s *OpsService) prepareErrorLogInput(ctx context.Context, entry *OpsInsertE
 	}
 
 	// Sanitize upstream error context if provided by gateway services.
-	if entry.UpstreamStatusCode != nil && *entry.UpstreamStatusCode <= 0 {
+	if entry.UpstreamStatusCode != nil && *entry.UpstreamStatusCode <= 0 && entry.ErrorPhase != string(GatewayFailureStageAccountAuth) {
 		entry.UpstreamStatusCode = nil
 	}
 	if entry.UpstreamErrorMessage != nil {

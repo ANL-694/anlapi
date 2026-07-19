@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,8 +31,10 @@ type AdminService interface {
 	// User management
 	ListUsers(ctx context.Context, page, pageSize int, filters UserListFilters, sortBy, sortOrder string) ([]User, int64, error)
 	GetUser(ctx context.Context, id int64) (*User, error)
+	GetUserIncludeDeleted(ctx context.Context, id int64) (*User, error)
 	CreateUser(ctx context.Context, input *CreateUserInput) (*User, error)
 	UpdateUser(ctx context.Context, id int64, input *UpdateUserInput) (*User, error)
+	BatchUpdateLimits(ctx context.Context, userIDs []int64, concurrency, rpmLimit *int) (int, error)
 	DeleteUser(ctx context.Context, id int64) error
 	UpdateUserBalance(ctx context.Context, userID int64, balance float64, operation string, notes string, countAsRevenue bool) (*User, error)
 	UpdateUserPoints(ctx context.Context, userID int64, points float64, operation string, notes string, operatorUserID int64) (*User, error)
@@ -52,6 +55,12 @@ type AdminService interface {
 	GetGroup(ctx context.Context, id int64) (*Group, error)
 	GetGroupModelsListCandidates(ctx context.Context, id int64, platform string) ([]string, error)
 	CreateGroup(ctx context.Context, input *CreateGroupInput) (*Group, error)
+	// DuplicateGroup creates an inactive independent copy of a group's configuration
+	// and account bindings while preserving each binding's priority.
+	DuplicateGroup(ctx context.Context, id int64, actorScope, operationKey string) (*Group, error)
+	// RecoverDuplicateGroup returns a previously committed copy for an ambiguous retry.
+	// It never creates a group.
+	RecoverDuplicateGroup(ctx context.Context, id int64, actorScope, operationKey string) (*Group, error)
 	UpdateGroup(ctx context.Context, id int64, input *UpdateGroupInput) (*Group, error)
 	DeleteGroup(ctx context.Context, id int64) error
 	GetGroupAPIKeys(ctx context.Context, groupID int64, page, pageSize int) ([]APIKey, int64, error)
@@ -74,7 +83,14 @@ type AdminService interface {
 	GetAccount(ctx context.Context, id int64) (*Account, error)
 	GetAccountsByIDs(ctx context.Context, ids []int64) ([]*Account, error)
 	CreateAccount(ctx context.Context, input *CreateAccountInput) (*Account, error)
+	// DuplicateAccount creates an independent account from an existing account's configuration.
+	// First-class runtime columns are intentionally reset by the normal account creation path.
+	DuplicateAccount(ctx context.Context, id int64, actorScope, operationKey string) (*Account, error)
+	// RecoverDuplicateAccount returns a previously committed duplicate for an ambiguous retry.
+	// It never creates an account.
+	RecoverDuplicateAccount(ctx context.Context, id int64, actorScope, operationKey string) (*Account, error)
 	UpdateAccount(ctx context.Context, id int64, input *UpdateAccountInput) (*Account, error)
+	UpdateAccountExtra(ctx context.Context, id int64, updates map[string]any) error
 	RevertAccountProxyFallback(ctx context.Context, id int64) (*Account, error)
 	DeleteAccount(ctx context.Context, id int64) error
 	RefreshAccountCredentials(ctx context.Context, id int64) (*Account, error)
@@ -125,10 +141,12 @@ type CreateUserInput struct {
 	Password      string
 	Username      string
 	Notes         string
+	Role          string
 	Balance       float64
 	Concurrency   int
 	RPMLimit      int
 	AllowedGroups []int64
+	ActorAdminID  int64
 }
 
 type UpdateUserInput struct {
@@ -136,6 +154,7 @@ type UpdateUserInput struct {
 	Password      string
 	Username      *string
 	Notes         *string
+	Role          string
 	Balance       *float64 // 使用指针区分"未提供"和"设置为0"
 	Concurrency   *int     // 使用指针区分"未提供"和"设置为0"
 	RPMLimit      *int     // 使用指针区分"未提供"和"设置为0"
@@ -143,7 +162,8 @@ type UpdateUserInput struct {
 	AllowedGroups *[]int64 // 使用指针区分"未提供"和"设置为空数组"
 	// GroupRates 用户专属分组倍率配置
 	// map[groupID]*rate，nil 表示删除该分组的专属倍率
-	GroupRates map[int64]*float64
+	GroupRates   map[int64]*float64
+	ActorAdminID int64
 }
 
 type AdminBindAuthIdentityInput struct {
@@ -196,14 +216,27 @@ type CreateGroupInput struct {
 	WeeklyLimitUSD       *float64 // 周限额 (USD)
 	MonthlyLimitUSD      *float64 // 月限额 (USD)
 	// 图片生成计费配置（仅 antigravity 平台使用）
-	AllowImageGeneration bool
-	ImageRateIndependent bool
-	ImageRateMultiplier  *float64
-	ImagePrice1K         *float64
-	ImagePrice2K         *float64
-	ImagePrice4K         *float64
-	ClaudeCodeOnly       bool   // 仅允许 Claude Code 客户端
-	FallbackGroupID      *int64 // 降级分组 ID
+	AllowImageGeneration         bool
+	AllowBatchImageGeneration    bool
+	ImageRateIndependent         bool
+	ImageRateMultiplier          *float64
+	BatchImageDiscountMultiplier *float64
+	BatchImageHoldMultiplier     *float64
+	VideoRateIndependent         bool
+	VideoRateMultiplier          *float64
+	PeakRateEnabled              bool
+	PeakStart                    string
+	PeakEnd                      string
+	PeakRateMultiplier           *float64
+	ImagePrice1K                 *float64
+	ImagePrice2K                 *float64
+	ImagePrice4K                 *float64
+	VideoPrice480P               *float64
+	VideoPrice720P               *float64
+	VideoPrice1080P              *float64
+	WebSearchPricePerCall        *float64
+	ClaudeCodeOnly               bool   // 仅允许 Claude Code 客户端
+	FallbackGroupID              *int64 // 降级分组 ID
 	// 无效请求兜底分组 ID（仅 anthropic 平台使用）
 	FallbackGroupIDOnInvalidRequest *int64
 	// 模型路由配置（仅 anthropic 平台使用）
@@ -244,14 +277,27 @@ type UpdateGroupInput struct {
 	WeeklyLimitUSD       *float64 // 周限额 (USD)
 	MonthlyLimitUSD      *float64 // 月限额 (USD)
 	// 图片生成计费配置（仅 antigravity 平台使用）
-	AllowImageGeneration *bool
-	ImageRateIndependent *bool
-	ImageRateMultiplier  *float64
-	ImagePrice1K         *float64
-	ImagePrice2K         *float64
-	ImagePrice4K         *float64
-	ClaudeCodeOnly       *bool  // 仅允许 Claude Code 客户端
-	FallbackGroupID      *int64 // 降级分组 ID
+	AllowImageGeneration         *bool
+	AllowBatchImageGeneration    *bool
+	ImageRateIndependent         *bool
+	ImageRateMultiplier          *float64
+	BatchImageDiscountMultiplier *float64
+	BatchImageHoldMultiplier     *float64
+	VideoRateIndependent         *bool
+	VideoRateMultiplier          *float64
+	PeakRateEnabled              *bool
+	PeakStart                    *string
+	PeakEnd                      *string
+	PeakRateMultiplier           *float64
+	ImagePrice1K                 *float64
+	ImagePrice2K                 *float64
+	ImagePrice4K                 *float64
+	VideoPrice480P               *float64
+	VideoPrice720P               *float64
+	VideoPrice1080P              *float64
+	WebSearchPricePerCall        *float64
+	ClaudeCodeOnly               *bool  // 仅允许 Claude Code 客户端
+	FallbackGroupID              *int64 // 降级分组 ID
 	// 无效请求兜底分组 ID（仅 anthropic 平台使用）
 	FallbackGroupIDOnInvalidRequest *int64
 	// 模型路由配置（仅 anthropic 平台使用）
@@ -304,6 +350,13 @@ type CreateAccountInput struct {
 	// SkipMixedChannelCheck skips the mixed channel risk check when binding groups.
 	// This should only be set when the caller has explicitly confirmed the risk.
 	SkipMixedChannelCheck bool
+}
+
+type ShadowOptions struct {
+	Name        string
+	Priority    int
+	Concurrency int
+	GroupIDs    []int64
 }
 
 type UpdateAccountInput struct {
@@ -561,7 +614,9 @@ var ErrRPMStatusUnavailable = infraerrors.New(http.StatusNotImplemented, "RPM_ST
 type adminServiceImpl struct {
 	userRepo                UserRepository
 	groupRepo               GroupRepository
+	groupDuplicateRepo      GroupDuplicateRepository
 	accountRepo             AccountRepository
+	accountDuplicateRepo    AccountDuplicateRepository
 	proxyRepo               ProxyRepository
 	apiKeyRepo              APIKeyRepository
 	redeemCodeRepo          RedeemCodeRepository
@@ -578,17 +633,30 @@ type adminServiceImpl struct {
 	userSubRepo             UserSubscriptionRepository
 	privacyClientFactory    PrivacyClientFactory
 	privateGroupProvisioner UserPrivateGroupProvisioner
+	affiliateService        adminRechargeAffiliateAccruer
+}
+
+type adminRechargeAffiliateAccruer interface {
+	AccrueInviteRebate(ctx context.Context, userID int64, amount float64) (float64, error)
 }
 
 type userGroupRateBatchReader interface {
 	GetByUserIDs(ctx context.Context, userIDs []int64) (map[int64]map[int64]float64, error)
 }
 
+type batchUserLimitRepository interface {
+	BatchUpdateLimits(ctx context.Context, userIDs []int64, concurrency, rpmLimit *int) (int, error)
+}
+
+type accountProbeEnabledAtomicUpdater interface {
+	UpdateWithUpstreamBillingProbeEnabled(context.Context, *Account, bool) error
+}
+
 // NewAdminService creates a new AdminService
 func NewAdminService(
 	userRepo UserRepository,
-	groupRepo GroupRepository,
-	accountRepo AccountRepository,
+	groupRepo AdminGroupRepository,
+	accountRepo AdminAccountRepository,
 	proxyRepo ProxyRepository,
 	apiKeyRepo APIKeyRepository,
 	redeemCodeRepo RedeemCodeRepository,
@@ -608,7 +676,9 @@ func NewAdminService(
 	return &adminServiceImpl{
 		userRepo:             userRepo,
 		groupRepo:            groupRepo,
+		groupDuplicateRepo:   groupRepo,
 		accountRepo:          accountRepo,
+		accountDuplicateRepo: accountRepo,
 		proxyRepo:            proxyRepo,
 		apiKeyRepo:           apiKeyRepo,
 		redeemCodeRepo:       redeemCodeRepo,
@@ -630,6 +700,13 @@ func NewAdminService(
 func SetAdminUserPrivateGroupProvisioner(svc AdminService, provisioner UserPrivateGroupProvisioner) AdminService {
 	if impl, ok := svc.(*adminServiceImpl); ok {
 		impl.privateGroupProvisioner = provisioner
+	}
+	return svc
+}
+
+func SetAdminAffiliateService(svc AdminService, affiliateService *AffiliateService) AdminService {
+	if impl, ok := svc.(*adminServiceImpl); ok {
+		impl.affiliateService = affiliateService
 	}
 	return svc
 }
@@ -717,19 +794,40 @@ func (s *adminServiceImpl) GetUser(ctx context.Context, id int64) (*User, error)
 	return user, nil
 }
 
+func (s *adminServiceImpl) GetUserIncludeDeleted(ctx context.Context, id int64) (*User, error) {
+	return s.userRepo.GetByIDIncludeDeleted(ctx, id)
+}
+
+func normalizeUserRole(role, fallback string) (string, error) {
+	if role == "" {
+		return fallback, nil
+	}
+	if role != RoleAdmin && role != RoleUser {
+		return "", fmt.Errorf("invalid role: %q", role)
+	}
+	return role, nil
+}
+
 func (s *adminServiceImpl) CreateUser(ctx context.Context, input *CreateUserInput) (*User, error) {
 	if input == nil {
 		return nil, errors.New("user input is required")
 	}
-	concurrency := defaultPersonalUserConcurrency(input.Concurrency)
-	if err := validatePersonalUserConcurrency(concurrency); err != nil {
+	role, err := normalizeUserRole(input.Role, RoleUser)
+	if err != nil {
 		return nil, err
+	}
+	concurrency := input.Concurrency
+	if role == RoleUser {
+		concurrency = defaultPersonalUserConcurrency(concurrency)
+		if err := validatePersonalUserConcurrency(concurrency); err != nil {
+			return nil, err
+		}
 	}
 	user := &User{
 		Email:         input.Email,
 		Username:      input.Username,
 		Notes:         input.Notes,
-		Role:          RoleUser, // Always create as regular user, never admin
+		Role:          role,
 		Balance:       input.Balance,
 		Concurrency:   concurrency,
 		RPMLimit:      input.RPMLimit,
@@ -747,8 +845,26 @@ func (s *adminServiceImpl) CreateUser(ctx context.Context, input *CreateUserInpu
 			return nil, err
 		}
 	}
+	if user.Role == RoleAdmin {
+		logger.LegacyPrintf("service.admin", "audit: admin user created actor_admin_id=%d target_user_id=%d", input.ActorAdminID, user.ID)
+	}
 	s.assignDefaultSubscriptions(ctx, user.ID)
 	return user, nil
+}
+
+func (s *adminServiceImpl) ensureNotLastAdmin(ctx context.Context) error {
+	noSubscriptions := false
+	_, result, err := s.userRepo.ListWithFilters(ctx,
+		pagination.PaginationParams{Page: 1, PageSize: 1},
+		UserListFilters{Role: RoleAdmin, IncludeSubscriptions: &noSubscriptions},
+	)
+	if err != nil {
+		return fmt.Errorf("count admin users: %w", err)
+	}
+	if result == nil || result.Total <= 1 {
+		return errors.New("cannot demote the last admin user")
+	}
+	return nil
 }
 
 func (s *adminServiceImpl) assignDefaultSubscriptions(ctx context.Context, userID int64) {
@@ -813,6 +929,19 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 		user.Status = input.Status
 	}
 
+	if input.Role != "" {
+		role, roleErr := normalizeUserRole(input.Role, user.Role)
+		if roleErr != nil {
+			return nil, roleErr
+		}
+		if user.Role == RoleAdmin && role == RoleUser {
+			if err := s.ensureNotLastAdmin(ctx); err != nil {
+				return nil, err
+			}
+		}
+		user.Role = role
+	}
+
 	if input.Concurrency != nil {
 		if user.Role == RoleUser {
 			if err := validatePersonalUserConcurrency(*input.Concurrency); err != nil {
@@ -832,6 +961,9 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
+	}
+	if user.Role != oldRole {
+		logger.LegacyPrintf("service.admin", "audit: user role changed actor_admin_id=%d target_user_id=%d old_role=%s new_role=%s", input.ActorAdminID, user.ID, oldRole, user.Role)
 	}
 
 	// 同步用户专属分组倍率
@@ -871,6 +1003,41 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 	}
 
 	return user, nil
+}
+
+func (s *adminServiceImpl) BatchUpdateLimits(ctx context.Context, userIDs []int64, concurrency, rpmLimit *int) (int, error) {
+	if concurrency == nil && rpmLimit == nil {
+		return 0, fmt.Errorf("at least one of concurrency or rpm_limit is required")
+	}
+	cleaned := make([]int64, 0, len(userIDs))
+	seen := make(map[int64]struct{}, len(userIDs))
+	for _, userID := range userIDs {
+		if userID <= 0 {
+			continue
+		}
+		if _, ok := seen[userID]; ok {
+			continue
+		}
+		seen[userID] = struct{}{}
+		cleaned = append(cleaned, userID)
+	}
+	if len(cleaned) == 0 {
+		return 0, nil
+	}
+	repo, ok := s.userRepo.(batchUserLimitRepository)
+	if !ok {
+		return 0, errors.New("user repository does not support batch limit updates")
+	}
+	affected, err := repo.BatchUpdateLimits(ctx, cleaned, concurrency, rpmLimit)
+	if err != nil {
+		return 0, err
+	}
+	if s.authCacheInvalidator != nil {
+		for _, userID := range cleaned {
+			s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, userID)
+		}
+	}
+	return affected, nil
 }
 
 func (s *adminServiceImpl) DeleteUser(ctx context.Context, id int64) error {
@@ -927,6 +1094,7 @@ func (s *adminServiceImpl) UpdateUserBalance(ctx context.Context, userID int64, 
 	if s.authCacheInvalidator != nil && balanceDiff != 0 {
 		s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, userID)
 	}
+	s.tryAccrueAffiliateRebateForAdminRecharge(ctx, userID, operation, balance)
 
 	if s.billingCacheService != nil {
 		go func() {
@@ -965,6 +1133,23 @@ func (s *adminServiceImpl) UpdateUserBalance(ctx context.Context, userID int64, 
 	}
 
 	return user, nil
+}
+
+func (s *adminServiceImpl) tryAccrueAffiliateRebateForAdminRecharge(ctx context.Context, userID int64, operation string, amount float64) {
+	if operation != "add" || amount <= 0 || s.settingService == nil || s.affiliateService == nil {
+		return
+	}
+	if !s.settingService.IsAffiliateAdminRechargeEnabled(ctx) {
+		return
+	}
+	rebate, err := s.affiliateService.AccrueInviteRebate(ctx, userID, amount)
+	if err != nil {
+		logger.LegacyPrintf("service.admin", "affiliate rebate failed for admin recharge: user_id=%d amount=%.8f err=%v", userID, amount, err)
+		return
+	}
+	if rebate > 0 {
+		logger.LegacyPrintf("service.admin", "affiliate rebate accrued for admin recharge: user_id=%d amount=%.8f rebate=%.8f", userID, amount, rebate)
+	}
 }
 
 func shouldCountAdminBalanceAdjustmentAsRevenue(countAsRevenue bool, balanceDiff float64) bool {
@@ -1648,6 +1833,11 @@ func defaultModelsListCandidateIDs(platform string) []string {
 	return DefaultModelIDsForPlatform(platform)
 }
 
+func defaultAllowImageGenerationForPlatform(platform string) bool {
+	// Grok 的图片和视频生成共用历史图片生成开关；旧客户端不会显式传 true。
+	return platform == PlatformGrok
+}
+
 func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupInput) (*Group, error) {
 	if input.RateMultiplier <= 0 {
 		return nil, errors.New("rate_multiplier must be > 0")
@@ -1671,11 +1861,64 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 	weeklyLimit := normalizeLimit(input.WeeklyLimitUSD)
 	monthlyLimit := normalizeLimit(input.MonthlyLimitUSD)
 
-	// 图片价格：负数表示清除（使用默认价格），0 保留（表示免费）
-	imageRateMultiplier := normalizeImageRateMultiplier(input.ImageRateMultiplier)
+	// 图片/视频价格：负数表示清除（使用默认价格），0 保留（表示免费）
 	imagePrice1K := normalizePrice(input.ImagePrice1K)
 	imagePrice2K := normalizePrice(input.ImagePrice2K)
 	imagePrice4K := normalizePrice(input.ImagePrice4K)
+	videoPrice480P := normalizePrice(input.VideoPrice480P)
+	videoPrice720P := normalizePrice(input.VideoPrice720P)
+	videoPrice1080P := normalizePrice(input.VideoPrice1080P)
+	webSearchPricePerCall := normalizePrice(input.WebSearchPricePerCall)
+
+	imageRateMultiplier := 1.0
+	if input.ImageRateMultiplier != nil {
+		if *input.ImageRateMultiplier < 0 {
+			return nil, errors.New("image_rate_multiplier must be >= 0")
+		}
+		imageRateMultiplier = *input.ImageRateMultiplier
+	}
+	batchImageDiscountMultiplier := defaultBatchImageDiscountMultiplier
+	if input.BatchImageDiscountMultiplier != nil {
+		if *input.BatchImageDiscountMultiplier < 0 {
+			return nil, errors.New("batch_image_discount_multiplier must be >= 0")
+		}
+		batchImageDiscountMultiplier = *input.BatchImageDiscountMultiplier
+	}
+	batchImageHoldMultiplier := defaultBatchImageHoldMultiplier
+	if input.BatchImageHoldMultiplier != nil {
+		if *input.BatchImageHoldMultiplier < 0 {
+			return nil, errors.New("batch_image_hold_multiplier must be >= 0")
+		}
+		batchImageHoldMultiplier = *input.BatchImageHoldMultiplier
+	}
+	if batchImageHoldMultiplier < batchImageDiscountMultiplier {
+		return nil, errors.New("batch_image_hold_multiplier must be >= batch_image_discount_multiplier")
+	}
+	videoRateMultiplier := 1.0
+	if input.VideoRateMultiplier != nil {
+		if *input.VideoRateMultiplier < 0 {
+			return nil, errors.New("video_rate_multiplier must be >= 0")
+		}
+		videoRateMultiplier = *input.VideoRateMultiplier
+	}
+
+	peakRateMultiplier := 1.0
+	if input.PeakRateMultiplier != nil {
+		peakRateMultiplier = *input.PeakRateMultiplier
+	}
+	peakRateEnabled, peakStart, peakEnd, peakRateMultiplier := NormalizePeakRateConfig(
+		subscriptionType,
+		input.PeakRateEnabled,
+		input.PeakStart,
+		input.PeakEnd,
+		peakRateMultiplier,
+	)
+	if err := ValidatePeakRateConfig(subscriptionType, peakRateEnabled, peakStart, peakEnd, peakRateMultiplier); err != nil {
+		return nil, err
+	}
+
+	allowImageGeneration := input.AllowImageGeneration || defaultAllowImageGenerationForPlatform(platform)
+	allowBatchImageGeneration := input.AllowBatchImageGeneration && allowImageGeneration && platform == PlatformGemini
 
 	// 校验降级分组
 	if input.FallbackGroupID != nil {
@@ -1744,16 +1987,30 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		DailyLimitUSD:                   dailyLimit,
 		WeeklyLimitUSD:                  weeklyLimit,
 		MonthlyLimitUSD:                 monthlyLimit,
-		AllowImageGeneration:            input.AllowImageGeneration,
+		AllowImageGeneration:            allowImageGeneration,
+		AllowBatchImageGeneration:       allowBatchImageGeneration,
 		ImageRateIndependent:            input.ImageRateIndependent,
 		ImageRateMultiplier:             imageRateMultiplier,
+		BatchImageDiscountMultiplier:    batchImageDiscountMultiplier,
+		BatchImageHoldMultiplier:        batchImageHoldMultiplier,
+		VideoRateIndependent:            input.VideoRateIndependent,
+		VideoRateMultiplier:             videoRateMultiplier,
+		PeakRateEnabled:                 peakRateEnabled,
+		PeakStart:                       peakStart,
+		PeakEnd:                         peakEnd,
+		PeakRateMultiplier:              peakRateMultiplier,
 		ImagePrice1K:                    imagePrice1K,
 		ImagePrice2K:                    imagePrice2K,
 		ImagePrice4K:                    imagePrice4K,
+		VideoPrice480P:                  videoPrice480P,
+		VideoPrice720P:                  videoPrice720P,
+		VideoPrice1080P:                 videoPrice1080P,
+		WebSearchPricePerCall:           webSearchPricePerCall,
 		ClaudeCodeOnly:                  input.ClaudeCodeOnly,
 		FallbackGroupID:                 input.FallbackGroupID,
 		FallbackGroupIDOnInvalidRequest: fallbackOnInvalidRequest,
 		ModelRouting:                    input.ModelRouting,
+		ModelRoutingEnabled:             input.ModelRoutingEnabled,
 		MCPXMLInject:                    mcpXMLInject,
 		SupportedModelScopes:            input.SupportedModelScopes,
 		AllowMessagesDispatch:           input.AllowMessagesDispatch,
@@ -1949,11 +2206,67 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	if input.AllowImageGeneration != nil {
 		group.AllowImageGeneration = *input.AllowImageGeneration
 	}
+	if input.AllowBatchImageGeneration != nil {
+		group.AllowBatchImageGeneration = *input.AllowBatchImageGeneration
+	}
+	if !group.AllowImageGeneration || group.Platform != PlatformGemini {
+		group.AllowBatchImageGeneration = false
+	}
 	if input.ImageRateIndependent != nil {
 		group.ImageRateIndependent = *input.ImageRateIndependent
 	}
 	if input.ImageRateMultiplier != nil {
-		group.ImageRateMultiplier = normalizeImageRateMultiplier(input.ImageRateMultiplier)
+		if *input.ImageRateMultiplier < 0 {
+			return nil, errors.New("image_rate_multiplier must be >= 0")
+		}
+		group.ImageRateMultiplier = *input.ImageRateMultiplier
+	}
+	if input.BatchImageDiscountMultiplier != nil {
+		if *input.BatchImageDiscountMultiplier < 0 {
+			return nil, errors.New("batch_image_discount_multiplier must be >= 0")
+		}
+		group.BatchImageDiscountMultiplier = *input.BatchImageDiscountMultiplier
+	}
+	if input.BatchImageHoldMultiplier != nil {
+		if *input.BatchImageHoldMultiplier < 0 {
+			return nil, errors.New("batch_image_hold_multiplier must be >= 0")
+		}
+		group.BatchImageHoldMultiplier = *input.BatchImageHoldMultiplier
+	}
+	if (input.BatchImageDiscountMultiplier != nil || input.BatchImageHoldMultiplier != nil) &&
+		group.BatchImageHoldMultiplier < group.BatchImageDiscountMultiplier {
+		return nil, errors.New("batch_image_hold_multiplier must be >= batch_image_discount_multiplier")
+	}
+	if input.VideoRateIndependent != nil {
+		group.VideoRateIndependent = *input.VideoRateIndependent
+	}
+	if input.VideoRateMultiplier != nil {
+		if *input.VideoRateMultiplier < 0 {
+			return nil, errors.New("video_rate_multiplier must be >= 0")
+		}
+		group.VideoRateMultiplier = *input.VideoRateMultiplier
+	}
+	if input.PeakRateEnabled != nil {
+		group.PeakRateEnabled = *input.PeakRateEnabled
+	}
+	if input.PeakStart != nil {
+		group.PeakStart = *input.PeakStart
+	}
+	if input.PeakEnd != nil {
+		group.PeakEnd = *input.PeakEnd
+	}
+	if input.PeakRateMultiplier != nil {
+		group.PeakRateMultiplier = *input.PeakRateMultiplier
+	}
+	group.PeakRateEnabled, group.PeakStart, group.PeakEnd, group.PeakRateMultiplier = NormalizePeakRateConfig(
+		group.SubscriptionType,
+		group.PeakRateEnabled,
+		group.PeakStart,
+		group.PeakEnd,
+		group.PeakRateMultiplier,
+	)
+	if err := ValidatePeakRateConfig(group.SubscriptionType, group.PeakRateEnabled, group.PeakStart, group.PeakEnd, group.PeakRateMultiplier); err != nil {
+		return nil, err
 	}
 	if input.ImagePrice1K != nil {
 		group.ImagePrice1K = normalizePrice(input.ImagePrice1K)
@@ -1963,6 +2276,18 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	}
 	if input.ImagePrice4K != nil {
 		group.ImagePrice4K = normalizePrice(input.ImagePrice4K)
+	}
+	if input.VideoPrice480P != nil {
+		group.VideoPrice480P = normalizePrice(input.VideoPrice480P)
+	}
+	if input.VideoPrice720P != nil {
+		group.VideoPrice720P = normalizePrice(input.VideoPrice720P)
+	}
+	if input.VideoPrice1080P != nil {
+		group.VideoPrice1080P = normalizePrice(input.VideoPrice1080P)
+	}
+	if input.WebSearchPricePerCall != nil {
+		group.WebSearchPricePerCall = normalizePrice(input.WebSearchPricePerCall)
 	}
 
 	// Claude Code 客户端限制
@@ -2464,10 +2789,28 @@ func (s *adminServiceImpl) RevertAccountProxyFallback(ctx context.Context, id in
 	if !ok {
 		return nil, infraerrors.InternalServer("ACCOUNT_PROXY_FALLBACK_UNAVAILABLE", "account proxy fallback repository is unavailable")
 	}
-	return repo.RevertProxyFallback(ctx, id)
+	updated, err := repo.RevertProxyFallback(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.propagateProxyToShadows(ctx, id, updated.ProxyID); err != nil {
+		return nil, err
+	}
+	return updated, nil
 }
 
 func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccountInput) (*Account, error) {
+	accountExtra, err := normalizeOpenAILongContextBillingExtra(input.Platform, input.Extra)
+	if err != nil {
+		return nil, err
+	}
+	accountExtra, err = normalizeGrokMediaEligibilityExtra(input.Platform, accountExtra)
+	if err != nil {
+		return nil, err
+	}
+	delete(accountExtra, UpstreamBillingProbeEnabledExtraKey)
+	delete(accountExtra, UpstreamBillingProbeExtraKey)
+
 	// 绑定分组
 	groupIDs := input.GroupIDs
 	// 如果没有指定分组,自动绑定对应平台的默认分组
@@ -2490,7 +2833,7 @@ func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccou
 			return nil, err
 		}
 	}
-	accountLevel := NormalizeOpenAIAccountLevel(input.Platform, input.AccountLevel, input.Credentials, input.Extra)
+	accountLevel := NormalizeOpenAIAccountLevel(input.Platform, input.AccountLevel, input.Credentials, accountExtra)
 	if err := s.validateAccountLevelGroupBinding(ctx, input.Platform, accountLevel, groupIDs); err != nil {
 		return nil, err
 	}
@@ -2521,7 +2864,7 @@ func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccou
 		AccountLevel:  accountLevel,
 		Type:          input.Type,
 		Credentials:   input.Credentials,
-		Extra:         input.Extra,
+		Extra:         accountExtra,
 		OwnerUserID:   input.OwnerUserID,
 		ShareMode:     NormalizeAccountShareMode(input.ShareMode),
 		ShareStatus:   NormalizeAccountShareStatus(input.ShareStatus),
@@ -2604,6 +2947,36 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	if err != nil {
 		return nil, err
 	}
+	var normalizedExtra map[string]any
+	if input.Extra != nil {
+		normalizedExtra, err = normalizeOpenAILongContextBillingUpdateExtra(account, input)
+		if err != nil {
+			return nil, err
+		}
+		normalizedExtra, err = normalizeGrokMediaEligibilityUpdateExtra(account, input, normalizedExtra)
+		if err != nil {
+			return nil, err
+		}
+	}
+	previousProbeIdentity := upstreamBillingProbeIdentity(account)
+	if account.IsCredentialShadow() {
+		if !isAllowedSparkShadowCredentialsUpdate(input.Credentials) {
+			return nil, infraerrors.Newf(http.StatusBadRequest, "SPARK_SHADOW_NO_CREDENTIALS", "spark shadow accounts do not hold auth credentials; only model mapping can be configured on the shadow account")
+		}
+		if input.Type != "" && input.Type != account.Type {
+			return nil, infraerrors.Newf(http.StatusBadRequest, "SPARK_SHADOW_IMMUTABLE_TYPE", "spark shadow account type cannot be changed; it must remain an OpenAI OAuth shadow")
+		}
+	} else if input.Type != "" && input.Type != account.Type && input.Type != AccountTypeOAuth {
+		if shadowRepo, ok := s.accountRepo.(AccountShadowRepository); ok {
+			shadows, shadowErr := shadowRepo.ListShadowsByParent(ctx, id)
+			if shadowErr != nil {
+				return nil, shadowErr
+			}
+			if len(shadows) > 0 {
+				return nil, infraerrors.New(http.StatusBadRequest, "SPARK_SHADOW_PARENT_IMMUTABLE_TYPE", "cannot change account type while it has a spark shadow; delete the shadow first")
+			}
+		}
+	}
 	wasOveragesEnabled := account.IsOveragesEnabled()
 
 	if input.Name != "" {
@@ -2618,22 +2991,51 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	if input.Notes != nil {
 		account.Notes = normalizeAccountNotes(input.Notes)
 	}
-	if len(input.Credentials) > 0 {
-		account.Credentials = input.Credentials
+	if account.IsCredentialShadow() && input.Credentials != nil {
+		account.Credentials = sanitizeSparkShadowCredentials(input.Credentials)
+	} else if len(input.Credentials) > 0 {
+		account.Credentials = MergePreservingSensitiveCreds(account.Credentials, input.Credentials)
 		if err := NormalizeHeaderOverrideCredentials(account.Credentials); err != nil {
 			return nil, err
 		}
 	}
 	// Extra 使用 map：需要区分“未提供(nil)”与“显式清空({})”。
 	// 关闭配额限制时前端会删除 quota_* 键并提交 extra:{}，此时也必须落库。
+	var requestedProbeEnabledUpdate *bool
 	if input.Extra != nil {
+		requestedProbeEnabled, hasRequestedProbeEnabled := normalizedExtra[UpstreamBillingProbeEnabledExtraKey]
+		if hasRequestedProbeEnabled {
+			enabled, ok := requestedProbeEnabled.(bool)
+			if !ok {
+				return nil, infraerrors.BadRequest("INVALID_UPSTREAM_BILLING_PROBE_ENABLED", "upstream_billing_probe_enabled must be a boolean")
+			}
+			requestedProbeEnabledUpdate = &enabled
+		}
+		delete(normalizedExtra, UpstreamBillingProbeEnabledExtraKey)
+		delete(normalizedExtra, UpstreamBillingProbeExtraKey)
 		// 保留配额用量字段，防止编辑账号时意外重置
-		for _, key := range []string{"quota_used", "quota_daily_used", "quota_daily_start", "quota_weekly_used", "quota_weekly_start"} {
+		for _, key := range []string{
+			"quota_used",
+			"quota_daily_used",
+			"quota_daily_start",
+			"quota_weekly_used",
+			"quota_weekly_start",
+			grokBillingExtraKey,
+			UpstreamBillingProbeEnabledExtraKey,
+			UpstreamBillingProbeExtraKey,
+		} {
 			if v, ok := account.Extra[key]; ok {
-				input.Extra[key] = v
+				normalizedExtra[key] = v
 			}
 		}
-		account.Extra = input.Extra
+		if hasRequestedProbeEnabled {
+			if isUpstreamBillingProbeAccount(account) {
+				normalizedExtra[UpstreamBillingProbeEnabledExtraKey] = requestedProbeEnabled
+			} else {
+				delete(normalizedExtra, UpstreamBillingProbeEnabledExtraKey)
+			}
+		}
+		account.Extra = normalizedExtra
 		if account.Platform == PlatformAntigravity && wasOveragesEnabled && !account.IsOveragesEnabled() {
 			delete(account.Extra, "antigravity_credits_overages") // 清理旧版 overages 运行态
 			// 清除 AICredits 限流 key
@@ -2656,7 +3058,7 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	} else {
 		account.AccountLevel = NormalizeOpenAIAccountLevel(account.Platform, account.AccountLevel, account.Credentials, account.Extra)
 	}
-	if input.ProxyID != nil {
+	if input.ProxyID != nil && !account.IsCredentialShadow() {
 		// 0 表示清除代理（前端发送 0 而不是 null 来表达清除意图）
 		if *input.ProxyID == 0 {
 			account.ProxyID = nil
@@ -2664,6 +3066,12 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 			account.ProxyID = input.ProxyID
 		}
 		account.Proxy = nil // 清除关联对象，防止 GORM Save 时根据 Proxy.ID 覆盖 ProxyID
+	}
+	if !reflect.DeepEqual(previousProbeIdentity, upstreamBillingProbeIdentity(account)) && account.Extra != nil {
+		delete(account.Extra, UpstreamBillingProbeExtraKey)
+		if !isUpstreamBillingProbeAccount(account) {
+			delete(account.Extra, UpstreamBillingProbeEnabledExtraKey)
+		}
 	}
 	// 只在指针非 nil 时更新 Concurrency（支持设置为 0）
 	if input.Concurrency != nil {
@@ -2758,8 +3166,31 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 		}
 	}
 
-	if err := s.accountRepo.Update(ctx, account); err != nil {
-		return nil, err
+	probeEnabledAppliedAtomically := false
+	if requestedProbeEnabledUpdate != nil && isUpstreamBillingProbeAccount(account) {
+		if updater, ok := s.accountRepo.(accountProbeEnabledAtomicUpdater); ok {
+			if err := updater.UpdateWithUpstreamBillingProbeEnabled(ctx, account, *requestedProbeEnabledUpdate); err != nil {
+				return nil, err
+			}
+			probeEnabledAppliedAtomically = true
+		}
+	}
+	if !probeEnabledAppliedAtomically {
+		if err := s.accountRepo.Update(ctx, account); err != nil {
+			return nil, err
+		}
+		if requestedProbeEnabledUpdate != nil && isUpstreamBillingProbeAccount(account) {
+			if err := s.accountRepo.UpdateExtra(ctx, account.ID, map[string]any{
+				UpstreamBillingProbeEnabledExtraKey: *requestedProbeEnabledUpdate,
+			}); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if input.ProxyID != nil && !account.IsCredentialShadow() {
+		if err := s.propagateProxyToShadows(ctx, id, account.ProxyID); err != nil {
+			return nil, err
+		}
 	}
 	if input.ProxyID != nil {
 		if repo, ok := s.accountRepo.(accountProxyFallbackRepository); ok {
@@ -2786,10 +3217,28 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 
 // BulkUpdateAccounts updates multiple accounts in one request.
 // It merges credentials/extra keys instead of overwriting the whole object.
+func (s *adminServiceImpl) UpdateAccountExtra(ctx context.Context, id int64, updates map[string]any) error {
+	if _, exists := updates[openAILongContextBillingEnabledKey]; exists {
+		account, err := s.accountRepo.GetByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		if err := ValidateOpenAILongContextBillingExtra(account.Platform, updates); err != nil {
+			return err
+		}
+	}
+	if len(updates) == 0 {
+		return nil
+	}
+	return s.accountRepo.UpdateExtra(ctx, id, updates)
+}
+
 func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUpdateAccountsInput) (*BulkUpdateAccountsResult, error) {
 	if input == nil {
 		return nil, infraerrors.BadRequest("ACCOUNT_BULK_UPDATE_INVALID", "bulk update input is required")
 	}
+	delete(input.Extra, UpstreamBillingProbeEnabledExtraKey)
+	delete(input.Extra, UpstreamBillingProbeExtraKey)
 
 	if len(input.AccountIDs) == 0 && input.Filters != nil {
 		accountIDs, err := s.resolveBulkUpdateTargetIDs(ctx, input.Filters)
@@ -2825,6 +3274,37 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 		}
 		preflightAccounts = accounts
 		return preflightAccounts, nil
+	}
+	_, hasLongContextBillingUpdate := input.Extra[openAILongContextBillingEnabledKey]
+	if hasLongContextBillingUpdate {
+		accounts, err := loadPreflightAccounts()
+		if err != nil {
+			return nil, err
+		}
+		for _, account := range accounts {
+			if account == nil || account.Platform != PlatformOpenAI {
+				continue
+			}
+			if err := ValidateOpenAILongContextBillingExtra(account.Platform, input.Extra); err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+	if len(input.Credentials) > 0 || input.ProxyID != nil {
+		accounts, err := loadPreflightAccounts()
+		if err != nil {
+			return nil, err
+		}
+		for _, account := range accounts {
+			if account == nil || !account.IsCredentialShadow() {
+				continue
+			}
+			if len(input.Credentials) > 0 {
+				return nil, infraerrors.Newf(http.StatusBadRequest, "SPARK_SHADOW_NO_CREDENTIALS", "spark shadow account %d cannot hold credentials; manage credentials on the parent account", account.ID)
+			}
+			return nil, infraerrors.Newf(http.StatusBadRequest, "SPARK_SHADOW_PROXY_INHERITED", "spark shadow account %d proxy is inherited from its parent and cannot be set in bulk; manage it on the parent account", account.ID)
+		}
 	}
 
 	if input.GroupIDs != nil || input.AccountLevel != nil || len(input.Credentials) > 0 || len(input.Extra) > 0 {
@@ -2935,6 +3415,12 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 		Credentials: input.Credentials,
 		Extra:       input.Extra,
 	}
+	if updatesUpstreamBillingProbeIdentity(input.Credentials) || input.ProxyID != nil {
+		if repoUpdates.Extra == nil {
+			repoUpdates.Extra = make(map[string]any)
+		}
+		repoUpdates.Extra[UpstreamBillingProbeExtraKey] = nil
+	}
 	if input.Name != "" {
 		repoUpdates.Name = &input.Name
 	}
@@ -2973,6 +3459,17 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 	// Run bulk update for column/jsonb fields first.
 	if _, err := s.accountRepo.BulkUpdate(ctx, input.AccountIDs, repoUpdates); err != nil {
 		return nil, err
+	}
+	if repoUpdates.ProxyID != nil {
+		var effectiveProxyID *int64
+		if *repoUpdates.ProxyID != 0 {
+			effectiveProxyID = repoUpdates.ProxyID
+		}
+		for _, accountID := range input.AccountIDs {
+			if err := s.propagateProxyToShadows(ctx, accountID, effectiveProxyID); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Handle group bindings per account (requires individual operations).
@@ -3050,6 +3547,17 @@ func (s *adminServiceImpl) resolveBulkUpdateTargetIDs(ctx context.Context, filte
 }
 
 func (s *adminServiceImpl) DeleteAccount(ctx context.Context, id int64) error {
+	if shadowRepo, ok := s.accountRepo.(AccountShadowRepository); ok {
+		shadows, err := shadowRepo.ListShadowsByParent(ctx, id)
+		if err != nil {
+			return fmt.Errorf("list spark shadows for cascade delete: %w", err)
+		}
+		for _, shadow := range shadows {
+			if err := s.accountRepo.Delete(ctx, shadow.ID); err != nil {
+				return fmt.Errorf("cascade delete spark shadow %d: %w", shadow.ID, err)
+			}
+		}
+	}
 	if err := s.accountRepo.Delete(ctx, id); err != nil {
 		return err
 	}

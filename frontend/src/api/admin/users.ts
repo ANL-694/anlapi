@@ -5,6 +5,12 @@
 
 import { apiClient } from '../client'
 import type { AdminUser, UpdateUserRequest, PaginatedResponse, ApiKey } from '@/types'
+import type {
+  PlatformQuotaPlatform,
+  PlatformQuotaResponse,
+  PlatformQuotaUpdateInput,
+  PlatformQuotaWindow
+} from '@/api/platformQuotas'
 
 export interface AdminBindAuthIdentityChannelRequest {
   channel: string
@@ -42,6 +48,17 @@ export interface AdminBoundAuthIdentity {
   created_at: string
   updated_at: string
   channel?: AdminBoundAuthIdentityChannel | null
+}
+
+export interface BatchUpdateUserLimitsRequest {
+  user_ids: number[]
+  all?: boolean
+  concurrency?: number
+  rpm_limit?: number
+}
+
+export interface BatchUpdateUserLimitsResponse {
+  affected: number
 }
 
 /**
@@ -104,8 +121,9 @@ export async function list(
  * @param id - User ID
  * @returns User details
  */
-export async function getById(id: number): Promise<AdminUser> {
-  const { data } = await apiClient.get<AdminUser>(`/admin/users/${id}`)
+export async function getById(id: number, includeDeleted = false): Promise<AdminUser> {
+  const url = includeDeleted ? `/admin/users/${id}?include_deleted=true` : `/admin/users/${id}`
+  const { data } = await apiClient.get<AdminUser>(url)
   return data
 }
 
@@ -201,6 +219,47 @@ export async function updatePoints(
  */
 export async function updateConcurrency(id: number, concurrency: number): Promise<AdminUser> {
   return update(id, { concurrency })
+}
+
+/** Overwrite concurrency and/or RPM limits for multiple users in one request. */
+export async function batchUpdateLimits(
+  request: BatchUpdateUserLimitsRequest
+): Promise<BatchUpdateUserLimitsResponse> {
+  const { data } = await apiClient.post<BatchUpdateUserLimitsResponse>(
+    '/admin/users/batch-limits',
+    request
+  )
+  return data
+}
+
+export async function getPlatformQuotas(id: number): Promise<PlatformQuotaResponse> {
+  const { data } = await apiClient.get<PlatformQuotaResponse>(
+    `/admin/users/${id}/platform-quotas`
+  )
+  return data
+}
+
+export async function updatePlatformQuotas(
+  id: number,
+  quotas: PlatformQuotaUpdateInput[]
+): Promise<PlatformQuotaResponse> {
+  const { data } = await apiClient.put<PlatformQuotaResponse>(
+    `/admin/users/${id}/platform-quotas`,
+    { quotas }
+  )
+  return data
+}
+
+export async function resetPlatformQuotaWindow(
+  id: number,
+  platform: PlatformQuotaPlatform,
+  window: PlatformQuotaWindow
+): Promise<PlatformQuotaResponse> {
+  const { data } = await apiClient.post<PlatformQuotaResponse>(
+    `/admin/users/${id}/platform-quotas/reset`,
+    { platform, window }
+  )
+  return data
 }
 
 /**
@@ -333,6 +392,10 @@ export const usersAPI = {
   updateBalance,
   updatePoints,
   updateConcurrency,
+  batchUpdateLimits,
+  getPlatformQuotas,
+  updatePlatformQuotas,
+  resetPlatformQuotaWindow,
   toggleStatus,
   getUserApiKeys,
   getUserUsageStats,

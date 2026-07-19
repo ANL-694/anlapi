@@ -529,21 +529,86 @@ type ForwardResult struct {
 	ReasoningEffort  *string
 
 	// 图片生成计费字段（图片生成模型使用）
-	ImageCount int    // 生成的图片数量
-	ImageSize  string // 图片尺寸 "1K", "2K", "4K"
+	ImageCount         int
+	ImageSize          string
+	ImageInputSize     string
+	ImageOutputSize    string
+	ImageOutputSizes   []string
+	ImageSizeSource    string
+	ImageSizeBreakdown map[string]int
 }
 
-// UpstreamFailoverError indicates an upstream error that should trigger account failover.
+// GatewayFailureStage identifies which request stage failed. The zero value is
+// intentionally treated as inference so existing UpstreamFailoverError callers
+// retain their current behavior.
+type GatewayFailureStage string
+
+const (
+	GatewayFailureStageInference   GatewayFailureStage = "inference"
+	GatewayFailureStageAccountAuth GatewayFailureStage = "account_auth"
+)
+
+// GatewayFailureScope identifies whether selecting another account can help.
+type GatewayFailureScope string
+
+const (
+	GatewayFailureScopeAccount  GatewayFailureScope = "account"
+	GatewayFailureScopeProvider GatewayFailureScope = "provider"
+	GatewayFailureScopeRequest  GatewayFailureScope = "request"
+)
+
+// NextAccountAction is tri-state for backwards compatibility. The zero value
+// means legacy retry behavior; only NextAccountStop explicitly short-circuits.
+type NextAccountAction uint8
+
+const (
+	NextAccountLegacyRetry NextAccountAction = iota
+	NextAccountRetry
+	NextAccountStop
+)
+
+type GatewayFailureReason string
+
+// UpstreamFailoverError indicates an upstream or credential error that may
+// trigger account failover. Additive metadata keeps existing composite literals
+// source-compatible and preserves their legacy retry-next-account behavior.
 type UpstreamFailoverError struct {
-	StatusCode             int
-	ResponseBody           []byte      // 上游响应体，用于错误透传规则匹配
-	ResponseHeaders        http.Header // 上游响应头，用于透传 cf-ray/cf-mitigated/content-type 等诊断信息
-	ForceCacheBilling      bool        // Antigravity 粘性会话切换时设为 true
-	RetryableOnSameAccount bool        // 临时性错误（如 Google 间歇性 400、空响应），应在同一账号上重试 N 次再切换
+	StatusCode               int
+	ResponseBody             []byte      // 上游响应体，用于错误透传规则匹配
+	ResponseHeaders          http.Header // 上游响应头，用于透传 cf-ray/cf-mitigated/content-type 等诊断信息
+	ForceCacheBilling        bool        // Antigravity 粘性会话切换时设为 true
+	RetryableOnSameAccount   bool        // 临时性错误（如 Google 间歇性 400、空响应），应在同一账号上重试 N 次再切换
+	SafeToFailoverAfterWrite bool        // 仅写出 SSE 注释等非语义字节时，仍可在同一客户端流中切换账号
+	Stage                    GatewayFailureStage
+	Scope                    GatewayFailureScope
+	Reason                   GatewayFailureReason
+	NextAccountAction        NextAccountAction
+	ClientStatusCode         int
+	ClientMessage            string
 }
 
 func (e *UpstreamFailoverError) Error() string {
+	if e != nil && e.Stage == GatewayFailureStageAccountAuth {
+		return fmt.Sprintf("credential failure: %s (failover)", e.Reason)
+	}
 	return fmt.Sprintf("upstream error: %d (failover)", e.StatusCode)
+}
+
+func (e *UpstreamFailoverError) ShouldRetryNextAccount() bool {
+	return e != nil && e.NextAccountAction != NextAccountStop
+}
+
+func (e *UpstreamFailoverError) IsCredentialFailure() bool {
+	return e != nil && e.Stage == GatewayFailureStageAccountAuth
+}
+
+// ShouldReportAccountScheduleFailure prevents provider- and request-scoped
+// credential failures from being misattributed to the selected account.
+func (e *UpstreamFailoverError) ShouldReportAccountScheduleFailure() bool {
+	if e == nil {
+		return false
+	}
+	return !e.IsCredentialFailure() || e.Scope == GatewayFailureScopeAccount
 }
 
 // TempUnscheduleRetryableError 对 RetryableOnSameAccount 类型的 failover 错误触发临时封禁。
@@ -602,38 +667,117 @@ type GatewayService struct {
 	debugGatewayBodyFile   atomic.Pointer[os.File] // non-nil when SUB2API_DEBUG_GATEWAY_BODY is set
 	tlsFPProfileService    *TLSFingerprintProfileService
 	balanceNotifyService   *BalanceNotifyService
+	userPlatformQuotaRepo  UserPlatformQuotaRepository
 }
 
 // NewGatewayService creates a new GatewayService
-func NewGatewayService(
-	accountRepo AccountRepository,
-	accountSharePolicyRepo AccountSharePolicyRepository,
-	groupRepo GroupRepository,
-	usageLogRepo UsageLogRepository,
-	usageBillingRepo UsageBillingRepository,
-	userRepo UserRepository,
-	userSubRepo UserSubscriptionRepository,
-	userGroupRateRepo UserGroupRateRepository,
-	cache GatewayCache,
-	cfg *config.Config,
-	schedulerSnapshot *SchedulerSnapshotService,
-	concurrencyService *ConcurrencyService,
-	billingService *BillingService,
-	rateLimitService *RateLimitService,
-	billingCacheService *BillingCacheService,
-	identityService *IdentityService,
-	httpUpstream HTTPUpstream,
-	deferredService *DeferredService,
-	claudeTokenProvider *ClaudeTokenProvider,
-	sessionLimitCache SessionLimitCache,
-	rpmCache RPMCache,
-	digestStore *DigestSessionStore,
-	settingService *SettingService,
-	tlsFPProfileService *TLSFingerprintProfileService,
-	channelService *ChannelService,
-	resolver *ModelPricingResolver,
-	balanceNotifyService *BalanceNotifyService,
-) *GatewayService {
+func NewGatewayService(deps ...any) *GatewayService {
+	var (
+		accountRepo            AccountRepository
+		accountSharePolicyRepo AccountSharePolicyRepository
+		groupRepo              GroupRepository
+		usageLogRepo           UsageLogRepository
+		usageBillingRepo       UsageBillingRepository
+		userRepo               UserRepository
+		userSubRepo            UserSubscriptionRepository
+		userGroupRateRepo      UserGroupRateRepository
+		cache                  GatewayCache
+		cfg                    *config.Config
+		schedulerSnapshot      *SchedulerSnapshotService
+		concurrencyService     *ConcurrencyService
+		billingService         *BillingService
+		rateLimitService       *RateLimitService
+		billingCacheService    *BillingCacheService
+		identityService        *IdentityService
+		httpUpstream           HTTPUpstream
+		deferredService        *DeferredService
+		claudeTokenProvider    *ClaudeTokenProvider
+		sessionLimitCache      SessionLimitCache
+		rpmCache               RPMCache
+		digestStore            *DigestSessionStore
+		settingService         *SettingService
+		tlsFPProfileService    *TLSFingerprintProfileService
+		channelService         *ChannelService
+		resolver               *ModelPricingResolver
+		balanceNotifyService   *BalanceNotifyService
+		userPlatformQuotaRepo  UserPlatformQuotaRepository
+	)
+	for _, dep := range deps {
+		if dep == nil {
+			continue
+		}
+		if value, ok := dep.(AccountRepository); ok {
+			accountRepo = value
+		}
+		if value, ok := dep.(AccountSharePolicyRepository); ok {
+			accountSharePolicyRepo = value
+		}
+		if value, ok := dep.(GroupRepository); ok {
+			groupRepo = value
+		}
+		if value, ok := dep.(UsageLogRepository); ok {
+			usageLogRepo = value
+		}
+		if value, ok := dep.(UsageBillingRepository); ok {
+			usageBillingRepo = value
+		}
+		if value, ok := dep.(UserRepository); ok {
+			userRepo = value
+		}
+		if value, ok := dep.(UserSubscriptionRepository); ok {
+			userSubRepo = value
+		}
+		if value, ok := dep.(UserGroupRateRepository); ok {
+			userGroupRateRepo = value
+		}
+		if value, ok := dep.(UserPlatformQuotaRepository); ok {
+			userPlatformQuotaRepo = value
+		}
+		if value, ok := dep.(GatewayCache); ok {
+			cache = value
+		}
+		if value, ok := dep.(HTTPUpstream); ok {
+			httpUpstream = value
+		}
+		if value, ok := dep.(SessionLimitCache); ok {
+			sessionLimitCache = value
+		}
+		if value, ok := dep.(RPMCache); ok {
+			rpmCache = value
+		}
+		switch value := dep.(type) {
+		case *config.Config:
+			cfg = value
+		case *SchedulerSnapshotService:
+			schedulerSnapshot = value
+		case *ConcurrencyService:
+			concurrencyService = value
+		case *BillingService:
+			billingService = value
+		case *RateLimitService:
+			rateLimitService = value
+		case *BillingCacheService:
+			billingCacheService = value
+		case *IdentityService:
+			identityService = value
+		case *DeferredService:
+			deferredService = value
+		case *ClaudeTokenProvider:
+			claudeTokenProvider = value
+		case *DigestSessionStore:
+			digestStore = value
+		case *SettingService:
+			settingService = value
+		case *TLSFingerprintProfileService:
+			tlsFPProfileService = value
+		case *ChannelService:
+			channelService = value
+		case *ModelPricingResolver:
+			resolver = value
+		case *BalanceNotifyService:
+			balanceNotifyService = value
+		}
+	}
 	userGroupRateTTL := resolveUserGroupRateCacheTTL(cfg)
 	modelsListTTL := resolveModelsListCacheTTL(cfg)
 
@@ -669,6 +813,7 @@ func NewGatewayService(
 		channelService:         channelService,
 		resolver:               resolver,
 		balanceNotifyService:   balanceNotifyService,
+		userPlatformQuotaRepo:  userPlatformQuotaRepo,
 	}
 	svc.userGroupRateResolver = newUserGroupRateResolver(
 		userGroupRateRepo,
@@ -1492,10 +1637,8 @@ func (s *GatewayService) applyClaudeCodeOAuthMimicryToBody(
 	}
 
 	systemRewritten := false
-	if !strings.Contains(strings.ToLower(model), "haiku") {
-		body = rewriteSystemForNonClaudeCode(body, normalizeSystemParam(systemRaw))
-		systemRewritten = true
-	}
+	body = rewriteSystemForNonClaudeCode(body, normalizeSystemParam(systemRaw))
+	systemRewritten = true
 
 	normalizeOpts := claudeOAuthNormalizeOptions{stripSystemCacheControl: !systemRewritten}
 
@@ -4816,17 +4959,14 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 		// Code..." system prompt 但缺少 billing attribution block，导致 Anthropic
 		// 检测到"有 CC prompt 但无 billing block"的不一致而判为 third-party。
 		// Parrot 的 transform_request 从不检查客户端 system 内容，直接覆盖。
-		systemRewritten := false
-		if !strings.Contains(strings.ToLower(reqModel), "haiku") {
-			systemRaw, _ := parsed.SystemValue()
-			if err := replaceBody(rewriteSystemForNonClaudeCode(body, systemRaw)); err != nil {
-				return nil, err
-			}
-			systemRewritten = true
+		systemRaw, _ := parsed.SystemValue()
+		if err := replaceBody(rewriteSystemForNonClaudeCode(body, systemRaw)); err != nil {
+			return nil, err
 		}
+		systemRewritten := true
 
 		// system 被重写时保留 CC prompt 的 cache_control: ephemeral（匹配真实 Claude Code 行为）；
-		// 未重写时（haiku / 已含 CC 前缀）剥离客户端 cache_control，与原有行为一致。
+		// 未重写时剥离客户端 cache_control，与原有行为一致。
 		// 两种情况下 enforceCacheControlLimit 都会兜底处理上限。
 		normalizeOpts := claudeOAuthNormalizeOptions{stripSystemCacheControl: !systemRewritten}
 		if s.identityService != nil {
@@ -6630,17 +6770,14 @@ func (s *GatewayService) buildUpstreamRequest(ctx context.Context, c *gin.Contex
 			// - 保留 incoming beta 的同时，确保 OAuth 所需 beta 存在
 			applyClaudeCodeMimicHeaders(req, reqStream)
 
-			incomingBeta := getHeaderRaw(req.Header, "anthropic-beta")
-			// Claude Code OAuth credentials are scoped to Claude Code.
-			// Non-haiku models MUST include claude-code beta for Anthropic to recognize
-			// this as a legitimate Claude Code request; without it, the request is
-			// rejected as third-party ("out of extra usage").
-			// Haiku models are exempt from third-party detection and don't need it.
-			requiredBetas := []string{claude.BetaOAuth, claude.BetaInterleavedThinking}
-			if !strings.Contains(strings.ToLower(modelID), "haiku") {
-				requiredBetas = claude.FullClaudeCodeMimicryBetas()
-			}
-			setHeaderRaw(req.Header, "anthropic-beta", mergeAnthropicBetaDropping(requiredBetas, incomingBeta, effectiveDropSet))
+			// Mimic mode deliberately skips client header passthrough. All models,
+			// including Haiku, need the complete Claude Code beta set so the OAuth
+			// credential is not classified as a third-party client.
+			setHeaderRaw(req.Header, "anthropic-beta", mergeAnthropicBetaDropping(
+				claude.FullClaudeCodeMimicryBetas(),
+				"",
+				effectiveDropSet,
+			))
 		} else {
 			// Claude Code 客户端：尽量透传原始 header，仅补齐 oauth beta
 			clientBetaHeader := getHeaderRaw(req.Header, "anthropic-beta")
@@ -8489,6 +8626,11 @@ func (s *GatewayService) getUserGroupRateMultiplier(ctx context.Context, userID,
 	return resolver.Resolve(ctx, userID, groupID, groupDefaultMultiplier)
 }
 
+// ResolveUserGroupRateMultiplier resolves the same cached multiplier used by usage billing.
+func (s *GatewayService) ResolveUserGroupRateMultiplier(ctx context.Context, userID, groupID int64, groupDefaultMultiplier float64) float64 {
+	return s.getUserGroupRateMultiplier(ctx, userID, groupID, groupDefaultMultiplier)
+}
+
 // RecordUsageInput 记录使用量的输入参数。
 // 异步 worker 只接收计费所需快照，不能持有 ParsedRequest/RequestBodyRef 这类大请求体引用。
 type RecordUsageInput struct {
@@ -8504,6 +8646,7 @@ type RecordUsageInput struct {
 	RequestPayloadHash string             // 请求体语义哈希，用于降低 request_id 误复用时的静默误去重风险
 	ForceCacheBilling  bool               // 强制缓存计费：将 input_tokens 转为 cache_read 计费（用于粘性会话切换）
 	APIKeyService      APIKeyQuotaUpdater // 可选：用于更新API Key配额
+	QuotaPlatform      string
 
 	ChannelUsageFields // 渠道映射信息（由 handler 在 Forward 前解析）
 }
@@ -8538,6 +8681,7 @@ type postUsageBillingParams struct {
 	PrivateGroupCommissionRate float64
 	AccountRateMultiplier      float64
 	APIKeyService              APIKeyQuotaUpdater
+	Platform                   string
 }
 
 func (p *postUsageBillingParams) shouldDeductAPIKeyQuota() bool {
@@ -8621,6 +8765,8 @@ func postUsageBilling(ctx context.Context, p *postUsageBillingParams, deps *bill
 			slog.Error("increment account quota used failed", "account_id", p.Account.ID, "cost", accountCost, "error", err)
 		}
 	}
+
+	recordUserPlatformQuotaUsage(billingCtx, p, deps, nil, true)
 
 	// NOTE: finalizePostUsageBilling is NOT called here to avoid double-queuing
 	// cache updates. The legacy path does DB writes directly; the finalize path
@@ -8857,11 +9003,11 @@ func applyUsageBilling(ctx context.Context, requestID string, usageLog *UsageLog
 		}
 	}
 
-	finalizePostUsageBilling(p, deps, result)
+	finalizePostUsageBilling(ctx, p, deps, result)
 	return true, nil
 }
 
-func finalizePostUsageBilling(p *postUsageBillingParams, deps *billingDeps, result *UsageBillingApplyResult) {
+func finalizePostUsageBilling(ctx context.Context, p *postUsageBillingParams, deps *billingDeps, result *UsageBillingApplyResult) {
 	if p == nil || p.Cost == nil || deps == nil {
 		return
 	}
@@ -8897,6 +9043,8 @@ func finalizePostUsageBilling(p *postUsageBillingParams, deps *billingDeps, resu
 	if p.Cost.ActualCost > 0 && p.APIKey != nil && p.APIKey.HasRateLimits() {
 		deps.billingCacheService.QueueUpdateAPIKeyRateLimitUsage(p.APIKey.ID, p.Cost.ActualCost)
 	}
+
+	recordUserPlatformQuotaUsage(ctx, p, deps, result, false)
 
 	deps.deferredService.ScheduleLastUsedUpdate(p.Account.ID)
 
@@ -9036,6 +9184,8 @@ type billingDeps struct {
 	billingCacheService    *BillingCacheService
 	deferredService        *DeferredService
 	balanceNotifyService   *BalanceNotifyService
+	userPlatformQuotaRepo  UserPlatformQuotaRepository
+	cfg                    *config.Config
 }
 
 type usageBillingWalletAdjuster interface {
@@ -9051,6 +9201,8 @@ func (s *GatewayService) billingDeps() *billingDeps {
 		billingCacheService:    s.billingCacheService,
 		deferredService:        s.deferredService,
 		balanceNotifyService:   s.balanceNotifyService,
+		userPlatformQuotaRepo:  s.userPlatformQuotaRepo,
+		cfg:                    s.cfg,
 	}
 }
 
@@ -9104,6 +9256,7 @@ func (s *GatewayService) RecordUsage(ctx context.Context, input *RecordUsageInpu
 		RequestPayloadHash: input.RequestPayloadHash,
 		ForceCacheBilling:  input.ForceCacheBilling,
 		APIKeyService:      input.APIKeyService,
+		QuotaPlatform:      input.QuotaPlatform,
 		ChannelUsageFields: input.ChannelUsageFields,
 	}, &recordUsageOpts{})
 }
@@ -9124,6 +9277,7 @@ type RecordUsageLongContextInput struct {
 	LongContextMultiplier float64            // 超出阈值部分的倍率（如 2.0）
 	ForceCacheBilling     bool               // 强制缓存计费：将 input_tokens 转为 cache_read 计费（用于粘性会话切换）
 	APIKeyService         APIKeyQuotaUpdater // API Key 配额服务（可选）
+	QuotaPlatform         string
 
 	ChannelUsageFields // 渠道映射信息（由 handler 在 Forward 前解析）
 }
@@ -9143,6 +9297,7 @@ func (s *GatewayService) RecordUsageWithLongContext(ctx context.Context, input *
 		RequestPayloadHash: input.RequestPayloadHash,
 		ForceCacheBilling:  input.ForceCacheBilling,
 		APIKeyService:      input.APIKeyService,
+		QuotaPlatform:      input.QuotaPlatform,
 		ChannelUsageFields: input.ChannelUsageFields,
 	}, &recordUsageOpts{
 		LongContextThreshold:  input.LongContextThreshold,
@@ -9164,6 +9319,7 @@ type recordUsageCoreInput struct {
 	RequestPayloadHash string
 	ForceCacheBilling  bool
 	APIKeyService      APIKeyQuotaUpdater
+	QuotaPlatform      string
 	ChannelUsageFields
 }
 
@@ -9267,6 +9423,10 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 			privateGroupCommissionRate = settings.UserPrivateGroupCommissionRate
 		}
 	}
+	quotaPlatform := input.QuotaPlatform
+	if quotaPlatform == "" {
+		quotaPlatform = PlatformFromAPIKey(apiKey)
+	}
 	_, billingErr := applyUsageBilling(ctx, requestID, usageLog, &postUsageBillingParams{
 		Cost:                       cost,
 		User:                       user,
@@ -9278,6 +9438,7 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 		PrivateGroupCommissionRate: privateGroupCommissionRate,
 		AccountRateMultiplier:      accountRateMultiplier,
 		APIKeyService:              input.APIKeyService,
+		Platform:                   quotaPlatform,
 	}, s.billingDeps(), s.usageBillingRepo)
 
 	if billingErr != nil {

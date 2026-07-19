@@ -20,6 +20,9 @@ func (s *apiKeyAvailableGroupsUserRepoStub) GetByID(context.Context, int64) (*Us
 	clone := *s.user
 	return &clone, nil
 }
+func (s *apiKeyAvailableGroupsUserRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*User, error) {
+	return s.GetByID(ctx, id)
+}
 func (s *apiKeyAvailableGroupsUserRepoStub) GetByEmail(context.Context, string) (*User, error) {
 	panic("unexpected GetByEmail call")
 }
@@ -211,13 +214,16 @@ func (s *apiKeyAvailableGroupsSubRepoStub) UpdateNotes(context.Context, int64, s
 func (s *apiKeyAvailableGroupsSubRepoStub) ActivateWindows(context.Context, int64, time.Time) error {
 	panic("unexpected ActivateWindows call")
 }
-func (s *apiKeyAvailableGroupsSubRepoStub) ResetDailyUsage(context.Context, int64, time.Time) error {
+func (s *apiKeyAvailableGroupsSubRepoStub) ResetUsageWindows(context.Context, int64, bool, bool, bool, time.Time) error {
+	panic("unexpected ResetUsageWindows call")
+}
+func (s *apiKeyAvailableGroupsSubRepoStub) ResetDailyUsage(context.Context, int64, *time.Time, time.Time) error {
 	panic("unexpected ResetDailyUsage call")
 }
-func (s *apiKeyAvailableGroupsSubRepoStub) ResetWeeklyUsage(context.Context, int64, time.Time) error {
+func (s *apiKeyAvailableGroupsSubRepoStub) ResetWeeklyUsage(context.Context, int64, *time.Time, time.Time) error {
 	panic("unexpected ResetWeeklyUsage call")
 }
-func (s *apiKeyAvailableGroupsSubRepoStub) ResetMonthlyUsage(context.Context, int64, time.Time) error {
+func (s *apiKeyAvailableGroupsSubRepoStub) ResetMonthlyUsage(context.Context, int64, *time.Time, time.Time) error {
 	panic("unexpected ResetMonthlyUsage call")
 }
 func (s *apiKeyAvailableGroupsSubRepoStub) IncrementUsage(context.Context, int64, float64) error {

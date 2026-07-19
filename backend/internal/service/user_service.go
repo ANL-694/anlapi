@@ -90,11 +90,14 @@ type UserListFilters struct {
 	// For large datasets this can be expensive; admin list pages should enable it on demand.
 	// nil means not specified (default: load subscriptions for backward compatibility).
 	IncludeSubscriptions *bool
+	// IncludeDeleted bypasses user soft-delete filtering for admin usage lookup only.
+	IncludeDeleted bool
 }
 
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id int64) (*User, error)
+	GetByIDIncludeDeleted(ctx context.Context, id int64) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetFirstAdmin(ctx context.Context) (*User, error)
 	Update(ctx context.Context, user *User) error
@@ -125,6 +128,14 @@ type UserRepository interface {
 	UpdateTotpSecret(ctx context.Context, userID int64, encryptedSecret *string) error
 	EnableTotp(ctx context.Context, userID int64) error
 	DisableTotp(ctx context.Context, userID int64) error
+}
+
+// RedeemUserAdjustmentRepository provides the atomic, floor-at-zero updates
+// used by negative-value redeem codes. It is intentionally narrower than
+// UserRepository because normal usage billing is allowed to overdraw.
+type RedeemUserAdjustmentRepository interface {
+	ApplyRedeemBalanceAdjustment(ctx context.Context, id int64, delta float64) error
+	ApplyRedeemConcurrencyAdjustment(ctx context.Context, id int64, delta int) error
 }
 
 type UserAuthIdentityRecord struct {

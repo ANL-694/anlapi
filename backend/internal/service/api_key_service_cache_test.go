@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/pagination"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/config"
+	"ikik-api/internal/pkg/pagination"
 )
 
 type authRepoStub struct {
@@ -234,6 +234,9 @@ func TestAPIKeyService_SnapshotRoundTrip_PreservesMessagesDispatchModelConfig(t 
 	svc := NewAPIKeyService(nil, nil, nil, nil, nil, nil, &config.Config{})
 	groupID := int64(9)
 	ownerUserID := int64(2)
+	imagePrice1K := 0.02
+	videoPrice720P := 0.07
+	webSearchPrice := 0.01
 	apiKey := &APIKey{
 		ID:      1,
 		UserID:  2,
@@ -249,17 +252,32 @@ func TestAPIKeyService_SnapshotRoundTrip_PreservesMessagesDispatchModelConfig(t 
 			AllowedGroups: []int64{groupID},
 		},
 		Group: &Group{
-			ID:                    groupID,
-			Name:                  "openai",
-			Platform:              PlatformOpenAI,
-			Status:                StatusActive,
-			IsExclusive:           true,
-			OwnerUserID:           &ownerUserID,
-			Scope:                 GroupScopeUserPrivate,
-			SubscriptionType:      SubscriptionTypeStandard,
-			RateMultiplier:        1,
-			AllowMessagesDispatch: true,
-			DefaultMappedModel:    "gpt-5.4",
+			ID:                           groupID,
+			Name:                         "openai",
+			Platform:                     PlatformOpenAI,
+			Status:                       StatusActive,
+			IsExclusive:                  true,
+			OwnerUserID:                  &ownerUserID,
+			Scope:                        GroupScopeUserPrivate,
+			SubscriptionType:             SubscriptionTypeStandard,
+			RateMultiplier:               1,
+			PeakRateEnabled:              true,
+			PeakStart:                    "14:00",
+			PeakEnd:                      "18:00",
+			PeakRateMultiplier:           2.5,
+			AllowImageGeneration:         true,
+			AllowBatchImageGeneration:    true,
+			ImageRateIndependent:         true,
+			ImageRateMultiplier:          0.8,
+			ImagePrice1K:                 &imagePrice1K,
+			BatchImageDiscountMultiplier: 0.5,
+			BatchImageHoldMultiplier:     0.6,
+			VideoRateIndependent:         true,
+			VideoRateMultiplier:          1.2,
+			VideoPrice720P:               &videoPrice720P,
+			WebSearchPricePerCall:        &webSearchPrice,
+			AllowMessagesDispatch:        true,
+			DefaultMappedModel:           "gpt-5.4",
 			MessagesDispatchModelConfig: OpenAIMessagesDispatchModelConfig{
 				OpusMappedModel:   "gpt-5.4-nano",
 				SonnetMappedModel: "gpt-5.3-codex",
@@ -282,6 +300,17 @@ func TestAPIKeyService_SnapshotRoundTrip_PreservesMessagesDispatchModelConfig(t 
 	require.True(t, roundTrip.Group.IsExclusive)
 	require.NotNil(t, roundTrip.Group.OwnerUserID)
 	require.Equal(t, *apiKey.Group.OwnerUserID, *roundTrip.Group.OwnerUserID)
+	require.Equal(t, apiKey.Group.PeakRateEnabled, roundTrip.Group.PeakRateEnabled)
+	require.Equal(t, apiKey.Group.PeakStart, roundTrip.Group.PeakStart)
+	require.Equal(t, apiKey.Group.PeakEnd, roundTrip.Group.PeakEnd)
+	require.Equal(t, apiKey.Group.PeakRateMultiplier, roundTrip.Group.PeakRateMultiplier)
+	require.Equal(t, apiKey.Group.AllowBatchImageGeneration, roundTrip.Group.AllowBatchImageGeneration)
+	require.Equal(t, apiKey.Group.BatchImageDiscountMultiplier, roundTrip.Group.BatchImageDiscountMultiplier)
+	require.Equal(t, apiKey.Group.BatchImageHoldMultiplier, roundTrip.Group.BatchImageHoldMultiplier)
+	require.Equal(t, apiKey.Group.VideoRateIndependent, roundTrip.Group.VideoRateIndependent)
+	require.Equal(t, apiKey.Group.VideoRateMultiplier, roundTrip.Group.VideoRateMultiplier)
+	require.Equal(t, apiKey.Group.VideoPrice720P, roundTrip.Group.VideoPrice720P)
+	require.Equal(t, apiKey.Group.WebSearchPricePerCall, roundTrip.Group.WebSearchPricePerCall)
 }
 
 func TestAPIKeyService_GetByKey_IgnoresLegacyAuthCacheSnapshotWithoutMessagesDispatchConfig(t *testing.T) {

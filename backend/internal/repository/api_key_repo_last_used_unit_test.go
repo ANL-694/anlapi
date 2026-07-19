@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	dbent "ikik-api/ent"
 	"ikik-api/ent/enttest"
 	"ikik-api/internal/service"
-	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

@@ -179,6 +179,7 @@ import { Icon } from '@/components/icons'
 import { useClipboard } from '@/composables/useClipboard'
 import { adminAPI } from '@/api/admin'
 import { buildApiUrl } from '@/api/client'
+import { ADMIN_UI_REQUEST_HEADER } from '@/api/adminUIRequest'
 import type { Account, ClaudeModel } from '@/types'
 
 const { t } = useI18n()
@@ -351,7 +352,8 @@ const startTest = async () => {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        [ADMIN_UI_REQUEST_HEADER]: '1'
       },
       body: JSON.stringify({
         model_id: selectedModelId.value,

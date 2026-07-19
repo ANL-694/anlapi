@@ -18,6 +18,20 @@ func validateProvider(p string) error {
 	return nil
 }
 
+func validateAPIMode(provider, apiMode string) error {
+	switch defaultAPIMode(apiMode) {
+	case MonitorAPIModeChatCompletions:
+		return nil
+	case MonitorAPIModeResponses:
+		if provider == "" || provider == MonitorProviderOpenAI {
+			return nil
+		}
+		return ErrChannelMonitorInvalidAPIMode
+	default:
+		return ErrChannelMonitorInvalidAPIMode
+	}
+}
+
 // validateInterval 校验 interval_seconds 范围。
 func validateInterval(sec int) error {
 	if sec < monitorMinIntervalSeconds || sec > monitorMaxIntervalSeconds {
@@ -105,4 +119,19 @@ func normalizeModels(in []string) []string {
 		out = append(out, m)
 	}
 	return out
+}
+
+func normalizeMonitorPrimaryModel(provider, model string) string {
+	model = strings.TrimSpace(model)
+	if model == "" && provider == MonitorProviderGrok {
+		return MonitorDefaultGrokModel
+	}
+	return model
+}
+
+func defaultAPIMode(apiMode string) string {
+	if strings.TrimSpace(apiMode) == "" {
+		return MonitorAPIModeChatCompletions
+	}
+	return strings.TrimSpace(apiMode)
 }

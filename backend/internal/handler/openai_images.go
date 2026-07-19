@@ -139,7 +139,7 @@ routeLoop:
 			return
 		}
 		channelMapping, _ := h.gatewayService.ResolveChannelMappingAndRestrict(routeCtx, currentAPIKey.GroupID, requestModel)
-		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription); err != nil {
+		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription, service.QuotaPlatform(routeCtx, currentAPIKey)); err != nil {
 			reqLog.Info("openai.images.billing_eligibility_check_failed",
 				zap.Error(err),
 				zap.Int64p("group_id", currentAPIKey.GroupID),
@@ -233,7 +233,7 @@ routeLoop:
 			if err != nil {
 				var failoverErr *service.UpstreamFailoverError
 				if errors.As(err, &failoverErr) {
-					h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+					h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(requestModel), false, nil)
 					if failoverErr.RetryableOnSameAccount {
 						retryLimit := account.GetPoolModeRetryCount()
 						if sameAccountRetryCount[account.ID] < retryLimit {
@@ -272,7 +272,7 @@ routeLoop:
 					)
 					continue
 				}
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(requestModel), false, nil)
 				wroteFallback := h.ensureForwardErrorResponse(c, streamStarted)
 				fields := []zap.Field{
 					zap.Int64("account_id", account.ID),
@@ -291,9 +291,9 @@ routeLoop:
 				if account.Type == service.AccountTypeOAuth {
 					h.gatewayService.UpdateCodexUsageSnapshotFromHeaders(c.Request.Context(), account.ID, result.ResponseHeaders)
 				}
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
+				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(requestModel), true, result.FirstTokenMs)
 			} else {
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, nil)
+				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(requestModel), true, nil)
 			}
 			routeCursor.recordSuccess(apiKey.ID)
 
@@ -303,6 +303,7 @@ routeLoop:
 			if parsed.Multipart {
 				requestPayloadHash = service.HashUsageRequestPayload([]byte(parsed.StickySessionSeed()))
 			}
+			quotaPlatform := service.QuotaPlatform(c.Request.Context(), currentAPIKey)
 
 			h.submitUsageRecordTask(func(ctx context.Context) {
 				if err := h.gatewayService.RecordUsage(ctx, &service.OpenAIRecordUsageInput{
@@ -317,6 +318,7 @@ routeLoop:
 					IPAddress:          clientIP,
 					RequestPayloadHash: requestPayloadHash,
 					APIKeyService:      h.apiKeyService,
+					QuotaPlatform:      quotaPlatform,
 					ChannelUsageFields: channelMapping.ToUsageFields(requestModel, result.UpstreamModel),
 				}); err != nil {
 					logger.L().With(
@@ -337,6 +339,13 @@ routeLoop:
 			return
 		}
 	}
+}
+
+func (h *OpenAIGatewayHandler) openAIImagesJSONKeepaliveInterval() time.Duration {
+	if h.cfg == nil || h.cfg.Gateway.ImageNonstreamKeepaliveInterval <= 0 {
+		return 0
+	}
+	return time.Duration(h.cfg.Gateway.ImageNonstreamKeepaliveInterval) * time.Second
 }
 
 func isMultipartImagesContentType(contentType string) bool {

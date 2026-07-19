@@ -5,6 +5,10 @@
 
 import { apiClient } from "../client";
 import type { CustomMenuItem, CustomEndpoint, LoginAgreementDocument, NotifyEmailEntry } from "@/types";
+import {
+  normalizePlatformQuotaLimitSettings,
+  type PlatformQuotaLimitSettings,
+} from "@/api/platformQuotas";
 
 export interface DefaultSubscriptionSetting {
   group_id: number;
@@ -50,6 +54,7 @@ export interface AuthSourceDefaultsValue {
   subscriptions: DefaultSubscriptionSetting[];
   grant_on_signup: boolean;
   grant_on_first_bind: boolean;
+  platform_quotas: PlatformQuotaLimitSettings;
 }
 
 export type AuthSourceDefaultsState = Record<
@@ -211,6 +216,9 @@ export function buildAuthSourceDefaultsState(
         raw[`auth_source_default_${source}_grant_on_signup`] === true,
       grant_on_first_bind:
         raw[`auth_source_default_${source}_grant_on_first_bind`] === true,
+      platform_quotas: normalizePlatformQuotaLimitSettings(
+        raw[`auth_source_default_${source}_platform_quotas`],
+      ),
     };
     return acc;
   }, {} as AuthSourceDefaultsState);
@@ -238,6 +246,8 @@ export function appendAuthSourceDefaultsToUpdateRequest(
       current.grant_on_signup;
     target[`auth_source_default_${source}_grant_on_first_bind`] =
       current.grant_on_first_bind;
+    target[`auth_source_default_${source}_platform_quotas`] =
+      normalizePlatformQuotaLimitSettings(current.platform_quotas);
   }
 
   return payload;
@@ -340,6 +350,9 @@ export interface SystemSettings {
   totp_enabled: boolean; // TOTP 双因素认证
   totp_encryption_key_configured: boolean; // TOTP 加密密钥是否已配置
   api_key_acl_trust_forwarded_ip: boolean;
+  session_binding_enabled: boolean;
+  step_up_enabled: boolean;
+  audit_log_retention_days: number;
   // Default settings
   login_agreement_enabled: boolean;
   login_agreement_mode: "modal" | "checkbox" | string;
@@ -350,6 +363,7 @@ export interface SystemSettings {
   affiliate_rebate_freeze_hours: number;
   affiliate_rebate_duration_days: number;
   affiliate_rebate_per_invitee_cap: number;
+  affiliate_admin_recharge_enabled: boolean;
   default_concurrency: number;
   default_user_rpm_limit: number;
   user_private_group_daily_limit_usd: number | null;
@@ -359,36 +373,43 @@ export interface SystemSettings {
   user_private_group_rpm_limit: number;
   user_private_group_commission_rate: number;
   default_subscriptions: DefaultSubscriptionSetting[];
+  default_platform_quotas: PlatformQuotaLimitSettings;
   auth_source_default_email_balance?: number;
   auth_source_default_email_concurrency?: number;
   auth_source_default_email_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_email_grant_on_signup?: boolean;
   auth_source_default_email_grant_on_first_bind?: boolean;
+  auth_source_default_email_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_linuxdo_balance?: number;
   auth_source_default_linuxdo_concurrency?: number;
   auth_source_default_linuxdo_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_linuxdo_grant_on_signup?: boolean;
   auth_source_default_linuxdo_grant_on_first_bind?: boolean;
+  auth_source_default_linuxdo_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_oidc_balance?: number;
   auth_source_default_oidc_concurrency?: number;
   auth_source_default_oidc_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_oidc_grant_on_signup?: boolean;
   auth_source_default_oidc_grant_on_first_bind?: boolean;
+  auth_source_default_oidc_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_wechat_balance?: number;
   auth_source_default_wechat_concurrency?: number;
   auth_source_default_wechat_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_wechat_grant_on_signup?: boolean;
   auth_source_default_wechat_grant_on_first_bind?: boolean;
+  auth_source_default_wechat_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_github_balance?: number;
   auth_source_default_github_concurrency?: number;
   auth_source_default_github_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_github_grant_on_signup?: boolean;
   auth_source_default_github_grant_on_first_bind?: boolean;
+  auth_source_default_github_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_google_balance?: number;
   auth_source_default_google_concurrency?: number;
   auth_source_default_google_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_google_grant_on_signup?: boolean;
   auth_source_default_google_grant_on_first_bind?: boolean;
+  auth_source_default_google_platform_quotas?: PlatformQuotaLimitSettings;
   force_email_on_third_party_signup?: boolean;
   // OEM settings
   site_name: string;
@@ -547,7 +568,33 @@ export interface SystemSettings {
   payment_visible_method_wxpay_source?: string;
   payment_visible_method_alipay_enabled?: boolean;
   payment_visible_method_wxpay_enabled?: boolean;
+  openai_low_upstream_rate_priority_enabled?: boolean;
+  openai_oauth_scheduling_rate_multiplier?: number;
   openai_advanced_scheduler_enabled?: boolean;
+  openai_advanced_scheduler_sticky_weighted_enabled?: boolean;
+  openai_advanced_scheduler_subscription_priority_enabled?: boolean;
+  openai_advanced_scheduler_lb_top_k?: string;
+  openai_advanced_scheduler_weight_priority?: string;
+  openai_advanced_scheduler_weight_load?: string;
+  openai_advanced_scheduler_weight_queue?: string;
+  openai_advanced_scheduler_weight_error_rate?: string;
+  openai_advanced_scheduler_weight_ttft?: string;
+  openai_advanced_scheduler_weight_reset?: string;
+  openai_advanced_scheduler_weight_quota_headroom?: string;
+  openai_advanced_scheduler_weight_upstream_cost?: string;
+  openai_advanced_scheduler_weight_previous_response?: string;
+  openai_advanced_scheduler_weight_session_sticky?: string;
+  openai_advanced_scheduler_effective_lb_top_k?: string;
+  openai_advanced_scheduler_effective_weight_priority?: string;
+  openai_advanced_scheduler_effective_weight_load?: string;
+  openai_advanced_scheduler_effective_weight_queue?: string;
+  openai_advanced_scheduler_effective_weight_error_rate?: string;
+  openai_advanced_scheduler_effective_weight_ttft?: string;
+  openai_advanced_scheduler_effective_weight_reset?: string;
+  openai_advanced_scheduler_effective_weight_quota_headroom?: string;
+  openai_advanced_scheduler_effective_weight_upstream_cost?: string;
+  openai_advanced_scheduler_effective_weight_previous_response?: string;
+  openai_advanced_scheduler_effective_weight_session_sticky?: string;
   openai_free_account_repair_enabled?: boolean;
   openai_free_account_repair_weekly_threshold_usd?: number;
 
@@ -597,6 +644,9 @@ export interface UpdateSettingsRequest {
   invitation_code_enabled?: boolean;
   totp_enabled?: boolean; // TOTP 双因素认证
   api_key_acl_trust_forwarded_ip?: boolean;
+  session_binding_enabled?: boolean;
+  step_up_enabled?: boolean;
+  audit_log_retention_days?: number;
   default_balance?: number;
   login_agreement_enabled?: boolean;
   login_agreement_mode?: "modal" | "checkbox" | string;
@@ -606,6 +656,7 @@ export interface UpdateSettingsRequest {
   affiliate_rebate_freeze_hours?: number;
   affiliate_rebate_duration_days?: number;
   affiliate_rebate_per_invitee_cap?: number;
+  affiliate_admin_recharge_enabled?: boolean;
   default_concurrency?: number;
   default_user_rpm_limit?: number;
   user_private_group_daily_limit_usd?: number | null;
@@ -615,36 +666,43 @@ export interface UpdateSettingsRequest {
   user_private_group_rpm_limit?: number;
   user_private_group_commission_rate?: number;
   default_subscriptions?: DefaultSubscriptionSetting[];
+  default_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_email_balance?: number;
   auth_source_default_email_concurrency?: number;
   auth_source_default_email_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_email_grant_on_signup?: boolean;
   auth_source_default_email_grant_on_first_bind?: boolean;
+  auth_source_default_email_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_linuxdo_balance?: number;
   auth_source_default_linuxdo_concurrency?: number;
   auth_source_default_linuxdo_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_linuxdo_grant_on_signup?: boolean;
   auth_source_default_linuxdo_grant_on_first_bind?: boolean;
+  auth_source_default_linuxdo_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_oidc_balance?: number;
   auth_source_default_oidc_concurrency?: number;
   auth_source_default_oidc_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_oidc_grant_on_signup?: boolean;
   auth_source_default_oidc_grant_on_first_bind?: boolean;
+  auth_source_default_oidc_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_wechat_balance?: number;
   auth_source_default_wechat_concurrency?: number;
   auth_source_default_wechat_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_wechat_grant_on_signup?: boolean;
   auth_source_default_wechat_grant_on_first_bind?: boolean;
+  auth_source_default_wechat_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_github_balance?: number;
   auth_source_default_github_concurrency?: number;
   auth_source_default_github_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_github_grant_on_signup?: boolean;
   auth_source_default_github_grant_on_first_bind?: boolean;
+  auth_source_default_github_platform_quotas?: PlatformQuotaLimitSettings;
   auth_source_default_google_balance?: number;
   auth_source_default_google_concurrency?: number;
   auth_source_default_google_subscriptions?: DefaultSubscriptionSetting[];
   auth_source_default_google_grant_on_signup?: boolean;
   auth_source_default_google_grant_on_first_bind?: boolean;
+  auth_source_default_google_platform_quotas?: PlatformQuotaLimitSettings;
   force_email_on_third_party_signup?: boolean;
   site_name?: string;
   site_logo?: string;
@@ -779,7 +837,22 @@ export interface UpdateSettingsRequest {
   payment_visible_method_wxpay_source?: string;
   payment_visible_method_alipay_enabled?: boolean;
   payment_visible_method_wxpay_enabled?: boolean;
+  openai_low_upstream_rate_priority_enabled?: boolean;
+  openai_oauth_scheduling_rate_multiplier?: number;
   openai_advanced_scheduler_enabled?: boolean;
+  openai_advanced_scheduler_sticky_weighted_enabled?: boolean;
+  openai_advanced_scheduler_subscription_priority_enabled?: boolean;
+  openai_advanced_scheduler_lb_top_k?: string;
+  openai_advanced_scheduler_weight_priority?: string;
+  openai_advanced_scheduler_weight_load?: string;
+  openai_advanced_scheduler_weight_queue?: string;
+  openai_advanced_scheduler_weight_error_rate?: string;
+  openai_advanced_scheduler_weight_ttft?: string;
+  openai_advanced_scheduler_weight_reset?: string;
+  openai_advanced_scheduler_weight_quota_headroom?: string;
+  openai_advanced_scheduler_weight_upstream_cost?: string;
+  openai_advanced_scheduler_weight_previous_response?: string;
+  openai_advanced_scheduler_weight_session_sticky?: string;
   openai_free_account_repair_enabled?: boolean;
   openai_free_account_repair_weekly_threshold_usd?: number;
   // Balance & quota notification

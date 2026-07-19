@@ -17,6 +17,7 @@ import (
 	"ikik-api/internal/pkg/apicompat"
 	"ikik-api/internal/pkg/claude"
 	"ikik-api/internal/pkg/logger"
+	"ikik-api/internal/pkg/openai_compat"
 	"ikik-api/internal/util/responseheaders"
 )
 
@@ -32,6 +33,10 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 	promptCacheKey string,
 	defaultMappedModel string,
 ) (*OpenAIForwardResult, error) {
+	if account != nil && account.Type == AccountTypeAPIKey && !openai_compat.ShouldUseResponsesAPI(account.Extra) {
+		return s.forwardAnthropicViaRawChatCompletions(ctx, c, account, body, defaultMappedModel)
+	}
+
 	startTime := time.Now()
 
 	// 1. Parse Anthropic request
@@ -115,7 +120,9 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 			return nil, fmt.Errorf("unmarshal for codex transform: %w", err)
 		}
 		codexResult := applyCodexOAuthTransformWithOptions(reqBody, codexOAuthTransformOptions{
-			BlockConnectorTools: s.codexBlockConnectorTools(),
+			BlockConnectorTools:     s.codexBlockConnectorTools(),
+			SkipDefaultInstructions: true,
+			PreserveToolCallIDs:     true,
 		})
 		forcedTemplateText := ""
 		if s.cfg != nil {
@@ -126,6 +133,9 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 			templateUpstreamModel = codexResult.NormalizedModel
 		}
 		existingInstructions, _ := reqBody["instructions"].(string)
+		if strings.TrimSpace(existingInstructions) == "" {
+			existingInstructions = extractPromptLikeInstructionsFromInput(reqBody)
+		}
 		if _, err := applyForcedCodexInstructionsTemplate(reqBody, forcedTemplateText, forcedCodexInstructionsTemplateData{
 			ExistingInstructions: strings.TrimSpace(existingInstructions),
 			OriginalModel:        originalModel,
@@ -135,6 +145,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		}); err != nil {
 			return nil, err
 		}
+		ensureCodexOAuthInstructionsField(reqBody)
 		if compatGuardEnabled {
 			appendOpenAICompatClaudeCodeTodoGuardToRequestBody(reqBody)
 		}
@@ -191,7 +202,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 	responsesBody = updatedBody
 
 	// 5. Get access token
-	token, _, err := s.GetAccessToken(ctx, account)
+	token, _, err := s.getRequestCredential(ctx, c, account)
 	if err != nil {
 		return nil, fmt.Errorf("get access token: %w", err)
 	}
@@ -239,6 +250,13 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 
 		upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(respBody))
 		upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
+		if !agentIdentityTaskRecoveryWasTried(ctx) && s.isAgentIdentityAccount(ctx, account) && isAgentIdentityTaskInvalidHTTPResponse(resp.StatusCode, respBody) {
+			expectedTaskID := account.GetCredential("task_id")
+			if err := s.recoverAgentIdentityTask(ctx, account, expectedTaskID); err != nil {
+				return nil, fmt.Errorf("agent identity task recovery failed: %w", err)
+			}
+			return s.ForwardAsAnthropic(markAgentIdentityTaskRecoveryTried(ctx), c, account, body, promptCacheKey, defaultMappedModel)
+		}
 		if s.shouldFailoverOpenAIUpstreamResponse(resp.StatusCode, upstreamMsg, respBody) {
 			upstreamDetail := ""
 			if s.cfg != nil && s.cfg.Gateway.LogUpstreamErrorBody {
@@ -258,15 +276,15 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 				Message:            upstreamMsg,
 				Detail:             upstreamDetail,
 			})
-			s.handleOpenAIAccountUpstreamError(ctx, account, resp.StatusCode, resp.Header, respBody)
+			shouldDisable := s.handleOpenAIAccountUpstreamError(ctx, account, resp.StatusCode, resp.Header, respBody, upstreamModel)
 			return nil, &UpstreamFailoverError{
 				StatusCode:             resp.StatusCode,
 				ResponseBody:           respBody,
-				RetryableOnSameAccount: account.IsPoolMode() && (account.IsPoolModeRetryableStatus(resp.StatusCode) || isOpenAITransientProcessingError(resp.StatusCode, upstreamMsg, respBody)),
+				RetryableOnSameAccount: !shouldDisable && account.IsPoolMode() && (account.IsPoolModeRetryableStatus(resp.StatusCode) || isOpenAITransientProcessingError(resp.StatusCode, upstreamMsg, respBody)),
 			}
 		}
 		// Non-failover error: return Anthropic-formatted error to client
-		return s.handleAnthropicErrorResponse(resp, c, account)
+		return s.handleAnthropicErrorResponse(resp, c, account, upstreamModel)
 	}
 
 	// 9. Handle normal response
@@ -308,8 +326,9 @@ func (s *OpenAIGatewayService) handleAnthropicErrorResponse(
 	resp *http.Response,
 	c *gin.Context,
 	account *Account,
+	requestedModel ...string,
 ) (*OpenAIForwardResult, error) {
-	return s.handleCompatErrorResponse(resp, c, account, writeAnthropicError)
+	return s.handleCompatErrorResponse(resp, c, account, writeAnthropicError, requestedModel...)
 }
 
 // handleAnthropicBufferedStreamingResponse reads all Responses SSE events from
@@ -638,13 +657,6 @@ func copyOpenAIUsageFromResponsesUsage(usage *apicompat.ResponsesUsage) OpenAIUs
 	}
 	if usage.InputTokensDetails != nil {
 		result.CacheReadInputTokens = usage.InputTokensDetails.CachedTokens
-		if result.CacheCreationInputTokens == 0 {
-			if usage.InputTokensDetails.CacheWriteTokens > 0 {
-				result.CacheCreationInputTokens = usage.InputTokensDetails.CacheWriteTokens
-			} else {
-				result.CacheCreationInputTokens = usage.InputTokensDetails.CacheCreationTokens
-			}
-		}
 	}
 	if usage.OutputTokensDetails != nil {
 		result.ReasoningTokens = usage.OutputTokensDetails.ReasoningTokens

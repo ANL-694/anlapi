@@ -8,6 +8,7 @@ import (
 type OpsSystemLog struct {
 	ID              int64          `json:"id"`
 	CreatedAt       time.Time      `json:"created_at"`
+	Host            string         `json:"host"`
 	Level           string         `json:"level"`
 	Component       string         `json:"component"`
 	Message         string         `json:"message"`
@@ -25,7 +26,7 @@ type OpsErrorLog struct {
 	CreatedAt time.Time `json:"created_at"`
 
 	// Standardized classification
-	// - phase: request|auth|routing|upstream|network|internal
+	// - phase: request|auth|account_auth|routing|upstream|network|internal
 	// - owner: client|provider|platform
 	// - source: client_request|upstream_http|gateway
 	Phase string `json:"phase"`

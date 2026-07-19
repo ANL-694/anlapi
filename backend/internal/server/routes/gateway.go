@@ -29,7 +29,7 @@ func RegisterGatewayRoutes(
 	endpointNorm := handler.InboundEndpointMiddleware()
 	privateGroupRouteResolver := privateGroupRouteResolverMiddleware()
 
-	// 閺堫亜鍨庣紒?Key 閹凤附鍩呮稉顓㈡？娴犺绱欓幐澶婂礂鐠侇喗鐗稿蹇撳隘閸掑棝鏁婄拠顖氭惙鎼存棑绱?
+	// Reject unassigned keys with an error format matching each API protocol.
 	requireGroupAnthropic := middleware.RequireGroupAssignment(settingService, middleware.AnthropicErrorWriter)
 	requireGroupGoogle := middleware.RequireGroupAssignment(settingService, middleware.GoogleErrorWriter)
 
@@ -44,6 +44,67 @@ func RegisterGatewayRoutes(
 	isOpenAIGatewayPlatform := func(c *gin.Context) bool {
 		platform := getGroupPlatform(c)
 		return platform == service.PlatformOpenAI || platform == service.PlatformKiro
+	}
+	modelsHandler := func(c *gin.Context) {
+		if getGroupPlatform(c) == service.PlatformOpenAI && c.Query("client_version") != "" {
+			h.OpenAIGateway.CodexModels(c)
+			return
+		}
+		h.Gateway.Models(c)
+	}
+	unsupportedPlatform := func(c *gin.Context, message string) {
+		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": gin.H{
+				"type":    "not_found_error",
+				"message": message,
+			},
+		})
+	}
+	imagesHandler := func(c *gin.Context) {
+		switch getGroupPlatform(c) {
+		case service.PlatformOpenAI:
+			h.OpenAIGateway.Images(c)
+		case service.PlatformGrok:
+			h.OpenAIGateway.GrokImages(c)
+		default:
+			unsupportedPlatform(c, "Images API is not supported for this platform")
+		}
+	}
+	videoGenerationHandler := func(c *gin.Context) {
+		if getGroupPlatform(c) == service.PlatformGrok {
+			h.OpenAIGateway.GrokVideoGeneration(c)
+			return
+		}
+		unsupportedPlatform(c, "Videos API is not supported for this platform")
+	}
+	videoEditHandler := func(c *gin.Context) {
+		if getGroupPlatform(c) == service.PlatformGrok {
+			h.OpenAIGateway.GrokVideoEdit(c)
+			return
+		}
+		unsupportedPlatform(c, "Videos API is not supported for this platform")
+	}
+	videoExtensionHandler := func(c *gin.Context) {
+		if getGroupPlatform(c) == service.PlatformGrok {
+			h.OpenAIGateway.GrokVideoExtension(c)
+			return
+		}
+		unsupportedPlatform(c, "Videos API is not supported for this platform")
+	}
+	videoStatusHandler := func(c *gin.Context) {
+		if getGroupPlatform(c) == service.PlatformGrok {
+			h.OpenAIGateway.GrokVideoStatus(c)
+			return
+		}
+		unsupportedPlatform(c, "Videos API is not supported for this platform")
+	}
+	videoContentHandler := func(c *gin.Context) {
+		if getGroupPlatform(c) == service.PlatformGrok {
+			h.OpenAIGateway.GrokVideoContent(c)
+			return
+		}
+		unsupportedPlatform(c, "Videos API is not supported for this platform")
 	}
 	rejectGrokUnsupportedEndpoint := func(c *gin.Context, endpoint string) {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -61,6 +122,7 @@ func RegisterGatewayRoutes(
 	gateway.Use(opsErrorLogger)
 	gateway.Use(endpointNorm)
 	gateway.Use(gin.HandlerFunc(apiKeyAuth))
+	gateway.GET("/sub2api/billing", h.Gateway.KeyBillingInfo)
 	gateway.Use(privateGroupRouteResolver)
 	gateway.Use(requireGroupAnthropic)
 	{
@@ -95,7 +157,7 @@ func RegisterGatewayRoutes(
 			}
 			h.Gateway.CountTokens(c)
 		})
-		gateway.GET("/models", h.Gateway.Models)
+		gateway.GET("/models", modelsHandler)
 		gateway.GET("/usage", h.Gateway.Usage)
 		// OpenAI Responses API: auto-route based on group platform
 		gateway.POST("/responses", func(c *gin.Context) {
@@ -112,6 +174,7 @@ func RegisterGatewayRoutes(
 			}
 			h.Gateway.Responses(c)
 		})
+		gateway.POST("/alpha/search", h.OpenAIGateway.AlphaSearch)
 		gateway.GET("/responses", func(c *gin.Context) {
 			if getGroupPlatform(c) == service.PlatformGrok {
 				rejectGrokUnsupportedEndpoint(c, "Responses WebSocket API")
@@ -143,30 +206,26 @@ func RegisterGatewayRoutes(
 			}
 			h.OpenAIGateway.Embeddings(c)
 		})
-		gateway.POST("/images/generations", func(c *gin.Context) {
-			if getGroupPlatform(c) != service.PlatformOpenAI {
-				c.JSON(http.StatusNotFound, gin.H{
-					"error": gin.H{
-						"type":    "not_found_error",
-						"message": "Images API is not supported for this platform",
-					},
-				})
-				return
-			}
-			h.OpenAIGateway.Images(c)
-		})
-		gateway.POST("/images/edits", func(c *gin.Context) {
-			if getGroupPlatform(c) != service.PlatformOpenAI {
-				c.JSON(http.StatusNotFound, gin.H{
-					"error": gin.H{
-						"type":    "not_found_error",
-						"message": "Images API is not supported for this platform",
-					},
-				})
-				return
-			}
-			h.OpenAIGateway.Images(c)
-		})
+		gateway.POST("/images/generations", imagesHandler)
+		gateway.POST("/images/edits", imagesHandler)
+		gateway.POST("/images/generations/async", h.AsyncImage.Submit)
+		gateway.POST("/images/edits/async", h.AsyncImage.Submit)
+		gateway.GET("/images/tasks/:task_id", h.AsyncImage.Get)
+		gateway.POST("/images/batches", h.BatchImage.Submit)
+		gateway.GET("/images/batches", h.BatchImage.List)
+		gateway.GET("/images/batches/models", h.BatchImage.Models)
+		gateway.GET("/images/batches/:id", h.BatchImage.Get)
+		gateway.GET("/images/batches/:id/items", h.BatchImage.Items)
+		gateway.GET("/images/batches/:id/items/:custom_id/content", h.BatchImage.ItemContent)
+		gateway.GET("/images/batches/:id/download", h.BatchImage.Download)
+		gateway.POST("/images/batches/:id/cancel", h.BatchImage.Cancel)
+		gateway.DELETE("/images/batches/:id", h.BatchImage.DeleteRecord)
+		gateway.DELETE("/images/batches/:id/outputs", h.BatchImage.DeleteOutputs)
+		gateway.POST("/videos/generations", videoGenerationHandler)
+		gateway.POST("/videos/edits", videoEditHandler)
+		gateway.POST("/videos/extensions", videoExtensionHandler)
+		gateway.GET("/videos/:request_id", videoStatusHandler)
+		gateway.GET("/videos/:request_id/content", videoContentHandler)
 	}
 
 	// Gemini native API compatibility.
@@ -185,7 +244,7 @@ func RegisterGatewayRoutes(
 		gemini.POST("/models/*modelAction", h.Gateway.GeminiV1BetaModels)
 	}
 
-	// OpenAI Responses API閿涘牅绗夌敮顩?閸撳秶绱戦惃鍕焼閸氬稄绱氶垾?auto-route based on group platform
+	// OpenAI Responses API alias without the /v1 prefix; route by group platform.
 	responsesHandler := func(c *gin.Context) {
 		if isOpenAIResponsesCompatibleGatewayPlatform(c) {
 			h.OpenAIGateway.Responses(c)
@@ -195,6 +254,7 @@ func RegisterGatewayRoutes(
 	}
 	r.POST("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, responsesHandler)
 	r.POST("/responses/*subpath", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, responsesHandler)
+	r.POST("/alpha/search", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.OpenAIGateway.AlphaSearch)
 	r.GET("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, func(c *gin.Context) {
 		if getGroupPlatform(c) == service.PlatformGrok {
 			rejectGrokUnsupportedEndpoint(c, "Responses WebSocket API")
@@ -202,11 +262,13 @@ func RegisterGatewayRoutes(
 		}
 		h.OpenAIGateway.ResponsesWebSocket(c)
 	})
+	r.GET("/models", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, modelsHandler)
 	codexDirect := r.Group("/backend-api/codex")
 	codexDirect.Use(bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic)
 	{
 		codexDirect.POST("/responses", responsesHandler)
 		codexDirect.POST("/responses/*subpath", responsesHandler)
+		codexDirect.POST("/alpha/search", h.OpenAIGateway.AlphaSearch)
 		codexDirect.GET("/responses", func(c *gin.Context) {
 			if getGroupPlatform(c) == service.PlatformGrok {
 				rejectGrokUnsupportedEndpoint(c, "Responses WebSocket API")
@@ -214,8 +276,9 @@ func RegisterGatewayRoutes(
 			}
 			h.OpenAIGateway.ResponsesWebSocket(c)
 		})
+		codexDirect.GET("/models", h.OpenAIGateway.CodexModels)
 	}
-	// OpenAI Chat Completions API閿涘牅绗夌敮顩?閸撳秶绱戦惃鍕焼閸氬稄绱氶垾?auto-route based on group platform
+	// OpenAI Chat Completions API alias without the /v1 prefix; route by group platform.
 	r.POST("/chat/completions", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, func(c *gin.Context) {
 		if getGroupPlatform(c) == service.PlatformGrok {
 			rejectGrokUnsupportedEndpoint(c, "Chat Completions API")
@@ -239,32 +302,18 @@ func RegisterGatewayRoutes(
 		}
 		h.OpenAIGateway.Embeddings(c)
 	})
-	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, func(c *gin.Context) {
-		if getGroupPlatform(c) != service.PlatformOpenAI {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": gin.H{
-					"type":    "not_found_error",
-					"message": "Images API is not supported for this platform",
-				},
-			})
-			return
-		}
-		h.OpenAIGateway.Images(c)
-	})
-	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, func(c *gin.Context) {
-		if getGroupPlatform(c) != service.PlatformOpenAI {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": gin.H{
-					"type":    "not_found_error",
-					"message": "Images API is not supported for this platform",
-				},
-			})
-			return
-		}
-		h.OpenAIGateway.Images(c)
-	})
+	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, imagesHandler)
+	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, imagesHandler)
+	r.POST("/images/generations/async", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.AsyncImage.Submit)
+	r.POST("/images/edits/async", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.AsyncImage.Submit)
+	r.GET("/images/tasks/:task_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.AsyncImage.Get)
+	r.POST("/videos/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoGenerationHandler)
+	r.POST("/videos/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoEditHandler)
+	r.POST("/videos/extensions", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoExtensionHandler)
+	r.GET("/videos/:request_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoStatusHandler)
+	r.GET("/videos/:request_id/content", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoContentHandler)
 
-	// Antigravity 濡€崇€烽崚妤勩€?
+	// Antigravity model list.
 	r.GET("/antigravity/models", gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.Gateway.AntigravityModels)
 
 	// Antigravity dedicated Anthropic-compatible routes.
@@ -372,10 +421,15 @@ func privateGroupCompatiblePlatforms(c *gin.Context) map[string]struct{} {
 	switch {
 	case strings.Contains(path, "/v1beta/models"):
 		return map[string]struct{}{service.PlatformGemini: {}}
-	case strings.Contains(path, "/embeddings"),
-		strings.Contains(path, "/images/generations"),
-		strings.Contains(path, "/images/edits"):
+	case strings.Contains(path, "/embeddings"):
 		return map[string]struct{}{service.PlatformOpenAI: {}}
+	case strings.Contains(path, "/images/generations"), strings.Contains(path, "/images/edits"):
+		return map[string]struct{}{
+			service.PlatformOpenAI: {},
+			service.PlatformGrok:   {},
+		}
+	case strings.Contains(path, "/videos/"):
+		return map[string]struct{}{service.PlatformGrok: {}}
 	case strings.Contains(path, "/chat/completions"):
 		return map[string]struct{}{
 			service.PlatformOpenAI: {},
@@ -389,7 +443,7 @@ func privateGroupCompatiblePlatforms(c *gin.Context) map[string]struct{} {
 		}
 	case strings.Contains(path, "/messages"):
 		return map[string]struct{}{service.PlatformAnthropic: {}}
-	case strings.Contains(path, "/v1/models"):
+	case path == "/models", strings.Contains(path, "/v1/models"), strings.Contains(path, "/backend-api/codex/models"):
 		return map[string]struct{}{
 			service.PlatformOpenAI: {},
 			service.PlatformKiro:   {},

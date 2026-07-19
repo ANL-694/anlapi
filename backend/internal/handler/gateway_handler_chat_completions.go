@@ -76,12 +76,20 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 	}
 	reqModel := modelResult.String()
 	reqStream := gjson.GetBytes(body, "stream").Bool()
+	if service.IsGPTImageGenerationModel(reqModel) {
+		h.chatCompletionsErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "This model is not supported on the Chat Completions endpoint")
+		return
+	}
 	requestedModel := reqModel
 	autoDecision := h.gatewayService.ResolveAutoModel(c.Request.Context(), apiKey.GroupID, reqModel, body, service.AutoModelProtocolOpenAIChat)
 	if autoDecision.Matched {
 		reqModel = autoDecision.ResolvedModel
 		body = h.gatewayService.ReplaceModelInBody(body, reqModel)
 		body = service.StripAutoRouterPluginFromBody(body)
+	}
+	if service.IsGPTImageGenerationModel(reqModel) {
+		h.chatCompletionsErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "This model is not supported on the Chat Completions endpoint")
+		return
 	}
 	reqLog = reqLog.With(
 		zap.String("model", requestedModel),
@@ -190,7 +198,7 @@ routeLoop:
 				"This group is restricted to Claude Code clients (/v1/messages only)")
 			return
 		}
-		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription); err != nil {
+		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription, service.QuotaPlatform(routeCtx, currentAPIKey)); err != nil {
 			reqLog.Info("gateway.cc.billing_check_failed",
 				zap.Error(err),
 				zap.Int64p("group_id", currentAPIKey.GroupID),
@@ -224,6 +232,7 @@ routeLoop:
 				case FailoverContinue:
 					continue
 				case FailoverCanceled:
+					failoverClientGone(c)
 					return
 				default:
 					if fs.LastFailoverErr != nil {
@@ -284,7 +293,7 @@ routeLoop:
 						h.handleCCFailoverExhausted(c, failoverErr, true)
 						return
 					}
-					action := fs.HandleFailoverError(c.Request.Context(), h.gatewayService, account.ID, account.Platform, failoverErr)
+					action := fs.HandleFailoverError(c.Request.Context(), h.gatewayService, account.ID, account.Platform, account.GetPoolModeRetryCount(), failoverErr)
 					switch action {
 					case FailoverContinue:
 						continue
@@ -314,6 +323,7 @@ routeLoop:
 			requestPayloadHash := service.HashUsageRequestPayload(body)
 			inboundEndpoint := GetInboundEndpoint(c)
 			upstreamEndpoint := GetUpstreamEndpoint(c, account.Platform)
+			quotaPlatform := service.QuotaPlatform(c.Request.Context(), currentAPIKey)
 
 			h.submitUsageRecordTask(func(ctx context.Context) {
 				if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
@@ -328,6 +338,7 @@ routeLoop:
 					IPAddress:          clientIP,
 					RequestPayloadHash: requestPayloadHash,
 					APIKeyService:      h.apiKeyService,
+					QuotaPlatform:      quotaPlatform,
 					ChannelUsageFields: service.BuildAutoModelUsageFields(autoDecision, channelMapping, result.UpstreamModel),
 				}); err != nil {
 					reqLog.Error("gateway.cc.record_usage_failed",
@@ -354,6 +365,14 @@ func (h *GatewayHandler) chatCompletionsErrorResponse(c *gin.Context, status int
 // handleCCFailoverExhausted writes a failover-exhausted error in CC format.
 func (h *GatewayHandler) handleCCFailoverExhausted(c *gin.Context, lastErr *service.UpstreamFailoverError, streamStarted bool) {
 	if streamStarted {
+		return
+	}
+	if lastErr != nil {
+		copyFailoverRetryAfter(c, lastErr.ResponseHeaders)
+	}
+	if lastErr != nil && lastErr.IsCredentialFailure() {
+		status, message := credentialFailoverClientResponse(lastErr)
+		h.chatCompletionsErrorResponse(c, status, "server_error", message)
 		return
 	}
 	statusCode := http.StatusBadGateway

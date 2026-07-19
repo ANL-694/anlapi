@@ -29,6 +29,7 @@ const (
 	AffiliateRebateRateMin              = 0.0
 	AffiliateRebateRateMax              = 100.0
 	AffiliateEnabledDefault             = false
+	AdminRechargeRebateEnabledDefault   = false
 	AffiliateRebateFreezeHoursDefault   = 0
 	AffiliateRebateFreezeHoursMax       = 720
 	AffiliateRebateDurationDaysDefault  = 0
@@ -53,6 +54,32 @@ const (
 	PlatformKiro        = domain.PlatformKiro
 	PlatformCustom      = domain.PlatformCustom
 )
+
+// AllowedQuotaPlatforms is the single service-level allowlist for user by
+// platform quota configuration. Keep the Ent validator in sync with this list.
+var AllowedQuotaPlatforms = []string{
+	PlatformAnthropic,
+	PlatformOpenAI,
+	PlatformGemini,
+	PlatformAntigravity,
+	PlatformGrok,
+	PlatformKiro,
+}
+
+func IsAllowedQuotaPlatform(platform string) bool {
+	for _, allowed := range AllowedQuotaPlatforms {
+		if platform == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+const SettingKeyDefaultPlatformQuotas = "default_platform_quotas"
+
+func SettingKeyAuthSourcePlatformQuotas(source string) string {
+	return "auth_source_default_" + source + "_platform_quotas"
+}
 
 // Account type constants
 const (
@@ -125,6 +152,7 @@ const (
 	SettingKeyAffiliateRebateFreezeHours       = "affiliate_rebate_freeze_hours"
 	SettingKeyAffiliateRebateDurationDays      = "affiliate_rebate_duration_days"
 	SettingKeyAffiliateRebatePerInviteeCap     = "affiliate_rebate_per_invitee_cap"
+	SettingKeyAffiliateAdminRechargeEnabled    = "affiliate_admin_recharge_enabled"
 
 	SettingKeySMTPHost     = "smtp_host"
 	SettingKeySMTPPort     = "smtp_port"
@@ -140,7 +168,9 @@ const (
 
 	SettingKeyAPIKeyACLTrustForwardedIP = "api_key_acl_trust_forwarded_ip"
 
-	SettingKeyTotpEnabled = "totp_enabled"
+	SettingKeyTotpEnabled           = "totp_enabled"
+	SettingKeySessionBindingEnabled = "session_binding_enabled"
+	SettingKeyAuditLogRetentionDays = "audit_log_retention_days"
 
 	SettingKeyLinuxDoConnectEnabled      = "linuxdo_connect_enabled"
 	SettingKeyLinuxDoConnectClientID     = "linuxdo_connect_client_id"
@@ -275,45 +305,61 @@ const (
 	SettingKeyEnableIdentityPatch = "enable_identity_patch"
 	SettingKeyIdentityPatchPrompt = "identity_patch_prompt"
 
-	SettingKeyOpsMonitoringEnabled                      = "ops_monitoring_enabled"
-	SettingKeyOpsRealtimeMonitoringEnabled              = "ops_realtime_monitoring_enabled"
-	SettingKeyOpsQueryModeDefault                       = "ops_query_mode_default"
-	SettingKeyOpsEmailNotificationConfig                = "ops_email_notification_config"
-	SettingKeyOpsAlertRuntimeSettings                   = "ops_alert_runtime_settings"
-	SettingKeyOpsMetricsIntervalSeconds                 = "ops_metrics_interval_seconds"
-	SettingKeyOpsAdvancedSettings                       = "ops_advanced_settings"
-	SettingKeyOpsRuntimeLogConfig                       = "ops_runtime_log_config"
-	SettingKeyChannelMonitorEnabled                     = "channel_monitor_enabled"
-	SettingKeyChannelMonitorDefaultIntervalSeconds      = "channel_monitor_default_interval_seconds"
-	SettingKeyAvailableChannelsEnabled                  = "available_channels_enabled"
-	SettingKeyOverloadCooldownSettings                  = "overload_cooldown_settings"
-	SettingKeyStreamTimeoutSettings                     = "stream_timeout_settings"
-	SettingKeyRectifierSettings                         = "rectifier_settings"
-	SettingKeyBetaPolicySettings                        = "beta_policy_settings"
-	SettingKeyOpenAIFastPolicySettings                  = "openai_fast_policy_settings"
-	SettingKeyMinClaudeCodeVersion                      = "min_claude_code_version"
-	SettingKeyMaxClaudeCodeVersion                      = "max_claude_code_version"
-	SettingKeyAllowUngroupedKeyScheduling               = "allow_ungrouped_key_scheduling"
-	SettingKeyUserPrivateGroupDailyLimitUSD             = "user_private_group_daily_limit_usd"
-	SettingKeyUserPrivateGroupWeeklyLimitUSD            = "user_private_group_weekly_limit_usd"
-	SettingKeyUserPrivateGroupMonthlyLimitUSD           = "user_private_group_monthly_limit_usd"
-	SettingKeyUserPrivateGroupRateMultiplier            = "user_private_group_rate_multiplier"
-	SettingKeyUserPrivateGroupRPMLimit                  = "user_private_group_rpm_limit"
-	SettingKeyUserPrivateGroupCommissionRate            = "user_private_group_commission_rate"
-	SettingKeyBackendModeEnabled                        = "backend_mode_enabled"
-	SettingKeyEnableFingerprintUnification              = "enable_fingerprint_unification"
-	SettingKeyEnableMetadataPassthrough                 = "enable_metadata_passthrough"
-	SettingKeyEnableCCHSigning                          = "enable_cch_signing"
-	SettingKeyEnableAnthropicCacheTTL1hInjection        = "enable_anthropic_cache_ttl_1h_injection"
-	SettingKeyOpenAIImagesResponsesReasoningEffort      = "openai_images_responses_reasoning_effort"
-	SettingKeyBalanceLowNotifyEnabled                   = "balance_low_notify_enabled"
-	SettingKeyBalanceLowNotifyThreshold                 = "balance_low_notify_threshold"
-	SettingKeyBalanceLowNotifyRechargeURL               = "balance_low_notify_recharge_url"
-	SettingKeyAccountQuotaNotifyEnabled                 = "account_quota_notify_enabled"
-	SettingKeyAccountQuotaNotifyEmails                  = "account_quota_notify_emails"
-	SettingKeyOpenAIFreeAccountRepairEnabled            = "openai_free_account_repair_enabled"
-	SettingKeyOpenAIFreeAccountRepairWeeklyThresholdUSD = "openai_free_account_repair_weekly_threshold_usd"
-	SettingKeyWebSearchEmulationConfig                  = "web_search_emulation_config"
+	SettingKeyOpsMonitoringEnabled                               = "ops_monitoring_enabled"
+	SettingKeyOpsRealtimeMonitoringEnabled                       = "ops_realtime_monitoring_enabled"
+	SettingKeyOpsQueryModeDefault                                = "ops_query_mode_default"
+	SettingKeyOpsEmailNotificationConfig                         = "ops_email_notification_config"
+	SettingKeyOpsAlertRuntimeSettings                            = "ops_alert_runtime_settings"
+	SettingKeyOpsMetricsIntervalSeconds                          = "ops_metrics_interval_seconds"
+	SettingKeyOpsAdvancedSettings                                = "ops_advanced_settings"
+	SettingKeyOpsRuntimeLogConfig                                = "ops_runtime_log_config"
+	SettingKeyChannelMonitorEnabled                              = "channel_monitor_enabled"
+	SettingKeyChannelMonitorDefaultIntervalSeconds               = "channel_monitor_default_interval_seconds"
+	SettingKeyAvailableChannelsEnabled                           = "available_channels_enabled"
+	SettingKeyOverloadCooldownSettings                           = "overload_cooldown_settings"
+	SettingKeyStreamTimeoutSettings                              = "stream_timeout_settings"
+	SettingKeyRectifierSettings                                  = "rectifier_settings"
+	SettingKeyBetaPolicySettings                                 = "beta_policy_settings"
+	SettingKeyOpenAIFastPolicySettings                           = "openai_fast_policy_settings"
+	SettingKeyMinClaudeCodeVersion                               = "min_claude_code_version"
+	SettingKeyMaxClaudeCodeVersion                               = "max_claude_code_version"
+	SettingKeyAllowUngroupedKeyScheduling                        = "allow_ungrouped_key_scheduling"
+	SettingKeyOpenAILowUpstreamRatePriorityEnabled               = "openai_low_upstream_rate_priority_enabled"
+	SettingKeyOpenAIOAuthSchedulingRateMultiplier                = "openai_oauth_scheduling_rate_multiplier"
+	SettingKeyOpenAIAdvancedSchedulerStickyWeightedEnabled       = "openai_advanced_scheduler_sticky_weighted_enabled"
+	SettingKeyOpenAIAdvancedSchedulerSubscriptionPriorityEnabled = "openai_advanced_scheduler_subscription_priority_enabled"
+	SettingKeyOpenAIAdvancedSchedulerLBTopK                      = "openai_advanced_scheduler_lb_top_k"
+	SettingKeyOpenAIAdvancedSchedulerWeightPriority              = "openai_advanced_scheduler_weight_priority"
+	SettingKeyOpenAIAdvancedSchedulerWeightLoad                  = "openai_advanced_scheduler_weight_load"
+	SettingKeyOpenAIAdvancedSchedulerWeightQueue                 = "openai_advanced_scheduler_weight_queue"
+	SettingKeyOpenAIAdvancedSchedulerWeightErrorRate             = "openai_advanced_scheduler_weight_error_rate"
+	SettingKeyOpenAIAdvancedSchedulerWeightTTFT                  = "openai_advanced_scheduler_weight_ttft"
+	SettingKeyOpenAIAdvancedSchedulerWeightReset                 = "openai_advanced_scheduler_weight_reset"
+	SettingKeyOpenAIAdvancedSchedulerWeightQuotaHeadroom         = "openai_advanced_scheduler_weight_quota_headroom"
+	SettingKeyOpenAIAdvancedSchedulerWeightUpstreamCost          = "openai_advanced_scheduler_weight_upstream_cost"
+	SettingKeyOpenAIAdvancedSchedulerWeightPreviousResponse      = "openai_advanced_scheduler_weight_previous_response"
+	SettingKeyOpenAIAdvancedSchedulerWeightSessionSticky         = "openai_advanced_scheduler_weight_session_sticky"
+	SettingKeyOpenAICodexUserAgent                               = "openai_codex_user_agent"
+	SettingKeyUserPrivateGroupDailyLimitUSD                      = "user_private_group_daily_limit_usd"
+	SettingKeyUserPrivateGroupWeeklyLimitUSD                     = "user_private_group_weekly_limit_usd"
+	SettingKeyUserPrivateGroupMonthlyLimitUSD                    = "user_private_group_monthly_limit_usd"
+	SettingKeyUserPrivateGroupRateMultiplier                     = "user_private_group_rate_multiplier"
+	SettingKeyUserPrivateGroupRPMLimit                           = "user_private_group_rpm_limit"
+	SettingKeyUserPrivateGroupCommissionRate                     = "user_private_group_commission_rate"
+	SettingKeyBackendModeEnabled                                 = "backend_mode_enabled"
+	SettingKeyEnableFingerprintUnification                       = "enable_fingerprint_unification"
+	SettingKeyEnableMetadataPassthrough                          = "enable_metadata_passthrough"
+	SettingKeyEnableCCHSigning                                   = "enable_cch_signing"
+	SettingKeyEnableAnthropicCacheTTL1hInjection                 = "enable_anthropic_cache_ttl_1h_injection"
+	SettingKeyOpenAIImagesResponsesReasoningEffort               = "openai_images_responses_reasoning_effort"
+	SettingKeyBalanceLowNotifyEnabled                            = "balance_low_notify_enabled"
+	SettingKeyBalanceLowNotifyThreshold                          = "balance_low_notify_threshold"
+	SettingKeyBalanceLowNotifyRechargeURL                        = "balance_low_notify_recharge_url"
+	SettingKeyAccountQuotaNotifyEnabled                          = "account_quota_notify_enabled"
+	SettingKeyAccountQuotaNotifyEmails                           = "account_quota_notify_emails"
+	SettingKeyOpenAIFreeAccountRepairEnabled                     = "openai_free_account_repair_enabled"
+	SettingKeyOpenAIFreeAccountRepairWeeklyThresholdUSD          = "openai_free_account_repair_weekly_threshold_usd"
+	SettingKeyWebSearchEmulationConfig                           = "web_search_emulation_config"
 )
 
 // AdminAPIKeyPrefix is the prefix for admin API keys.

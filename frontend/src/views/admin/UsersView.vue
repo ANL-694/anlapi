@@ -225,6 +225,16 @@
               </UiIconButton>
             </div>
 
+            <button
+              v-if="selectedCount > 0"
+              class="btn btn-secondary ml-1 whitespace-nowrap"
+              data-test="bulk-edit-limits"
+              @click="showBulkEditModal = true"
+            >
+              <Icon name="users" size="md" class="mr-2" />
+              {{ t('admin.users.bulkLimits.action', { count: selectedCount }) }}
+            </button>
+
             <button @click="showCreateModal = true" class="btn btn-primary ml-1 whitespace-nowrap">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.users.createUser') }}
@@ -239,12 +249,17 @@
           :columns="columns"
           :data="sortedUsers"
           :loading="loading"
+          row-key="id"
+          selectable
+          :selected-keys="selectedIds"
+          :selection-label="getUserSelectionLabel"
           :actions-count="7"
           :server-side-sort="true"
           default-sort-key="created_at"
           default-sort-order="desc"
           :sort-storage-key="USER_SORT_STORAGE_KEY"
           @sort="handleSort"
+          @update:selected-keys="handleSelectedKeysUpdate"
         >
           <template #header-usage="{ column }">
             <div class="flex items-center gap-1.5">
@@ -613,6 +628,14 @@
                 {{ t('admin.users.groups') }}
               </button>
 
+              <button
+                @click="handlePlatformQuotas(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="chart" size="sm" class="text-gray-400" :stroke-width="2" />
+                {{ t('admin.users.platformQuotas.menu') }}
+              </button>
+
               <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
 
               <!-- Deposit -->
@@ -684,8 +707,15 @@
     <ConfirmDialog :show="showDeleteDialog" :title="t('admin.users.deleteUser')" :message="t('admin.users.deleteConfirm', { email: deletingUser?.email })" :danger="true" @confirm="confirmDelete" @cancel="showDeleteDialog = false" />
     <UserCreateModal :show="showCreateModal" @close="showCreateModal = false" @success="loadUsers" />
     <UserEditModal :show="showEditModal" :user="editingUser" @close="closeEditModal" @success="loadUsers" />
+    <BulkEditUserModal
+      :show="showBulkEditModal"
+      :selected-ids="selectedIds"
+      @close="showBulkEditModal = false"
+      @success="handleBulkLimitsSuccess"
+    />
     <UserApiKeysModal :show="showApiKeysModal" :user="viewingUser" @close="closeApiKeysModal" />
     <UserAllowedGroupsModal :show="showAllowedGroupsModal" :user="allowedGroupsUser" @close="closeAllowedGroupsModal" @success="loadUsers" />
+    <UserPlatformQuotaModal :show="showPlatformQuotaModal" :user="platformQuotaUser" @close="closePlatformQuotaModal" />
     <UserBalanceModal :show="showBalanceModal" :user="balanceUser" :operation="balanceOperation" @close="closeBalanceModal" @success="loadUsers" />
     <UserPointsModal :show="showPointsModal" :user="pointsUser" :operation="pointsOperation" @close="closePointsModal" @success="loadUsers" />
     <UserBalanceHistoryModal :show="showBalanceHistoryModal" :user="balanceHistoryUser" @close="closeBalanceHistoryModal" @deposit="handleDepositFromHistory" @withdraw="handleWithdrawFromHistory" />
@@ -699,6 +729,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
+import { useTableSelection } from '@/composables/useTableSelection'
 import { formatDateTime } from '@/utils/format'
 import Icon from '@/components/icons/Icon.vue'
 
@@ -719,8 +750,10 @@ import UserAttributesConfigModal from '@/components/user/UserAttributesConfigMod
 import UserConcurrencyCell from '@/components/user/UserConcurrencyCell.vue'
 import UserCreateModal from '@/components/admin/user/UserCreateModal.vue'
 import UserEditModal from '@/components/admin/user/UserEditModal.vue'
+import BulkEditUserModal from '@/components/admin/user/BulkEditUserModal.vue'
 import UserApiKeysModal from '@/components/admin/user/UserApiKeysModal.vue'
 import UserAllowedGroupsModal from '@/components/admin/user/UserAllowedGroupsModal.vue'
+import UserPlatformQuotaModal from '@/components/admin/user/UserPlatformQuotaModal.vue'
 import UserBalanceModal from '@/components/admin/user/UserBalanceModal.vue'
 import UserPointsModal from '@/components/admin/user/UserPointsModal.vue'
 import UserBalanceHistoryModal from '@/components/admin/user/UserBalanceHistoryModal.vue'
@@ -1159,6 +1192,24 @@ const sortedUsers = computed(() => {
     })
     .map(({ row }) => row)
 })
+
+const {
+  selectedIds,
+  selectedCount,
+  setSelectedIds,
+  clear: clearSelection
+} = useTableSelection<AdminUser>({
+  rows: sortedUsers,
+  getId: (user) => user.id
+})
+
+const handleSelectedKeysUpdate = (keys: Array<string | number>) => {
+  setSelectedIds(keys.filter((key): key is number => typeof key === 'number'))
+}
+
+const getUserSelectionLabel = (user: AdminUser) =>
+  t('admin.users.bulkLimits.selectUser', { email: user.email })
+
 // User attribute definitions and values
 const attributeDefinitions = ref<UserAttributeDefinition[]>([])
 const userAttributeValues = ref<Record<number, Record<number, string>>>({})
@@ -1171,6 +1222,7 @@ const pagination = reactive({
 
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
+const showBulkEditModal = ref(false)
 const showDeleteDialog = ref(false)
 const showApiKeysModal = ref(false)
 const showAttributesModal = ref(false)
@@ -1321,6 +1373,8 @@ const handleClickOutside = (event: MouseEvent) => {
 // Allowed groups modal state
 const showAllowedGroupsModal = ref(false)
 const allowedGroupsUser = ref<AdminUser | null>(null)
+const showPlatformQuotaModal = ref(false)
+const platformQuotaUser = ref<AdminUser | null>(null)
 
 // Expanded group dropdown state (click to show exclusive groups list)
 const expandedGroupUserId = ref<number | null>(null)
@@ -1432,6 +1486,11 @@ const loadUsers = async () => {
       loading.value = false
     }
   }
+}
+
+const handleBulkLimitsSuccess = async () => {
+  clearSelection()
+  await loadUsers()
 }
 
 let searchTimeout: ReturnType<typeof setTimeout>
@@ -1556,6 +1615,16 @@ const handleAllowedGroups = (user: AdminUser) => {
 const closeAllowedGroupsModal = () => {
   showAllowedGroupsModal.value = false
   allowedGroupsUser.value = null
+}
+
+const handlePlatformQuotas = (user: AdminUser) => {
+  platformQuotaUser.value = user
+  showPlatformQuotaModal.value = true
+}
+
+const closePlatformQuotaModal = () => {
+  showPlatformQuotaModal.value = false
+  platformQuotaUser.value = null
 }
 
 const openGroupReplace = (user: AdminUser, group: { id: number; name: string }) => {

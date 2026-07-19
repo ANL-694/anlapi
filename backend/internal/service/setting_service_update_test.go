@@ -16,6 +16,42 @@ type settingUpdateRepoStub struct {
 	updates map[string]string
 }
 
+type settingGetAllRepoStub struct {
+	values map[string]string
+}
+
+func (s *settingGetAllRepoStub) Get(context.Context, string) (*Setting, error) {
+	panic("unexpected Get call")
+}
+
+func (s *settingGetAllRepoStub) GetValue(context.Context, string) (string, error) {
+	panic("unexpected GetValue call")
+}
+
+func (s *settingGetAllRepoStub) Set(context.Context, string, string) error {
+	panic("unexpected Set call")
+}
+
+func (s *settingGetAllRepoStub) GetMultiple(context.Context, []string) (map[string]string, error) {
+	panic("unexpected GetMultiple call")
+}
+
+func (s *settingGetAllRepoStub) SetMultiple(context.Context, map[string]string) error {
+	panic("unexpected SetMultiple call")
+}
+
+func (s *settingGetAllRepoStub) GetAll(context.Context) (map[string]string, error) {
+	out := make(map[string]string, len(s.values))
+	for key, value := range s.values {
+		out[key] = value
+	}
+	return out, nil
+}
+
+func (s *settingGetAllRepoStub) Delete(context.Context, string) error {
+	panic("unexpected Delete call")
+}
+
 func (s *settingUpdateRepoStub) Get(ctx context.Context, key string) (*Setting, error) {
 	panic("unexpected Get call")
 }
@@ -111,6 +147,37 @@ type defaultSubGroupReaderStub struct {
 	byID  map[int64]*Group
 	errBy map[int64]error
 	calls []int64
+}
+
+func TestSettingService_AffiliateAdminRechargeSetting(t *testing.T) {
+	t.Run("missing value defaults to disabled", func(t *testing.T) {
+		svc := NewSettingService(&settingGetAllRepoStub{values: map[string]string{}}, &config.Config{})
+
+		settings, err := svc.GetAllSettings(context.Background())
+		require.NoError(t, err)
+		require.False(t, settings.AdminRechargeRebateEnabled)
+	})
+
+	t.Run("explicit value is parsed", func(t *testing.T) {
+		svc := NewSettingService(&settingGetAllRepoStub{values: map[string]string{
+			SettingKeyAffiliateAdminRechargeEnabled: "true",
+		}}, &config.Config{})
+
+		settings, err := svc.GetAllSettings(context.Background())
+		require.NoError(t, err)
+		require.True(t, settings.AdminRechargeRebateEnabled)
+	})
+
+	t.Run("value is persisted", func(t *testing.T) {
+		repo := &settingUpdateRepoStub{}
+		svc := NewSettingService(repo, &config.Config{})
+
+		err := svc.UpdateSettings(context.Background(), &SystemSettings{
+			AdminRechargeRebateEnabled: true,
+		})
+		require.NoError(t, err)
+		require.Equal(t, "true", repo.updates[SettingKeyAffiliateAdminRechargeEnabled])
+	})
 }
 
 func (s *defaultSubGroupReaderStub) GetByID(ctx context.Context, id int64) (*Group, error) {
@@ -356,6 +423,8 @@ func TestSettingService_UpdateSettings_PaymentVisibleMethodsAndAdvancedScheduler
 	require.Equal(t, VisibleMethodSourceEasyPayWechat, repo.updates[SettingPaymentVisibleMethodWxpaySource])
 	require.Equal(t, "true", repo.updates[SettingPaymentVisibleMethodAlipayEnabled])
 	require.Equal(t, "false", repo.updates[SettingPaymentVisibleMethodWxpayEnabled])
+	require.Equal(t, "true", repo.updates[SettingKeyOpenAILowUpstreamRatePriorityEnabled])
+	require.Equal(t, "0.05", repo.updates[SettingKeyOpenAIOAuthSchedulingRateMultiplier])
 	require.Equal(t, "true", repo.updates[openAIAdvancedSchedulerSettingKey])
 }
 

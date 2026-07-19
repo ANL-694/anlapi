@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"ikik-api/internal/pkg/antigravity"
 	"ikik-api/internal/pkg/tlsfingerprint"
-	"github.com/stretchr/testify/require"
 )
 
 // 编译期接口断言
@@ -94,7 +94,7 @@ func (s *stubAntigravityAccountRepo) SetRateLimited(ctx context.Context, id int6
 	return nil
 }
 
-func (s *stubAntigravityAccountRepo) SetModelRateLimit(ctx context.Context, id int64, modelKey string, resetAt time.Time) error {
+func (s *stubAntigravityAccountRepo) SetModelRateLimit(ctx context.Context, id int64, modelKey string, resetAt time.Time, _ ...string) error {
 	s.modelRateLimitCalls = append(s.modelRateLimitCalls, modelRateLimitCall{accountID: id, modelKey: modelKey, resetAt: resetAt})
 	return nil
 }

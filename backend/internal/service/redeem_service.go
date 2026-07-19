@@ -32,6 +32,13 @@ const (
 	redeemLockDuration      = 10 * time.Second // 锁超时时间，防止死锁
 )
 
+type ctxKeySkipRedeemAffiliate struct{}
+
+// ContextSkipRedeemAffiliate suppresses redeem-level affiliate handling when payment fulfillment owns it.
+func ContextSkipRedeemAffiliate(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxKeySkipRedeemAffiliate{}, true)
+}
+
 // RedeemCache defines cache operations for redeem service
 type RedeemCache interface {
 	GetRedeemAttemptCount(ctx context.Context, userID int64) (int, error)
@@ -95,6 +102,7 @@ func validateRedeemCodeValue(codeType string, value float64) error {
 type RedeemService struct {
 	redeemRepo           RedeemCodeRepository
 	userRepo             UserRepository
+	redeemUserRepo       RedeemUserAdjustmentRepository
 	subscriptionService  *SubscriptionService
 	cache                RedeemCache
 	billingCacheService  *BillingCacheService
@@ -112,9 +120,11 @@ func NewRedeemService(
 	entClient *dbent.Client,
 	authCacheInvalidator APIKeyAuthCacheInvalidator,
 ) *RedeemService {
+	redeemUserRepo, _ := userRepo.(RedeemUserAdjustmentRepository)
 	return &RedeemService{
 		redeemRepo:           redeemRepo,
 		userRepo:             userRepo,
+		redeemUserRepo:       redeemUserRepo,
 		subscriptionService:  subscriptionService,
 		cache:                cache,
 		billingCacheService:  billingCacheService,
@@ -352,11 +362,14 @@ func (s *RedeemService) Redeem(ctx context.Context, userID int64, code string) (
 	switch redeemCode.Type {
 	case RedeemTypeBalance:
 		amount := redeemCode.Value
-		// 负数为退款扣减，余额最低为 0
-		if amount < 0 && user.Balance+amount < 0 {
-			amount = -user.Balance
-		}
-		if err := s.userRepo.UpdateBalance(txCtx, userID, amount); err != nil {
+		if amount < 0 {
+			if s.redeemUserRepo == nil {
+				return nil, errors.New("user repository does not support atomic redeem balance adjustments")
+			}
+			if err := s.redeemUserRepo.ApplyRedeemBalanceAdjustment(txCtx, userID, amount); err != nil {
+				return nil, fmt.Errorf("update user balance: %w", err)
+			}
+		} else if err := s.userRepo.UpdateBalance(txCtx, userID, amount); err != nil {
 			return nil, fmt.Errorf("update user balance: %w", err)
 		}
 

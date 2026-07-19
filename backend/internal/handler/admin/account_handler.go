@@ -53,6 +53,7 @@ type AccountHandler struct {
 	openaiOAuthService        *service.OpenAIOAuthService
 	geminiOAuthService        *service.GeminiOAuthService
 	antigravityOAuthService   *service.AntigravityOAuthService
+	grokOAuthService          service.GrokOAuthTokenService
 	kiroOAuthService          *service.KiroOAuthService
 	rateLimitService          *service.RateLimitService
 	accountUsageService       *service.AccountUsageService
@@ -63,51 +64,80 @@ type AccountHandler struct {
 	rpmCache                  service.RPMCache
 	tokenCacheInvalidator     service.TokenCacheInvalidator
 	accountBatchTaskService   *service.AccountBatchTaskService
+	grokImportProber          grokImportProber
+	upstreamBillingProbe      *service.UpstreamBillingProbeService
 	publicShareValidation     chan ownedPublicShareValidationJob
 	publicShareValidationOnce sync.Once
 }
 
+func (h *AccountHandler) SetUpstreamBillingProbeService(probe *service.UpstreamBillingProbeService) {
+	h.upstreamBillingProbe = probe
+}
+
 // NewAccountHandler creates a new admin account handler
-func NewAccountHandler(
-	adminService service.AdminService,
-	accountService *service.AccountService,
-	oauthService *service.OAuthService,
-	openaiOAuthService *service.OpenAIOAuthService,
-	geminiOAuthService *service.GeminiOAuthService,
-	antigravityOAuthService *service.AntigravityOAuthService,
-	kiroOAuthService *service.KiroOAuthService,
-	rateLimitService *service.RateLimitService,
-	accountUsageService *service.AccountUsageService,
-	accountTestService *service.AccountTestService,
-	concurrencyService *service.ConcurrencyService,
-	crsSyncService *service.CRSSyncService,
-	sessionLimitCache service.SessionLimitCache,
-	rpmCache service.RPMCache,
-	tokenCacheInvalidator service.TokenCacheInvalidator,
-	accountBatchTaskServices ...*service.AccountBatchTaskService,
-) *AccountHandler {
-	var accountBatchTaskService *service.AccountBatchTaskService
-	if len(accountBatchTaskServices) > 0 {
-		accountBatchTaskService = accountBatchTaskServices[0]
-	}
+func NewAccountHandler(adminService service.AdminService, dependencies ...any) *AccountHandler {
 	h := &AccountHandler{
-		adminService:            adminService,
-		accountService:          accountService,
-		oauthService:            oauthService,
-		openaiOAuthService:      openaiOAuthService,
-		geminiOAuthService:      geminiOAuthService,
-		antigravityOAuthService: antigravityOAuthService,
-		kiroOAuthService:        kiroOAuthService,
-		rateLimitService:        rateLimitService,
-		accountUsageService:     accountUsageService,
-		accountTestService:      accountTestService,
-		concurrencyService:      concurrencyService,
-		crsSyncService:          crsSyncService,
-		sessionLimitCache:       sessionLimitCache,
-		rpmCache:                rpmCache,
-		tokenCacheInvalidator:   tokenCacheInvalidator,
-		accountBatchTaskService: accountBatchTaskService,
-		publicShareValidation:   make(chan ownedPublicShareValidationJob, adminOwnedPublicShareValidationQueueSize),
+		adminService:          adminService,
+		publicShareValidation: make(chan ownedPublicShareValidationJob, adminOwnedPublicShareValidationQueueSize),
+	}
+	for _, dependency := range dependencies {
+		if dependency == nil {
+			continue
+		}
+		if value, ok := dependency.(*service.AccountService); ok {
+			h.accountService = value
+		}
+		if value, ok := dependency.(*service.OAuthService); ok {
+			h.oauthService = value
+		}
+		if value, ok := dependency.(*service.OpenAIOAuthService); ok {
+			h.openaiOAuthService = value
+		}
+		if value, ok := dependency.(*service.GeminiOAuthService); ok {
+			h.geminiOAuthService = value
+		}
+		if value, ok := dependency.(*service.AntigravityOAuthService); ok {
+			h.antigravityOAuthService = value
+		}
+		if value, ok := dependency.(service.GrokOAuthTokenService); ok {
+			h.grokOAuthService = value
+		}
+		if value, ok := dependency.(*service.KiroOAuthService); ok {
+			h.kiroOAuthService = value
+		}
+		if value, ok := dependency.(*service.RateLimitService); ok {
+			h.rateLimitService = value
+		}
+		if value, ok := dependency.(*service.AccountUsageService); ok {
+			h.accountUsageService = value
+		}
+		if value, ok := dependency.(*service.AccountTestService); ok {
+			h.accountTestService = value
+		}
+		if value, ok := dependency.(*service.ConcurrencyService); ok {
+			h.concurrencyService = value
+		}
+		if value, ok := dependency.(*service.CRSSyncService); ok {
+			h.crsSyncService = value
+		}
+		if value, ok := dependency.(service.SessionLimitCache); ok {
+			h.sessionLimitCache = value
+		}
+		if value, ok := dependency.(service.RPMCache); ok {
+			h.rpmCache = value
+		}
+		if value, ok := dependency.(service.TokenCacheInvalidator); ok {
+			h.tokenCacheInvalidator = value
+		}
+		if value, ok := dependency.(*service.AccountBatchTaskService); ok {
+			h.accountBatchTaskService = value
+		}
+		if value, ok := dependency.(grokImportProber); ok {
+			h.grokImportProber = value
+		}
+		if value, ok := dependency.(*service.UpstreamBillingProbeService); ok {
+			h.upstreamBillingProbe = value
+		}
 	}
 	h.registerAccountBatchExecutors()
 	return h
@@ -737,6 +767,10 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	if err := service.ValidateOpenAILongContextBillingExtra(req.Platform, req.Extra); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 	if req.RateMultiplier != nil && *req.RateMultiplier < 0 {
 		response.BadRequest(c, "rate_multiplier must be >= 0")
 		return
@@ -805,6 +839,54 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		c.Header("X-Idempotency-Replayed", "true")
 	}
 	h.scheduleOpenAIResponsesProbe(createdAccount)
+	h.scheduleGrokImportProbe(createdAccount)
+	response.Success(c, result.Data)
+}
+
+// Duplicate handles creating an independent account from an existing account's configuration.
+// POST /api/v1/admin/accounts/:id/duplicate
+func (h *AccountHandler) Duplicate(c *gin.Context) {
+	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid account ID")
+		return
+	}
+	actorScope := adminActorScope(c)
+
+	result, err := executeAdminIdempotent(
+		c,
+		"admin.accounts.duplicate",
+		struct {
+			AccountID int64 `json:"account_id"`
+		}{AccountID: accountID},
+		service.DefaultWriteIdempotencyTTL(),
+		func(ctx context.Context) (any, error) {
+			account, execErr := h.adminService.DuplicateAccount(ctx, accountID, actorScope, c.GetHeader("Idempotency-Key"))
+			if execErr != nil {
+				return nil, execErr
+			}
+			return h.buildAccountResponseWithRuntime(ctx, account), nil
+		},
+	)
+	if err != nil {
+		reason := infraerrors.Reason(err)
+		if reason == infraerrors.Reason(service.ErrIdempotencyInProgress) || reason == infraerrors.Reason(service.ErrIdempotencyStoreUnavail) {
+			recovered, recoverErr := h.adminService.RecoverDuplicateAccount(c.Request.Context(), accountID, actorScope, c.GetHeader("Idempotency-Key"))
+			if recoverErr != nil {
+				slog.Warn("account_duplicate_recovery_failed", "account_id", accountID, "actor_scope", actorScope, "reason", reason, "error", recoverErr)
+			} else if recovered != nil {
+				c.Header("X-Idempotency-Recovered", "true")
+				response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), recovered))
+				return
+			}
+		}
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	if result != nil && result.Replayed {
+		c.Header("X-Idempotency-Replayed", "true")
+	}
 	response.Success(c, result.Data)
 }
 
@@ -1661,6 +1743,12 @@ func (h *AccountHandler) BatchCreate(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
+	}
+	for _, item := range req.Accounts {
+		if err := service.ValidateOpenAILongContextBillingExtra(item.Platform, item.Extra); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
 	}
 
 	executeAdminIdempotentJSON(c, "admin.accounts.batch_create", req, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {

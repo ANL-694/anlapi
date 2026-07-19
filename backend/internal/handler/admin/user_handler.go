@@ -7,6 +7,7 @@ import (
 
 	"ikik-api/internal/handler/dto"
 	"ikik-api/internal/pkg/response"
+	"ikik-api/internal/server/middleware"
 	"ikik-api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -20,16 +21,55 @@ type UserWithConcurrency struct {
 
 // UserHandler handles admin user management
 type UserHandler struct {
-	adminService       service.AdminService
-	concurrencyService *service.ConcurrencyService
+	adminService          service.AdminService
+	concurrencyService    *service.ConcurrencyService
+	totpService           *service.TotpService
+	userService           *service.UserService
+	settingService        *service.SettingService
+	userPlatformQuotaRepo service.UserPlatformQuotaRepository
+	billingCache          service.BillingCache
+}
+
+func ProvideUserHandler(
+	adminService service.AdminService,
+	concurrencyService *service.ConcurrencyService,
+	userPlatformQuotaRepo service.UserPlatformQuotaRepository,
+	billingCache service.BillingCache,
+	totpService *service.TotpService,
+	userService *service.UserService,
+	settingService *service.SettingService,
+) *UserHandler {
+	h := NewUserHandler(adminService, concurrencyService, userPlatformQuotaRepo, billingCache)
+	h.totpService = totpService
+	h.userService = userService
+	h.settingService = settingService
+	return h
 }
 
 // NewUserHandler creates a new admin user handler
-func NewUserHandler(adminService service.AdminService, concurrencyService *service.ConcurrencyService) *UserHandler {
-	return &UserHandler{
-		adminService:       adminService,
-		concurrencyService: concurrencyService,
+func NewUserHandler(adminService service.AdminService, dependencies ...any) *UserHandler {
+	h := &UserHandler{adminService: adminService}
+	for _, dependency := range dependencies {
+		if value, ok := dependency.(*service.ConcurrencyService); ok {
+			h.concurrencyService = value
+		}
+		if value, ok := dependency.(*service.TotpService); ok {
+			h.totpService = value
+		}
+		if value, ok := dependency.(*service.UserService); ok {
+			h.userService = value
+		}
+		if value, ok := dependency.(*service.SettingService); ok {
+			h.settingService = value
+		}
+		if value, ok := dependency.(service.UserPlatformQuotaRepository); ok {
+			h.userPlatformQuotaRepo = value
+		}
+		if value, ok := dependency.(service.BillingCache); ok {
+			h.billingCache = value
+		}
 	}
+	return h
 }
 
 // CreateUserRequest represents admin create user request
@@ -38,6 +78,7 @@ type CreateUserRequest struct {
 	Password      string  `json:"password" binding:"required,min=6"`
 	Username      string  `json:"username"`
 	Notes         string  `json:"notes"`
+	Role          string  `json:"role" binding:"omitempty,oneof=admin user"`
 	Balance       float64 `json:"balance"`
 	Concurrency   int     `json:"concurrency"`
 	RPMLimit      int     `json:"rpm_limit"`
@@ -51,6 +92,7 @@ type UpdateUserRequest struct {
 	Password      string   `json:"password" binding:"omitempty,min=6"`
 	Username      *string  `json:"username"`
 	Notes         *string  `json:"notes"`
+	Role          string   `json:"role" binding:"omitempty,oneof=admin user"`
 	Balance       *float64 `json:"balance"`
 	Concurrency   *int     `json:"concurrency"`
 	RPMLimit      *int     `json:"rpm_limit"`
@@ -192,7 +234,12 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	user, err := h.adminService.GetUser(c.Request.Context(), userID)
+	var user *service.User
+	if c.Query("include_deleted") == "true" {
+		user, err = h.adminService.GetUserIncludeDeleted(c.Request.Context(), userID)
+	} else {
+		user, err = h.adminService.GetUser(c.Request.Context(), userID)
+	}
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -249,15 +296,24 @@ func (h *UserHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// 创建管理员账号属权限敏感操作：需最近完成 step-up 2FA 验证。
+	if req.Role == service.RoleAdmin {
+		if !middleware.EnforceStepUp(c, h.totpService, h.userService, h.settingService) {
+			return
+		}
+	}
+
 	user, err := h.adminService.CreateUser(c.Request.Context(), &service.CreateUserInput{
 		Email:         req.Email,
 		Password:      req.Password,
 		Username:      req.Username,
 		Notes:         req.Notes,
+		Role:          req.Role,
 		Balance:       req.Balance,
 		Concurrency:   req.Concurrency,
 		RPMLimit:      req.RPMLimit,
 		AllowedGroups: req.AllowedGroups,
+		ActorAdminID:  getAdminIDFromContext(c),
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -282,18 +338,35 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 
+	if req.Role == service.RoleUser && userID == getAdminIDFromContext(c) {
+		response.BadRequest(c, "cannot demote yourself from admin")
+		return
+	}
+	if req.Role == service.RoleAdmin {
+		target, getErr := h.adminService.GetUser(c.Request.Context(), userID)
+		if getErr != nil {
+			response.ErrorFrom(c, getErr)
+			return
+		}
+		if target.Role != service.RoleAdmin && !middleware.EnforceStepUp(c, h.totpService, h.userService, h.settingService) {
+			return
+		}
+	}
+
 	// 使用指针类型直接传递，nil 表示未提供该字段
 	user, err := h.adminService.UpdateUser(c.Request.Context(), userID, &service.UpdateUserInput{
 		Email:         req.Email,
 		Password:      req.Password,
 		Username:      req.Username,
 		Notes:         req.Notes,
+		Role:          req.Role,
 		Balance:       req.Balance,
 		Concurrency:   req.Concurrency,
 		RPMLimit:      req.RPMLimit,
 		Status:        req.Status,
 		AllowedGroups: req.AllowedGroups,
 		GroupRates:    req.GroupRates,
+		ActorAdminID:  getAdminIDFromContext(c),
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -319,6 +392,64 @@ func (h *UserHandler) Delete(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "User deleted successfully"})
+}
+
+type BatchUpdateLimitsRequest struct {
+	UserIDs     []int64 `json:"user_ids"`
+	All         bool    `json:"all"`
+	Concurrency *int    `json:"concurrency" binding:"omitempty,min=0"`
+	RPMLimit    *int    `json:"rpm_limit" binding:"omitempty,min=0"`
+}
+
+func (h *UserHandler) BatchUpdateLimits(c *gin.Context) {
+	var req BatchUpdateLimitsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if req.Concurrency == nil && req.RPMLimit == nil {
+		response.BadRequest(c, "at least one of concurrency or rpm_limit is required")
+		return
+	}
+	if !req.All && len(req.UserIDs) == 0 {
+		response.BadRequest(c, "user_ids is required unless all=true")
+		return
+	}
+	if !req.All && len(req.UserIDs) > 500 {
+		response.BadRequest(c, "user_ids cannot exceed 500")
+		return
+	}
+
+	userIDs := req.UserIDs
+	if req.All {
+		userIDs = nil
+		page := 1
+		const pageSize = 500
+		for {
+			users, _, err := h.adminService.ListUsers(c.Request.Context(), page, pageSize, service.UserListFilters{}, "id", "asc")
+			if err != nil {
+				response.ErrorFrom(c, err)
+				return
+			}
+			for _, user := range users {
+				userIDs = append(userIDs, user.ID)
+			}
+			if len(users) < pageSize {
+				break
+			}
+			page++
+		}
+	}
+	if len(userIDs) == 0 {
+		response.Success(c, gin.H{"affected": 0})
+		return
+	}
+	affected, err := h.adminService.BatchUpdateLimits(c.Request.Context(), userIDs, req.Concurrency, req.RPMLimit)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"affected": affected})
 }
 
 // UpdateBalance handles updating user balance

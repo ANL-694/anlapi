@@ -3,6 +3,8 @@ package dto
 import (
 	"encoding/json"
 	"strings"
+
+	"ikik-api/internal/service"
 )
 
 // CustomMenuItem represents a user-configured custom menu entry.
@@ -64,6 +66,9 @@ type SystemSettings struct {
 	InvitationCodeEnabled            bool                     `json:"invitation_code_enabled"`
 	TotpEnabled                      bool                     `json:"totp_enabled"`                   // TOTP 双因素认证
 	TotpEncryptionKeyConfigured      bool                     `json:"totp_encryption_key_configured"` // TOTP 加密密钥是否已配置
+	SessionBindingEnabled            bool                     `json:"session_binding_enabled"`        // 会话 IP/UA 绑定
+	StepUpEnabled                    bool                     `json:"step_up_enabled"`                // 敏感操作 step-up 2FA
+	AuditLogRetentionDays            int                      `json:"audit_log_retention_days"`       // 审计日志保留天数
 	LoginAgreementEnabled            bool                     `json:"login_agreement_enabled"`
 	LoginAgreementMode               string                   `json:"login_agreement_mode"`
 	LoginAgreementUpdatedAt          string                   `json:"login_agreement_updated_at"`
@@ -154,21 +159,23 @@ type SystemSettings struct {
 	CustomMenuItems             []CustomMenuItem `json:"custom_menu_items"`
 	CustomEndpoints             []CustomEndpoint `json:"custom_endpoints"`
 
-	DefaultConcurrency              int                          `json:"default_concurrency"`
-	DefaultBalance                  float64                      `json:"default_balance"`
-	RiskControlEnabled              bool                         `json:"risk_control_enabled"`
-	AffiliateRebateRate             float64                      `json:"affiliate_rebate_rate"`
-	AffiliateRebateFreezeHours      int                          `json:"affiliate_rebate_freeze_hours"`
-	AffiliateRebateDurationDays     int                          `json:"affiliate_rebate_duration_days"`
-	AffiliateRebatePerInviteeCap    float64                      `json:"affiliate_rebate_per_invitee_cap"`
-	DefaultUserRPMLimit             int                          `json:"default_user_rpm_limit"`
-	UserPrivateGroupDailyLimitUSD   *float64                     `json:"user_private_group_daily_limit_usd"`
-	UserPrivateGroupWeeklyLimitUSD  *float64                     `json:"user_private_group_weekly_limit_usd"`
-	UserPrivateGroupMonthlyLimitUSD *float64                     `json:"user_private_group_monthly_limit_usd"`
-	UserPrivateGroupRateMultiplier  float64                      `json:"user_private_group_rate_multiplier"`
-	UserPrivateGroupRPMLimit        int                          `json:"user_private_group_rpm_limit"`
-	UserPrivateGroupCommissionRate  float64                      `json:"user_private_group_commission_rate"`
-	DefaultSubscriptions            []DefaultSubscriptionSetting `json:"default_subscriptions"`
+	DefaultConcurrency              int                                             `json:"default_concurrency"`
+	DefaultBalance                  float64                                         `json:"default_balance"`
+	RiskControlEnabled              bool                                            `json:"risk_control_enabled"`
+	AffiliateRebateRate             float64                                         `json:"affiliate_rebate_rate"`
+	AffiliateRebateFreezeHours      int                                             `json:"affiliate_rebate_freeze_hours"`
+	AffiliateRebateDurationDays     int                                             `json:"affiliate_rebate_duration_days"`
+	AffiliateRebatePerInviteeCap    float64                                         `json:"affiliate_rebate_per_invitee_cap"`
+	AdminRechargeRebateEnabled      bool                                            `json:"affiliate_admin_recharge_enabled"`
+	DefaultUserRPMLimit             int                                             `json:"default_user_rpm_limit"`
+	UserPrivateGroupDailyLimitUSD   *float64                                        `json:"user_private_group_daily_limit_usd"`
+	UserPrivateGroupWeeklyLimitUSD  *float64                                        `json:"user_private_group_weekly_limit_usd"`
+	UserPrivateGroupMonthlyLimitUSD *float64                                        `json:"user_private_group_monthly_limit_usd"`
+	UserPrivateGroupRateMultiplier  float64                                         `json:"user_private_group_rate_multiplier"`
+	UserPrivateGroupRPMLimit        int                                             `json:"user_private_group_rpm_limit"`
+	UserPrivateGroupCommissionRate  float64                                         `json:"user_private_group_commission_rate"`
+	DefaultSubscriptions            []DefaultSubscriptionSetting                    `json:"default_subscriptions"`
+	DefaultPlatformQuotas           map[string]*service.DefaultPlatformQuotaSetting `json:"default_platform_quotas,omitempty"`
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -403,10 +410,10 @@ type BetaPolicySettings struct {
 
 // OpenAIFastPolicyRule OpenAI fast/flex 策略规则 DTO
 type OpenAIFastPolicyRule struct {
-	UserIDs              []int64  `json:"user_ids,omitempty"`
 	ServiceTier          string   `json:"service_tier"`
 	Action               string   `json:"action"`
 	Scope                string   `json:"scope"`
+	UserIDs              []int64  `json:"user_ids,omitempty"`
 	ErrorMessage         string   `json:"error_message,omitempty"`
 	ModelWhitelist       []string `json:"model_whitelist,omitempty"`
 	FallbackAction       string   `json:"fallback_action,omitempty"`

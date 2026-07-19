@@ -76,8 +76,8 @@ const createAdminUser = (): AdminUser => ({
 })
 
 const DataTableStub = {
-  props: ['columns', 'data'],
-  emits: ['sort'],
+  props: ['columns', 'data', 'selectedKeys'],
+  emits: ['sort', 'update:selectedKeys'],
   template: `
     <div>
       <div data-test="columns">{{ columns.map(col => col.key).join(',') }}</div>
@@ -85,6 +85,22 @@ const DataTableStub = {
       <div v-for="row in data" :key="row.id">
         <slot name="cell-last_used_at" :value="row.last_used_at" :row="row" />
       </div>
+    </div>
+  `
+}
+
+const PaginationStub = {
+  emits: ['update:page'],
+  template: '<button data-test="next-page" @click="$emit(\'update:page\', 2)">next</button>'
+}
+
+const BulkEditUserModalStub = {
+  props: ['show', 'selectedIds'],
+  emits: ['close', 'success'],
+  template: `
+    <div v-if="show" data-test="bulk-modal">
+      <span data-test="bulk-modal-ids">{{ selectedIds.join(',') }}</span>
+      <button data-test="bulk-success" @click="$emit('success', selectedIds.length)">success</button>
     </div>
   `
 }
@@ -130,6 +146,8 @@ describe('admin UsersView', () => {
           UserConcurrencyCell: true,
           UserCreateModal: true,
           UserEditModal: true,
+          BulkEditUserModal: BulkEditUserModalStub,
+          UserPlatformQuotaModal: true,
           UserApiKeysModal: true,
           UserAllowedGroupsModal: true,
           UserBalanceModal: true,

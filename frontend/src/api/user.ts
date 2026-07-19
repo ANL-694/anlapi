@@ -21,6 +21,7 @@ import type {
   WithdrawalRequest,
   BasePaginationResponse
 } from '@/types'
+import type { PlatformQuotaResponse } from './platformQuotas'
 
 /**
  * Get current user profile
@@ -63,6 +64,11 @@ export async function changePassword(
   }
 
   const { data } = await apiClient.put<{ message: string }>('/user/password', payload)
+  return data
+}
+
+export async function getPlatformQuotas(): Promise<PlatformQuotaResponse> {
+  const { data } = await apiClient.get<PlatformQuotaResponse>('/user/platform-quotas')
   return data
 }
 
@@ -245,6 +251,7 @@ export const userAPI = {
   getProfile,
   updateProfile,
   changePassword,
+  getPlatformQuotas,
   sendNotifyEmailCode,
   verifyNotifyEmail,
   removeNotifyEmail,

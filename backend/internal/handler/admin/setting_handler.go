@@ -129,6 +129,8 @@ type SettingHandler struct {
 	opsService           *service.OpsService
 	paymentConfigService *service.PaymentConfigService
 	paymentService       *service.PaymentService
+	totpService          *service.TotpService
+	userService          *service.UserService
 }
 
 // NewSettingHandler 创建系统设置处理器
@@ -141,6 +143,12 @@ func NewSettingHandler(settingService *service.SettingService, emailService *ser
 		paymentConfigService: paymentConfigService,
 		paymentService:       paymentService,
 	}
+}
+
+// SetStepUpDeps attaches the services used to validate step-up switch transitions.
+func (h *SettingHandler) SetStepUpDeps(totpService *service.TotpService, userService *service.UserService) {
+	h.totpService = totpService
+	h.userService = userService
 }
 
 // GetSettings 获取所有系统设置
@@ -186,6 +194,8 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		InvitationCodeEnabled:                     settings.InvitationCodeEnabled,
 		TotpEnabled:                               settings.TotpEnabled,
 		TotpEncryptionKeyConfigured:               h.settingService.IsTotpEncryptionKeyConfigured(),
+		SessionBindingEnabled:                     settings.SessionBindingEnabled,
+		StepUpEnabled:                             settings.StepUpEnabled,
 		LoginAgreementEnabled:                     settings.LoginAgreementEnabled,
 		LoginAgreementMode:                        settings.LoginAgreementMode,
 		LoginAgreementUpdatedAt:                   settings.LoginAgreementUpdatedAt,
@@ -275,6 +285,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		AffiliateRebateFreezeHours:                settings.AffiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:               settings.AffiliateRebateDurationDays,
 		AffiliateRebatePerInviteeCap:              settings.AffiliateRebatePerInviteeCap,
+		AdminRechargeRebateEnabled:                settings.AdminRechargeRebateEnabled,
 		DefaultUserRPMLimit:                       settings.DefaultUserRPMLimit,
 		UserPrivateGroupDailyLimitUSD:             settings.UserPrivateGroupDailyLimitUSD,
 		UserPrivateGroupWeeklyLimitUSD:            settings.UserPrivateGroupWeeklyLimitUSD,
@@ -283,6 +294,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		UserPrivateGroupRPMLimit:                  settings.UserPrivateGroupRPMLimit,
 		UserPrivateGroupCommissionRate:            settings.UserPrivateGroupCommissionRate,
 		DefaultSubscriptions:                      defaultSubscriptions,
+		DefaultPlatformQuotas:                     settings.DefaultPlatformQuotas,
 		EnableModelFallback:                       settings.EnableModelFallback,
 		FallbackModelAnthropic:                    settings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                       settings.FallbackModelOpenAI,
@@ -442,6 +454,8 @@ type UpdateSettingsRequest struct {
 	FrontendURL                      string                       `json:"frontend_url"`
 	InvitationCodeEnabled            bool                         `json:"invitation_code_enabled"`
 	TotpEnabled                      bool                         `json:"totp_enabled"` // TOTP 双因素认证
+	SessionBindingEnabled            *bool                        `json:"session_binding_enabled"`
+	StepUpEnabled                    *bool                        `json:"step_up_enabled"`
 	LoginAgreementEnabled            *bool                        `json:"login_agreement_enabled"`
 	LoginAgreementMode               string                       `json:"login_agreement_mode"`
 	LoginAgreementUpdatedAt          string                       `json:"login_agreement_updated_at"`
@@ -542,52 +556,60 @@ type UpdateSettingsRequest struct {
 	CustomEndpoints             *[]dto.CustomEndpoint `json:"custom_endpoints"`
 
 	// 默认配置
-	DefaultConcurrency                       int                               `json:"default_concurrency"`
-	DefaultBalance                           float64                           `json:"default_balance"`
-	RiskControlEnabled                       *bool                             `json:"risk_control_enabled"`
-	AffiliateRebateRate                      *float64                          `json:"affiliate_rebate_rate"`
-	AffiliateRebateFreezeHours               *int                              `json:"affiliate_rebate_freeze_hours"`
-	AffiliateRebateDurationDays              *int                              `json:"affiliate_rebate_duration_days"`
-	AffiliateRebatePerInviteeCap             *float64                          `json:"affiliate_rebate_per_invitee_cap"`
-	DefaultUserRPMLimit                      int                               `json:"default_user_rpm_limit"`
-	UserPrivateGroupDailyLimitUSD            float64                           `json:"user_private_group_daily_limit_usd"`
-	UserPrivateGroupWeeklyLimitUSD           float64                           `json:"user_private_group_weekly_limit_usd"`
-	UserPrivateGroupMonthlyLimitUSD          float64                           `json:"user_private_group_monthly_limit_usd"`
-	UserPrivateGroupRateMultiplier           float64                           `json:"user_private_group_rate_multiplier"`
-	UserPrivateGroupRPMLimit                 int                               `json:"user_private_group_rpm_limit"`
-	UserPrivateGroupCommissionRate           float64                           `json:"user_private_group_commission_rate"`
-	DefaultSubscriptions                     []dto.DefaultSubscriptionSetting  `json:"default_subscriptions"`
-	AuthSourceDefaultEmailBalance            *float64                          `json:"auth_source_default_email_balance"`
-	AuthSourceDefaultEmailConcurrency        *int                              `json:"auth_source_default_email_concurrency"`
-	AuthSourceDefaultEmailSubscriptions      *[]dto.DefaultSubscriptionSetting `json:"auth_source_default_email_subscriptions"`
-	AuthSourceDefaultEmailGrantOnSignup      *bool                             `json:"auth_source_default_email_grant_on_signup"`
-	AuthSourceDefaultEmailGrantOnFirstBind   *bool                             `json:"auth_source_default_email_grant_on_first_bind"`
-	AuthSourceDefaultLinuxDoBalance          *float64                          `json:"auth_source_default_linuxdo_balance"`
-	AuthSourceDefaultLinuxDoConcurrency      *int                              `json:"auth_source_default_linuxdo_concurrency"`
-	AuthSourceDefaultLinuxDoSubscriptions    *[]dto.DefaultSubscriptionSetting `json:"auth_source_default_linuxdo_subscriptions"`
-	AuthSourceDefaultLinuxDoGrantOnSignup    *bool                             `json:"auth_source_default_linuxdo_grant_on_signup"`
-	AuthSourceDefaultLinuxDoGrantOnFirstBind *bool                             `json:"auth_source_default_linuxdo_grant_on_first_bind"`
-	AuthSourceDefaultOIDCBalance             *float64                          `json:"auth_source_default_oidc_balance"`
-	AuthSourceDefaultOIDCConcurrency         *int                              `json:"auth_source_default_oidc_concurrency"`
-	AuthSourceDefaultOIDCSubscriptions       *[]dto.DefaultSubscriptionSetting `json:"auth_source_default_oidc_subscriptions"`
-	AuthSourceDefaultOIDCGrantOnSignup       *bool                             `json:"auth_source_default_oidc_grant_on_signup"`
-	AuthSourceDefaultOIDCGrantOnFirstBind    *bool                             `json:"auth_source_default_oidc_grant_on_first_bind"`
-	AuthSourceDefaultWeChatBalance           *float64                          `json:"auth_source_default_wechat_balance"`
-	AuthSourceDefaultWeChatConcurrency       *int                              `json:"auth_source_default_wechat_concurrency"`
-	AuthSourceDefaultWeChatSubscriptions     *[]dto.DefaultSubscriptionSetting `json:"auth_source_default_wechat_subscriptions"`
-	AuthSourceDefaultWeChatGrantOnSignup     *bool                             `json:"auth_source_default_wechat_grant_on_signup"`
-	AuthSourceDefaultWeChatGrantOnFirstBind  *bool                             `json:"auth_source_default_wechat_grant_on_first_bind"`
-	AuthSourceDefaultGitHubBalance           *float64                          `json:"auth_source_default_github_balance"`
-	AuthSourceDefaultGitHubConcurrency       *int                              `json:"auth_source_default_github_concurrency"`
-	AuthSourceDefaultGitHubSubscriptions     *[]dto.DefaultSubscriptionSetting `json:"auth_source_default_github_subscriptions"`
-	AuthSourceDefaultGitHubGrantOnSignup     *bool                             `json:"auth_source_default_github_grant_on_signup"`
-	AuthSourceDefaultGitHubGrantOnFirstBind  *bool                             `json:"auth_source_default_github_grant_on_first_bind"`
-	AuthSourceDefaultGoogleBalance           *float64                          `json:"auth_source_default_google_balance"`
-	AuthSourceDefaultGoogleConcurrency       *int                              `json:"auth_source_default_google_concurrency"`
-	AuthSourceDefaultGoogleSubscriptions     *[]dto.DefaultSubscriptionSetting `json:"auth_source_default_google_subscriptions"`
-	AuthSourceDefaultGoogleGrantOnSignup     *bool                             `json:"auth_source_default_google_grant_on_signup"`
-	AuthSourceDefaultGoogleGrantOnFirstBind  *bool                             `json:"auth_source_default_google_grant_on_first_bind"`
-	ForceEmailOnThirdPartySignup             *bool                             `json:"force_email_on_third_party_signup"`
+	DefaultConcurrency                       int                                             `json:"default_concurrency"`
+	DefaultBalance                           float64                                         `json:"default_balance"`
+	RiskControlEnabled                       *bool                                           `json:"risk_control_enabled"`
+	AffiliateRebateRate                      *float64                                        `json:"affiliate_rebate_rate"`
+	AffiliateRebateFreezeHours               *int                                            `json:"affiliate_rebate_freeze_hours"`
+	AffiliateRebateDurationDays              *int                                            `json:"affiliate_rebate_duration_days"`
+	AffiliateRebatePerInviteeCap             *float64                                        `json:"affiliate_rebate_per_invitee_cap"`
+	AdminRechargeRebateEnabled               *bool                                           `json:"affiliate_admin_recharge_enabled"`
+	DefaultUserRPMLimit                      int                                             `json:"default_user_rpm_limit"`
+	UserPrivateGroupDailyLimitUSD            float64                                         `json:"user_private_group_daily_limit_usd"`
+	UserPrivateGroupWeeklyLimitUSD           float64                                         `json:"user_private_group_weekly_limit_usd"`
+	UserPrivateGroupMonthlyLimitUSD          float64                                         `json:"user_private_group_monthly_limit_usd"`
+	UserPrivateGroupRateMultiplier           float64                                         `json:"user_private_group_rate_multiplier"`
+	UserPrivateGroupRPMLimit                 int                                             `json:"user_private_group_rpm_limit"`
+	UserPrivateGroupCommissionRate           float64                                         `json:"user_private_group_commission_rate"`
+	DefaultSubscriptions                     []dto.DefaultSubscriptionSetting                `json:"default_subscriptions"`
+	DefaultPlatformQuotas                    map[string]*service.DefaultPlatformQuotaSetting `json:"default_platform_quotas"`
+	AuthSourceDefaultEmailBalance            *float64                                        `json:"auth_source_default_email_balance"`
+	AuthSourceDefaultEmailConcurrency        *int                                            `json:"auth_source_default_email_concurrency"`
+	AuthSourceDefaultEmailSubscriptions      *[]dto.DefaultSubscriptionSetting               `json:"auth_source_default_email_subscriptions"`
+	AuthSourceDefaultEmailGrantOnSignup      *bool                                           `json:"auth_source_default_email_grant_on_signup"`
+	AuthSourceDefaultEmailGrantOnFirstBind   *bool                                           `json:"auth_source_default_email_grant_on_first_bind"`
+	AuthSourceDefaultEmailPlatformQuotas     map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_email_platform_quotas"`
+	AuthSourceDefaultLinuxDoBalance          *float64                                        `json:"auth_source_default_linuxdo_balance"`
+	AuthSourceDefaultLinuxDoConcurrency      *int                                            `json:"auth_source_default_linuxdo_concurrency"`
+	AuthSourceDefaultLinuxDoSubscriptions    *[]dto.DefaultSubscriptionSetting               `json:"auth_source_default_linuxdo_subscriptions"`
+	AuthSourceDefaultLinuxDoGrantOnSignup    *bool                                           `json:"auth_source_default_linuxdo_grant_on_signup"`
+	AuthSourceDefaultLinuxDoGrantOnFirstBind *bool                                           `json:"auth_source_default_linuxdo_grant_on_first_bind"`
+	AuthSourceDefaultLinuxDoPlatformQuotas   map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_linuxdo_platform_quotas"`
+	AuthSourceDefaultOIDCBalance             *float64                                        `json:"auth_source_default_oidc_balance"`
+	AuthSourceDefaultOIDCConcurrency         *int                                            `json:"auth_source_default_oidc_concurrency"`
+	AuthSourceDefaultOIDCSubscriptions       *[]dto.DefaultSubscriptionSetting               `json:"auth_source_default_oidc_subscriptions"`
+	AuthSourceDefaultOIDCGrantOnSignup       *bool                                           `json:"auth_source_default_oidc_grant_on_signup"`
+	AuthSourceDefaultOIDCGrantOnFirstBind    *bool                                           `json:"auth_source_default_oidc_grant_on_first_bind"`
+	AuthSourceDefaultOIDCPlatformQuotas      map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_oidc_platform_quotas"`
+	AuthSourceDefaultWeChatBalance           *float64                                        `json:"auth_source_default_wechat_balance"`
+	AuthSourceDefaultWeChatConcurrency       *int                                            `json:"auth_source_default_wechat_concurrency"`
+	AuthSourceDefaultWeChatSubscriptions     *[]dto.DefaultSubscriptionSetting               `json:"auth_source_default_wechat_subscriptions"`
+	AuthSourceDefaultWeChatGrantOnSignup     *bool                                           `json:"auth_source_default_wechat_grant_on_signup"`
+	AuthSourceDefaultWeChatGrantOnFirstBind  *bool                                           `json:"auth_source_default_wechat_grant_on_first_bind"`
+	AuthSourceDefaultWeChatPlatformQuotas    map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_wechat_platform_quotas"`
+	AuthSourceDefaultGitHubBalance           *float64                                        `json:"auth_source_default_github_balance"`
+	AuthSourceDefaultGitHubConcurrency       *int                                            `json:"auth_source_default_github_concurrency"`
+	AuthSourceDefaultGitHubSubscriptions     *[]dto.DefaultSubscriptionSetting               `json:"auth_source_default_github_subscriptions"`
+	AuthSourceDefaultGitHubGrantOnSignup     *bool                                           `json:"auth_source_default_github_grant_on_signup"`
+	AuthSourceDefaultGitHubGrantOnFirstBind  *bool                                           `json:"auth_source_default_github_grant_on_first_bind"`
+	AuthSourceDefaultGitHubPlatformQuotas    map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_github_platform_quotas"`
+	AuthSourceDefaultGoogleBalance           *float64                                        `json:"auth_source_default_google_balance"`
+	AuthSourceDefaultGoogleConcurrency       *int                                            `json:"auth_source_default_google_concurrency"`
+	AuthSourceDefaultGoogleSubscriptions     *[]dto.DefaultSubscriptionSetting               `json:"auth_source_default_google_subscriptions"`
+	AuthSourceDefaultGoogleGrantOnSignup     *bool                                           `json:"auth_source_default_google_grant_on_signup"`
+	AuthSourceDefaultGoogleGrantOnFirstBind  *bool                                           `json:"auth_source_default_google_grant_on_first_bind"`
+	AuthSourceDefaultGooglePlatformQuotas    map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_google_platform_quotas"`
+	ForceEmailOnThirdPartySignup             *bool                                           `json:"force_email_on_third_party_signup"`
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -713,6 +735,41 @@ func normalizeCustomEndpointURL(raw string) string {
 	return strings.TrimRight(value, "/")
 }
 
+// ensureActorTotpForStepUp verifies that the acting admin can safely enable step-up gating.
+func (h *SettingHandler) ensureActorTotpForStepUp(c *gin.Context) bool {
+	if c.GetString("auth_method") == service.AuditAuthMethodAdminAPIKey {
+		response.ErrorWithDetails(c, http.StatusForbidden,
+			"Admin API key cannot enable step-up verification; use an admin session with TOTP enabled",
+			"STEP_UP_ADMIN_API_KEY_FORBIDDEN", nil)
+		return false
+	}
+
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok || subject.UserID <= 0 {
+		response.ErrorWithDetails(c, http.StatusForbidden,
+			"Enabling step-up verification requires an authenticated admin session",
+			"STEP_UP_ENABLE_REQUIRES_TOTP", nil)
+		return false
+	}
+	if h.userService == nil {
+		response.InternalError(c, "Step-up precondition check unavailable")
+		return false
+	}
+
+	user, err := h.userService.GetByID(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return false
+	}
+	if !user.TotpEnabled {
+		response.ErrorWithDetails(c, http.StatusBadRequest,
+			"Enable two-factor authentication (TOTP) for your account before turning on step-up verification",
+			"STEP_UP_ENABLE_REQUIRES_TOTP", nil)
+		return false
+	}
+	return true
+}
+
 // UpdateSettings 更新系统设置
 // PUT /api/v1/admin/settings
 func (h *SettingHandler) UpdateSettings(c *gin.Context) {
@@ -738,6 +795,27 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 	preserveOmittedUpdateSettingsFields(&req, previousSettings, providedFields)
+
+	sessionBindingEnabled := previousSettings.SessionBindingEnabled
+	if req.SessionBindingEnabled != nil {
+		sessionBindingEnabled = *req.SessionBindingEnabled
+	}
+	stepUpEnabled := previousSettings.StepUpEnabled
+	if req.StepUpEnabled != nil {
+		stepUpEnabled = *req.StepUpEnabled
+	}
+
+	if stepUpEnabled && !previousSettings.StepUpEnabled {
+		if !h.ensureActorTotpForStepUp(c) {
+			return
+		}
+	}
+	if !stepUpEnabled && previousSettings.StepUpEnabled {
+		if !middleware.EnforceStepUpAlways(c, h.totpService, h.userService) {
+			return
+		}
+	}
+
 	previousAuthSourceDefaults, err := h.settingService.GetAuthSourceDefaultSettings(c.Request.Context())
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -1392,6 +1470,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		FrontendURL:                      req.FrontendURL,
 		InvitationCodeEnabled:            req.InvitationCodeEnabled,
 		TotpEnabled:                      req.TotpEnabled,
+		SessionBindingEnabled:            sessionBindingEnabled,
+		StepUpEnabled:                    stepUpEnabled,
 		LoginAgreementEnabled: func() bool {
 			if req.LoginAgreementEnabled != nil {
 				return *req.LoginAgreementEnabled
@@ -1547,10 +1627,16 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.RiskControlEnabled
 		}(),
-		AffiliateRebateRate:             affiliateRebateRate,
-		AffiliateRebateFreezeHours:      affiliateRebateFreezeHours,
-		AffiliateRebateDurationDays:     affiliateRebateDurationDays,
-		AffiliateRebatePerInviteeCap:    affiliateRebatePerInviteeCap,
+		AffiliateRebateRate:          affiliateRebateRate,
+		AffiliateRebateFreezeHours:   affiliateRebateFreezeHours,
+		AffiliateRebateDurationDays:  affiliateRebateDurationDays,
+		AffiliateRebatePerInviteeCap: affiliateRebatePerInviteeCap,
+		AdminRechargeRebateEnabled: func() bool {
+			if req.AdminRechargeRebateEnabled != nil {
+				return *req.AdminRechargeRebateEnabled
+			}
+			return previousSettings.AdminRechargeRebateEnabled
+		}(),
 		DefaultUserRPMLimit:             req.DefaultUserRPMLimit,
 		UserPrivateGroupDailyLimitUSD:   positiveFloat64Ptr(req.UserPrivateGroupDailyLimitUSD),
 		UserPrivateGroupWeeklyLimitUSD:  positiveFloat64Ptr(req.UserPrivateGroupWeeklyLimitUSD),
@@ -1559,6 +1645,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		UserPrivateGroupRPMLimit:        req.UserPrivateGroupRPMLimit,
 		UserPrivateGroupCommissionRate:  req.UserPrivateGroupCommissionRate,
 		DefaultSubscriptions:            defaultSubscriptions,
+		DefaultPlatformQuotas:           req.DefaultPlatformQuotas,
 		EnableModelFallback:             req.EnableModelFallback,
 		FallbackModelAnthropic:          req.FallbackModelAnthropic,
 		FallbackModelOpenAI:             req.FallbackModelOpenAI,
@@ -1765,6 +1852,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			Subscriptions:    defaultSubscriptionsValueOrDefault(req.AuthSourceDefaultEmailSubscriptions, previousAuthSourceDefaults.Email.Subscriptions),
 			GrantOnSignup:    boolValueOrDefault(req.AuthSourceDefaultEmailGrantOnSignup, previousAuthSourceDefaults.Email.GrantOnSignup),
 			GrantOnFirstBind: boolValueOrDefault(req.AuthSourceDefaultEmailGrantOnFirstBind, previousAuthSourceDefaults.Email.GrantOnFirstBind),
+			PlatformQuotas:   platformQuotaMapValueOrDefault(providedFields, "auth_source_default_email_platform_quotas", req.AuthSourceDefaultEmailPlatformQuotas, previousAuthSourceDefaults.Email.PlatformQuotas),
 		},
 		LinuxDo: service.ProviderDefaultGrantSettings{
 			Balance:          float64ValueOrDefault(req.AuthSourceDefaultLinuxDoBalance, previousAuthSourceDefaults.LinuxDo.Balance),
@@ -1772,6 +1860,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			Subscriptions:    defaultSubscriptionsValueOrDefault(req.AuthSourceDefaultLinuxDoSubscriptions, previousAuthSourceDefaults.LinuxDo.Subscriptions),
 			GrantOnSignup:    boolValueOrDefault(req.AuthSourceDefaultLinuxDoGrantOnSignup, previousAuthSourceDefaults.LinuxDo.GrantOnSignup),
 			GrantOnFirstBind: boolValueOrDefault(req.AuthSourceDefaultLinuxDoGrantOnFirstBind, previousAuthSourceDefaults.LinuxDo.GrantOnFirstBind),
+			PlatformQuotas:   platformQuotaMapValueOrDefault(providedFields, "auth_source_default_linuxdo_platform_quotas", req.AuthSourceDefaultLinuxDoPlatformQuotas, previousAuthSourceDefaults.LinuxDo.PlatformQuotas),
 		},
 		OIDC: service.ProviderDefaultGrantSettings{
 			Balance:          float64ValueOrDefault(req.AuthSourceDefaultOIDCBalance, previousAuthSourceDefaults.OIDC.Balance),
@@ -1779,6 +1868,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			Subscriptions:    defaultSubscriptionsValueOrDefault(req.AuthSourceDefaultOIDCSubscriptions, previousAuthSourceDefaults.OIDC.Subscriptions),
 			GrantOnSignup:    boolValueOrDefault(req.AuthSourceDefaultOIDCGrantOnSignup, previousAuthSourceDefaults.OIDC.GrantOnSignup),
 			GrantOnFirstBind: boolValueOrDefault(req.AuthSourceDefaultOIDCGrantOnFirstBind, previousAuthSourceDefaults.OIDC.GrantOnFirstBind),
+			PlatformQuotas:   platformQuotaMapValueOrDefault(providedFields, "auth_source_default_oidc_platform_quotas", req.AuthSourceDefaultOIDCPlatformQuotas, previousAuthSourceDefaults.OIDC.PlatformQuotas),
 		},
 		WeChat: service.ProviderDefaultGrantSettings{
 			Balance:          float64ValueOrDefault(req.AuthSourceDefaultWeChatBalance, previousAuthSourceDefaults.WeChat.Balance),
@@ -1786,6 +1876,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			Subscriptions:    defaultSubscriptionsValueOrDefault(req.AuthSourceDefaultWeChatSubscriptions, previousAuthSourceDefaults.WeChat.Subscriptions),
 			GrantOnSignup:    boolValueOrDefault(req.AuthSourceDefaultWeChatGrantOnSignup, previousAuthSourceDefaults.WeChat.GrantOnSignup),
 			GrantOnFirstBind: boolValueOrDefault(req.AuthSourceDefaultWeChatGrantOnFirstBind, previousAuthSourceDefaults.WeChat.GrantOnFirstBind),
+			PlatformQuotas:   platformQuotaMapValueOrDefault(providedFields, "auth_source_default_wechat_platform_quotas", req.AuthSourceDefaultWeChatPlatformQuotas, previousAuthSourceDefaults.WeChat.PlatformQuotas),
 		},
 		GitHub: service.ProviderDefaultGrantSettings{
 			Balance:          float64ValueOrDefault(req.AuthSourceDefaultGitHubBalance, previousAuthSourceDefaults.GitHub.Balance),
@@ -1793,6 +1884,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			Subscriptions:    defaultSubscriptionsValueOrDefault(req.AuthSourceDefaultGitHubSubscriptions, previousAuthSourceDefaults.GitHub.Subscriptions),
 			GrantOnSignup:    boolValueOrDefault(req.AuthSourceDefaultGitHubGrantOnSignup, previousAuthSourceDefaults.GitHub.GrantOnSignup),
 			GrantOnFirstBind: boolValueOrDefault(req.AuthSourceDefaultGitHubGrantOnFirstBind, previousAuthSourceDefaults.GitHub.GrantOnFirstBind),
+			PlatformQuotas:   platformQuotaMapValueOrDefault(providedFields, "auth_source_default_github_platform_quotas", req.AuthSourceDefaultGitHubPlatformQuotas, previousAuthSourceDefaults.GitHub.PlatformQuotas),
 		},
 		Google: service.ProviderDefaultGrantSettings{
 			Balance:          float64ValueOrDefault(req.AuthSourceDefaultGoogleBalance, previousAuthSourceDefaults.Google.Balance),
@@ -1800,6 +1892,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			Subscriptions:    defaultSubscriptionsValueOrDefault(req.AuthSourceDefaultGoogleSubscriptions, previousAuthSourceDefaults.Google.Subscriptions),
 			GrantOnSignup:    boolValueOrDefault(req.AuthSourceDefaultGoogleGrantOnSignup, previousAuthSourceDefaults.Google.GrantOnSignup),
 			GrantOnFirstBind: boolValueOrDefault(req.AuthSourceDefaultGoogleGrantOnFirstBind, previousAuthSourceDefaults.Google.GrantOnFirstBind),
+			PlatformQuotas:   platformQuotaMapValueOrDefault(providedFields, "auth_source_default_google_platform_quotas", req.AuthSourceDefaultGooglePlatformQuotas, previousAuthSourceDefaults.Google.PlatformQuotas),
 		},
 		ForceEmailOnThirdPartySignup: boolValueOrDefault(req.ForceEmailOnThirdPartySignup, previousAuthSourceDefaults.ForceEmailOnThirdPartySignup),
 	}
@@ -1902,6 +1995,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		InvitationCodeEnabled:                     updatedSettings.InvitationCodeEnabled,
 		TotpEnabled:                               updatedSettings.TotpEnabled,
 		TotpEncryptionKeyConfigured:               h.settingService.IsTotpEncryptionKeyConfigured(),
+		SessionBindingEnabled:                     updatedSettings.SessionBindingEnabled,
+		StepUpEnabled:                             updatedSettings.StepUpEnabled,
 		LoginAgreementEnabled:                     updatedSettings.LoginAgreementEnabled,
 		LoginAgreementMode:                        updatedSettings.LoginAgreementMode,
 		LoginAgreementUpdatedAt:                   updatedSettings.LoginAgreementUpdatedAt,
@@ -1991,6 +2086,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebateFreezeHours:                updatedSettings.AffiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:               updatedSettings.AffiliateRebateDurationDays,
 		AffiliateRebatePerInviteeCap:              updatedSettings.AffiliateRebatePerInviteeCap,
+		AdminRechargeRebateEnabled:                updatedSettings.AdminRechargeRebateEnabled,
 		DefaultUserRPMLimit:                       updatedSettings.DefaultUserRPMLimit,
 		UserPrivateGroupDailyLimitUSD:             updatedSettings.UserPrivateGroupDailyLimitUSD,
 		UserPrivateGroupWeeklyLimitUSD:            updatedSettings.UserPrivateGroupWeeklyLimitUSD,
@@ -1999,6 +2095,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		UserPrivateGroupRPMLimit:                  updatedSettings.UserPrivateGroupRPMLimit,
 		UserPrivateGroupCommissionRate:            updatedSettings.UserPrivateGroupCommissionRate,
 		DefaultSubscriptions:                      updatedDefaultSubscriptions,
+		DefaultPlatformQuotas:                     updatedSettings.DefaultPlatformQuotas,
 		EnableModelFallback:                       updatedSettings.EnableModelFallback,
 		FallbackModelAnthropic:                    updatedSettings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                       updatedSettings.FallbackModelOpenAI,
@@ -2419,6 +2516,9 @@ func preserveOmittedUpdateSettingsFields(req *UpdateSettingsRequest, previous *s
 	if !fieldProvided(fields, "default_subscriptions") {
 		req.DefaultSubscriptions = dtoDefaultSubscriptionsFromService(previous.DefaultSubscriptions)
 	}
+	if !fieldProvided(fields, "default_platform_quotas") {
+		req.DefaultPlatformQuotas = previous.DefaultPlatformQuotas
+	}
 	if !fieldProvided(fields, "enable_model_fallback") {
 		req.EnableModelFallback = previous.EnableModelFallback
 	}
@@ -2499,6 +2599,12 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.TotpEnabled != after.TotpEnabled {
 		changed = append(changed, "totp_enabled")
+	}
+	if before.SessionBindingEnabled != after.SessionBindingEnabled {
+		changed = append(changed, "session_binding_enabled")
+	}
+	if before.StepUpEnabled != after.StepUpEnabled {
+		changed = append(changed, "step_up_enabled")
 	}
 	if before.SMTPHost != after.SMTPHost {
 		changed = append(changed, "smtp_host")
@@ -2707,6 +2813,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.AffiliateRebatePerInviteeCap != after.AffiliateRebatePerInviteeCap {
 		changed = append(changed, "affiliate_rebate_per_invitee_cap")
 	}
+	if before.AdminRechargeRebateEnabled != after.AdminRechargeRebateEnabled {
+		changed = append(changed, "affiliate_admin_recharge_enabled")
+	}
 	if !equalOptionalFloat64(before.UserPrivateGroupDailyLimitUSD, after.UserPrivateGroupDailyLimitUSD) {
 		changed = append(changed, "user_private_group_daily_limit_usd")
 	}
@@ -2727,6 +2836,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if !equalDefaultSubscriptions(before.DefaultSubscriptions, after.DefaultSubscriptions) {
 		changed = append(changed, "default_subscriptions")
+	}
+	if !equalDefaultPlatformQuotas(before.DefaultPlatformQuotas, after.DefaultPlatformQuotas) {
+		changed = append(changed, service.SettingKeyDefaultPlatformQuotas)
 	}
 	if before.EnableModelFallback != after.EnableModelFallback {
 		changed = append(changed, "enable_model_fallback")
@@ -2893,6 +3005,8 @@ func appendAuthSourceDefaultChanges(changed []string, before *service.AuthSource
 		{name: "linuxdo", before: before.LinuxDo, after: after.LinuxDo},
 		{name: "oidc", before: before.OIDC, after: after.OIDC},
 		{name: "wechat", before: before.WeChat, after: after.WeChat},
+		{name: "github", before: before.GitHub, after: after.GitHub},
+		{name: "google", before: before.Google, after: after.Google},
 	}
 	for _, field := range fields {
 		if field.before.Balance != field.after.Balance {
@@ -2909,6 +3023,9 @@ func appendAuthSourceDefaultChanges(changed []string, before *service.AuthSource
 		}
 		if field.before.GrantOnFirstBind != field.after.GrantOnFirstBind {
 			changed = append(changed, "auth_source_default_"+field.name+"_grant_on_first_bind")
+		}
+		if !equalDefaultPlatformQuotas(field.before.PlatformQuotas, field.after.PlatformQuotas) {
+			changed = append(changed, "auth_source_default_"+field.name+"_platform_quotas")
 		}
 	}
 	if before.ForceEmailOnThirdPartySignup != after.ForceEmailOnThirdPartySignup {
@@ -2999,31 +3116,37 @@ func systemSettingsResponseData(settings dto.SystemSettings, authSourceDefaults 
 	data["auth_source_default_email_subscriptions"] = authSourceDefaults.Email.Subscriptions
 	data["auth_source_default_email_grant_on_signup"] = authSourceDefaults.Email.GrantOnSignup
 	data["auth_source_default_email_grant_on_first_bind"] = authSourceDefaults.Email.GrantOnFirstBind
+	data["auth_source_default_email_platform_quotas"] = authSourceDefaults.Email.PlatformQuotas
 	data["auth_source_default_linuxdo_balance"] = authSourceDefaults.LinuxDo.Balance
 	data["auth_source_default_linuxdo_concurrency"] = authSourceDefaults.LinuxDo.Concurrency
 	data["auth_source_default_linuxdo_subscriptions"] = authSourceDefaults.LinuxDo.Subscriptions
 	data["auth_source_default_linuxdo_grant_on_signup"] = authSourceDefaults.LinuxDo.GrantOnSignup
 	data["auth_source_default_linuxdo_grant_on_first_bind"] = authSourceDefaults.LinuxDo.GrantOnFirstBind
+	data["auth_source_default_linuxdo_platform_quotas"] = authSourceDefaults.LinuxDo.PlatformQuotas
 	data["auth_source_default_oidc_balance"] = authSourceDefaults.OIDC.Balance
 	data["auth_source_default_oidc_concurrency"] = authSourceDefaults.OIDC.Concurrency
 	data["auth_source_default_oidc_subscriptions"] = authSourceDefaults.OIDC.Subscriptions
 	data["auth_source_default_oidc_grant_on_signup"] = authSourceDefaults.OIDC.GrantOnSignup
 	data["auth_source_default_oidc_grant_on_first_bind"] = authSourceDefaults.OIDC.GrantOnFirstBind
+	data["auth_source_default_oidc_platform_quotas"] = authSourceDefaults.OIDC.PlatformQuotas
 	data["auth_source_default_wechat_balance"] = authSourceDefaults.WeChat.Balance
 	data["auth_source_default_wechat_concurrency"] = authSourceDefaults.WeChat.Concurrency
 	data["auth_source_default_wechat_subscriptions"] = authSourceDefaults.WeChat.Subscriptions
 	data["auth_source_default_wechat_grant_on_signup"] = authSourceDefaults.WeChat.GrantOnSignup
 	data["auth_source_default_wechat_grant_on_first_bind"] = authSourceDefaults.WeChat.GrantOnFirstBind
+	data["auth_source_default_wechat_platform_quotas"] = authSourceDefaults.WeChat.PlatformQuotas
 	data["auth_source_default_github_balance"] = authSourceDefaults.GitHub.Balance
 	data["auth_source_default_github_concurrency"] = authSourceDefaults.GitHub.Concurrency
 	data["auth_source_default_github_subscriptions"] = authSourceDefaults.GitHub.Subscriptions
 	data["auth_source_default_github_grant_on_signup"] = authSourceDefaults.GitHub.GrantOnSignup
 	data["auth_source_default_github_grant_on_first_bind"] = authSourceDefaults.GitHub.GrantOnFirstBind
+	data["auth_source_default_github_platform_quotas"] = authSourceDefaults.GitHub.PlatformQuotas
 	data["auth_source_default_google_balance"] = authSourceDefaults.Google.Balance
 	data["auth_source_default_google_concurrency"] = authSourceDefaults.Google.Concurrency
 	data["auth_source_default_google_subscriptions"] = authSourceDefaults.Google.Subscriptions
 	data["auth_source_default_google_grant_on_signup"] = authSourceDefaults.Google.GrantOnSignup
 	data["auth_source_default_google_grant_on_first_bind"] = authSourceDefaults.Google.GrantOnFirstBind
+	data["auth_source_default_google_platform_quotas"] = authSourceDefaults.Google.PlatformQuotas
 	data["force_email_on_third_party_signup"] = authSourceDefaults.ForceEmailOnThirdPartySignup
 
 	return data

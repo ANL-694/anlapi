@@ -34,7 +34,47 @@ type stubConcurrencyCacheForTest struct {
 	releasedRequestIDs []string
 }
 
+type ingressLeaseCacheForTest struct {
+	stubConcurrencyCacheForTest
+	acquireIngressResult bool
+	acquireIngressErr    error
+	acquireIngressFn     func(context.Context, int64, int, string) (bool, error)
+	refreshIngressResult bool
+	refreshIngressErr    error
+	refreshIngressFn     func(context.Context, int64, string) (bool, error)
+	releaseIngressErr    error
+	releaseIngressFn     func(context.Context, int64, string) error
+	acquireIngressCalls  int
+	refreshIngressCalls  int
+	releaseIngressCalls  int
+}
+
+func (c *ingressLeaseCacheForTest) AcquireOpenAIWSIngressLease(ctx context.Context, apiKeyID int64, maxConnections int, leaseID string) (bool, error) {
+	c.acquireIngressCalls++
+	if c.acquireIngressFn != nil {
+		return c.acquireIngressFn(ctx, apiKeyID, maxConnections, leaseID)
+	}
+	return c.acquireIngressResult, c.acquireIngressErr
+}
+
+func (c *ingressLeaseCacheForTest) RefreshOpenAIWSIngressLease(ctx context.Context, apiKeyID int64, leaseID string) (bool, error) {
+	c.refreshIngressCalls++
+	if c.refreshIngressFn != nil {
+		return c.refreshIngressFn(ctx, apiKeyID, leaseID)
+	}
+	return c.refreshIngressResult, c.refreshIngressErr
+}
+
+func (c *ingressLeaseCacheForTest) ReleaseOpenAIWSIngressLease(ctx context.Context, apiKeyID int64, leaseID string) error {
+	c.releaseIngressCalls++
+	if c.releaseIngressFn != nil {
+		return c.releaseIngressFn(ctx, apiKeyID, leaseID)
+	}
+	return c.releaseIngressErr
+}
+
 var _ ConcurrencyCache = (*stubConcurrencyCacheForTest)(nil)
+var _ OpenAIWSIngressLeaseCache = (*ingressLeaseCacheForTest)(nil)
 
 func (c *stubConcurrencyCacheForTest) AcquireAccountSlot(_ context.Context, _ int64, _ int, _ string) (bool, error) {
 	return c.acquireResult, c.acquireErr

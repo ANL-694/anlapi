@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/pkg/pagination"
 )
 
 // accountRepoStub 是 AccountRepository 接口的测试桩实现。
@@ -159,7 +159,7 @@ func (s *accountRepoStub) SetRateLimited(ctx context.Context, id int64, resetAt 
 	panic("unexpected SetRateLimited call")
 }
 
-func (s *accountRepoStub) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time) error {
+func (s *accountRepoStub) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time, _ ...string) error {
 	panic("unexpected SetModelRateLimit call")
 }
 

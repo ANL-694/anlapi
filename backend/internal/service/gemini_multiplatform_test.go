@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"ikik-api/internal/pkg/ctxkey"
 	"ikik-api/internal/pkg/pagination"
-	"github.com/stretchr/testify/require"
 )
 
 // mockAccountRepoForGemini Gemini 测试用的 mock
@@ -144,10 +144,30 @@ func (m *mockAccountRepoForGemini) ListSchedulableUngroupedByPlatform(ctx contex
 func (m *mockAccountRepoForGemini) ListSchedulableUngroupedByPlatforms(ctx context.Context, platforms []string) ([]Account, error) {
 	return m.ListSchedulableByPlatforms(ctx, platforms)
 }
+func (m *mockAccountRepoForGemini) ListModelAvailabilityCandidates(_ context.Context, groupID *int64, platforms []string, includeGrouped bool) ([]Account, error) {
+	platformSet := make(map[string]bool, len(platforms))
+	for _, platform := range platforms {
+		platformSet[platform] = true
+	}
+	result := make([]Account, 0, len(m.accounts))
+	for _, account := range m.accounts {
+		if !platformSet[account.Platform] || account.Status != StatusActive || !account.Schedulable {
+			continue
+		}
+		if groupID != nil && !accountBelongsToGroup(account, *groupID) {
+			continue
+		}
+		if groupID == nil && !includeGrouped && len(account.AccountGroups) > 0 {
+			continue
+		}
+		result = append(result, account)
+	}
+	return result, nil
+}
 func (m *mockAccountRepoForGemini) SetRateLimited(ctx context.Context, id int64, resetAt time.Time) error {
 	return nil
 }
-func (m *mockAccountRepoForGemini) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time) error {
+func (m *mockAccountRepoForGemini) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time, _ ...string) error {
 	return nil
 }
 func (m *mockAccountRepoForGemini) SetOverloaded(ctx context.Context, id int64, until time.Time) error {

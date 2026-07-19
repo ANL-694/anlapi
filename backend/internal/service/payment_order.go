@@ -16,6 +16,7 @@ import (
 	"ikik-api/internal/payment"
 	"ikik-api/internal/payment/provider"
 	infraerrors "ikik-api/internal/pkg/errors"
+	"ikik-api/internal/pkg/servertiming"
 )
 
 // --- Order Creation ---
@@ -500,7 +501,9 @@ func (s *PaymentService) invokeProvider(ctx context.Context, order *dbent.Paymen
 		IsMobile:    req.IsMobile,
 		ReturnURL:   providerReturnURL,
 	}, sel, outTradeNo, payAmountStr, subject)
+	finishProviderCall := servertiming.ObserveDependency(ctx, "payment")
 	pr, err := prov.CreatePayment(ctx, providerReq)
+	finishProviderCall()
 	if err != nil {
 		slog.Error("[PaymentService] CreatePayment failed", "provider", sel.ProviderKey, "instance", sel.InstanceID, "error", err)
 		if appErr := new(infraerrors.ApplicationError); errors.As(err, &appErr) {

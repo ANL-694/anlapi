@@ -16,6 +16,7 @@ import (
 	"ikik-api/internal/payment"
 	"ikik-api/internal/plugin"
 	"ikik-api/internal/repository"
+	"ikik-api/internal/securityaudit"
 	"ikik-api/internal/server"
 	"ikik-api/internal/server/middleware"
 	"ikik-api/internal/service"
@@ -25,7 +26,8 @@ import (
 )
 
 type Application struct {
-	Server *http.Server
+	Server      *http.Server
+	PromptAudit *securityaudit.PromptService
 	// Runtime 是插件模块生命周期驱动器：main 在 HTTP server 启动前
 	// 调用 Build + Start，关闭时由 Cleanup 序列执行 Stop。
 	Runtime *plugin.Runtime
@@ -40,6 +42,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		// Business layer ProviderSets
 		repository.ProviderSet,
 		service.ProviderSet,
+		securityaudit.ProviderSet,
 		payment.ProviderSet,
 		middleware.ProviderSet,
 		handler.ProviderSet,
@@ -60,7 +63,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		provideCleanup,
 
 		// Application struct
-		wire.Struct(new(Application), "Server", "Runtime", "Cleanup"),
+		wire.Struct(new(Application), "Server", "PromptAudit", "Runtime", "Cleanup"),
 	)
 	return nil, nil
 }
@@ -89,9 +92,12 @@ func provideCleanup(
 	groupRateSchedule *service.GroupRateScheduleService,
 	tokenRefresh *service.TokenRefreshService,
 	accountExpiry *service.AccountExpiryService,
+	proxyExpiry *service.ProxyExpiryService,
 	subscriptionExpiry *service.SubscriptionExpiryService,
 	usageCleanup *service.UsageCleanupService,
 	idempotencyCleanup *service.IdempotencyCleanupService,
+	batchImageCleanup *service.BatchImageCleanupService,
+	batchImageWorker *service.BatchImageWorkerRuntime,
 	pricing *service.PricingService,
 	emailQueue *service.EmailQueueService,
 	billingCache *service.BillingCacheService,
@@ -108,6 +114,10 @@ func provideCleanup(
 	backupSvc *service.BackupService,
 	paymentOrderExpiry *service.PaymentOrderExpiryService,
 	channelMonitorRunner *service.ChannelMonitorRunner,
+	quotaFlusher *service.UserPlatformQuotaUsageFlusher,
+	upstreamBillingProbe *service.UpstreamBillingProbeService,
+	auditLog *service.AuditLogService,
+	promptAudit *securityaudit.PromptService,
 	moduleRuntime *plugin.Runtime,
 ) func() {
 	return func() {
@@ -121,6 +131,12 @@ func provideCleanup(
 
 		// 应用层清理步骤可并行执行，基础设施资源（Redis/Ent）最后按顺序关闭。
 		parallelSteps := []cleanupStep{
+			{"PromptAuditService", func() error {
+				if promptAudit != nil {
+					return promptAudit.Shutdown(ctx)
+				}
+				return nil
+			}},
 			// 插件模块 Stop 属于业务服务关闭组：模块停止时可能仍需写 DB/Redis，
 			// 必须先于基础设施（Redis/Ent）关闭执行。
 			{"PluginModuleRuntime", func() error {
@@ -144,6 +160,12 @@ func provideCleanup(
 			{"OpsSystemLogSink", func() error {
 				if opsSystemLogSink != nil {
 					opsSystemLogSink.Stop()
+				}
+				return nil
+			}},
+			{"AuditLogService", func() error {
+				if auditLog != nil {
+					auditLog.Stop()
 				}
 				return nil
 			}},
@@ -189,12 +211,30 @@ func provideCleanup(
 				}
 				return nil
 			}},
+			{"BatchImageCleanupService", func() error {
+				if batchImageCleanup != nil {
+					batchImageCleanup.Stop()
+				}
+				return nil
+			}},
+			{"BatchImageWorkerRuntime", func() error {
+				if batchImageWorker != nil {
+					batchImageWorker.Stop()
+				}
+				return nil
+			}},
 			{"TokenRefreshService", func() error {
 				tokenRefresh.Stop()
 				return nil
 			}},
 			{"AccountExpiryService", func() error {
 				accountExpiry.Stop()
+				return nil
+			}},
+			{"ProxyExpiryService", func() error {
+				if proxyExpiry != nil {
+					proxyExpiry.Stop()
+				}
 				return nil
 			}},
 			{"SubscriptionExpiryService", func() error {
@@ -280,6 +320,18 @@ func provideCleanup(
 			{"ChannelMonitorRunner", func() error {
 				if channelMonitorRunner != nil {
 					channelMonitorRunner.Stop()
+				}
+				return nil
+			}},
+			{"UserPlatformQuotaUsageFlusher", func() error {
+				if quotaFlusher != nil {
+					quotaFlusher.Stop()
+				}
+				return nil
+			}},
+			{"UpstreamBillingProbeService", func() error {
+				if upstreamBillingProbe != nil {
+					upstreamBillingProbe.Stop()
 				}
 				return nil
 			}},

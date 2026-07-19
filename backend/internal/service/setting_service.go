@@ -119,6 +119,11 @@ type SettingService struct {
 	onUpdate                func() // Callback when settings are updated (for cache invalidation)
 	version                 string // Application version
 	webSearchManagerBuilder WebSearchManagerBuilder
+
+	openAICodexUACache                atomic.Value // *cachedOpenAICodexUserAgent
+	openAICodexUASF                   singleflight.Group
+	openAIQuotaAutoPauseSettingsCache atomic.Value // *cachedOpenAIQuotaAutoPauseSettings
+	openAIQuotaAutoPauseSettingsSF    singleflight.Group
 }
 
 type ProviderDefaultGrantSettings struct {
@@ -127,6 +132,7 @@ type ProviderDefaultGrantSettings struct {
 	Subscriptions    []DefaultSubscriptionSetting
 	GrantOnSignup    bool
 	GrantOnFirstBind bool
+	PlatformQuotas   map[string]*DefaultPlatformQuotaSetting
 }
 
 type AuthSourceDefaultSettings struct {
@@ -140,55 +146,69 @@ type AuthSourceDefaultSettings struct {
 }
 
 type authSourceDefaultKeySet struct {
+	source           string
 	balance          string
 	concurrency      string
 	subscriptions    string
 	grantOnSignup    string
 	grantOnFirstBind string
+	platformQuotas   string
 }
 
 var (
 	emailAuthSourceDefaultKeys = authSourceDefaultKeySet{
+		source:           "email",
 		balance:          SettingKeyAuthSourceDefaultEmailBalance,
 		concurrency:      SettingKeyAuthSourceDefaultEmailConcurrency,
 		subscriptions:    SettingKeyAuthSourceDefaultEmailSubscriptions,
 		grantOnSignup:    SettingKeyAuthSourceDefaultEmailGrantOnSignup,
 		grantOnFirstBind: SettingKeyAuthSourceDefaultEmailGrantOnFirstBind,
+		platformQuotas:   SettingKeyAuthSourcePlatformQuotas("email"),
 	}
 	linuxDoAuthSourceDefaultKeys = authSourceDefaultKeySet{
+		source:           "linuxdo",
 		balance:          SettingKeyAuthSourceDefaultLinuxDoBalance,
 		concurrency:      SettingKeyAuthSourceDefaultLinuxDoConcurrency,
 		subscriptions:    SettingKeyAuthSourceDefaultLinuxDoSubscriptions,
 		grantOnSignup:    SettingKeyAuthSourceDefaultLinuxDoGrantOnSignup,
 		grantOnFirstBind: SettingKeyAuthSourceDefaultLinuxDoGrantOnFirstBind,
+		platformQuotas:   SettingKeyAuthSourcePlatformQuotas("linuxdo"),
 	}
 	oidcAuthSourceDefaultKeys = authSourceDefaultKeySet{
+		source:           "oidc",
 		balance:          SettingKeyAuthSourceDefaultOIDCBalance,
 		concurrency:      SettingKeyAuthSourceDefaultOIDCConcurrency,
 		subscriptions:    SettingKeyAuthSourceDefaultOIDCSubscriptions,
 		grantOnSignup:    SettingKeyAuthSourceDefaultOIDCGrantOnSignup,
 		grantOnFirstBind: SettingKeyAuthSourceDefaultOIDCGrantOnFirstBind,
+		platformQuotas:   SettingKeyAuthSourcePlatformQuotas("oidc"),
 	}
 	weChatAuthSourceDefaultKeys = authSourceDefaultKeySet{
+		source:           "wechat",
 		balance:          SettingKeyAuthSourceDefaultWeChatBalance,
 		concurrency:      SettingKeyAuthSourceDefaultWeChatConcurrency,
 		subscriptions:    SettingKeyAuthSourceDefaultWeChatSubscriptions,
 		grantOnSignup:    SettingKeyAuthSourceDefaultWeChatGrantOnSignup,
 		grantOnFirstBind: SettingKeyAuthSourceDefaultWeChatGrantOnFirstBind,
+		platformQuotas:   SettingKeyAuthSourcePlatformQuotas("wechat"),
 	}
 	gitHubAuthSourceDefaultKeys = authSourceDefaultKeySet{
+		source:           "github",
 		balance:          SettingKeyAuthSourceDefaultGitHubBalance,
 		concurrency:      SettingKeyAuthSourceDefaultGitHubConcurrency,
 		subscriptions:    SettingKeyAuthSourceDefaultGitHubSubscriptions,
 		grantOnSignup:    SettingKeyAuthSourceDefaultGitHubGrantOnSignup,
 		grantOnFirstBind: SettingKeyAuthSourceDefaultGitHubGrantOnFirstBind,
+		platformQuotas:   SettingKeyAuthSourcePlatformQuotas("github"),
 	}
 	googleAuthSourceDefaultKeys = authSourceDefaultKeySet{
+		source:           "google",
 		balance:          SettingKeyAuthSourceDefaultGoogleBalance,
 		concurrency:      SettingKeyAuthSourceDefaultGoogleConcurrency,
 		subscriptions:    SettingKeyAuthSourceDefaultGoogleSubscriptions,
 		grantOnSignup:    SettingKeyAuthSourceDefaultGoogleGrantOnSignup,
 		grantOnFirstBind: SettingKeyAuthSourceDefaultGoogleGrantOnFirstBind,
+		platformQuotas:   SettingKeyAuthSourcePlatformQuotas("google"),
 	}
 )
 
@@ -1448,6 +1468,8 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyFrontendURL] = settings.FrontendURL
 	updates[SettingKeyInvitationCodeEnabled] = strconv.FormatBool(settings.InvitationCodeEnabled)
 	updates[SettingKeyTotpEnabled] = strconv.FormatBool(settings.TotpEnabled)
+	updates[SettingKeySessionBindingEnabled] = strconv.FormatBool(settings.SessionBindingEnabled)
+	updates[SettingKeyStepUpEnabled] = strconv.FormatBool(settings.StepUpEnabled)
 	updates[SettingKeyLoginAgreementEnabled] = strconv.FormatBool(settings.LoginAgreementEnabled)
 	updates[SettingKeyLoginAgreementMode] = settings.LoginAgreementMode
 	updates[SettingKeyLoginAgreementUpdatedAt] = settings.LoginAgreementUpdatedAt
@@ -1599,6 +1621,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		settings.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
 	}
 	updates[SettingKeyAffiliateRebatePerInviteeCap] = strconv.FormatFloat(settings.AffiliateRebatePerInviteeCap, 'f', 8, 64)
+	updates[SettingKeyAffiliateAdminRechargeEnabled] = strconv.FormatBool(settings.AdminRechargeRebateEnabled)
 	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	updates[SettingKeyUserPrivateGroupDailyLimitUSD] = formatPositiveOptionalFloat(settings.UserPrivateGroupDailyLimitUSD)
 	updates[SettingKeyUserPrivateGroupWeeklyLimitUSD] = formatPositiveOptionalFloat(settings.UserPrivateGroupWeeklyLimitUSD)
@@ -1623,6 +1646,16 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		return nil, fmt.Errorf("marshal default subscriptions: %w", err)
 	}
 	updates[SettingKeyDefaultSubscriptions] = string(defaultSubsJSON)
+	if settings.DefaultPlatformQuotas != nil {
+		if err := validateDefaultPlatformQuotaMap(settings.DefaultPlatformQuotas); err != nil {
+			return nil, err
+		}
+		platformQuotasJSON, err := json.Marshal(settings.DefaultPlatformQuotas)
+		if err != nil {
+			return nil, fmt.Errorf("marshal default platform quotas: %w", err)
+		}
+		updates[SettingKeyDefaultPlatformQuotas] = string(platformQuotasJSON)
+	}
 
 	// Model fallback configuration
 	updates[SettingKeyEnableModelFallback] = strconv.FormatBool(settings.EnableModelFallback)
@@ -1744,8 +1777,22 @@ func (s *SettingService) buildAuthSourceDefaultUpdates(ctx context.Context, sett
 			return nil, err
 		}
 	}
+	for _, quotas := range []map[string]*DefaultPlatformQuotaSetting{
+		settings.Email.PlatformQuotas,
+		settings.LinuxDo.PlatformQuotas,
+		settings.OIDC.PlatformQuotas,
+		settings.WeChat.PlatformQuotas,
+		settings.GitHub.PlatformQuotas,
+		settings.Google.PlatformQuotas,
+	} {
+		if quotas != nil {
+			if err := validateDefaultPlatformQuotaMap(quotas); err != nil {
+				return nil, err
+			}
+		}
+	}
 
-	updates := make(map[string]string, 31)
+	updates := make(map[string]string, 37)
 	writeProviderDefaultGrantUpdates(updates, emailAuthSourceDefaultKeys, settings.Email)
 	writeProviderDefaultGrantUpdates(updates, linuxDoAuthSourceDefaultKeys, settings.LinuxDo)
 	writeProviderDefaultGrantUpdates(updates, oidcAuthSourceDefaultKeys, settings.OIDC)
@@ -2044,6 +2091,16 @@ func (s *SettingService) IsAffiliateEnabled(ctx context.Context) bool {
 	return value == "true"
 }
 
+// IsAffiliateAdminRechargeEnabled controls whether manual administrator
+// balance additions accrue invitation rebates.
+func (s *SettingService) IsAffiliateAdminRechargeEnabled(ctx context.Context) bool {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateAdminRechargeEnabled)
+	if err != nil {
+		return AdminRechargeRebateEnabledDefault
+	}
+	return value == "true"
+}
+
 // IsCarpoolEnabled 检查是否启用拼车池功能（总开关）
 func (s *SettingService) IsCarpoolEnabled(ctx context.Context) bool {
 	value, err := s.settingRepo.GetValue(ctx, SettingKeyCarpoolEnabled)
@@ -2297,31 +2354,37 @@ func (s *SettingService) GetAuthSourceDefaultSettings(ctx context.Context) (*Aut
 		SettingKeyAuthSourceDefaultEmailSubscriptions,
 		SettingKeyAuthSourceDefaultEmailGrantOnSignup,
 		SettingKeyAuthSourceDefaultEmailGrantOnFirstBind,
+		emailAuthSourceDefaultKeys.platformQuotas,
 		SettingKeyAuthSourceDefaultLinuxDoBalance,
 		SettingKeyAuthSourceDefaultLinuxDoConcurrency,
 		SettingKeyAuthSourceDefaultLinuxDoSubscriptions,
 		SettingKeyAuthSourceDefaultLinuxDoGrantOnSignup,
 		SettingKeyAuthSourceDefaultLinuxDoGrantOnFirstBind,
+		linuxDoAuthSourceDefaultKeys.platformQuotas,
 		SettingKeyAuthSourceDefaultOIDCBalance,
 		SettingKeyAuthSourceDefaultOIDCConcurrency,
 		SettingKeyAuthSourceDefaultOIDCSubscriptions,
 		SettingKeyAuthSourceDefaultOIDCGrantOnSignup,
 		SettingKeyAuthSourceDefaultOIDCGrantOnFirstBind,
+		oidcAuthSourceDefaultKeys.platformQuotas,
 		SettingKeyAuthSourceDefaultWeChatBalance,
 		SettingKeyAuthSourceDefaultWeChatConcurrency,
 		SettingKeyAuthSourceDefaultWeChatSubscriptions,
 		SettingKeyAuthSourceDefaultWeChatGrantOnSignup,
 		SettingKeyAuthSourceDefaultWeChatGrantOnFirstBind,
+		weChatAuthSourceDefaultKeys.platformQuotas,
 		SettingKeyAuthSourceDefaultGitHubBalance,
 		SettingKeyAuthSourceDefaultGitHubConcurrency,
 		SettingKeyAuthSourceDefaultGitHubSubscriptions,
 		SettingKeyAuthSourceDefaultGitHubGrantOnSignup,
 		SettingKeyAuthSourceDefaultGitHubGrantOnFirstBind,
+		gitHubAuthSourceDefaultKeys.platformQuotas,
 		SettingKeyAuthSourceDefaultGoogleBalance,
 		SettingKeyAuthSourceDefaultGoogleConcurrency,
 		SettingKeyAuthSourceDefaultGoogleSubscriptions,
 		SettingKeyAuthSourceDefaultGoogleGrantOnSignup,
 		SettingKeyAuthSourceDefaultGoogleGrantOnFirstBind,
+		googleAuthSourceDefaultKeys.platformQuotas,
 		SettingKeyForceEmailOnThirdPartySignup,
 	}
 
@@ -2418,6 +2481,8 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyEmailVerifyEnabled:                       "false",
 		SettingKeyRegistrationEmailSuffixWhitelist:         "[]",
 		SettingKeyPromoCodeEnabled:                         "true", // 默认启用优惠码功能
+		SettingKeySessionBindingEnabled:                    "false",
+		SettingKeyStepUpEnabled:                            "false",
 		SettingKeySiteName:                                 "ikik-api",
 		SettingKeyLoginAgreementEnabled:                    "false",
 		SettingKeyLoginAgreementMode:                       defaultLoginAgreementMode,
@@ -2485,38 +2550,46 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyAffiliateRebateFreezeHours:               strconv.Itoa(AffiliateRebateFreezeHoursDefault),
 		SettingKeyAffiliateRebateDurationDays:              strconv.Itoa(AffiliateRebateDurationDaysDefault),
 		SettingKeyAffiliateRebatePerInviteeCap:             strconv.FormatFloat(AffiliateRebatePerInviteeCapDefault, 'f', 2, 64),
+		SettingKeyAffiliateAdminRechargeEnabled:            strconv.FormatBool(AdminRechargeRebateEnabledDefault),
 		SettingKeyDefaultUserRPMLimit:                      "0",
 		SettingKeyDefaultSubscriptions:                     "[]",
+		SettingKeyDefaultPlatformQuotas:                    "{}",
 		SettingKeyAuthSourceDefaultEmailBalance:            "0",
 		SettingKeyAuthSourceDefaultEmailConcurrency:        "5",
 		SettingKeyAuthSourceDefaultEmailSubscriptions:      "[]",
 		SettingKeyAuthSourceDefaultEmailGrantOnSignup:      "false",
 		SettingKeyAuthSourceDefaultEmailGrantOnFirstBind:   "false",
+		emailAuthSourceDefaultKeys.platformQuotas:          "{}",
 		SettingKeyAuthSourceDefaultLinuxDoBalance:          "0",
 		SettingKeyAuthSourceDefaultLinuxDoConcurrency:      "5",
 		SettingKeyAuthSourceDefaultLinuxDoSubscriptions:    "[]",
 		SettingKeyAuthSourceDefaultLinuxDoGrantOnSignup:    "false",
 		SettingKeyAuthSourceDefaultLinuxDoGrantOnFirstBind: "false",
+		linuxDoAuthSourceDefaultKeys.platformQuotas:        "{}",
 		SettingKeyAuthSourceDefaultOIDCBalance:             "0",
 		SettingKeyAuthSourceDefaultOIDCConcurrency:         "5",
 		SettingKeyAuthSourceDefaultOIDCSubscriptions:       "[]",
 		SettingKeyAuthSourceDefaultOIDCGrantOnSignup:       "false",
 		SettingKeyAuthSourceDefaultOIDCGrantOnFirstBind:    "false",
+		oidcAuthSourceDefaultKeys.platformQuotas:           "{}",
 		SettingKeyAuthSourceDefaultWeChatBalance:           "0",
 		SettingKeyAuthSourceDefaultWeChatConcurrency:       "5",
 		SettingKeyAuthSourceDefaultWeChatSubscriptions:     "[]",
 		SettingKeyAuthSourceDefaultWeChatGrantOnSignup:     "false",
 		SettingKeyAuthSourceDefaultWeChatGrantOnFirstBind:  "false",
+		weChatAuthSourceDefaultKeys.platformQuotas:         "{}",
 		SettingKeyAuthSourceDefaultGitHubBalance:           "0",
 		SettingKeyAuthSourceDefaultGitHubConcurrency:       "5",
 		SettingKeyAuthSourceDefaultGitHubSubscriptions:     "[]",
 		SettingKeyAuthSourceDefaultGitHubGrantOnSignup:     "false",
 		SettingKeyAuthSourceDefaultGitHubGrantOnFirstBind:  "false",
+		gitHubAuthSourceDefaultKeys.platformQuotas:         "{}",
 		SettingKeyAuthSourceDefaultGoogleBalance:           "0",
 		SettingKeyAuthSourceDefaultGoogleConcurrency:       "5",
 		SettingKeyAuthSourceDefaultGoogleSubscriptions:     "[]",
 		SettingKeyAuthSourceDefaultGoogleGrantOnSignup:     "false",
 		SettingKeyAuthSourceDefaultGoogleGrantOnFirstBind:  "false",
+		googleAuthSourceDefaultKeys.platformQuotas:         "{}",
 		SettingKeyForceEmailOnThirdPartySignup:             "false",
 		SettingKeySMTPPort:                                 "587",
 		SettingKeySMTPUseTLS:                               "false",
@@ -2605,6 +2678,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		FrontendURL:                      settings[SettingKeyFrontendURL],
 		InvitationCodeEnabled:            settings[SettingKeyInvitationCodeEnabled] == "true",
 		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
+		SessionBindingEnabled:            settings[SettingKeySessionBindingEnabled] == "true",
+		StepUpEnabled:                    settings[SettingKeyStepUpEnabled] == "true",
 		LoginAgreementEnabled:            settings[SettingKeyLoginAgreementEnabled] == "true",
 		LoginAgreementMode:               normalizeLoginAgreementMode(settings[SettingKeyLoginAgreementMode]),
 		LoginAgreementUpdatedAt:          loginAgreementUpdatedAt,
@@ -2702,6 +2777,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.AffiliateRebatePerInviteeCap = perInviteeCap
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
+	result.DefaultPlatformQuotas = parseDefaultPlatformQuotaSettings(settings[SettingKeyDefaultPlatformQuotas])
 
 	// 敏感信息直接返回，方便测试连接时使用
 	result.SMTPPassword = settings[SettingKeySMTPPassword]
@@ -2963,6 +3039,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 
 	// Affiliate (邀请返利) feature (default: disabled; strict true)
 	result.AffiliateEnabled = settings[SettingKeyAffiliateEnabled] == "true"
+	result.AdminRechargeRebateEnabled = settings[SettingKeyAffiliateAdminRechargeEnabled] == "true"
 	result.RiskControlEnabled = settings[SettingKeyRiskControlEnabled] == "true"
 
 	// Claude Code version check
@@ -3135,6 +3212,7 @@ func parseProviderDefaultGrantSettings(settings map[string]string, keys authSour
 		Subscriptions:    []DefaultSubscriptionSetting{},
 		GrantOnSignup:    false,
 		GrantOnFirstBind: false,
+		PlatformQuotas:   map[string]*DefaultPlatformQuotaSetting{},
 	}
 
 	if v, err := strconv.ParseFloat(strings.TrimSpace(settings[keys.balance]), 64); err == nil {
@@ -3151,6 +3229,12 @@ func parseProviderDefaultGrantSettings(settings map[string]string, keys authSour
 	}
 	if raw, ok := settings[keys.grantOnFirstBind]; ok {
 		result.GrantOnFirstBind = raw == "true"
+	}
+	if raw := settings[keys.platformQuotas]; raw != "" {
+		if err := json.Unmarshal([]byte(raw), &result.PlatformQuotas); err != nil {
+			slog.Warn("[Setting] unmarshal auth source platform quotas failed (fail-open)", "source", keys.source, "error", err)
+			result.PlatformQuotas = map[string]*DefaultPlatformQuotaSetting{}
+		}
 	}
 
 	return result
@@ -3171,6 +3255,12 @@ func writeProviderDefaultGrantUpdates(updates map[string]string, keys authSource
 	updates[keys.subscriptions] = string(raw)
 	updates[keys.grantOnSignup] = strconv.FormatBool(settings.GrantOnSignup)
 	updates[keys.grantOnFirstBind] = strconv.FormatBool(settings.GrantOnFirstBind)
+	if settings.PlatformQuotas != nil {
+		raw, err := json.Marshal(settings.PlatformQuotas)
+		if err == nil {
+			updates[keys.platformQuotas] = string(raw)
+		}
+	}
 }
 
 func mergeProviderDefaultGrantSettings(globalDefaults ProviderDefaultGrantSettings, providerDefaults ProviderDefaultGrantSettings) ProviderDefaultGrantSettings {

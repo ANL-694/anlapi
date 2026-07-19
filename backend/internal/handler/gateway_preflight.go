@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"ikik-api/internal/gatewayhook"
 	"ikik-api/internal/pkg/ctxkey"
+	"ikik-api/internal/securityaudit"
 	middleware2 "ikik-api/internal/server/middleware"
 	"ikik-api/internal/service"
 )
@@ -83,6 +84,9 @@ func (h *GatewayHandler) runPreFlightHooks(c *gin.Context, reqLog *zap.Logger, a
 	if h == nil {
 		return nil
 	}
+	if h.securityAuditCoordinator != nil {
+		return gatewayPreFlightDecisionFromSecurityAudit(h.checkSecurityAudit(c, reqLog, apiKey, subject, protocol, model, body))
+	}
 	return runGatewayPreFlight(h.preFlightHooks, c, reqLog, apiKey, subject, protocol, model, body)
 }
 
@@ -92,7 +96,22 @@ func (h *OpenAIGatewayHandler) runPreFlightHooks(c *gin.Context, reqLog *zap.Log
 	if h == nil {
 		return nil
 	}
+	if h.securityAuditCoordinator != nil {
+		return gatewayPreFlightDecisionFromSecurityAudit(h.checkSecurityAudit(c, reqLog, apiKey, subject, protocol, model, body))
+	}
 	return runGatewayPreFlight(h.preFlightHooks, c, reqLog, apiKey, subject, protocol, model, body)
+}
+
+func gatewayPreFlightDecisionFromSecurityAudit(decision *securityaudit.Decision) *gatewayhook.Decision {
+	if decision == nil || decision.AllowNextStage {
+		return nil
+	}
+	return &gatewayhook.Decision{
+		Blocked:    true,
+		StatusCode: securityAuditStatus(decision),
+		ErrorType:  securityAuditErrorCode(decision),
+		Message:    securityAuditMessage(decision),
+	}
 }
 
 // preFlightStatus 与原 contentModerationStatus 等价：非 4xx/5xx 状态码钳制为 403。

@@ -206,7 +206,7 @@ type p3CharAccountRepo struct {
 	service.AccountRepository
 }
 
-func (r *p3CharAccountRepo) SetModelRateLimit(context.Context, int64, string, time.Time) error {
+func (r *p3CharAccountRepo) SetModelRateLimit(context.Context, int64, string, time.Time, ...string) error {
 	return nil
 }
 

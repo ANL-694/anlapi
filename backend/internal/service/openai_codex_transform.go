@@ -80,10 +80,11 @@ type codexTransformResult struct {
 }
 
 const (
-	codexImageGenerationBridgeMarker = "<ikik-api-codex-image-generation>"
-	codexImageGenerationBridgeText   = codexImageGenerationBridgeMarker + "\nWhen the user asks for raster image generation or editing, use the OpenAI Responses native `image_generation` tool attached to this request. The local Codex client may not expose an `image_gen` namespace, but that does not mean image generation is unavailable. Do not ask the user to switch to CLI fallback solely because `image_gen` is absent.\n</ikik-api-codex-image-generation>"
-	codexSparkImageUnsupportedMarker = "<ikik-api-codex-spark-image-unsupported>"
-	codexSparkImageUnsupportedText   = codexSparkImageUnsupportedMarker + "\nThe current model is gpt-5.3-codex-spark, which does not support image generation, image editing, image input, the `image_generation` tool, or Codex `image_gen`/`$imagegen` workflows. If the user asks for image generation or image editing, clearly explain this model limitation and ask them to switch to a non-Spark Codex model such as gpt-5.3-codex or gpt-5.4. Do not claim that the local environment merely lacks image_gen tooling, and do not suggest CLI fallback as the primary fix while the model remains Spark.\n</ikik-api-codex-spark-image-unsupported>"
+	codexImageGenerationFunctionToolName = "image_gen.imagegen"
+	codexImageGenerationBridgeMarker     = "<ikik-api-codex-image-generation>"
+	codexImageGenerationBridgeText       = codexImageGenerationBridgeMarker + "\nWhen the user asks for raster image generation or editing, use the OpenAI Responses native `image_generation` tool attached to this request. The local Codex client may not expose an `image_gen` namespace, but that does not mean image generation is unavailable. Do not ask the user to switch to CLI fallback solely because `image_gen` is absent.\n</ikik-api-codex-image-generation>"
+	codexSparkImageUnsupportedMarker     = "<ikik-api-codex-spark-image-unsupported>"
+	codexSparkImageUnsupportedText       = codexSparkImageUnsupportedMarker + "\nThe current model is gpt-5.3-codex-spark, which does not support image generation, image editing, image input, the `image_generation` tool, or Codex `image_gen`/`$imagegen` workflows. If the user asks for image generation or image editing, clearly explain this model limitation and ask them to switch to a non-Spark Codex model such as gpt-5.3-codex or gpt-5.4. Do not claim that the local environment merely lacks image_gen tooling, and do not suggest CLI fallback as the primary fix while the model remains Spark.\n</ikik-api-codex-spark-image-unsupported>"
 )
 
 var openAIChatGPTInternalUnsupportedFields = []string{
@@ -108,6 +109,7 @@ type codexOAuthTransformOptions struct {
 	IsCompact               bool
 	BlockConnectorTools     bool
 	SkipDefaultInstructions bool
+	PreserveToolCallIDs     bool
 }
 
 func applyCodexOAuthTransform(reqBody map[string]any, isCodexCLI bool, isCompact bool) codexTransformResult {
@@ -246,7 +248,10 @@ func applyCodexOAuthTransformWithOptions(reqBody map[string]any, opts codexOAuth
 			input = normalizedInput
 			result.Modified = true
 		}
-		input = filterCodexInput(input, needsToolContinuation)
+		input = filterCodexInputWithOptions(input, codexInputFilterOptions{
+			PreserveReferences: needsToolContinuation,
+			PreserveCallIDs:    opts.PreserveToolCallIDs,
+		})
 		reqBody["input"] = input
 		result.Modified = true
 	} else if inputStr, ok := reqBody["input"].(string); ok {
@@ -309,11 +314,28 @@ func normalizeCodexToolChoice(reqBody map[string]any) bool {
 		}
 		return modified
 	}
-	if codexToolsContainType(reqBody["tools"], choiceType) {
+	if codexToolsContainType(reqBody["tools"], choiceType) || codexInputAdditionalToolsContainType(reqBody["input"], choiceType) {
 		return modified
 	}
 	reqBody["tool_choice"] = "auto"
 	return true
+}
+
+func codexInputAdditionalToolsContainType(rawInput any, toolType string) bool {
+	input, ok := rawInput.([]any)
+	if !ok || strings.TrimSpace(toolType) == "" {
+		return false
+	}
+	for _, rawItem := range input {
+		item, ok := rawItem.(map[string]any)
+		if !ok || strings.TrimSpace(firstNonEmptyString(item["type"])) != "additional_tools" {
+			continue
+		}
+		if codexToolsContainType(item["tools"], toolType) {
+			return true
+		}
+	}
+	return false
 }
 
 func codexToolsContainType(rawTools any, toolType string) bool {
@@ -511,7 +533,7 @@ func normalizeCodexModel(model string) string {
 	if mapped, ok := normalizeKnownCodexModel(model); ok {
 		return mapped
 	}
-	return "gpt-5.4"
+	return model
 }
 
 func normalizeKnownCodexModel(model string) (string, bool) {
@@ -594,6 +616,10 @@ func hasOpenAIImageGenerationTool(reqBody map[string]any) bool {
 	return inputContainsImageGenerationTool(reqBody["input"])
 }
 
+func hasCodexImageGenerationFunctionTool(reqBody map[string]any) bool {
+	return len(reqBody) > 0 && codexToolsContainFunctionName(reqBody["tools"], codexImageGenerationFunctionToolName)
+}
+
 func toolsContainImageGeneration(rawTools any) bool {
 	tools, ok := rawTools.([]any)
 	if !ok {
@@ -606,6 +632,20 @@ func toolsContainImageGeneration(rawTools any) bool {
 		}
 	}
 	return false
+}
+
+func ensureOpenAIResponsesImageGenerationToolChoiceAuto(reqBody map[string]any) bool {
+	if len(reqBody) == 0 || hasCodexImageGenerationFunctionTool(reqBody) || !hasOpenAIImageGenerationTool(reqBody) {
+		return false
+	}
+	if isCodexSparkModel(firstNonEmptyString(reqBody["model"])) {
+		return false
+	}
+	if _, ok := reqBody["tool_choice"]; ok {
+		return false
+	}
+	reqBody["tool_choice"] = "auto"
+	return true
 }
 
 func isOpenAIImageGenerationToolMap(tool map[string]any) bool {
@@ -634,6 +674,8 @@ func inputContainsImageGenerationTool(rawInput any) bool {
 	return false
 }
 
+// stripOpenAIImageGenerationTools keeps account-level strip policy symmetric
+// across standard Responses tools, Responses Lite additional_tools, and tool_choice.
 func stripOpenAIImageGenerationTools(reqBody map[string]any) bool {
 	if reqBody == nil {
 		return false
@@ -805,6 +847,12 @@ func ensureOpenAIResponsesImageGenerationTool(reqBody map[string]any) bool {
 	if isCodexSparkModel(firstNonEmptyString(reqBody["model"])) {
 		return false
 	}
+	if hasCodexImageGenerationFunctionTool(reqBody) {
+		return false
+	}
+	if hasOpenAIImageGenerationTool(reqBody) {
+		return false
+	}
 
 	tool := map[string]any{
 		"type":          "image_generation",
@@ -822,22 +870,12 @@ func ensureOpenAIResponsesImageGenerationTool(reqBody map[string]any) bool {
 		reqBody["tools"] = []any{tool}
 		return true
 	}
-	for _, rawTool := range tools {
-		toolMap, ok := rawTool.(map[string]any)
-		if !ok {
-			continue
-		}
-		if strings.TrimSpace(firstNonEmptyString(toolMap["type"])) == "image_generation" {
-			return false
-		}
-	}
-
 	reqBody["tools"] = append(tools, tool)
 	return true
 }
 
 func applyCodexImageGenerationBridgeInstructions(reqBody map[string]any) bool {
-	if len(reqBody) == 0 || !hasOpenAIImageGenerationTool(reqBody) {
+	if len(reqBody) == 0 || hasCodexImageGenerationFunctionTool(reqBody) || !hasOpenAIImageGenerationTool(reqBody) {
 		return false
 	}
 	if isCodexSparkModel(firstNonEmptyString(reqBody["model"])) {
@@ -1070,6 +1108,28 @@ func extractSystemMessagesFromInput(reqBody map[string]any) bool {
 	return true
 }
 
+func extractPromptLikeInstructionsFromInput(reqBody map[string]any) string {
+	input, ok := reqBody["input"].([]any)
+	if !ok || len(input) == 0 {
+		return ""
+	}
+	var texts []string
+	for _, item := range input {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		role, _ := m["role"].(string)
+		switch role {
+		case "developer", "system":
+			if text := strings.TrimSpace(extractTextFromContent(m["content"])); text != "" {
+				texts = append(texts, text)
+			}
+		}
+	}
+	return strings.Join(texts, "\n\n")
+}
+
 func defaultCodexSynthInstructions(model string) string {
 	if instructions := strings.TrimSpace(openai.CodexBaseInstructionsForModel(model)); instructions != "" {
 		return instructions
@@ -1172,9 +1232,20 @@ func isInstructionsEmpty(reqBody map[string]any) bool {
 	return strings.TrimSpace(str) == ""
 }
 
+type codexInputFilterOptions struct {
+	PreserveReferences bool
+	PreserveCallIDs    bool
+}
+
 // filterCodexInput 按需过滤 item_reference 与 id。
 // preserveReferences 为 true 时保持引用与 id，以满足续链请求对上下文的依赖。
 func filterCodexInput(input []any, preserveReferences bool) []any {
+	return filterCodexInputWithOptions(input, codexInputFilterOptions{
+		PreserveReferences: preserveReferences,
+	})
+}
+
+func filterCodexInputWithOptions(input []any, opts codexInputFilterOptions) []any {
 	filtered := make([]any, 0, len(input))
 	for _, item := range input {
 		m, ok := item.(map[string]any)
@@ -1184,28 +1255,41 @@ func filterCodexInput(input []any, preserveReferences bool) []any {
 		}
 		typ, _ := m["type"].(string)
 
-		// chatgpt.com codex backend (OAuth path) does not persist reasoning
-		// items because applyCodexOAuthTransform forces store=false. Any rs_*
-		// reference replayed in input is guaranteed to 404 upstream
-		// ("Item with id 'rs_...' not found"). Drop reasoning items entirely.
+		// Under store=false, replaying an rs_* id causes an upstream lookup and
+		// 404. The encrypted_content payload itself is the supported cross-turn
+		// carrier, so keep the reasoning item and remove only its id.
 		if typ == "reasoning" {
+			newItem := make(map[string]any, len(m))
+			for key, value := range m {
+				if key == "id" {
+					continue
+				}
+				newItem[key] = value
+			}
+			if summary, ok := newItem["summary"]; !ok || summary == nil {
+				newItem["summary"] = []any{}
+			}
+			filtered = append(filtered, newItem)
 			continue
 		}
 
 		// 仅修正真正的 tool/function call 标识，避免误改普通 message/reasoning id；
 		// 若 item_reference 指向 legacy call_* 标识，则仅修正该引用本身。
 		fixCallIDPrefix := func(id string) string {
+			if opts.PreserveCallIDs {
+				return id
+			}
 			if id == "" || strings.HasPrefix(id, "fc") {
 				return id
 			}
 			if strings.HasPrefix(id, "call_") {
-				return "fc" + strings.TrimPrefix(id, "call_")
+				return "fc_" + strings.TrimPrefix(id, "call_")
 			}
 			return "fc_" + id
 		}
 
 		if typ == "item_reference" {
-			if !preserveReferences {
+			if !opts.PreserveReferences {
 				continue
 			}
 			newItem := make(map[string]any, len(m))
@@ -1273,9 +1357,19 @@ func filterCodexInput(input []any, preserveReferences bool) []any {
 			}
 		}
 
-		if !preserveReferences {
+		if !opts.PreserveReferences {
 			ensureCopy()
 			delete(newItem, "id")
+		} else if isCodexToolCallInputType(typ) {
+			if id, ok := m["id"].(string); ok && id != "" && !strings.HasPrefix(id, "fc") {
+				ensureCopy()
+				delete(newItem, "id")
+			}
+		} else if typ == "message" {
+			if id, ok := m["id"].(string); ok && id != "" && !strings.HasPrefix(id, "msg") {
+				ensureCopy()
+				delete(newItem, "id")
+			}
 		}
 
 		filtered = append(filtered, newItem)
@@ -1295,6 +1389,22 @@ func isCodexToolCallItemType(typ string) bool {
 		"mcp_tool_call_output",
 		"custom_tool_call_output",
 		"tool_search_output":
+		return true
+	default:
+		return false
+	}
+}
+
+// isCodexToolCallInputType excludes output items whose ids are not constrained
+// by the upstream fc-prefix validation.
+func isCodexToolCallInputType(typ string) bool {
+	switch typ {
+	case "function_call",
+		"tool_call",
+		"local_shell_call",
+		"tool_search_call",
+		"custom_tool_call",
+		"mcp_tool_call":
 		return true
 	default:
 		return false

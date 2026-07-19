@@ -4,15 +4,16 @@ package repository
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/suite"
 	dbent "ikik-api/ent"
 	"ikik-api/ent/authidentity"
 	"ikik-api/ent/authidentitychannel"
 	"ikik-api/internal/pkg/pagination"
 	"ikik-api/internal/service"
-	"github.com/stretchr/testify/suite"
 )
 
 type UserRepoSuite struct {
@@ -158,6 +159,84 @@ func (s *UserRepoSuite) TestUpdate() {
 	updated, err := s.repo.GetByID(s.ctx, user.ID)
 	s.Require().NoError(err, "GetByID after update")
 	s.Require().Equal("updated", updated.Username)
+}
+
+func (s *UserRepoSuite) TestBatchUpdateLimitsUpdatesOnlyProvidedFields() {
+	user := s.mustCreateUser(&service.User{
+		Email:       "batch-limits-one-field@test.com",
+		Concurrency: 4,
+		RPMLimit:    20,
+	})
+	concurrency := 9
+
+	affected, err := s.repo.BatchUpdateLimits(s.ctx, []int64{user.ID}, &concurrency, nil)
+	s.Require().NoError(err)
+	s.Equal(1, affected)
+
+	updated, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Equal(9, updated.Concurrency)
+	s.Equal(20, updated.RPMLimit)
+}
+
+func (s *UserRepoSuite) TestBatchUpdateLimitsUpdatesBothFieldsToZero() {
+	user := s.mustCreateUser(&service.User{
+		Email:       "batch-limits-zero@test.com",
+		Concurrency: 4,
+		RPMLimit:    20,
+	})
+	zero := 0
+
+	affected, err := s.repo.BatchUpdateLimits(s.ctx, []int64{user.ID}, &zero, &zero)
+	s.Require().NoError(err)
+	s.Equal(1, affected)
+
+	updated, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Zero(updated.Concurrency)
+	s.Zero(updated.RPMLimit)
+}
+
+func (s *UserRepoSuite) TestBatchUpdateLimitsIgnoresDeletedUsersAndReturnsAffectedRows() {
+	active := s.mustCreateUser(&service.User{Email: "batch-limits-active@test.com", RPMLimit: 10})
+	deleted := s.mustCreateUser(&service.User{Email: "batch-limits-deleted@test.com", RPMLimit: 10})
+	s.Require().NoError(s.client.User.DeleteOneID(deleted.ID).Exec(s.ctx))
+	rpmLimit := 45
+
+	affected, err := s.repo.BatchUpdateLimits(s.ctx, []int64{active.ID, deleted.ID}, nil, &rpmLimit)
+	s.Require().NoError(err)
+	s.Equal(1, affected)
+
+	updatedActive, err := s.repo.GetByID(s.ctx, active.ID)
+	s.Require().NoError(err)
+	s.Equal(45, updatedActive.RPMLimit)
+	updatedDeleted, err := s.repo.GetByIDIncludeDeleted(s.ctx, deleted.ID)
+	s.Require().NoError(err)
+	s.Equal(10, updatedDeleted.RPMLimit)
+}
+
+func (s *UserRepoSuite) TestListWithFiltersIncludesDeletedUsersOnDemand() {
+	active := s.mustCreateUser(&service.User{Email: "include-deleted-active@test.com"})
+	deleted := s.mustCreateUser(&service.User{Email: "include-deleted-deleted@test.com"})
+	s.Require().NoError(s.client.User.DeleteOneID(deleted.ID).Exec(s.ctx))
+
+	params := pagination.PaginationParams{Page: 1, PageSize: 50, SortBy: "email", SortOrder: "asc"}
+	users, result, err := s.repo.ListWithFilters(
+		s.ctx,
+		params,
+		service.UserListFilters{Search: "include-deleted-", IncludeDeleted: true},
+	)
+	s.Require().NoError(err)
+	s.Len(users, 2)
+	s.EqualValues(2, result.Total)
+
+	usersByID := make(map[int64]service.User, len(users))
+	for _, user := range users {
+		usersByID[user.ID] = user
+	}
+	s.Contains(usersByID, active.ID)
+	s.Contains(usersByID, deleted.ID)
+	s.NotNil(usersByID[deleted.ID].DeletedAt)
 }
 
 func (s *UserRepoSuite) TestUpdateIgnoresNoRowsFromConflictingEmailIdentityUpsert() {
@@ -353,6 +432,29 @@ func (s *UserRepoSuite) TestUpdateBalance_Negative() {
 	s.Require().InDelta(7.0, got.Balance, 1e-6)
 }
 
+func (s *UserRepoSuite) TestApplyRedeemBalanceAdjustment_ConcurrentNeverNegative() {
+	user := s.mustCreateUser(&service.User{Email: "redeem-bal-concurrent@test.com", Balance: 10})
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs <- s.repo.ApplyRedeemBalanceAdjustment(context.Background(), user.ID, -7)
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		s.Require().NoError(err)
+	}
+
+	got, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Require().InDelta(0, got.Balance, 1e-6)
+}
+
 func (s *UserRepoSuite) TestDeductBalance() {
 	user := s.mustCreateUser(&service.User{Email: "deduct@test.com", Balance: 10})
 
@@ -423,6 +525,29 @@ func (s *UserRepoSuite) TestUpdateConcurrency_Negative() {
 	got, err := s.repo.GetByID(s.ctx, user.ID)
 	s.Require().NoError(err)
 	s.Require().Equal(3, got.Concurrency)
+}
+
+func (s *UserRepoSuite) TestApplyRedeemConcurrencyAdjustment_ConcurrentNeverNegative() {
+	user := s.mustCreateUser(&service.User{Email: "redeem-concurrency-concurrent@test.com", Concurrency: 10})
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs <- s.repo.ApplyRedeemConcurrencyAdjustment(context.Background(), user.ID, -7)
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		s.Require().NoError(err)
+	}
+
+	got, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(0, got.Concurrency)
 }
 
 // --- ExistsByEmail ---

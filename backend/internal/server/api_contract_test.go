@@ -553,6 +553,7 @@ func TestAPIContracts(t *testing.T) {
 						"total_cost": 0.5,
 						"actual_cost": 0.5,
 						"rate_multiplier": 1,
+						"long_context_billing_applied": false,
 						"billing_type": 0,
 							"stream": true,
 							"duration_ms": 100,
@@ -733,6 +734,7 @@ func TestAPIContracts(t *testing.T) {
 					"affiliate_rebate_freeze_hours": 0,
 					"affiliate_rebate_duration_days": 0,
 					"affiliate_rebate_per_invitee_cap": 0,
+					"affiliate_admin_recharge_enabled": false,
 					"default_user_rpm_limit": 0,
 					"default_subscriptions": [],
 					"enable_model_fallback": false,
@@ -762,6 +764,8 @@ func TestAPIContracts(t *testing.T) {
 					"payment_visible_method_wxpay_source": "official_wxpay",
 					"payment_visible_method_alipay_enabled": true,
 					"payment_visible_method_wxpay_enabled": false,
+					"openai_low_upstream_rate_priority_enabled": true,
+					"openai_oauth_scheduling_rate_multiplier": 0.05,
 					"openai_advanced_scheduler_enabled": true,
 					"openai_free_account_repair_enabled": false,
 					"openai_free_account_repair_weekly_threshold_usd": 60,
@@ -942,6 +946,7 @@ func TestAPIContracts(t *testing.T) {
 					"affiliate_rebate_freeze_hours": 0,
 					"affiliate_rebate_duration_days": 0,
 					"affiliate_rebate_per_invitee_cap": 0,
+					"affiliate_admin_recharge_enabled": false,
 					"default_user_rpm_limit": 0,
 					"default_subscriptions": [],
 					"enable_model_fallback": false,
@@ -968,6 +973,8 @@ func TestAPIContracts(t *testing.T) {
 					"payment_visible_method_wxpay_source": "",
 					"payment_visible_method_alipay_enabled": false,
 					"payment_visible_method_wxpay_enabled": false,
+					"openai_low_upstream_rate_priority_enabled": false,
+					"openai_oauth_scheduling_rate_multiplier": 1,
 					"openai_advanced_scheduler_enabled": false,
 					"openai_free_account_repair_enabled": false,
 					"openai_free_account_repair_weekly_threshold_usd": 60,
@@ -1549,11 +1556,23 @@ func (stubGroupRepo) UpdateSortOrders(ctx context.Context, updates []service.Gro
 	return nil
 }
 
+func (stubGroupRepo) FindByDuplicateOperationID(ctx context.Context, operationID string) (*service.Group, error) {
+	return nil, nil
+}
+
+func (stubGroupRepo) CreateFromSource(ctx context.Context, group *service.Group, sourceGroupID int64) error {
+	return errors.New("not implemented")
+}
+
 type stubAccountRepo struct {
 	bulkUpdateIDs []int64
 }
 
 func (s *stubAccountRepo) Create(ctx context.Context, account *service.Account) error {
+	return errors.New("not implemented")
+}
+
+func (s *stubAccountRepo) CreateWithAccountGroups(ctx context.Context, account *service.Account, groups []service.AccountGroup) error {
 	return errors.New("not implemented")
 }
 
@@ -1669,7 +1688,7 @@ func (s *stubAccountRepo) SetRateLimited(ctx context.Context, id int64, resetAt 
 	return errors.New("not implemented")
 }
 
-func (s *stubAccountRepo) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time) error {
+func (s *stubAccountRepo) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time, _ ...string) error {
 	return errors.New("not implemented")
 }
 
@@ -1945,13 +1964,16 @@ func (stubUserSubscriptionRepo) UpdateNotes(ctx context.Context, subscriptionID 
 func (stubUserSubscriptionRepo) ActivateWindows(ctx context.Context, id int64, start time.Time) error {
 	return errors.New("not implemented")
 }
-func (stubUserSubscriptionRepo) ResetDailyUsage(ctx context.Context, id int64, newWindowStart time.Time) error {
+func (stubUserSubscriptionRepo) ResetUsageWindows(ctx context.Context, id int64, resetDaily, resetWeekly, resetMonthly bool, newWindowStart time.Time) error {
 	return errors.New("not implemented")
 }
-func (stubUserSubscriptionRepo) ResetWeeklyUsage(ctx context.Context, id int64, newWindowStart time.Time) error {
+func (stubUserSubscriptionRepo) ResetDailyUsage(ctx context.Context, id int64, expectedWindowStart *time.Time, newWindowStart time.Time) error {
 	return errors.New("not implemented")
 }
-func (stubUserSubscriptionRepo) ResetMonthlyUsage(ctx context.Context, id int64, newWindowStart time.Time) error {
+func (stubUserSubscriptionRepo) ResetWeeklyUsage(ctx context.Context, id int64, expectedWindowStart *time.Time, newWindowStart time.Time) error {
+	return errors.New("not implemented")
+}
+func (stubUserSubscriptionRepo) ResetMonthlyUsage(ctx context.Context, id int64, expectedWindowStart *time.Time, newWindowStart time.Time) error {
 	return errors.New("not implemented")
 }
 func (stubUserSubscriptionRepo) IncrementUsage(ctx context.Context, id int64, costUSD float64) error {

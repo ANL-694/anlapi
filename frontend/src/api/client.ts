@@ -6,6 +6,12 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import type { ApiResponse } from '@/types'
 import { getLocale } from '@/i18n'
+import {
+  ADMIN_UI_REQUEST_HEADER,
+  USER_UI_REQUEST_HEADER,
+  shouldMarkAdminUIRequest,
+  shouldMarkUserUIRequest
+} from './adminUIRequest'
 
 // ==================== Axios Instance Configuration ====================
 
@@ -129,6 +135,16 @@ apiClient.interceptors.request.use(
         config.params = {}
       }
       config.params.timezone = getUserTimezone()
+    }
+
+    if (config.headers) {
+      const requestURL = String(config.url || '')
+      if (shouldMarkAdminUIRequest(requestURL)) {
+        config.headers[ADMIN_UI_REQUEST_HEADER] = '1'
+      }
+      if (shouldMarkUserUIRequest(requestURL)) {
+        config.headers[USER_UI_REQUEST_HEADER] = '1'
+      }
     }
 
     return config

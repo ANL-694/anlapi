@@ -66,6 +66,7 @@ func (h *OpenAIGatewayHandler) CountTokens(c *gin.Context) {
 		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
 		return
 	}
+	body = parsedReq.Body.Bytes()
 	if parsedReq.Model == "" {
 		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "model is required")
 		return
@@ -83,7 +84,7 @@ func (h *OpenAIGatewayHandler) CountTokens(c *gin.Context) {
 	mappedBodyForMessages := newOpenAIModelMappedBodyCache(body, h.gatewayService.ReplaceModelInBody)
 
 	subscription, _ := middleware2.GetSubscriptionFromContext(c)
-	if err := h.billingCacheService.CheckBillingEligibility(c.Request.Context(), apiKey.User, apiKey, apiKey.Group, subscription); err != nil {
+	if err := h.billingCacheService.CheckBillingEligibility(c.Request.Context(), apiKey.User, apiKey, apiKey.Group, subscription, service.QuotaPlatform(c.Request.Context(), apiKey)); err != nil {
 		reqLog.Info("openai_count_tokens.billing_eligibility_check_failed", zap.Error(err))
 		status, code, message, retryAfter := billingErrorDetails(err)
 		if retryAfter > 0 {
@@ -109,6 +110,8 @@ func (h *OpenAIGatewayHandler) CountTokens(c *gin.Context) {
 		nil,
 		service.OpenAIUpstreamTransportAny,
 		service.OpenAIEndpointCapabilityChatCompletions,
+		false,
+		false,
 		false,
 		requestPlatform,
 	)

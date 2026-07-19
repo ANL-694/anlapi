@@ -1496,6 +1496,56 @@
                   :disabled="!form.totp_encryption_key_configured"
                 />
               </div>
+
+              <!-- 敏感操作 step-up 2FA -->
+              <div
+                class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
+              >
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">{{
+                    t("admin.settings.security.stepUp")
+                  }}</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.security.stepUpHint") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.step_up_enabled" />
+              </div>
+
+              <!-- 会话 IP/UA 绑定 -->
+              <div
+                class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
+              >
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">{{
+                    t("admin.settings.security.sessionBinding")
+                  }}</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.security.sessionBindingHint") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.session_binding_enabled" />
+              </div>
+
+              <!-- 审计日志保留天数 -->
+              <div
+                class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
+              >
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">{{
+                    t("admin.settings.security.auditRetention")
+                  }}</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.security.auditRetentionHint") }}
+                  </p>
+                </div>
+                <input
+                  v-model.number="form.audit_log_retention_days"
+                  type="number"
+                  min="0"
+                  class="input w-28 text-right"
+                />
+              </div>
             </div>
           </div>
 
@@ -2776,6 +2826,18 @@
               <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
                 <div class="mb-4">
                   <label class="font-medium text-gray-900 dark:text-white">
+                    {{ t("admin.settings.platformQuotas.defaultTitle") }}
+                  </label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.platformQuotas.defaultHint") }}
+                  </p>
+                </div>
+                <PlatformQuotaLimitEditor v-model="form.default_platform_quotas" />
+              </div>
+
+              <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                <div class="mb-4">
+                  <label class="font-medium text-gray-900 dark:text-white">
                     {{ t("admin.settings.defaults.privateGroupTemplate") }}
                   </label>
                   <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -3085,6 +3147,20 @@
                       </div>
                     </div>
 
+                    <div>
+                      <div class="mb-3">
+                        <label class="font-medium text-gray-900 dark:text-white">
+                          {{ t("admin.settings.platformQuotas.sourceTitle") }}
+                        </label>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                          {{ t("admin.settings.platformQuotas.sourceHint") }}
+                        </p>
+                      </div>
+                      <PlatformQuotaLimitEditor
+                        v-model="authSourceDefaults[authSource.source].platform_quotas"
+                      />
+                    </div>
+
                     <div
                       class="flex items-center justify-between rounded border border-gray-200 px-4 py-3 dark:border-dark-700"
                     >
@@ -3351,7 +3427,61 @@
                 <Toggle v-model="form.allow_ungrouped_key_scheduling" />
               </div>
 
-              <div class="flex items-center justify-between">
+              <div
+                v-if="!form.openai_advanced_scheduler_enabled"
+                class="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-dark-700"
+              >
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.openaiExperimentalScheduler.lowRatePriorityTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      t("admin.settings.openaiExperimentalScheduler.lowRatePriorityDescription")
+                    }}
+                  </p>
+                </div>
+                <Toggle
+                  v-model="form.openai_low_upstream_rate_priority_enabled"
+                  data-testid="openai-low-rate-priority-toggle"
+                />
+              </div>
+
+              <div
+                v-if="!form.openai_advanced_scheduler_enabled && form.openai_low_upstream_rate_priority_enabled"
+                class="flex flex-col items-stretch gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6 dark:border-dark-700"
+              >
+                <div class="min-w-0">
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    for="openai-oauth-scheduling-rate-multiplier"
+                  >
+                    {{ t("admin.settings.openaiExperimentalScheduler.oauthRateTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.openaiExperimentalScheduler.oauthRatePriorityDescription") }}
+                  </p>
+                </div>
+                <div class="relative w-full shrink-0 sm:w-32">
+                  <input
+                    id="openai-oauth-scheduling-rate-multiplier"
+                    v-model.number="form.openai_oauth_scheduling_rate_multiplier"
+                    class="input pr-8"
+                    data-testid="openai-oauth-scheduling-rate-multiplier"
+                    min="0"
+                    required
+                    step="0.01"
+                    type="number"
+                  />
+                  <span
+                    class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"
+                  >x</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-dark-700">
                 <div>
                   <label
                     class="text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -3364,7 +3494,104 @@
                     }}
                   </p>
                 </div>
-                <Toggle v-model="form.openai_advanced_scheduler_enabled" />
+                <Toggle
+                  v-model="form.openai_advanced_scheduler_enabled"
+                  data-testid="openai-advanced-scheduler-toggle"
+                />
+              </div>
+
+              <div
+                v-if="form.openai_advanced_scheduler_enabled"
+                class="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-dark-700"
+              >
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.openaiExperimentalScheduler.stickyWeightedTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.openaiExperimentalScheduler.stickyWeightedDescription") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.openai_advanced_scheduler_sticky_weighted_enabled" />
+              </div>
+
+              <div
+                v-if="form.openai_advanced_scheduler_enabled"
+                class="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-dark-700"
+              >
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.openaiExperimentalScheduler.subscriptionPriorityTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.openaiExperimentalScheduler.subscriptionPriorityDescription") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.openai_advanced_scheduler_subscription_priority_enabled" />
+              </div>
+
+              <div
+                v-if="form.openai_advanced_scheduler_enabled"
+                class="flex flex-col items-stretch gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6 dark:border-dark-700"
+              >
+                <div class="min-w-0">
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    for="openai-oauth-scheduling-rate-multiplier"
+                  >
+                    {{ t("admin.settings.openaiExperimentalScheduler.oauthRateTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.openaiExperimentalScheduler.oauthRateWeightedDescription") }}
+                  </p>
+                </div>
+                <div class="relative w-full shrink-0 sm:w-32">
+                  <input
+                    id="openai-oauth-scheduling-rate-multiplier"
+                    v-model.number="form.openai_oauth_scheduling_rate_multiplier"
+                    class="input pr-8"
+                    data-testid="openai-oauth-scheduling-rate-multiplier"
+                    min="0"
+                    required
+                    step="0.01"
+                    type="number"
+                  />
+                  <span
+                    class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"
+                  >x</span>
+                </div>
+              </div>
+
+              <div
+                v-if="form.openai_advanced_scheduler_enabled"
+                class="border-t border-gray-100 pt-5 dark:border-dark-700"
+              >
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.openaiExperimentalScheduler.weightsTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.openaiExperimentalScheduler.weightsDescription") }}
+                  </p>
+                </div>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                  <label
+                    v-for="field in openAIAdvancedSchedulerWeightFields"
+                    :key="field.key"
+                    class="block"
+                  >
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {{ field.label }}
+                    </span>
+                    <input
+                      v-model="form[field.key]"
+                      class="input mt-1"
+                      inputmode="decimal"
+                      :placeholder="field.placeholder"
+                      type="text"
+                    />
+                  </label>
+                </div>
               </div>
 
               <div class="flex items-center justify-between">
@@ -5543,6 +5770,18 @@
             </div>
 
             <div v-if="form.affiliate_enabled" class="space-y-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.features.affiliate.adminRechargeRebate') }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('admin.settings.features.affiliate.adminRechargeRebateHint') }}
+                  </p>
+                </div>
+                <Toggle v-model="form.affiliate_admin_recharge_enabled" />
+              </div>
+
               <div>
                 <label class="input-label">
                   {{ t('admin.settings.features.affiliate.durationDays') }}
@@ -7143,6 +7382,8 @@
         @close="emailBroadcastDialogOpen = false"
         @sent="emailBroadcastDialogOpen = false"
       />
+
+      <TotpStepUpDialog :controller="settingsStepUp" />
     </div>
   </AppLayout>
 </template>
@@ -7159,6 +7400,10 @@ import {
   normalizeDefaultSubscriptionSettings,
   resolveWeChatConnectModeCapabilities,
 } from "@/api/admin/settings";
+import {
+  createEmptyPlatformQuotaLimitSettings,
+  normalizePlatformQuotaLimitSettings,
+} from "@/api/platformQuotas";
 import type {
   AutoModelRule,
   AutoModelSettings,
@@ -7190,12 +7435,20 @@ import PaymentProviderDialog from "@/components/payment/PaymentProviderDialog.vu
 import EmailBroadcastDialog from "@/components/admin/email-broadcasts/EmailBroadcastDialog.vue";
 import GroupBadge from "@/components/common/GroupBadge.vue";
 import GroupOptionItem from "@/components/common/GroupOptionItem.vue";
+import PlatformQuotaLimitEditor from "@/components/quota/PlatformQuotaLimitEditor.vue";
 import ModelWhitelistSelector from "@/components/account/ModelWhitelistSelector.vue";
 import Toggle from "@/components/common/Toggle.vue";
 import ProxySelector from "@/components/common/ProxySelector.vue";
 import ImageUpload from "@/components/common/ImageUpload.vue";
 import BackupSettings from "@/views/admin/BackupView.vue";
 import { useClipboard } from "@/composables/useClipboard";
+import {
+  useStepUp,
+  isStepUpCancelled,
+  isStepUpBlocked,
+  stepUpBlockReason,
+} from "@/composables/useStepUp";
+import TotpStepUpDialog from "@/components/auth/TotpStepUpDialog.vue";
 import { affiliatesAPI, type AffiliateAdminEntry, type SimpleUser as AffiliateSimpleUser } from "@/api/admin/affiliates";
 import { extractApiErrorMessage, extractI18nErrorMessage } from "@/utils/apiError";
 import { useAppStore } from "@/stores";
@@ -7210,6 +7463,7 @@ import {
 
 const { t, locale } = useI18n();
 const appStore = useAppStore();
+const settingsStepUp = useStepUp();
 const adminSettingsStore = useAdminSettingsStore();
 const isZhLocale = computed(() => locale.value.startsWith("zh"));
 
@@ -7460,7 +7714,22 @@ type SettingsForm = Omit<
   google_oauth_client_secret: string;
   payment_receipt_code_oss_secret_access_key: string;
   force_email_on_third_party_signup: boolean;
+  openai_low_upstream_rate_priority_enabled: boolean;
+  openai_oauth_scheduling_rate_multiplier: number;
   openai_advanced_scheduler_enabled: boolean;
+  openai_advanced_scheduler_sticky_weighted_enabled: boolean;
+  openai_advanced_scheduler_subscription_priority_enabled: boolean;
+  openai_advanced_scheduler_lb_top_k: string;
+  openai_advanced_scheduler_weight_priority: string;
+  openai_advanced_scheduler_weight_load: string;
+  openai_advanced_scheduler_weight_queue: string;
+  openai_advanced_scheduler_weight_error_rate: string;
+  openai_advanced_scheduler_weight_ttft: string;
+  openai_advanced_scheduler_weight_reset: string;
+  openai_advanced_scheduler_weight_quota_headroom: string;
+  openai_advanced_scheduler_weight_upstream_cost: string;
+  openai_advanced_scheduler_weight_previous_response: string;
+  openai_advanced_scheduler_weight_session_sticky: string;
   openai_free_account_repair_enabled: boolean;
   openai_free_account_repair_weekly_threshold_usd: number;
   auto_model_settings: AutoModelSettings;
@@ -7476,6 +7745,9 @@ const form = reactive<SettingsForm>({
   totp_enabled: false,
   totp_encryption_key_configured: false,
   api_key_acl_trust_forwarded_ip: false,
+  session_binding_enabled: false,
+  step_up_enabled: false,
+  audit_log_retention_days: 30,
   login_agreement_enabled: false,
   login_agreement_mode: "modal",
   login_agreement_updated_at: "2026-03-31",
@@ -7485,8 +7757,10 @@ const form = reactive<SettingsForm>({
   affiliate_rebate_freeze_hours: 0,
   affiliate_rebate_duration_days: 0,
   affiliate_rebate_per_invitee_cap: 0,
+  affiliate_admin_recharge_enabled: false,
   default_concurrency: 1,
   default_subscriptions: [],
+  default_platform_quotas: createEmptyPlatformQuotaLimitSettings(),
   force_email_on_third_party_signup: false,
   default_user_rpm_limit: 0,
   user_private_group_daily_limit_usd: null,
@@ -7650,7 +7924,22 @@ const form = reactive<SettingsForm>({
   max_claude_code_version: "",
   // 分组隔离
   allow_ungrouped_key_scheduling: false,
+  openai_low_upstream_rate_priority_enabled: false,
+  openai_oauth_scheduling_rate_multiplier: 1,
   openai_advanced_scheduler_enabled: false,
+  openai_advanced_scheduler_sticky_weighted_enabled: false,
+  openai_advanced_scheduler_subscription_priority_enabled: false,
+  openai_advanced_scheduler_lb_top_k: "",
+  openai_advanced_scheduler_weight_priority: "",
+  openai_advanced_scheduler_weight_load: "",
+  openai_advanced_scheduler_weight_queue: "",
+  openai_advanced_scheduler_weight_error_rate: "",
+  openai_advanced_scheduler_weight_ttft: "",
+  openai_advanced_scheduler_weight_reset: "",
+  openai_advanced_scheduler_weight_quota_headroom: "",
+  openai_advanced_scheduler_weight_upstream_cost: "",
+  openai_advanced_scheduler_weight_previous_response: "",
+  openai_advanced_scheduler_weight_session_sticky: "",
   openai_free_account_repair_enabled: false,
   openai_free_account_repair_weekly_threshold_usd: 60,
   // Gateway forwarding behavior
@@ -7710,6 +7999,110 @@ const form = reactive<SettingsForm>({
   affiliate_enabled: false,
   // Risk control feature switch
   risk_control_enabled: false,
+});
+
+type OpenAIAdvancedSchedulerOverrideKey =
+  | "openai_advanced_scheduler_lb_top_k"
+  | "openai_advanced_scheduler_weight_priority"
+  | "openai_advanced_scheduler_weight_load"
+  | "openai_advanced_scheduler_weight_queue"
+  | "openai_advanced_scheduler_weight_error_rate"
+  | "openai_advanced_scheduler_weight_ttft"
+  | "openai_advanced_scheduler_weight_reset"
+  | "openai_advanced_scheduler_weight_quota_headroom"
+  | "openai_advanced_scheduler_weight_upstream_cost"
+  | "openai_advanced_scheduler_weight_previous_response"
+  | "openai_advanced_scheduler_weight_session_sticky";
+
+type OpenAIAdvancedSchedulerEffectiveKey =
+  | "openai_advanced_scheduler_effective_lb_top_k"
+  | "openai_advanced_scheduler_effective_weight_priority"
+  | "openai_advanced_scheduler_effective_weight_load"
+  | "openai_advanced_scheduler_effective_weight_queue"
+  | "openai_advanced_scheduler_effective_weight_error_rate"
+  | "openai_advanced_scheduler_effective_weight_ttft"
+  | "openai_advanced_scheduler_effective_weight_reset"
+  | "openai_advanced_scheduler_effective_weight_quota_headroom"
+  | "openai_advanced_scheduler_effective_weight_upstream_cost"
+  | "openai_advanced_scheduler_effective_weight_previous_response"
+  | "openai_advanced_scheduler_effective_weight_session_sticky";
+
+const openAIAdvancedSchedulerWeightFields = computed<
+  Array<{
+    key: OpenAIAdvancedSchedulerOverrideKey;
+    label: string;
+    placeholder: string;
+  }>
+>(() => {
+  const placeholder = (
+    effectiveKey: OpenAIAdvancedSchedulerEffectiveKey,
+    fallbackValue: string,
+  ) => {
+    const effectiveValue = String(
+      (form as Record<string, unknown>)[effectiveKey] ?? "",
+    ).trim();
+    return t("admin.settings.openaiExperimentalScheduler.defaultPlaceholder", {
+      value: effectiveValue || fallbackValue,
+    });
+  };
+
+  return [
+    {
+      key: "openai_advanced_scheduler_lb_top_k",
+      label: t("admin.settings.openaiExperimentalScheduler.topKLabel"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_lb_top_k", "7"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_priority",
+      label: t("admin.settings.openaiExperimentalScheduler.priorityWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_priority", "1"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_load",
+      label: t("admin.settings.openaiExperimentalScheduler.loadWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_load", "1"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_queue",
+      label: t("admin.settings.openaiExperimentalScheduler.queueWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_queue", "0.7"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_error_rate",
+      label: t("admin.settings.openaiExperimentalScheduler.errorRateWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_error_rate", "0.8"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_ttft",
+      label: t("admin.settings.openaiExperimentalScheduler.ttftWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_ttft", "0.5"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_reset",
+      label: t("admin.settings.openaiExperimentalScheduler.resetWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_reset", "0"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_quota_headroom",
+      label: t("admin.settings.openaiExperimentalScheduler.quotaHeadroomWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_quota_headroom", "0"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_upstream_cost",
+      label: t("admin.settings.openaiExperimentalScheduler.upstreamCostWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_upstream_cost", "0"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_previous_response",
+      label: t("admin.settings.openaiExperimentalScheduler.previousResponseWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_previous_response", "5"),
+    },
+    {
+      key: "openai_advanced_scheduler_weight_session_sticky",
+      label: t("admin.settings.openaiExperimentalScheduler.sessionStickyWeight"),
+      placeholder: placeholder("openai_advanced_scheduler_effective_weight_session_sticky", "3"),
+    },
+  ];
 });
 
 const authSourceDefaults = reactive<AuthSourceDefaultsState>(
@@ -8578,6 +8971,9 @@ async function loadSettings() {
           }))
         : defaultLoginAgreementDocuments();
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(settings));
+    form.default_platform_quotas = normalizePlatformQuotaLimitSettings(
+      settings.default_platform_quotas,
+    );
     form.backend_mode_enabled = settings.backend_mode_enabled;
     form.default_subscriptions = normalizeDefaultSubscriptionSettings(
       settings.default_subscriptions,
@@ -8855,6 +9251,10 @@ async function saveSettings() {
     const normalizedDefaultSubscriptions = normalizeDefaultSubscriptionSettings(
       form.default_subscriptions,
     );
+    const normalizedDefaultPlatformQuotas = normalizePlatformQuotaLimitSettings(
+      form.default_platform_quotas,
+    );
+    form.default_platform_quotas = normalizedDefaultPlatformQuotas;
     const duplicateDefaultSubscription = findDuplicateDefaultSubscription(
       normalizedDefaultSubscriptions,
     );
@@ -8944,6 +9344,9 @@ async function saveSettings() {
       password_reset_enabled: form.password_reset_enabled,
       totp_enabled: form.totp_enabled,
       api_key_acl_trust_forwarded_ip: form.api_key_acl_trust_forwarded_ip,
+      session_binding_enabled: form.session_binding_enabled,
+      step_up_enabled: form.step_up_enabled,
+      audit_log_retention_days: Math.max(0, Math.floor(Number(form.audit_log_retention_days) || 0)),
       login_agreement_enabled: form.login_agreement_enabled,
       login_agreement_mode: form.login_agreement_mode,
       login_agreement_updated_at: form.login_agreement_updated_at,
@@ -8952,6 +9355,7 @@ async function saveSettings() {
       affiliate_rebate_duration_days: Math.max(0, Math.min(3650, Math.floor(Number(form.affiliate_rebate_duration_days) || 0))),
       default_concurrency: form.default_concurrency,
       default_subscriptions: normalizedDefaultSubscriptions,
+      default_platform_quotas: normalizedDefaultPlatformQuotas,
       force_email_on_third_party_signup: form.force_email_on_third_party_signup,
       default_user_rpm_limit: form.default_user_rpm_limit,
       user_private_group_daily_limit_usd: positiveNumberOrZero(
@@ -9113,7 +9517,37 @@ async function saveSettings() {
       payment_cancel_rate_limit_unit: form.payment_cancel_rate_limit_unit,
       payment_cancel_rate_limit_window_mode:
         form.payment_cancel_rate_limit_window_mode,
+      openai_low_upstream_rate_priority_enabled:
+        form.openai_low_upstream_rate_priority_enabled,
+      openai_oauth_scheduling_rate_multiplier:
+        form.openai_oauth_scheduling_rate_multiplier,
       openai_advanced_scheduler_enabled: form.openai_advanced_scheduler_enabled,
+      openai_advanced_scheduler_sticky_weighted_enabled:
+        form.openai_advanced_scheduler_sticky_weighted_enabled,
+      openai_advanced_scheduler_subscription_priority_enabled:
+        form.openai_advanced_scheduler_subscription_priority_enabled,
+      openai_advanced_scheduler_lb_top_k:
+        form.openai_advanced_scheduler_lb_top_k.trim(),
+      openai_advanced_scheduler_weight_priority:
+        form.openai_advanced_scheduler_weight_priority.trim(),
+      openai_advanced_scheduler_weight_load:
+        form.openai_advanced_scheduler_weight_load.trim(),
+      openai_advanced_scheduler_weight_queue:
+        form.openai_advanced_scheduler_weight_queue.trim(),
+      openai_advanced_scheduler_weight_error_rate:
+        form.openai_advanced_scheduler_weight_error_rate.trim(),
+      openai_advanced_scheduler_weight_ttft:
+        form.openai_advanced_scheduler_weight_ttft.trim(),
+      openai_advanced_scheduler_weight_reset:
+        form.openai_advanced_scheduler_weight_reset.trim(),
+      openai_advanced_scheduler_weight_quota_headroom:
+        form.openai_advanced_scheduler_weight_quota_headroom.trim(),
+      openai_advanced_scheduler_weight_upstream_cost:
+        form.openai_advanced_scheduler_weight_upstream_cost.trim(),
+      openai_advanced_scheduler_weight_previous_response:
+        form.openai_advanced_scheduler_weight_previous_response.trim(),
+      openai_advanced_scheduler_weight_session_sticky:
+        form.openai_advanced_scheduler_weight_session_sticky.trim(),
       openai_free_account_repair_enabled:
         form.openai_free_account_repair_enabled,
       openai_free_account_repair_weekly_threshold_usd:
@@ -9149,6 +9583,7 @@ async function saveSettings() {
       ),
       // Affiliate (邀请返利) feature switch
       affiliate_enabled: form.affiliate_enabled,
+      affiliate_admin_recharge_enabled: form.affiliate_admin_recharge_enabled,
     };
 
     // 仅当 openai_fast_policy_settings 已成功从后端加载时才回写，
@@ -9183,7 +9618,9 @@ async function saveSettings() {
 
     appendAuthSourceDefaultsToUpdateRequest(payload, authSourceDefaults);
 
-    const updated = await adminAPI.settings.updateSettings(payload);
+    const updated = await settingsStepUp.run(() =>
+      adminAPI.settings.updateSettings(payload),
+    );
     for (const [key, value] of Object.entries(updated)) {
       if (key === "openai_fast_policy_settings") continue;
       if (value !== null && value !== undefined) {
@@ -9253,6 +9690,24 @@ async function saveSettings() {
       appStore.showSuccess(t("admin.settings.settingsSaved"));
     }
   } catch (error: unknown) {
+    if (isStepUpCancelled(error)) {
+      return;
+    }
+    if (isStepUpBlocked(error)) {
+      appStore.showError(
+        stepUpBlockReason(error) === "STEP_UP_ADMIN_API_KEY_FORBIDDEN"
+          ? t("stepUp.adminApiKeyForbidden")
+          : t("stepUp.notEnabled"),
+      );
+      return;
+    }
+    if (
+      (error as { reason?: string })?.reason ===
+      "STEP_UP_ENABLE_REQUIRES_TOTP"
+    ) {
+      appStore.showError(t("admin.settings.security.stepUpEnableRequiresTotp"));
+      return;
+    }
     appStore.showError(
       extractApiErrorMessage(error, t("admin.settings.failedToSave")),
     );

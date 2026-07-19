@@ -444,6 +444,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/audit-logs',
+    name: 'AdminAuditLogs',
+    component: () => import('@/views/admin/AuditLogView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Audit Logs',
+      titleKey: 'admin.audit.title',
+      descriptionKey: 'admin.audit.description'
+    }
+  },
+  {
     path: '/admin/users',
     name: 'AdminUsers',
     component: () => import('@/views/admin/UsersView.vue'),
@@ -681,6 +693,19 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/prompt-audit',
+    name: 'AdminPromptAudit',
+    component: () => import('@/features/prompt-audit/PromptAuditView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Prompt Audit',
+      titleKey: 'admin.promptAudit.title',
+      descriptionKey: 'admin.promptAudit.description',
+      requiresRiskControl: true
+    }
+  },
+  {
     path: '/admin/usage',
     name: 'AdminUsage',
     component: () => import('@/views/admin/UsageView.vue'),
@@ -909,30 +934,34 @@ router.beforeEach(async (to, _from, next) => {
   }
 
 
-  // Check payment requirement. The purchase page can be backed by either
-  // internal payment orders or an external card-code store URL.
-  if (to.meta.requiresPayment) {
-    if (!appStore.publicSettingsLoaded && !appStore.cachedPublicSettings) {
+  if ((to.meta.requiresPayment || to.meta.requiresRiskControl) && !appStore.publicSettingsLoaded) {
+    try {
       await appStore.fetchPublicSettings()
+    } catch (error) {
+      console.warn('Failed to load public settings in route guard', error)
     }
+  }
+
+  // A transient settings failure is an unknown state. Only a successfully
+  // loaded, explicit feature toggle may block navigation.
+  if (to.meta.requiresPayment && appStore.publicSettingsLoaded) {
     const publicSettings = appStore.cachedPublicSettings
-    const paymentEnabled = publicSettings?.payment_enabled === true
     const externalPurchaseEnabled =
       publicSettings?.purchase_subscription_enabled === true &&
       /^https?:\/\//i.test(publicSettings.purchase_subscription_url?.trim() || '')
-    if (!paymentEnabled && !externalPurchaseEnabled) {
+    if (publicSettings?.payment_enabled === false && !externalPurchaseEnabled) {
       next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
       return
     }
   }
 
-  // 简易模式下限制访问某些页面
-  if (to.meta.requiresRiskControl) {
-    const riskControlEnabled = appStore.cachedPublicSettings?.risk_control_enabled === true
-    if (!riskControlEnabled) {
-      next(authStore.isAdmin ? '/admin/settings' : '/dashboard')
-      return
-    }
+  if (
+    to.meta.requiresRiskControl &&
+    appStore.publicSettingsLoaded &&
+    appStore.cachedPublicSettings?.risk_control_enabled === false
+  ) {
+    next(authStore.isAdmin ? '/admin/settings' : '/dashboard')
+    return
   }
 
   if (to.meta.requiresAvailableChannels) {

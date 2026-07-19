@@ -1136,6 +1136,11 @@ func (s *OpenAIGatewayService) buildOpenAIWSHeaders(
 		if v := strings.TrimSpace(c.Request.Header.Get("accept-language")); v != "" {
 			headers.Set("accept-language", v)
 		}
+		for _, value := range c.Request.Header.Values("x-codex-beta-features") {
+			if value = strings.TrimSpace(value); value != "" {
+				headers.Add("x-codex-beta-features", value)
+			}
+		}
 	}
 	// OAuth 账号：将 apiKeyID 混入 session 标识符，防止跨用户会话碰撞。
 	if account != nil && account.Type == AccountTypeOAuth {
@@ -1188,8 +1193,8 @@ func (s *OpenAIGatewayService) buildOpenAIWSHeaders(
 	if s != nil && s.cfg != nil && s.cfg.Gateway.ForceCodexCLI {
 		headers.Set("user-agent", codexCLIUserAgent)
 	}
-	if account != nil && account.Type == AccountTypeOAuth && !openai.IsCodexCLIRequest(headers.Get("user-agent")) {
-		headers.Set("user-agent", codexCLIUserAgent)
+	if account != nil && account.Type == AccountTypeOAuth {
+		enforceCodexIdentityHeaders(headers)
 	}
 	if account != nil {
 		account.ApplyHeaderOverrides(headers)
@@ -2200,6 +2205,7 @@ func (s *OpenAIGatewayService) forwardOpenAIWSV2(
 	flushedBufferedEventCount := 0
 	firstEventType := ""
 	lastEventType := ""
+	upstreamTerminalEvent := ""
 
 	var flusher http.Flusher
 	if reqStream {
@@ -2279,9 +2285,49 @@ func (s *OpenAIGatewayService) forwardOpenAIWSV2(
 	}
 
 	readTimeout := s.openAIWSReadTimeout()
+	var pendingJSONDocuments [][]byte
 
 	for {
-		message, readErr := lease.ReadMessageWithContextTimeout(ctx, readTimeout)
+		var message []byte
+		var readErr error
+		if len(pendingJSONDocuments) > 0 {
+			message = pendingJSONDocuments[0]
+			pendingJSONDocuments = pendingJSONDocuments[1:]
+		} else {
+			message, readErr = lease.ReadMessageWithContextTimeout(ctx, readTimeout)
+			if readErr == nil {
+				if documents, repaired := splitOpenAIConcatenatedJSONDocuments(message); repaired {
+					logOpenAIWSModeInfo(
+						"concatenated_json_repaired account_id=%d conn_id=%s documents=%d bytes=%d",
+						account.ID,
+						truncateOpenAIWSLogValue(connID, openAIWSIDValueMaxLen),
+						len(documents),
+						len(message),
+					)
+					message = documents[0]
+					pendingJSONDocuments = append(pendingJSONDocuments, documents[1:]...)
+				}
+			}
+		}
+		if readErr == nil && !json.Valid(message) {
+			eventType, _, _ := parseOpenAIWSEventEnvelope(message)
+			if eventType == "" {
+				eventType = "unknown"
+			}
+			lease.MarkBroken()
+			logOpenAIWSModeInfo(
+				"invalid_event_json account_id=%d conn_id=%s event_type=%s bytes=%d wrote_downstream=%v",
+				account.ID,
+				truncateOpenAIWSLogValue(connID, openAIWSIDValueMaxLen),
+				truncateOpenAIWSLogValue(eventType, openAIWSLogValueMaxLen),
+				len(message),
+				wroteDownstream,
+			)
+			if !wroteDownstream {
+				return nil, wrapOpenAIWSFallback("invalid_event_json", errors.New("upstream websocket returned malformed Responses event JSON"))
+			}
+			return nil, errors.New("upstream websocket returned malformed Responses event JSON after downstream output")
+		}
 		if readErr != nil {
 			lease.MarkBroken()
 			closeStatus, closeReason := summarizeOpenAIWSReadCloseError(readErr)
@@ -2309,6 +2355,9 @@ func (s *OpenAIGatewayService) forwardOpenAIWSV2(
 			}
 			setOpsUpstreamError(c, 0, sanitizeUpstreamErrorMessage(readErr.Error()), "")
 			return nil, fmt.Errorf("openai ws read event: %w", readErr)
+		}
+		if normalized, changed := normalizeCompletedImageGenerationStatus(message); changed {
+			message = normalized
 		}
 
 		eventType, eventResponseID, responseField := parseOpenAIWSEventEnvelope(message)
@@ -2366,6 +2415,7 @@ func (s *OpenAIGatewayService) forwardOpenAIWSV2(
 		}
 
 		if eventType == "error" {
+			s.handleOpenAIWSErrorEventTransientFailure(ctx, account, mappedModel, lease.HandshakeHeaders(), message)
 			errCodeRaw, errTypeRaw, errMsgRaw := parseOpenAIWSErrorEventFields(message)
 			s.persistOpenAIWSRateLimitSignal(ctx, account, lease.HandshakeHeaders(), message, errCodeRaw, errTypeRaw, errMsgRaw)
 			errMsg := strings.TrimSpace(errMsgRaw)
@@ -2477,7 +2527,8 @@ func (s *OpenAIGatewayService) forwardOpenAIWSV2(
 		}
 
 		if isTerminalEvent {
-			cleanExit = true
+			upstreamTerminalEvent = s.handleOpenAIWSTerminalTransientFailure(ctx, account, mappedModel, lease.HandshakeHeaders(), message)
+			cleanExit = len(pendingJSONDocuments) == 0
 			break
 		}
 	}
@@ -2548,17 +2599,18 @@ func (s *OpenAIGatewayService) forwardOpenAIWSV2(
 	)
 
 	return &OpenAIForwardResult{
-		RequestID:       responseID,
-		Usage:           *usage,
-		Model:           originalModel,
-		UpstreamModel:   mappedModel,
-		ServiceTier:     extractOpenAIServiceTier(reqBody),
-		ReasoningEffort: extractOpenAIReasoningEffort(reqBody, mappedModel, originalModel),
-		Stream:          reqStream,
-		OpenAIWSMode:    true,
-		ResponseHeaders: lease.HandshakeHeaders(),
-		Duration:        time.Since(startTime),
-		FirstTokenMs:    firstTokenMs,
+		RequestID:             responseID,
+		Usage:                 *usage,
+		Model:                 originalModel,
+		UpstreamModel:         mappedModel,
+		ServiceTier:           extractOpenAIServiceTier(reqBody),
+		ReasoningEffort:       extractOpenAIReasoningEffort(reqBody, mappedModel, originalModel),
+		Stream:                reqStream,
+		OpenAIWSMode:          true,
+		UpstreamTerminalEvent: upstreamTerminalEvent,
+		ResponseHeaders:       lease.HandshakeHeaders(),
+		Duration:              time.Since(startTime),
+		FirstTokenMs:          firstTokenMs,
 	}, nil
 }
 
@@ -3106,6 +3158,9 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 					wroteDownstream,
 				)
 			}
+			if normalized, changed := normalizeCompletedImageGenerationStatus(upstreamMessage); changed {
+				upstreamMessage = normalized
+			}
 
 			eventType, eventResponseID, _ := parseOpenAIWSEventEnvelope(upstreamMessage)
 			if responseID == "" && eventResponseID != "" {
@@ -3119,6 +3174,8 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 				lastEventType = eventType
 			}
 			if eventType == "error" {
+				canonicalModel := canonicalOpenAIAccountSchedulingModel(account, originalModel)
+				s.handleOpenAIWSErrorEventTransientFailure(ctx, account, canonicalModel, lease.HandshakeHeaders(), upstreamMessage)
 				errCodeRaw, errTypeRaw, errMsgRaw := parseOpenAIWSErrorEventFields(upstreamMessage)
 				s.persistOpenAIWSRateLimitSignal(ctx, account, lease.HandshakeHeaders(), upstreamMessage, errCodeRaw, errTypeRaw, errMsgRaw)
 				fallbackReason, _ := classifyOpenAIWSErrorEventFromRaw(errCodeRaw, errTypeRaw, errMsgRaw)
@@ -3240,6 +3297,8 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 				}
 			}
 			if isTerminalEvent {
+				canonicalModel := canonicalOpenAIAccountSchedulingModel(account, originalModel)
+				terminalEvent := s.handleOpenAIWSTerminalTransientFailure(ctx, account, canonicalModel, lease.HandshakeHeaders(), upstreamMessage)
 				// 客户端已断连时，上游连接的 session 状态不可信，标记 broken 避免回池复用。
 				if clientDisconnected {
 					lease.MarkBroken()
@@ -3266,17 +3325,18 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 					)
 				}
 				return &OpenAIForwardResult{
-					RequestID:       responseID,
-					Usage:           usage,
-					Model:           originalModel,
-					UpstreamModel:   mappedModel,
-					ServiceTier:     extractOpenAIServiceTierFromBody(payload),
-					ReasoningEffort: extractOpenAIReasoningEffortFromBody(payload, mappedModel, originalModel),
-					Stream:          reqStream,
-					OpenAIWSMode:    true,
-					ResponseHeaders: lease.HandshakeHeaders(),
-					Duration:        time.Since(turnStart),
-					FirstTokenMs:    firstTokenMs,
+					RequestID:             responseID,
+					Usage:                 usage,
+					Model:                 originalModel,
+					UpstreamModel:         mappedModel,
+					ServiceTier:           extractOpenAIServiceTierFromBody(payload),
+					ReasoningEffort:       extractOpenAIReasoningEffortFromBody(payload, mappedModel, originalModel),
+					Stream:                reqStream,
+					OpenAIWSMode:          true,
+					UpstreamTerminalEvent: terminalEvent,
+					ResponseHeaders:       lease.HandshakeHeaders(),
+					Duration:              time.Since(turnStart),
+					FirstTokenMs:          firstTokenMs,
 				}, nil
 			}
 		}
@@ -4114,6 +4174,90 @@ func isOpenAIWSTerminalEvent(eventType string) bool {
 	}
 }
 
+func normalizeOpenAIWSTerminalEvent(eventType string) string {
+	switch strings.TrimSpace(eventType) {
+	case "response.completed":
+		return "response.completed"
+	case "response.done":
+		return "response.done"
+	case "response.failed":
+		return "response.failed"
+	case "response.incomplete":
+		return "response.incomplete"
+	case "response.cancelled", "response.canceled":
+		return "response.cancelled"
+	default:
+		return ""
+	}
+}
+
+func openAIWSPayloadTransientStatus(payload []byte) int {
+	if len(payload) == 0 {
+		return 0
+	}
+	status := int(gjson.GetBytes(payload, "response.error.status_code").Int())
+	if status == 0 {
+		status = int(gjson.GetBytes(payload, "response.error.status").Int())
+	}
+	if status == 0 {
+		status = int(gjson.GetBytes(payload, "error.status_code").Int())
+	}
+	if status == 0 {
+		status = int(gjson.GetBytes(payload, "error.status").Int())
+	}
+	if shouldCooldownOpenAITransientUpstreamError(status, payload) {
+		return status
+	}
+	if status != 0 {
+		return 0
+	}
+	code := strings.ToLower(strings.TrimSpace(gjson.GetBytes(payload, "response.error.code").String()))
+	errType := strings.ToLower(strings.TrimSpace(gjson.GetBytes(payload, "response.error.type").String()))
+	if code == "" {
+		code = strings.ToLower(strings.TrimSpace(gjson.GetBytes(payload, "error.code").String()))
+	}
+	if errType == "" {
+		errType = strings.ToLower(strings.TrimSpace(gjson.GetBytes(payload, "error.type").String()))
+	}
+	switch {
+	case code == "server_is_overloaded", code == "slow_down":
+		return http.StatusServiceUnavailable
+	case strings.Contains(code, "server_error"),
+		strings.Contains(code, "internal_error"),
+		strings.Contains(code, "upstream_error"),
+		strings.Contains(errType, "server_error"),
+		strings.Contains(errType, "internal_error"),
+		strings.Contains(errType, "upstream_error"):
+		return http.StatusInternalServerError
+	default:
+		return 0
+	}
+}
+
+func (s *OpenAIGatewayService) handleOpenAIWSTerminalTransientFailure(ctx context.Context, account *Account, canonicalModel string, headers http.Header, payload []byte) string {
+	eventType, _, _ := parseOpenAIWSEventEnvelope(payload)
+	terminalEvent := normalizeOpenAIWSTerminalEvent(eventType)
+	if terminalEvent != "response.failed" {
+		return terminalEvent
+	}
+	status := openAIWSPayloadTransientStatus(payload)
+	if status != 0 {
+		s.handleOpenAIAccountUpstreamError(ctx, account, status, headers, payload, canonicalModel)
+	}
+	return terminalEvent
+}
+
+func (s *OpenAIGatewayService) handleOpenAIWSErrorEventTransientFailure(ctx context.Context, account *Account, canonicalModel string, headers http.Header, payload []byte) {
+	eventType, _, _ := parseOpenAIWSEventEnvelope(payload)
+	if eventType != "error" {
+		return
+	}
+	status := openAIWSPayloadTransientStatus(payload)
+	if status != 0 {
+		s.handleOpenAIAccountUpstreamError(ctx, account, status, headers, payload, canonicalModel)
+	}
+}
+
 func isOpenAIWSTokenEvent(eventType string) bool {
 	eventType = strings.TrimSpace(eventType)
 	if eventType == "" {
@@ -4132,7 +4276,7 @@ func isOpenAIWSTokenEvent(eventType string) bool {
 	if strings.HasPrefix(eventType, "response.output") {
 		return true
 	}
-	return eventType == "response.completed" || eventType == "response.done"
+	return false
 }
 
 func replaceOpenAIWSMessageModel(message []byte, fromModel, toModel string) []byte {
@@ -4239,7 +4383,7 @@ func (s *OpenAIGatewayService) SelectAccountByPreviousResponseID(
 	if requestedModel != "" && !account.IsModelSupported(requestedModel) {
 		return nil, nil
 	}
-	account = s.recheckSelectedOpenAIAccountFromDB(ctx, account, PlatformOpenAI, requestedModel, requireCompact, "")
+	account = s.recheckSelectedOpenAIAccountFromDB(ctx, account, groupID, PlatformOpenAI, requestedModel, requireCompact, "")
 	if account == nil {
 		_ = store.DeleteResponseAccount(ctx, derefGroupID(groupID), responseID)
 		return nil, nil

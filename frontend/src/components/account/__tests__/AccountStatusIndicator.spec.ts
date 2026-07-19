@@ -15,6 +15,14 @@ vi.mock('vue-i18n', async () => {
   }
 })
 
+vi.mock('@/utils/format', async () => {
+  const actual = await vi.importActual<typeof import('@/utils/format')>('@/utils/format')
+  return {
+    ...actual,
+    formatCountdown: () => '1h'
+  }
+})
+
 function makeAccount(overrides: Partial<Account>): Account {
   return {
     id: 1,

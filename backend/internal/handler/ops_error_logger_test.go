@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	middleware2 "ikik-api/internal/server/middleware"
+	"ikik-api/internal/service"
 )
 
 func resetOpsErrorLoggerStateForTest(t *testing.T) {
@@ -42,6 +42,45 @@ func resetOpsErrorLoggerStateForTest(t *testing.T) {
 	opsErrorLogShutdownCh = make(chan struct{})
 	opsErrorLogShutdownOnce = sync.Once{}
 	opsErrorLogDrained.Store(false)
+}
+
+func setupOpsErrorLogTestQueue(t *testing.T, size int) {
+	t.Helper()
+	resetOpsErrorLoggerStateForTest(t)
+	opsErrorLogOnce.Do(func() {})
+	opsErrorLogMu.Lock()
+	opsErrorLogQueue = make(chan opsErrorLogJob, size)
+	opsErrorLogMu.Unlock()
+	t.Cleanup(func() { resetOpsErrorLoggerStateForTest(t) })
+}
+
+func TestLogOpsStreamError_UpstreamFailureCountsTowardsSLA(t *testing.T) {
+	setupOpsErrorLogTestQueue(t, 4)
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	c.Set(opsModelKey, "gpt-5.6-sol")
+
+	service.MarkOpsStreamFailure(
+		c,
+		"upstream_error",
+		service.OpenAIUpstreamHTTP2StreamErrorCode,
+		"Upstream HTTP/2 stream failed",
+		http.StatusBadGateway,
+	)
+
+	ops := service.NewOpsService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	logOpsStreamError(c, ops, http.StatusOK)
+
+	job := <-opsErrorLogQueue
+	require.NotNil(t, job.entry)
+	require.Equal(t, http.StatusBadGateway, job.entry.StatusCode)
+	require.Equal(t, "upstream_error", job.entry.ErrorType)
+	require.Equal(t, "upstream", job.entry.ErrorPhase)
+	require.Equal(t, "provider", job.entry.ErrorOwner)
+	require.False(t, job.entry.IsBusinessLimited)
+	require.Contains(t, job.entry.ErrorBody, service.OpenAIUpstreamHTTP2StreamErrorCode)
 }
 
 func TestAttachOpsRequestBodyToEntry_SanitizeAndTrim(t *testing.T) {

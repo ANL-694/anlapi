@@ -2706,6 +2706,10 @@ func (r *oauthPendingFlowUserRepo) GetByID(ctx context.Context, id int64) (*serv
 	return oauthPendingFlowServiceUser(entity), nil
 }
 
+func (r *oauthPendingFlowUserRepo) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	return r.GetByID(ctx, id)
+}
+
 func (r *oauthPendingFlowUserRepo) GetByEmail(ctx context.Context, email string) (*service.User, error) {
 	entity, err := r.client.User.Query().Where(dbuser.EmailEQ(email)).Only(ctx)
 	if err != nil {
@@ -3059,6 +3063,14 @@ func (s *oauthPendingFlowTotpCacheStub) GetVerifyAttempts(_ context.Context, use
 func (s *oauthPendingFlowTotpCacheStub) ClearVerifyAttempts(_ context.Context, userID int64) error {
 	delete(s.verifyAttempts, userID)
 	return nil
+}
+
+func (s *oauthPendingFlowTotpCacheStub) SetStepUpGrant(_ context.Context, _ int64, _ string, _ time.Duration) error {
+	return nil
+}
+
+func (s *oauthPendingFlowTotpCacheStub) HasStepUpGrant(_ context.Context, _ int64, _ string) (bool, error) {
+	return false, nil
 }
 
 type oauthPendingFlowTotpEncryptorStub struct{}

@@ -8,13 +8,15 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
-	"ikik-api/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/server/middleware"
 )
 
 func init() {
@@ -90,6 +92,32 @@ func TestInjectSiteTitle(t *testing.T) {
 		assert.Contains(t, string(result), `<script src="app.js"></script>`)
 		assert.Contains(t, string(result), `<div id="app"></div>`)
 		assert.Contains(t, string(result), "<title>TestSite - AI API Gateway</title>")
+	})
+}
+
+func TestInjectSiteFavicon(t *testing.T) {
+	t.Run("replaces favicon with site logo", func(t *testing.T) {
+		html := []byte(`<html><head><link rel="icon" type="image/png" href="/logo.png" /></head></html>`)
+		result := injectSiteFavicon(html, []byte(`{"site_logo":"https://example.com/custom-logo.png"}`))
+		assert.Contains(t, string(result), `<link rel="icon" href="https://example.com/custom-logo.png" />`)
+		assert.NotContains(t, string(result), `/logo.png`)
+	})
+
+	t.Run("supports relative and data image urls", func(t *testing.T) {
+		html := []byte(`<link rel="icon" href="/logo.png" />`)
+		assert.Contains(t, string(injectSiteFavicon(html, []byte(`{"site_logo":"/uploads/logo.svg"}`))), `/uploads/logo.svg`)
+		assert.Contains(t, string(injectSiteFavicon(html, []byte(`{"site_logo":"data:image/png;base64,abc"}`))), `data:image/png;base64,abc`)
+	})
+
+	t.Run("rejects unsafe logo urls", func(t *testing.T) {
+		html := []byte(`<link rel="icon" href="/logo.png" />`)
+		assert.Equal(t, string(html), string(injectSiteFavicon(html, []byte(`{"site_logo":"javascript:alert(1)"}`))))
+	})
+
+	t.Run("escapes logo url for html", func(t *testing.T) {
+		html := []byte(`<link rel="icon" href="/logo.png" />`)
+		result := injectSiteFavicon(html, []byte(`{"site_logo":"https://example.com/logo.png?a=1&b=2"}`))
+		assert.Contains(t, string(result), `a=1&amp;b=2`)
 	})
 }
 
@@ -422,6 +450,37 @@ func TestFrontendServer_InvalidateCache(t *testing.T) {
 	})
 }
 
+func TestOverrideFilesNeverReceiveImmutableCacheHeaders(t *testing.T) {
+	t.Parallel()
+
+	overrideDir := t.TempDir()
+	cleanPath := "assets/index-AbCd1234.js"
+	filePath := filepath.Join(overrideDir, cleanPath)
+	require.NoError(t, os.MkdirAll(filepath.Dir(filePath), 0o755))
+	require.NoError(t, os.WriteFile(filePath, []byte("override"), 0o644))
+
+	t.Run("frontend_server_override", func(t *testing.T) {
+		t.Parallel()
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/"+cleanPath, nil)
+
+		server := &FrontendServer{overrideDir: overrideDir}
+		assert.True(t, server.tryServeOverride(c, cleanPath))
+		assert.Empty(t, w.Header().Get("Cache-Control"))
+	})
+
+	t.Run("legacy_override", func(t *testing.T) {
+		t.Parallel()
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/"+cleanPath, nil)
+
+		assert.True(t, tryServeOverrideFile(c, overrideDir, cleanPath))
+		assert.Empty(t, w.Header().Get("Cache-Control"))
+	})
+}
+
 func TestFrontendServer_Middleware(t *testing.T) {
 	t.Run("skips_api_routes", func(t *testing.T) {
 		provider := &mockSettingsProvider{
@@ -433,6 +492,7 @@ func TestFrontendServer_Middleware(t *testing.T) {
 
 		apiPaths := []string{
 			"/api/v1/users",
+			"/models",
 			"/v1/models",
 			"/v1beta/chat",
 			"/backend-api/codex/responses",
@@ -485,6 +545,32 @@ func TestFrontendServer_Middleware(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.True(t, nextCalled, "next handler should be called for compact API route")
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t, `{"ok":true}`, w.Body.String())
+	})
+
+	t.Run("skips_alpha_search_post_route", func(t *testing.T) {
+		provider := &mockSettingsProvider{
+			settings: map[string]string{"test": "value"},
+		}
+
+		server, err := NewFrontendServer(provider)
+		require.NoError(t, err)
+
+		router := gin.New()
+		router.Use(server.Middleware())
+		nextCalled := false
+		router.POST("/alpha/search", func(c *gin.Context) {
+			nextCalled = true
+			c.JSON(http.StatusOK, gin.H{"ok": true})
+		})
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/alpha/search", strings.NewReader(`{"model":"gpt-5.6-sol"}`))
+		req.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(w, req)
+
+		assert.True(t, nextCalled, "next handler should be called for alpha search API route")
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.JSONEq(t, `{"ok":true}`, w.Body.String())
 	})
@@ -543,6 +629,17 @@ func TestFrontendServer_Middleware(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NotContains(t, w.Header().Get("Content-Type"), "text/html")
 	})
+}
+
+func TestEmbeddedFrontendBypassesBareVideoAPIRoutes(t *testing.T) {
+	for _, path := range []string{
+		"/videos/generations",
+		"/videos/edits",
+		"/videos/extensions",
+		"/videos/request-123",
+	} {
+		require.True(t, shouldBypassEmbeddedFrontend(path), "path=%s", path)
+	}
 }
 
 func TestNewFrontendServer(t *testing.T) {
@@ -642,6 +739,7 @@ func TestServeEmbeddedFrontend(t *testing.T) {
 
 		apiPaths := []string{
 			"/api/users",
+			"/models",
 			"/v1/models",
 			"/v1beta/chat",
 			"/backend-api/codex/responses",

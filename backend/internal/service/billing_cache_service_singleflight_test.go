@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/config"
 )
 
 type billingCacheMissStub struct {
@@ -65,6 +65,34 @@ func (s *billingCacheMissStub) UpdateAPIKeyRateLimitUsage(ctx context.Context, k
 
 func (s *billingCacheMissStub) InvalidateAPIKeyRateLimit(ctx context.Context, keyID int64) error {
 	return nil
+}
+
+func (s *billingCacheMissStub) GetUserPlatformQuotaCache(context.Context, int64, string) (*UserPlatformQuotaCacheEntry, bool, error) {
+	return nil, false, nil
+}
+
+func (s *billingCacheMissStub) SetUserPlatformQuotaCache(context.Context, int64, string, *UserPlatformQuotaCacheEntry, time.Duration) error {
+	return nil
+}
+
+func (s *billingCacheMissStub) DeleteUserPlatformQuotaCache(context.Context, int64, string) error {
+	return nil
+}
+
+func (s *billingCacheMissStub) IncrUserPlatformQuotaUsageCache(context.Context, int64, string, float64, time.Duration, bool) error {
+	return nil
+}
+
+func (s *billingCacheMissStub) PopDirtyUserPlatformQuotaKeys(context.Context, int) ([]UserPlatformQuotaKey, error) {
+	return nil, nil
+}
+
+func (s *billingCacheMissStub) ReaddDirtyUserPlatformQuotaKeys(context.Context, []UserPlatformQuotaKey) error {
+	return nil
+}
+
+func (s *billingCacheMissStub) BatchGetUserPlatformQuotaCache(context.Context, []UserPlatformQuotaKey) ([]*UserPlatformQuotaCacheEntry, error) {
+	return nil, nil
 }
 
 type balanceLoadUserRepoStub struct {

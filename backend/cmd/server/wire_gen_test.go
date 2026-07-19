@@ -61,10 +61,12 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		nil, // groupRateSchedule
 		tokenRefreshSvc,
 		accountExpirySvc,
-		subscriptionExpirySvc,
 		nil, // proxyExpiry
+		subscriptionExpirySvc,
 		&service.UsageCleanupService{},
 		idempotencyCleanupSvc,
+		nil, // batchImageCleanup
+		nil, // batchImageWorker
 		pricingSvc,
 		emailQueueSvc,
 		billingCacheSvc,
@@ -81,6 +83,10 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		nil, // backupSvc
 		nil, // paymentOrderExpiry
 		nil, // channelMonitorRunner
+		nil, // quotaFlusher
+		nil, // upstreamBillingProbe
+		nil, // auditLog
+		nil, // promptAudit
 		nil, // moduleRuntime
 	)
 

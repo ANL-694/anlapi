@@ -16,11 +16,12 @@ import (
 
 // UserHandler handles user-related requests
 type UserHandler struct {
-	userService      *service.UserService
-	authService      *service.AuthService
-	emailService     *service.EmailService
-	emailCache       service.EmailCache
-	affiliateService *service.AffiliateService
+	userService           *service.UserService
+	authService           *service.AuthService
+	emailService          *service.EmailService
+	emailCache            service.EmailCache
+	affiliateService      *service.AffiliateService
+	userPlatformQuotaRepo service.UserPlatformQuotaRepository
 }
 
 // NewUserHandler creates a new UserHandler
@@ -30,14 +31,21 @@ func NewUserHandler(
 	emailService *service.EmailService,
 	emailCache service.EmailCache,
 	affiliateService *service.AffiliateService,
+	dependencies ...any,
 ) *UserHandler {
-	return &UserHandler{
+	h := &UserHandler{
 		userService:      userService,
 		authService:      authService,
 		emailService:     emailService,
 		emailCache:       emailCache,
 		affiliateService: affiliateService,
 	}
+	for _, dependency := range dependencies {
+		if value, ok := dependency.(service.UserPlatformQuotaRepository); ok {
+			h.userPlatformQuotaRepo = value
+		}
+	}
+	return h
 }
 
 // ChangePasswordRequest represents the change password request payload

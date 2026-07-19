@@ -1,27 +1,34 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"ikik-api/internal/domain"
+	"ikik-api/internal/pkg/timezone"
 )
 
 type OpenAIMessagesDispatchModelConfig = domain.OpenAIMessagesDispatchModelConfig
 type GroupModelsListConfig = domain.GroupModelsListConfig
 
 type Group struct {
-	ID             int64
-	Name           string
-	Description    string
-	Platform       string
-	RateMultiplier float64
-	IsExclusive    bool
-	Status         string
-	Hydrated       bool // indicates the group was loaded from a trusted repository source
-	OwnerUserID    *int64
-	Scope          string
+	ID                   int64
+	Name                 string
+	Description          string
+	Platform             string
+	RateMultiplier       float64
+	PeakRateEnabled      bool
+	PeakStart            string
+	PeakEnd              string
+	PeakRateMultiplier   float64
+	IsExclusive          bool
+	Status               string
+	Hydrated             bool // indicates the group was loaded from a trusted repository source
+	DuplicateOperationID string
+	OwnerUserID          *int64
+	Scope                string
 
 	SubscriptionType     string
 	RequiredAccountLevel string
@@ -31,12 +38,21 @@ type Group struct {
 	DefaultValidityDays  int
 
 	// 图片生成计费配置（antigravity 和 gemini 平台使用）
-	AllowImageGeneration bool
-	ImageRateIndependent bool
-	ImageRateMultiplier  float64
-	ImagePrice1K         *float64
-	ImagePrice2K         *float64
-	ImagePrice4K         *float64
+	AllowImageGeneration         bool
+	AllowBatchImageGeneration    bool
+	ImageRateIndependent         bool
+	ImageRateMultiplier          float64
+	ImagePrice1K                 *float64
+	ImagePrice2K                 *float64
+	ImagePrice4K                 *float64
+	BatchImageDiscountMultiplier float64
+	BatchImageHoldMultiplier     float64
+	VideoRateIndependent         bool
+	VideoRateMultiplier          float64
+	VideoPrice480P               *float64
+	VideoPrice720P               *float64
+	VideoPrice1080P              *float64
+	WebSearchPricePerCall        *float64
 
 	// Claude Code 客户端限制
 	ClaudeCodeOnly  bool
@@ -138,6 +154,21 @@ func (g *Group) GetImagePrice(imageSize string) *float64 {
 	}
 }
 
+// GetVideoPrice 根据分辨率返回视频生成的每秒价格。
+// nil 表示调用方应使用平台默认价格。
+func (g *Group) GetVideoPrice(resolution string) *float64 {
+	switch NormalizeVideoBillingResolutionOrDefault(resolution) {
+	case VideoBillingResolution480P:
+		return g.VideoPrice480P
+	case VideoBillingResolution720P:
+		return g.VideoPrice720P
+	case VideoBillingResolution1080P:
+		return g.VideoPrice1080P
+	default:
+		return g.VideoPrice480P
+	}
+}
+
 // IsGroupContextValid reports whether a group from context has the fields required for routing decisions.
 func IsGroupContextValid(group *Group) bool {
 	if group == nil {
@@ -175,6 +206,85 @@ func (g *Group) GetRoutingAccountIDs(requestedModel string) []int64 {
 	}
 
 	return nil
+}
+
+// PeakMultiplierAt returns the configured peak multiplier for the current request time.
+func (g *Group) PeakMultiplierAt(now time.Time) float64 {
+	if g == nil || !g.IsSubscriptionType() || !g.PeakRateEnabled || g.PeakStart == "" || g.PeakEnd == "" {
+		return 1.0
+	}
+	start, okStart := parseMinutes(g.PeakStart)
+	end, okEnd := parseMinutes(g.PeakEnd)
+	if !okStart || !okEnd || start >= end {
+		return 1.0
+	}
+	local := now.In(timezone.Location())
+	current := local.Hour()*60 + local.Minute()
+	if current >= start && current < end {
+		return g.PeakRateMultiplier
+	}
+	return 1.0
+}
+
+// ValidatePeakRateConfig 是高峰倍率配置的统一校验入口。
+// 高峰倍率仅适用于订阅分组，时间区间采用左闭右开且不支持跨天。
+func ValidatePeakRateConfig(subscriptionType string, enabled bool, start, end string, multiplier float64) error {
+	if !enabled {
+		return nil
+	}
+	if subscriptionType != SubscriptionTypeSubscription {
+		return errors.New("高峰时段倍率仅支持订阅类型分组")
+	}
+	if start == "" || end == "" {
+		return errors.New("peak_rate_enabled 为 true 时 peak_start 与 peak_end 必填")
+	}
+	startMinute, startOK := parseMinutes(start)
+	if !startOK {
+		return fmt.Errorf("peak_start 格式应为 HH:MM，got %q", start)
+	}
+	endMinute, endOK := parseMinutes(end)
+	if !endOK {
+		return fmt.Errorf("peak_end 格式应为 HH:MM，got %q", end)
+	}
+	if startMinute >= endMinute {
+		return errors.New("peak_end 必须大于 peak_start（不支持跨天区间，如 22:00-02:00）")
+	}
+	if multiplier < 0 {
+		return errors.New("peak_rate_multiplier 不能为负")
+	}
+	return nil
+}
+
+// NormalizePeakRateConfig 清理最终落库的高峰配置。
+// 非订阅分组一律关闭并清空；订阅分组关闭时保留合法窗口，便于再次启用。
+func NormalizePeakRateConfig(subscriptionType string, enabled bool, start, end string, multiplier float64) (bool, string, string, float64) {
+	if subscriptionType != SubscriptionTypeSubscription {
+		return false, "", "", 1.0
+	}
+	if !enabled {
+		if _, ok := parseMinutes(start); !ok {
+			start = ""
+		}
+		if _, ok := parseMinutes(end); !ok {
+			end = ""
+		}
+		if multiplier < 0 {
+			multiplier = 1.0
+		}
+	}
+	return enabled, start, end, multiplier
+}
+
+// computePeakAwareMultipliers keeps per-image billing on the base multiplier
+// while applying the configured peak factor only to token billing.
+func computePeakAwareMultipliers(apiKey *APIKey, base float64, now time.Time) (text, image float64) {
+	image = resolveImageRateMultiplier(apiKey, base)
+	peak := 1.0
+	if apiKey != nil && apiKey.Group != nil {
+		peak = apiKey.Group.PeakMultiplierAt(now)
+	}
+	text = base * peak
+	return
 }
 
 // matchModelPattern 检查模型是否匹配模式

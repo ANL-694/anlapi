@@ -35,9 +35,30 @@ const (
 	ResponsesSupportNo
 )
 
+type ResponsesSupportMode string
+
+const (
+	ResponsesSupportModeAuto                 ResponsesSupportMode = "auto"
+	ResponsesSupportModeForceResponses       ResponsesSupportMode = "force_responses"
+	ResponsesSupportModeForceChatCompletions ResponsesSupportMode = "force_chat_completions"
+)
+
+const ExtraKeyResponsesMode = "openai_responses_mode"
+
 // ExtraKeyResponsesSupported 是 accounts.extra JSON 中存储探测结果的键名。
 // 值类型为 bool：true=支持、false=不支持、键缺失=未探测。
 const ExtraKeyResponsesSupported = "openai_responses_supported"
+
+func NormalizeResponsesSupportMode(mode string) ResponsesSupportMode {
+	switch ResponsesSupportMode(mode) {
+	case ResponsesSupportModeForceResponses:
+		return ResponsesSupportModeForceResponses
+	case ResponsesSupportModeForceChatCompletions:
+		return ResponsesSupportModeForceChatCompletions
+	default:
+		return ResponsesSupportModeAuto
+	}
+}
 
 // ResolveResponsesSupport 从账号的 extra map 中读取探测标记。
 //
@@ -46,6 +67,14 @@ const ExtraKeyResponsesSupported = "openai_responses_supported"
 func ResolveResponsesSupport(extra map[string]any) AccountResponsesSupport {
 	if extra == nil {
 		return ResponsesSupportUnknown
+	}
+	if mode, ok := extra[ExtraKeyResponsesMode].(string); ok {
+		switch NormalizeResponsesSupportMode(mode) {
+		case ResponsesSupportModeForceResponses:
+			return ResponsesSupportYes
+		case ResponsesSupportModeForceChatCompletions:
+			return ResponsesSupportNo
+		}
 	}
 	v, ok := extra[ExtraKeyResponsesSupported]
 	if !ok {

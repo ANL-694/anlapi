@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/pkg/pagination"
 )
 
 // --- mock: UserRepository ---
@@ -103,6 +103,9 @@ func (m *mockUserRepo) GetByID(ctx context.Context, _ int64) (*User, error) {
 		return &cloned, nil
 	}
 	return &User{}, nil
+}
+func (m *mockUserRepo) GetByIDIncludeDeleted(ctx context.Context, id int64) (*User, error) {
+	return m.GetByID(ctx, id)
 }
 func (m *mockUserRepo) GetByEmail(context.Context, string) (*User, error) { return &User{}, nil }
 func (m *mockUserRepo) GetFirstAdmin(context.Context) (*User, error)      { return &User{}, nil }
@@ -310,6 +313,27 @@ func (m *mockBillingCache) UpdateAPIKeyRateLimitUsage(context.Context, int64, fl
 }
 func (m *mockBillingCache) InvalidateAPIKeyRateLimit(context.Context, int64) error {
 	return nil
+}
+func (m *mockBillingCache) GetUserPlatformQuotaCache(context.Context, int64, string) (*UserPlatformQuotaCacheEntry, bool, error) {
+	return nil, false, nil
+}
+func (m *mockBillingCache) SetUserPlatformQuotaCache(context.Context, int64, string, *UserPlatformQuotaCacheEntry, time.Duration) error {
+	return nil
+}
+func (m *mockBillingCache) DeleteUserPlatformQuotaCache(context.Context, int64, string) error {
+	return nil
+}
+func (m *mockBillingCache) IncrUserPlatformQuotaUsageCache(context.Context, int64, string, float64, time.Duration, bool) error {
+	return nil
+}
+func (m *mockBillingCache) PopDirtyUserPlatformQuotaKeys(context.Context, int) ([]UserPlatformQuotaKey, error) {
+	return nil, nil
+}
+func (m *mockBillingCache) ReaddDirtyUserPlatformQuotaKeys(context.Context, []UserPlatformQuotaKey) error {
+	return nil
+}
+func (m *mockBillingCache) BatchGetUserPlatformQuotaCache(context.Context, []UserPlatformQuotaKey) ([]*UserPlatformQuotaCacheEntry, error) {
+	return nil, nil
 }
 
 // --- 测试 ---

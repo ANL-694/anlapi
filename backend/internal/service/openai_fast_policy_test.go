@@ -269,12 +269,34 @@ func TestSetOpenAIFastPolicySettings_Validation(t *testing.T) {
 	})
 	require.Error(t, err)
 
+	// Non-positive and duplicate user IDs are rejected.
+	err = svc.SetOpenAIFastPolicySettings(context.Background(), &OpenAIFastPolicySettings{
+		Rules: []OpenAIFastPolicyRule{{
+			ServiceTier: OpenAIFastTierPriority,
+			Action:      BetaPolicyActionPass,
+			Scope:       BetaPolicyScopeAll,
+			UserIDs:     []int64{0},
+		}},
+	})
+	require.Error(t, err)
+
+	err = svc.SetOpenAIFastPolicySettings(context.Background(), &OpenAIFastPolicySettings{
+		Rules: []OpenAIFastPolicyRule{{
+			ServiceTier: OpenAIFastTierPriority,
+			Action:      BetaPolicyActionPass,
+			Scope:       BetaPolicyScopeAll,
+			UserIDs:     []int64{42, 42},
+		}},
+	})
+	require.Error(t, err)
+
 	// Valid settings persisted
 	err = svc.SetOpenAIFastPolicySettings(context.Background(), &OpenAIFastPolicySettings{
 		Rules: []OpenAIFastPolicyRule{{
 			ServiceTier: OpenAIFastTierPriority,
 			Action:      BetaPolicyActionFilter,
 			Scope:       BetaPolicyScopeAll,
+			UserIDs:     []int64{42, 43},
 		}},
 	})
 	require.NoError(t, err)

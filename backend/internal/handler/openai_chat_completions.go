@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ import (
 	pkghttputil "ikik-api/internal/pkg/httputil"
 	"ikik-api/internal/pkg/ip"
 	"ikik-api/internal/pkg/logger"
+	"ikik-api/internal/pkg/openai_compat"
 	middleware2 "ikik-api/internal/server/middleware"
 	"ikik-api/internal/service"
 )
@@ -81,6 +83,10 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		body = h.gatewayService.ReplaceModelInBody(body, reqModel)
 		body = service.StripAutoRouterPluginFromBody(body)
 	}
+	if service.IsGPTImageGenerationModel(reqModel) {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "This model is not supported on the Chat Completions endpoint")
+		return
+	}
 
 	reqLog = reqLog.With(
 		zap.String("model", requestedModel),
@@ -128,6 +134,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 	failedAccountIDs := make(map[int64]struct{})
 	sameAccountRetryCount := make(map[int64]int)
 	var lastFailoverErr *service.UpstreamFailoverError
+	var oauth429FailoverState service.OpenAIOAuth429FailoverState
 
 	for {
 		routeCandidate, ok := routeCursor.current()
@@ -147,7 +154,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 			return
 		}
 		channelMapping, _ := h.gatewayService.ResolveChannelMappingAndRestrict(routeCtx, currentAPIKey.GroupID, reqModel)
-		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription); err != nil {
+		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription, service.QuotaPlatform(routeCtx, currentAPIKey)); err != nil {
 			reqLog.Info("openai_chat_completions.billing_eligibility_check_failed",
 				zap.Error(err),
 				zap.Int64p("group_id", currentAPIKey.GroupID),
@@ -176,11 +183,17 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 			service.OpenAIUpstreamTransportAny,
 			service.OpenAIEndpointCapabilityChatCompletions,
 			false,
+			false,
+			true,
 			requestPlatform,
 		)
 		if err != nil {
+			if failoverClientGone(c) {
+				reqLog.Info("openai_chat_completions.account_select_aborted_client_disconnected", zap.Error(err))
+				return
+			}
 			reqLog.Warn("openai_chat_completions.account_select_failed",
-				zap.Error(err),
+				zap.Error(openAICompatibleSelectionErrorForLog(err, requestPlatform)),
 				zap.Int("excluded_account_count", len(failedAccountIDs)),
 				zap.Int64p("group_id", currentAPIKey.GroupID),
 			)
@@ -203,6 +216,8 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 						service.OpenAIUpstreamTransportAny,
 						service.OpenAIEndpointCapabilityChatCompletions,
 						false,
+						false,
+						true,
 						requestPlatform,
 					)
 					if err == nil && selection != nil {
@@ -284,7 +299,13 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		if err != nil {
 			var failoverErr *service.UpstreamFailoverError
 			if errors.As(err, &failoverErr) {
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				if failoverErr.ShouldReportAccountScheduleFailure() {
+					h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(reqModel), false, nil)
+				}
+				if !failoverErr.ShouldRetryNextAccount() {
+					h.handleFailoverExhausted(c, failoverErr, streamStarted)
+					return
+				}
 				// Pool mode: retry on the same account
 				if failoverErr.RetryableOnSameAccount {
 					retryLimit := account.GetPoolModeRetryCount()
@@ -320,6 +341,10 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 					return
 				}
 				switchCount++
+				if h.gatewayService.ShouldStopOpenAIOAuth429Failover(account, failoverErr.StatusCode, switchCount, &oauth429FailoverState) {
+					h.handleFailoverExhausted(c, failoverErr, streamStarted)
+					return
+				}
 				reqLog.Warn("openai_chat_completions.upstream_failover_switching",
 					zap.Int64("account_id", account.ID),
 					zap.Int("upstream_status", failoverErr.StatusCode),
@@ -328,8 +353,11 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 				)
 				continue
 			}
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
-			wroteFallback := h.ensureForwardErrorResponse(c, streamStarted)
+			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(reqModel), false, nil)
+			wroteFallback := h.ensureOpenAIStreamReadErrorResponse(c, err, streamStarted)
+			if !wroteFallback {
+				wroteFallback = h.ensureForwardErrorResponse(c, streamStarted)
+			}
 			reqLog.Warn("openai_chat_completions.forward_failed",
 				zap.Int64("account_id", account.ID),
 				zap.Bool("fallback_error_response_written", wroteFallback),
@@ -338,14 +366,15 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 			return
 		}
 		if result != nil {
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
+			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(reqModel), true, result.FirstTokenMs)
 		} else {
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, nil)
+			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(reqModel), true, nil)
 		}
 		routeCursor.recordSuccess(apiKey.ID)
 
 		userAgent := c.GetHeader("User-Agent")
 		clientIP := ip.GetClientIP(c)
+		quotaPlatform := service.QuotaPlatform(c.Request.Context(), currentAPIKey)
 
 		h.submitUsageRecordTask(func(ctx context.Context) {
 			if err := h.gatewayService.RecordUsage(ctx, &service.OpenAIRecordUsageInput{
@@ -359,6 +388,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 				UserAgent:          userAgent,
 				IPAddress:          clientIP,
 				APIKeyService:      h.apiKeyService,
+				QuotaPlatform:      quotaPlatform,
 				ChannelUsageFields: service.BuildAutoModelUsageFields(autoDecision, channelMapping, result.UpstreamModel),
 			}); err != nil {
 				logger.L().With(
@@ -377,4 +407,23 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		)
 		return
 	}
+}
+
+func resolveOpenAIUpstreamEndpoint(c *gin.Context, account *service.Account, result *service.OpenAIForwardResult) string {
+	if result != nil {
+		if endpoint := strings.TrimSpace(result.UpstreamEndpoint); endpoint != "" {
+			return endpoint
+		}
+	}
+	if endpoint := service.GetActualOpenAIUpstreamEndpoint(c); endpoint != "" {
+		return endpoint
+	}
+	if account != nil && account.Type == service.AccountTypeAPIKey &&
+		!openai_compat.ShouldUseResponsesAPI(account.Extra) {
+		return EndpointChatCompletions
+	}
+	if account == nil {
+		return ""
+	}
+	return GetUpstreamEndpoint(c, account.Platform)
 }

@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -40,6 +41,17 @@ func NewOpenAIOAuthHandler(
 type OpenAIGenerateAuthURLRequest struct {
 	ProxyID     *int64 `json:"proxy_id"`
 	RedirectURI string `json:"redirect_uri"`
+}
+
+type CreateShadowRequest struct {
+	Name        string  `json:"name"`
+	Priority    int     `json:"priority"`
+	Concurrency int     `json:"concurrency"`
+	GroupIDs    []int64 `json:"group_ids"`
+}
+
+type sparkShadowCreator interface {
+	CreateShadow(ctx context.Context, parentID int64, opts service.ShadowOptions) (*service.Account, error)
 }
 
 // GenerateAuthURL generates OpenAI OAuth authorization URL
@@ -292,6 +304,33 @@ func (h *OpenAIOAuthHandler) QueryQuota(c *gin.Context) {
 	}
 
 	response.Success(c, usage)
+}
+
+// CreateShadow creates a spark-dimension shadow for an OpenAI OAuth parent.
+func (h *OpenAIOAuthHandler) CreateShadow(c *gin.Context) {
+	parentID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid account ID")
+		return
+	}
+	var req CreateShadowRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	creator, ok := h.adminService.(sparkShadowCreator)
+	if !ok {
+		response.InternalError(c, "spark shadow service is unavailable")
+		return
+	}
+	shadow, err := creator.CreateShadow(c.Request.Context(), parentID, service.ShadowOptions{
+		Name: req.Name, Priority: req.Priority, Concurrency: req.Concurrency, GroupIDs: req.GroupIDs,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, dto.AccountFromServiceShallow(shadow))
 }
 
 // ResetQuota consumes one rate-limit reset credit for an OpenAI account.

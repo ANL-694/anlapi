@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	infraerrors "ikik-api/internal/pkg/errors"
 	"ikik-api/internal/pkg/pagination"
-	"github.com/stretchr/testify/require"
 )
 
 // ---------------------------------------------------------------------------
@@ -35,6 +35,9 @@ func (s *userRepoStubForGroupUpdate) AddGroupToAllowedGroups(_ context.Context, 
 func (s *userRepoStubForGroupUpdate) Create(context.Context, *User) error { panic("unexpected") }
 func (s *userRepoStubForGroupUpdate) GetByID(context.Context, int64) (*User, error) {
 	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) GetByIDIncludeDeleted(ctx context.Context, id int64) (*User, error) {
+	return s.GetByID(ctx, id)
 }
 func (s *userRepoStubForGroupUpdate) GetByEmail(context.Context, string) (*User, error) {
 	panic("unexpected")

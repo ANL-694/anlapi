@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/apicompat"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
+	"ikik-api/internal/config"
+	"ikik-api/internal/pkg/apicompat"
 )
 
 func TestNormalizeOpenAICompatRequestedModel(t *testing.T) {
@@ -75,6 +75,55 @@ func TestApplyOpenAICompatModelNormalization(t *testing.T) {
 		require.Equal(t, "claude-opus-4-6", req.Model)
 		require.Nil(t, req.OutputConfig)
 	})
+}
+
+func TestForwardAsAnthropic_UsesExactFableMessagesDispatchModel(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	body := []byte(`{"model":"claude-fable-5","max_tokens":16,"messages":[{"role":"user","content":"hello"}],"stream":false}`)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	upstreamBody := strings.Join([]string{
+		`data: {"type":"response.completed","response":{"id":"resp_fable","object":"response","model":"gpt-5.6-sol","status":"completed","output":[{"type":"message","id":"msg_fable","role":"assistant","status":"completed","content":[{"type":"output_text","text":"ok"}]}],"usage":{"input_tokens":5,"output_tokens":2,"total_tokens":7}}}`,
+		"",
+		"data: [DONE]",
+		"",
+	}, "\n")
+	upstream := &httpUpstreamRecorder{resp: &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"text/event-stream"}, "x-request-id": []string{"rid_fable"}},
+		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
+	}}
+
+	svc := &OpenAIGatewayService{
+		httpUpstream: upstream,
+		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+	}
+	account := &Account{
+		ID:          1,
+		Name:        "openai-oauth",
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeOAuth,
+		Concurrency: 1,
+		Credentials: map[string]any{
+			"access_token":       "oauth-token",
+			"chatgpt_account_id": "chatgpt-acc",
+		},
+	}
+
+	result, err := svc.ForwardAsAnthropic(context.Background(), c, account, body, "", "gpt-5.6-sol")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, "claude-fable-5", result.Model)
+	require.Equal(t, "gpt-5.6-sol", result.BillingModel)
+	require.Equal(t, "gpt-5.6-sol", result.UpstreamModel)
+	require.Equal(t, "gpt-5.6-sol", gjson.GetBytes(upstream.lastBody, "model").String())
+	require.NotContains(t, string(upstream.lastBody), "claude-fable-5")
+	require.Equal(t, "claude-fable-5", gjson.GetBytes(rec.Body.Bytes(), "model").String())
 }
 
 func TestForwardAsAnthropic_NormalizesRoutingAndEffortForGpt54XHigh(t *testing.T) {
@@ -198,8 +247,8 @@ func TestForwardAsAnthropic_APIKeyCompatAppliesReplayAndTodoGuard(t *testing.T) 
 	input := gjson.GetBytes(upstream.lastBody, "input").Array()
 	require.Len(t, input, openAICompatAnthropicReplayMaxTailMessages+1)
 	require.Contains(t, input[0].Get("content.0.text").String(), openAICompatClaudeCodeTodoGuardMarker)
-	require.Equal(t, "message-03", input[1].Get("content").String())
-	require.Equal(t, "message-14", input[len(input)-1].Get("content").String())
+	require.Equal(t, "message-03", input[1].Get("content.0.text").String())
+	require.Equal(t, "message-14", input[len(input)-1].Get("content.0.text").String())
 	require.Equal(t, "stable-cache-key", gjson.GetBytes(upstream.lastBody, "prompt_cache_key").String())
 }
 

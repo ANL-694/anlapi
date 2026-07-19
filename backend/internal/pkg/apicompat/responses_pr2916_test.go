@@ -180,7 +180,7 @@ func TestResponses2916AnthropicStreamFunctionDoneCarriesCall(t *testing.T) {
 	assert.Equal(t, `{"cmd":"ls"}`, argsDone.Arguments)
 	done := findDoneItem2916(all, "function_call")
 	require.NotNil(t, done)
-	assert.Equal(t, "fc_toolu_1", done.CallID)
+	assert.Equal(t, "toolu_1", done.CallID)
 	assert.Equal(t, "exec", done.Name)
 	assert.Equal(t, `{"cmd":"ls"}`, done.Arguments)
 }

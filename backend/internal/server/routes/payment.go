@@ -18,6 +18,7 @@ func RegisterPaymentRoutes(
 	adminPaymentHandler *admin.PaymentHandler,
 	jwtAuth middleware.JWTAuthMiddleware,
 	adminAuth middleware.AdminAuthMiddleware,
+	auditLog middleware.AuditLogMiddleware,
 	settingService *service.SettingService,
 ) {
 	// --- User-facing payment endpoints (authenticated) ---
@@ -28,7 +29,6 @@ func RegisterPaymentRoutes(
 		authenticated.GET("/config", paymentHandler.GetPaymentConfig)
 		authenticated.GET("/checkout-info", paymentHandler.GetCheckoutInfo)
 		authenticated.GET("/plans", paymentHandler.GetPlans)
-		authenticated.GET("/channels", paymentHandler.GetChannels)
 		authenticated.GET("/limits", paymentHandler.GetLimits)
 
 		orders := authenticated.Group("/orders")

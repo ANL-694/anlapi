@@ -15,11 +15,17 @@ const (
 	MonitorBodyOverrideModeReplace = "replace"
 )
 
+const (
+	MonitorAPIModeChatCompletions = "chat_completions"
+	MonitorAPIModeResponses       = "responses"
+)
+
 // ChannelMonitor 渠道监控配置（service 层模型，不直接暴露 ent 类型）。
 type ChannelMonitor struct {
 	ID              int64
 	Name            string
 	Provider        string
+	APIMode         string
 	Endpoint        string
 	APIKey          string // 解密后的明文 API Key（仅在 service 内部使用，handler 层不应直接序列化返回）
 	PrimaryModel    string
@@ -39,6 +45,12 @@ type ChannelMonitor struct {
 	BodyOverrideMode string            // off / merge / replace
 	BodyOverride     map[string]any    // 仅 mode != off 时使用
 
+	// DuplicateOperationID is internal persistence metadata used to recover an
+	// already committed duplicate after an ambiguous idempotency-store failure.
+	// Repository implementations must keep it out of ExtraHeaders so it can
+	// never be serialized to clients or forwarded to an upstream provider.
+	DuplicateOperationID string
+
 	// APIKeyDecryptFailed 表示 APIKey 字段无法解密（密钥不一致或损坏）。
 	// 此时 APIKey 为空字符串，runner / RunCheck 必须跳过该监控并提示重填。
 	APIKeyDecryptFailed bool
@@ -57,6 +69,7 @@ type ChannelMonitorListParams struct {
 type ChannelMonitorCreateParams struct {
 	Name             string
 	Provider         string
+	APIMode          string
 	Endpoint         string
 	APIKey           string
 	PrimaryModel     string
@@ -76,6 +89,7 @@ type ChannelMonitorCreateParams struct {
 type ChannelMonitorUpdateParams struct {
 	Name            *string
 	Provider        *string
+	APIMode         *string
 	Endpoint        *string
 	APIKey          *string // 空字符串表示不修改；非空字符串覆盖
 	PrimaryModel    *string

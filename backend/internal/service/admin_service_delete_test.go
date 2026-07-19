@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/pkg/pagination"
 )
 
 type userRepoStub struct {
@@ -51,6 +51,10 @@ func (s *userRepoStub) GetByID(ctx context.Context, id int64) (*User, error) {
 		return nil, ErrUserNotFound
 	}
 	return s.user, nil
+}
+
+func (s *userRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*User, error) {
+	return s.GetByID(ctx, id)
 }
 
 func (s *userRepoStub) GetByEmail(ctx context.Context, email string) (*User, error) {
@@ -436,6 +440,27 @@ func (s *billingCacheStub) UpdateAPIKeyRateLimitUsage(ctx context.Context, keyID
 }
 func (s *billingCacheStub) InvalidateAPIKeyRateLimit(ctx context.Context, keyID int64) error {
 	panic("unexpected InvalidateAPIKeyRateLimit call")
+}
+func (s *billingCacheStub) GetUserPlatformQuotaCache(context.Context, int64, string) (*UserPlatformQuotaCacheEntry, bool, error) {
+	panic("unexpected GetUserPlatformQuotaCache call")
+}
+func (s *billingCacheStub) SetUserPlatformQuotaCache(context.Context, int64, string, *UserPlatformQuotaCacheEntry, time.Duration) error {
+	panic("unexpected SetUserPlatformQuotaCache call")
+}
+func (s *billingCacheStub) DeleteUserPlatformQuotaCache(context.Context, int64, string) error {
+	panic("unexpected DeleteUserPlatformQuotaCache call")
+}
+func (s *billingCacheStub) IncrUserPlatformQuotaUsageCache(context.Context, int64, string, float64, time.Duration, bool) error {
+	panic("unexpected IncrUserPlatformQuotaUsageCache call")
+}
+func (s *billingCacheStub) PopDirtyUserPlatformQuotaKeys(context.Context, int) ([]UserPlatformQuotaKey, error) {
+	panic("unexpected PopDirtyUserPlatformQuotaKeys call")
+}
+func (s *billingCacheStub) ReaddDirtyUserPlatformQuotaKeys(context.Context, []UserPlatformQuotaKey) error {
+	panic("unexpected ReaddDirtyUserPlatformQuotaKeys call")
+}
+func (s *billingCacheStub) BatchGetUserPlatformQuotaCache(context.Context, []UserPlatformQuotaKey) ([]*UserPlatformQuotaCacheEntry, error) {
+	panic("unexpected BatchGetUserPlatformQuotaCache call")
 }
 
 func waitForInvalidations(t *testing.T, ch <-chan subscriptionInvalidateCall, expected int) []subscriptionInvalidateCall {

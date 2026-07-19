@@ -1,4 +1,9 @@
-export default {
+import enAudit from './en/admin/audit'
+import enPromptAudit from './en/admin/promptAudit'
+import sub2En from './en/index'
+import { mergeLocaleMessages } from './merge'
+
+const anlEnOverrides = {
   // Home Page
   home: {
     viewOnGithub: 'View on GitHub',
@@ -513,6 +518,7 @@ export default {
     redeemCodes: 'Redeem Codes',
     ops: 'Ops',
     riskControl: 'Risk Control',
+    securityAudit: 'Security Audit',
     modules: 'Modules',
     promoCodes: 'Promo Codes',
     settings: 'Settings',
@@ -799,6 +805,15 @@ export default {
     invalidOrExpiredToken: 'The password reset link is invalid or has expired. Please request a new one.'
   },
 
+  // Step-up verification for sensitive operations
+  stepUp: {
+    title: 'Two-Factor Verification Required',
+    hint: 'Enter the 6-digit code from your authenticator app to continue this sensitive operation.',
+    verifyFailed: 'Verification failed, please try again',
+    notEnabled: 'This operation requires two-factor authentication. Please enable TOTP in your profile first.',
+    adminApiKeyForbidden: 'Admin API keys cannot perform this operation. Use a two-factor verified admin session.'
+  },
+
   // Dashboard
   dashboard: {
     title: 'Dashboard',
@@ -816,6 +831,17 @@ export default {
     todayTokens: 'Today Tokens',
     todayPlatformUsage: 'Today Platform Usage',
     todayPlatformUsageHint: 'Breaks down today’s requests, tokens, and actual spend by platform.',
+    platformQuotasTitle: 'Platform Spend Quotas',
+    platformQuotasHint: 'Based on actual billed spend',
+    platformQuotasEmpty: 'No platform quota is configured yet. Usage will appear here after requests are billed.',
+    platformQuotaUnlimited: 'Unlimited',
+    platformQuotaNotStarted: 'Window not started',
+    platformQuotaResetsAt: 'Resets {time}',
+    platformQuotaWindows: {
+      daily: 'Daily',
+      weekly: 'Weekly',
+      monthly: '30 days'
+    },
     totalTokens: 'Total Tokens',
     cacheToday: 'Cache (Today)',
     performance: 'Performance',
@@ -914,7 +940,7 @@ export default {
     apiKey: 'API Key',
     baseUrl: 'Base URL',
     credentialsJson: 'Credentials JSON',
-    credentialsJsonPlaceholder: '{\n  "access_token": "...",\n  "refresh_token": "...",\n  "expires_at": "..."\n}',
+    credentialsJsonPlaceholder: 'Enter JSON containing access_token, refresh_token, and expires_at',
     accountDetails: 'Account Details',
     oauthAuthorization: 'OAuth Authorization',
     completeAuthorization: 'Complete Authorization',
@@ -2253,6 +2279,8 @@ export default {
 
   // Admin
   admin: {
+    ...enAudit,
+    ...enPromptAudit,
     riskControl: {
       title: 'Risk Control',
       description: 'Configure content moderation and review audit records',
@@ -3283,6 +3311,26 @@ export default {
       viewApiKeys: 'View API Keys',
       groups: 'Groups',
       apiKeys: 'API Keys',
+      platformQuotas: {
+        menu: 'Platform Quotas',
+        title: 'User Platform Quotas',
+        hint: 'Limit this user’s actual spend by upstream platform. Leave a field empty for unlimited.',
+        platform: 'Platform',
+        windows: {
+          daily: 'Daily limit',
+          weekly: 'Weekly limit',
+          monthly: '30-day limit'
+        },
+        unlimited: 'Unlimited',
+        used: 'Used',
+        resetWindow: 'Reset current window usage',
+        notStarted: 'Window not started',
+        saved: 'Platform quotas saved',
+        resetDone: 'Quota window usage reset',
+        loadFailed: 'Failed to load platform quotas',
+        saveFailed: 'Failed to save platform quotas',
+        resetFailed: 'Failed to reset quota window'
+      },
       userApiKeys: 'User API Keys',
       noApiKeys: 'This user has no API keys',
       group: 'Group',
@@ -3623,7 +3671,35 @@ export default {
       },
       imagePricing: {
         title: 'Image Generation Pricing',
-        description: 'Configure pricing for image generation models. Leave empty to use default prices.'
+        description: 'Configure image generation access and base image prices. Leave empty to use default prices.',
+        allowImageGeneration: 'Allow image generation for this group',
+        allowBatchImageGeneration: 'Allow batch image generation for this group',
+        independentMultiplier: 'Use independent image multiplier',
+        imageMultiplier: 'Image multiplier',
+        batchDiscountMultiplier: 'Batch image discount',
+        batchHoldMultiplier: 'Batch hold price ratio',
+        batchSectionHint: 'Batch image settings only apply to batch jobs. Settlement applies the batch discount, while the upfront hold uses the normal image price multiplied by the hold ratio.',
+        batchDisabledHint: 'Enable image generation before enabling batch image generation.',
+        batchGeminiOnlyHint: 'Batch image generation is currently available only for Gemini groups.',
+        modeHint: 'Default mode uses image price multiplied by the effective group rate. Independent mode uses the image multiplier.',
+        finalPricePreview: 'Final per-image price preview',
+        notConfigured: 'Not configured'
+      },
+      videoPricing: {
+        title: 'Video Generation Pricing',
+        description: 'Configure Grok video generation prices in USD per second. Leave empty to use default rates.',
+        independentMultiplier: 'Use independent video multiplier',
+        videoMultiplier: 'Video multiplier',
+        modeHint: 'Videos are billed per second. Default mode uses the effective group rate; independent mode uses the video multiplier.',
+        finalPricePreview: 'Final per-second price preview',
+        notConfigured: 'Not configured'
+      },
+      peakRate: {
+        enable: 'Enable peak rate multiplier',
+        peakStart: 'Peak start',
+        peakEnd: 'Peak end',
+        peakMultiplier: 'Peak multiplier',
+        multiplierHint: 'Applies to token billing. A value of 0 makes peak token requests bill at 0x.'
       },
       modelsList: {
         title: 'Custom /v1/models List',
@@ -4391,6 +4467,13 @@ export default {
       privacyAntigravitySet: 'Telemetry and marketing emails disabled',
       privacyAntigravityFailed: 'Privacy setting failed',
       setPrivacy: 'Set Privacy',
+      duplicateAccount: 'Duplicate Account',
+      duplicateSuccess: 'Account "{name}" duplicated',
+      duplicateFailed: 'Failed to duplicate account',
+      createSparkShadow: 'Create Spark Shadow',
+      createSparkShadowConfirm: 'Create a linked Spark shadow for "{name}"? It shares the parent credentials and serves only Spark models.',
+      createSparkShadowSuccess: 'Spark shadow account created',
+      createSparkShadowFailed: 'Failed to create Spark shadow account',
       shareScope: {
         platform: 'Platform Account',
         platformMeta: 'System pool',
@@ -5010,6 +5093,32 @@ export default {
           refreshTokenAuth: 'Manual RT Input',
           refreshTokenDesc: 'Enter your existing OpenAI Refresh Token(s). Supports batch input (one per line). The system will automatically validate and create accounts.',
           refreshTokenPlaceholder: 'Paste your OpenAI Refresh Token...\nSupports multiple, one per line',
+          mobileRefreshTokenAuth: 'Manual Mobile RT Input',
+          accessTokenAuth: 'Manual AT Input',
+          codexSessionAuth: 'Codex OAuth auth.json / AT Import',
+          codexSessionDesc: 'Paste a Codex OAuth auth.json or an accessToken. Accounts use the step 1 settings.',
+          codexSessionInputLabel: 'Codex OAuth auth.json or accessToken',
+          codexSessionPlaceholder: 'Multiple lines supported, one token or auth.json object per line',
+          codexSessionHint: 'OAuth session/access-token imports retain their existing expiration behavior.',
+          codexSessionImportAndCreate: 'Import & Create Account',
+          codexSessionEmpty: 'Please enter a Codex auth.json or accessToken',
+          codexSessionImportFailed: 'Failed to import Codex account',
+          codexSessionImportSuccess: 'Import completed: created {created}, updated {updated}, skipped {skipped}',
+          codexSessionImportPartial: 'Partial success: created {created}, updated {updated}, skipped {skipped}, failed {failed}',
+          agentIdentityAuth: 'Agent Identity auth.json',
+          agentIdentityDesc: 'Import a Codex Agent Identity auth.json. No OAuth access or refresh token is stored.',
+          agentIdentityInputLabel: 'Agent Identity auth.json',
+          agentIdentityPlaceholder: 'Paste one Agent Identity auth.json object',
+          agentIdentityHint: 'The file must use auth_mode=agentIdentity. Upstream requests are signed dynamically.',
+          agentIdentityInvalid: 'Use a Codex auth.json with auth_mode=agentIdentity.',
+          codexPatAuth: 'Codex Personal Access Token',
+          codexPatDesc: 'Enter a Codex at- personal access token. The system validates it with OpenAI whoami before creating the account.',
+          codexPatInputLabel: 'Codex PAT',
+          codexPatPlaceholder: 'at-...',
+          codexPatHint: 'This is a separate auth mode. It does not save refresh_token or write an OAuth access_token expiration.',
+          codexPatImportAndCreate: 'Validate & Create Codex PAT Account',
+          codexPatEmpty: 'Please enter a Codex personal access token',
+          codexPatImportFailed: 'Failed to create Codex PAT account',
           sessionTokenAuth: 'Manual ST Input',
           sessionTokenDesc: 'Enter your existing Session Token(s). Supports batch input (one per line). The system will automatically validate and create accounts.',
           sessionTokenPlaceholder: 'Paste your Session Token...\nSupports multiple, one per line',
@@ -5406,6 +5515,7 @@ export default {
         resetTooltipReady: 'Consume 1 reset credit to immediately restore the window',
         resetTooltipNeedQuery: 'Click Credits first to load the available count',
         resetTooltipNoCredits: 'No reset credits available',
+        resetTooltipShadow: 'This shadow shares its parent quota; reset it on the parent account',
         noCreditsAvailable: 'No reset credits available',
         resetSuccess: 'Reset {windows} window(s)'
       },
@@ -6060,6 +6170,52 @@ export default {
     ops: {
       title: 'Ops Monitoring',
       description: 'Operational monitoring and troubleshooting',
+      systemLogs: {
+        title: 'System Logs',
+        description: 'Newest logs are shown first. Filter, search, and clean up by condition.',
+        queue: 'Queue',
+        written: 'Written',
+        dropped: 'Dropped',
+        failed: 'Failed',
+        runtimeConfig: 'Runtime Log Configuration (applies immediately)',
+        all: 'All',
+        level: 'Level',
+        stacktraceThreshold: 'Stacktrace threshold',
+        samplingInitial: 'Sampling initial',
+        samplingThereafter: 'Sampling thereafter',
+        retentionDays: 'Retention days',
+        caller: 'caller',
+        sampling: 'sampling',
+        saveAndApply: 'Save and apply',
+        resetDefaults: 'Reset defaults',
+        latestWriteError: 'Latest write error:',
+        timeRange: 'Time range',
+        startTime: 'Start time (optional)',
+        endTime: 'End time (optional)',
+        host: 'Host',
+        component: 'Component',
+        componentPlaceholder: 'e.g. http.access',
+        keyId: 'KEY ID',
+        platform: 'Platform',
+        model: 'Model',
+        keyword: 'Keyword',
+        keywordPlaceholder: 'message/request_id',
+        search: 'Search',
+        cleanCurrentFilters: 'Clean current filters',
+        refreshHealth: 'Refresh health',
+        empty: 'No system logs',
+        time: 'Time',
+        logDetails: 'Log Details',
+        loadFailed: 'Failed to load system logs',
+        runtimeConfigActive: 'Runtime log configuration is active',
+        runtimeConfigSaveFailed: 'Failed to save log configuration',
+        resetRuntimeConfigConfirm: 'Reset to startup configuration (env/yaml) and apply immediately?',
+        runtimeConfigReset: 'Reset to startup log configuration',
+        runtimeConfigResetFailed: 'Failed to reset log configuration',
+        cleanupConfirm: 'Clean up system logs matching the current filters? This cannot be undone.',
+        cleanupSuccess: 'Cleanup complete. Deleted {count} log entries.',
+        cleanupFailed: 'Failed to clean up system logs'
+      },
       // Dashboard
       systemHealth: 'System Health',
       overview: 'Overview',
@@ -7035,6 +7191,15 @@ export default {
         totpHint: 'Allow users to use authenticator apps like Google Authenticator',
         totpKeyNotConfigured: 'Please configure TOTP_ENCRYPTION_KEY in environment variables first. Generate a key with: openssl rand -hex 32'
       },
+      security: {
+        stepUp: 'Step-up 2FA for Sensitive Operations',
+        stepUpHint: 'When enabled, sensitive operations (account/proxy export, backup creation, download and restore, S3 config changes, promoting admins) require a recent TOTP verification (valid for 15 minutes). Your own account must have 2FA enabled before turning this on; turning it off also requires step-up verification.',
+        stepUpEnableRequiresTotp: 'Enable 2FA (TOTP) for your own account in Profile before turning on step-up verification.',
+        sessionBinding: 'Session IP/UA Binding',
+        sessionBindingHint: 'Bind login sessions to the client IP and User-Agent. Any change immediately invalidates the session and forces re-login. Mobile or multi-egress networks may change IPs frequently, so this is disabled by default.',
+        auditRetention: 'Audit Log Retention (days)',
+        auditRetentionHint: 'Set how long audit logs are retained. Use 0 to keep them permanently.'
+      },
       apiKeyAcl: {
         title: 'API Key IP Access Control',
         description: 'Choose which client IP source API Key allowlists and denylists should use',
@@ -7804,11 +7969,13 @@ export default {
         scopeOAuth: 'OAuth only',
         scopeAPIKey: 'API Key only',
         scopeBedrock: 'Bedrock only',
-        userIds: 'User IDs',
-        userIdsHint: 'Leave empty for all users. User-specific rules take priority.',
-        userIdPlaceholder: 'e.g. 1001',
-        addUserId: 'Add user',
-        removeUserId: 'Remove user',
+        userIds: 'Specific users',
+        userIdsHint: 'Type any part of a user email to search. Leave empty to apply to all Sub2API users. Selected users match requests from their API keys and take precedence over global rules.',
+        userSearchPlaceholder: 'Search by user email',
+        userSearchEmpty: 'No matching users found',
+        userDeleted: '(deleted)',
+        userIdFallback: 'User #{id}',
+        removeUser: 'Remove user',
         errorMessage: 'Error message',
         errorMessagePlaceholder: 'Custom error message when blocked',
         errorMessageHint: 'Leave empty for the default message.',
@@ -7844,6 +8011,17 @@ export default {
         frontendRedirectUrlLabel: 'Frontend redirect URL',
         frontendRedirectUrlPlaceholder: '/auth/wechat/callback',
         frontendRedirectUrlHint: 'Usually the frontend route callback path; keep it aligned with the backend.'
+      },
+      platformQuotas: {
+        defaultTitle: 'New User Platform Spend Quotas',
+        defaultHint: 'Copied to each new user at signup. Leave a field empty for an unlimited platform window.',
+        sourceTitle: 'Source-specific Platform Quotas',
+        sourceHint: 'Only filled limits override the global defaults above. Empty fields inherit the global value.',
+        platform: 'Platform',
+        daily: 'Daily limit',
+        weekly: 'Weekly limit',
+        monthly: '30-day limit',
+        unlimited: 'Unlimited'
       },
       authSourceDefaults: {
         title: 'Auth Source Defaults',
@@ -7892,7 +8070,30 @@ export default {
       },
       openaiExperimentalScheduler: {
         title: 'OpenAI experimental scheduler policy',
-        description: "Disabled by default. When enabled, this only changes the gateway's experimental account-selection policy for OpenAI traffic; it does not indicate an upstream OpenAI capability."
+        description: "Disabled by default. When enabled, this only changes the gateway's experimental account-selection policy for OpenAI traffic; it does not indicate an upstream OpenAI capability.",
+        lowRatePriorityTitle: 'Prefer lower rates',
+        lowRatePriorityDescription: 'When enabled, accounts with lower billing rates are preferred. If rates are equal, account priority, current load, and other scheduling factors are considered. This switch is ignored when the experimental scheduler is enabled.',
+        oauthRateTitle: 'OAuth scheduling reference rate',
+        oauthRatePriorityDescription: 'When a group contains both API Key and OAuth accounts, this rate is used to order OAuth accounts alongside probed API Key billing rates.',
+        oauthRateWeightedDescription: 'When a group contains both API Key and OAuth accounts, this rate is used for OAuth accounts when calculating the billing-rate score.',
+        stickyWeightedTitle: 'Sticky weighting',
+        stickyWeightedDescription: 'When enabled, previous_response_id and session_hash affinity are scored by the advanced scheduler. When disabled, sticky accounts keep the legacy hard-hit behavior.',
+        subscriptionPriorityTitle: 'Subscription priority',
+        subscriptionPriorityDescription: 'When enabled, the scheduler scores ChatGPT subscription accounts first and falls back to non-subscription accounts only if no subscription slot can be acquired.',
+        weightsTitle: 'Scheduler weight overrides',
+        weightsDescription: 'Blank values use config/environment values; when config is not set, built-in defaults apply. Non-blank page settings take priority.',
+        defaultPlaceholder: 'config/default: {value}',
+        topKLabel: 'TopK',
+        priorityWeight: 'Priority',
+        loadWeight: 'Load',
+        queueWeight: 'Queue',
+        errorRateWeight: 'Error rate',
+        ttftWeight: 'TTFT',
+        resetWeight: 'Reset window',
+        quotaHeadroomWeight: 'Quota headroom',
+        upstreamCostWeight: 'Billing rate',
+        previousResponseWeight: 'previous_response sticky',
+        sessionStickyWeight: 'session_hash sticky'
       },
       openaiFreeAccountRepair: {
         title: 'OpenAI Free account auto repair',
@@ -8604,7 +8805,7 @@ export default {
       price: 'Price',
       subscriptionCnyPayPreview: 'CNY channel charge preview: {amount}',
       subscriptionCnyPayPreviewWithFee: '({feeRate}% fee included: {total})',
-      validityDays: 'Validity (days)',
+		validity: 'Validity',
       validityUnit: 'Validity Unit',
       sortOrder: 'Sort Order',
       forSale: 'For Sale',
@@ -8642,7 +8843,7 @@ export default {
       selectGroup: 'Select a group',
       groupRequired: 'Please select a subscription group',
       priceRequired: 'Price must be greater than 0',
-      validityDaysRequired: 'Validity days must be greater than 0',
+		validityRequired: 'Validity must be greater than 0',
       groupMissing: 'Missing',
       groupInfo: 'Group Info',
       platform: 'Platform',
@@ -8663,3 +8864,5 @@ export default {
     }
   }
 }
+
+export default mergeLocaleMessages(sub2En, anlEnOverrides)

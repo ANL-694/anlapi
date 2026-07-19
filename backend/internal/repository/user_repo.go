@@ -19,6 +19,7 @@ import (
 	dbgroup "ikik-api/ent/group"
 	"ikik-api/ent/identityadoptiondecision"
 	"ikik-api/ent/predicate"
+	"ikik-api/ent/schema/mixins"
 	dbuser "ikik-api/ent/user"
 	"ikik-api/ent/userallowedgroup"
 	"ikik-api/ent/usersubscription"
@@ -33,6 +34,8 @@ type userRepository struct {
 	client *dbent.Client
 	sql    sqlExecutor
 }
+
+var _ service.RedeemUserAdjustmentRepository = (*userRepository)(nil)
 
 func NewUserRepository(client *dbent.Client, sqlDB *sql.DB) service.UserRepository {
 	return newUserRepositoryWithSQL(client, sqlDB)
@@ -145,6 +148,27 @@ WHERE id = ?`
 
 func (r *userRepository) GetByID(ctx context.Context, id int64) (*service.User, error) {
 	m, err := r.client.User.Query().Where(dbuser.IDEQ(id)).Only(ctx)
+	if err != nil {
+		return nil, translatePersistenceError(err, service.ErrUserNotFound, nil)
+	}
+
+	out := userEntityToService(m)
+	groups, err := r.loadAllowedGroups(ctx, []int64{id})
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := groups[id]; ok {
+		out.AllowedGroups = v
+	}
+	if err := r.hydrateUserWalletBuckets(ctx, []*service.User{out}); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (r *userRepository) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	userCtx := mixins.SkipSoftDelete(ctx)
+	m, err := r.client.User.Query().Where(dbuser.IDEQ(id)).Only(userCtx)
 	if err != nil {
 		return nil, translatePersistenceError(err, service.ErrUserNotFound, nil)
 	}
@@ -439,6 +463,12 @@ func (r *userRepository) List(ctx context.Context, params pagination.PaginationP
 }
 
 func (r *userRepository) ListWithFilters(ctx context.Context, params pagination.PaginationParams, filters service.UserListFilters) ([]service.User, *pagination.PaginationResult, error) {
+	// Only the user query bypasses soft deletion. Related entities retain their normal filtering.
+	userCtx := ctx
+	if filters.IncludeDeleted {
+		userCtx = mixins.SkipSoftDelete(ctx)
+	}
+
 	q := r.client.User.Query()
 
 	if filters.Status != "" {
@@ -489,7 +519,7 @@ func (r *userRepository) ListWithFilters(ctx context.Context, params pagination.
 		q = q.Where(dbuser.IDIn(allowedUserIDs...))
 	}
 
-	total, err := q.Clone().Count(ctx)
+	total, err := q.Clone().Count(userCtx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -501,7 +531,7 @@ func (r *userRepository) ListWithFilters(ctx context.Context, params pagination.
 		usersQuery = usersQuery.Order(order)
 	}
 
-	users, err := usersQuery.All(ctx)
+	users, err := usersQuery.All(userCtx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -752,6 +782,79 @@ func (r *userRepository) UpdateBalance(ctx context.Context, id int64, amount flo
 	}
 	_, err := adjustRechargeWalletBalance(ctx, exec, id, amount)
 	return err
+}
+
+func (r *userRepository) ApplyRedeemBalanceAdjustment(ctx context.Context, id int64, delta float64) error {
+	const updateSQL = `
+		UPDATE users
+		SET balance = GREATEST(balance + $1, 0), updated_at = NOW()
+		WHERE id = $2 AND deleted_at IS NULL
+	`
+	client := clientFromContext(ctx, r.client)
+	result, err := client.ExecContext(ctx, updateSQL, delta, id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return service.ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *userRepository) ApplyRedeemConcurrencyAdjustment(ctx context.Context, id int64, delta int) error {
+	const updateSQL = `
+		UPDATE users
+		SET concurrency = GREATEST(concurrency + $1, 0), updated_at = NOW()
+		WHERE id = $2 AND deleted_at IS NULL
+	`
+	client := clientFromContext(ctx, r.client)
+	result, err := client.ExecContext(ctx, updateSQL, delta, id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return service.ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *userRepository) BatchUpdateLimits(ctx context.Context, userIDs []int64, concurrency, rpmLimit *int) (int, error) {
+	if len(userIDs) == 0 || (concurrency == nil && rpmLimit == nil) {
+		return 0, nil
+	}
+	setClauses := make([]string, 0, 3)
+	args := make([]any, 0, 3)
+	if concurrency != nil {
+		value := max(*concurrency, 0)
+		args = append(args, value)
+		setClauses = append(setClauses, fmt.Sprintf("concurrency = $%d", len(args)))
+	}
+	if rpmLimit != nil {
+		value := max(*rpmLimit, 0)
+		args = append(args, value)
+		setClauses = append(setClauses, fmt.Sprintf("rpm_limit = $%d", len(args)))
+	}
+	setClauses = append(setClauses, "updated_at = NOW()")
+	args = append(args, pq.Array(userIDs))
+	query := fmt.Sprintf(
+		"UPDATE users SET %s WHERE id = ANY($%d) AND deleted_at IS NULL",
+		strings.Join(setClauses, ", "),
+		len(args),
+	)
+	result, err := r.sql.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("batch update user limits: %w", err)
+	}
+	affected, _ := result.RowsAffected()
+	return int(affected), nil
 }
 
 // DeductBalance 扣除用户余额

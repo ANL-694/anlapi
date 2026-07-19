@@ -7,10 +7,11 @@ import (
 	"log"
 	"math/rand/v2"
 	"strconv"
+	"strings"
 	"time"
 
-	"ikik-api/internal/service"
 	"github.com/redis/go-redis/v9"
+	"ikik-api/internal/service"
 )
 
 const (
@@ -20,6 +21,7 @@ const (
 	billingCacheTTL           = 5 * time.Minute
 	billingCacheJitter        = 30 * time.Second
 	rateLimitCacheTTL         = 7 * 24 * time.Hour // 7 days matches the longest window
+	subCacheInvalidateChannel = "subscription:cache:invalidate"
 
 	// Rate limit window durations — must match service.RateLimitWindow* constants.
 	rateLimitWindow5h = 5 * time.Hour
@@ -255,6 +257,43 @@ func (c *billingCache) InvalidateSubscriptionCache(ctx context.Context, userID, 
 	return c.rdb.Del(ctx, key).Err()
 }
 
+func (c *billingCache) PublishSubscriptionCacheInvalidation(ctx context.Context, cacheKey string) error {
+	return c.rdb.Publish(ctx, subCacheInvalidateChannel, cacheKey).Err()
+}
+
+func (c *billingCache) SubscribeSubscriptionCacheInvalidation(ctx context.Context, handler func(cacheKey string)) error {
+	pubsub := c.rdb.Subscribe(ctx, subCacheInvalidateChannel)
+	if _, err := pubsub.Receive(ctx); err != nil {
+		_ = pubsub.Close()
+		return fmt.Errorf("subscribe to subscription cache invalidation: %w", err)
+	}
+
+	go func() {
+		defer func() {
+			if err := pubsub.Close(); err != nil {
+				log.Printf("Warning: failed to close subscription cache invalidation pubsub: %v", err)
+			}
+		}()
+
+		ch := pubsub.Channel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case msg, ok := <-ch:
+				if !ok {
+					return
+				}
+				if msg != nil {
+					handler(msg.Payload)
+				}
+			}
+		}
+	}()
+
+	return nil
+}
+
 func (c *billingCache) GetAPIKeyRateLimit(ctx context.Context, keyID int64) (*service.APIKeyRateLimitCacheData, error) {
 	key := billingRateLimitKey(keyID)
 	result, err := c.rdb.HGetAll(ctx, key).Result()
@@ -327,4 +366,199 @@ func (c *billingCache) UpdateAPIKeyRateLimitUsage(ctx context.Context, keyID int
 func (c *billingCache) InvalidateAPIKeyRateLimit(ctx context.Context, keyID int64) error {
 	key := billingRateLimitKey(keyID)
 	return c.rdb.Del(ctx, key).Err()
+}
+
+func userPlatformQuotaCacheKey(userID int64, platform string) string {
+	return fmt.Sprintf("billing:user_platform_quota:%d:%s", userID, platform)
+}
+
+func parseUserPlatformQuotaHash(values map[string]string) *service.UserPlatformQuotaCacheEntry {
+	if len(values) == 0 {
+		return nil
+	}
+	parseFloat := func(value string) float64 {
+		parsed, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return 0
+		}
+		return parsed
+	}
+	parseFloatPtr := func(value string) *float64 {
+		if value == "" {
+			return nil
+		}
+		parsed, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return nil
+		}
+		return &parsed
+	}
+	parseTimePtr := func(value string) *time.Time {
+		if value == "" {
+			return nil
+		}
+		unix, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return nil
+		}
+		parsed := time.Unix(unix, 0).UTC()
+		return &parsed
+	}
+	version, _ := strconv.ParseInt(values["version"], 10, 64)
+	schemaVersion, _ := strconv.ParseInt(values["schema_version"], 10, 64)
+	return &service.UserPlatformQuotaCacheEntry{
+		DailyUsageUSD: parseFloat(values["daily_usage"]), WeeklyUsageUSD: parseFloat(values["weekly_usage"]), MonthlyUsageUSD: parseFloat(values["monthly_usage"]),
+		Version: version, SchemaVersion: schemaVersion,
+		DailyLimitUSD: parseFloatPtr(values["daily_limit"]), WeeklyLimitUSD: parseFloatPtr(values["weekly_limit"]), MonthlyLimitUSD: parseFloatPtr(values["monthly_limit"]),
+		DailyWindowStart: parseTimePtr(values["daily_window_start"]), WeeklyWindowStart: parseTimePtr(values["weekly_window_start"]), MonthlyWindowStart: parseTimePtr(values["monthly_window_start"]),
+	}
+}
+
+func (c *billingCache) GetUserPlatformQuotaCache(ctx context.Context, userID int64, platform string) (*service.UserPlatformQuotaCacheEntry, bool, error) {
+	values, err := c.rdb.HGetAll(ctx, userPlatformQuotaCacheKey(userID, platform)).Result()
+	if err != nil {
+		return nil, false, err
+	}
+	entry := parseUserPlatformQuotaHash(values)
+	return entry, entry != nil, nil
+}
+
+func (c *billingCache) SetUserPlatformQuotaCache(ctx context.Context, userID int64, platform string, entry *service.UserPlatformQuotaCacheEntry, ttl time.Duration) error {
+	if entry == nil {
+		return nil
+	}
+	floatPtr := func(value *float64) string {
+		if value == nil {
+			return ""
+		}
+		return strconv.FormatFloat(*value, 'f', -1, 64)
+	}
+	timePtr := func(value *time.Time) string {
+		if value == nil {
+			return ""
+		}
+		return strconv.FormatInt(value.Unix(), 10)
+	}
+	key := userPlatformQuotaCacheKey(userID, platform)
+	pipe := c.rdb.TxPipeline()
+	pipe.HSet(ctx, key,
+		"daily_usage", entry.DailyUsageUSD, "weekly_usage", entry.WeeklyUsageUSD, "monthly_usage", entry.MonthlyUsageUSD,
+		"version", entry.Version, "schema_version", entry.SchemaVersion,
+		"daily_limit", floatPtr(entry.DailyLimitUSD), "weekly_limit", floatPtr(entry.WeeklyLimitUSD), "monthly_limit", floatPtr(entry.MonthlyLimitUSD),
+		"daily_window_start", timePtr(entry.DailyWindowStart), "weekly_window_start", timePtr(entry.WeeklyWindowStart), "monthly_window_start", timePtr(entry.MonthlyWindowStart),
+	)
+	pipe.Expire(ctx, key, ttl)
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+func (c *billingCache) DeleteUserPlatformQuotaCache(ctx context.Context, userID int64, platform string) error {
+	return c.rdb.Del(ctx, userPlatformQuotaCacheKey(userID, platform)).Err()
+}
+
+const updateUserPlatformQuotaUsageScript = `
+if redis.call("EXISTS", KEYS[1]) == 0 then return 0 end
+local version = redis.call("HGET", KEYS[1], "schema_version")
+if version == false or tonumber(version) ~= tonumber(ARGV[3]) then return 0 end
+redis.call("HINCRBYFLOAT", KEYS[1], "daily_usage", ARGV[1])
+redis.call("HINCRBYFLOAT", KEYS[1], "weekly_usage", ARGV[1])
+redis.call("HINCRBYFLOAT", KEYS[1], "monthly_usage", ARGV[1])
+redis.call("HINCRBY", KEYS[1], "version", 1)
+redis.call("EXPIRE", KEYS[1], ARGV[2])
+if ARGV[4] ~= "" then
+  redis.call("SADD", KEYS[2], ARGV[4])
+  redis.call("EXPIRE", KEYS[2], ARGV[5])
+end
+return 1
+`
+
+const userPlatformQuotaDirtyTTLSeconds = 86400
+
+func userPlatformQuotaDirtySetKey() string { return "billing:upq:dirty" }
+func userPlatformQuotaDirtyMember(userID int64, platform string) string {
+	return strconv.FormatInt(userID, 10) + ":" + platform
+}
+
+func (c *billingCache) IncrUserPlatformQuotaUsageCache(ctx context.Context, userID int64, platform string, cost float64, ttl time.Duration, markDirty bool) error {
+	member := ""
+	if markDirty {
+		member = userPlatformQuotaDirtyMember(userID, platform)
+	}
+	_, err := c.rdb.Eval(ctx, updateUserPlatformQuotaUsageScript,
+		[]string{userPlatformQuotaCacheKey(userID, platform), userPlatformQuotaDirtySetKey()},
+		strconv.FormatFloat(cost, 'f', -1, 64), int(ttl.Seconds()), service.UserPlatformQuotaCacheSchemaV1, member, userPlatformQuotaDirtyTTLSeconds,
+	).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil
+	}
+	return err
+}
+
+func parseUserPlatformQuotaDirtyMember(value string) (service.UserPlatformQuotaKey, bool) {
+	parts := strings.SplitN(value, ":", 2)
+	if len(parts) != 2 || strings.TrimSpace(parts[1]) == "" {
+		return service.UserPlatformQuotaKey{}, false
+	}
+	userID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil || userID <= 0 {
+		return service.UserPlatformQuotaKey{}, false
+	}
+	return service.UserPlatformQuotaKey{UserID: userID, Platform: parts[1]}, true
+}
+
+func (c *billingCache) PopDirtyUserPlatformQuotaKeys(ctx context.Context, count int) ([]service.UserPlatformQuotaKey, error) {
+	if count <= 0 {
+		return nil, nil
+	}
+	members, err := c.rdb.SPopN(ctx, userPlatformQuotaDirtySetKey(), int64(count)).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]service.UserPlatformQuotaKey, 0, len(members))
+	for _, member := range members {
+		if key, ok := parseUserPlatformQuotaDirtyMember(member); ok {
+			keys = append(keys, key)
+		}
+	}
+	return keys, nil
+}
+
+func (c *billingCache) ReaddDirtyUserPlatformQuotaKeys(ctx context.Context, keys []service.UserPlatformQuotaKey) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	members := make([]any, 0, len(keys))
+	for _, key := range keys {
+		members = append(members, userPlatformQuotaDirtyMember(key.UserID, key.Platform))
+	}
+	pipe := c.rdb.Pipeline()
+	pipe.SAdd(ctx, userPlatformQuotaDirtySetKey(), members...)
+	pipe.Expire(ctx, userPlatformQuotaDirtySetKey(), userPlatformQuotaDirtyTTLSeconds*time.Second)
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+func (c *billingCache) BatchGetUserPlatformQuotaCache(ctx context.Context, keys []service.UserPlatformQuotaKey) ([]*service.UserPlatformQuotaCacheEntry, error) {
+	if len(keys) == 0 {
+		return nil, nil
+	}
+	pipe := c.rdb.Pipeline()
+	commands := make([]*redis.MapStringStringCmd, len(keys))
+	for i, key := range keys {
+		commands[i] = pipe.HGetAll(ctx, userPlatformQuotaCacheKey(key.UserID, key.Platform))
+	}
+	if _, err := pipe.Exec(ctx); err != nil && !errors.Is(err, redis.Nil) {
+		return nil, err
+	}
+	entries := make([]*service.UserPlatformQuotaCacheEntry, len(keys))
+	for i, command := range commands {
+		values, err := command.Result()
+		if err == nil {
+			entries[i] = parseUserPlatformQuotaHash(values)
+		}
+	}
+	return entries, nil
 }

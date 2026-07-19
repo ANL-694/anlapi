@@ -50,7 +50,7 @@
         <input
           v-model="form.name"
           type="text"
-          required
+          :required="!isGrokSSOInputMethod"
           class="input"
           :placeholder="t('admin.accounts.enterAccountName')"
           data-tour="account-form-name"
@@ -259,6 +259,7 @@
 
           <button
             type="button"
+            data-testid="grok-account-type-api-key"
             @click="accountCategory = 'apikey'"
             :class="[
               'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
@@ -1381,7 +1382,12 @@
             class="input"
             :placeholder="apiKeyBaseUrlPlaceholder"
           />
-          <p class="input-hint">{{ baseUrlHint }}</p>
+          <p v-if="baseUrlHint" class="input-hint">{{ baseUrlHint }}</p>
+          <GrokBaseUrlPresets
+            v-if="form.platform === 'grok'"
+            class="mt-2"
+            @select="apiKeyBaseUrl = $event"
+          />
         </div>
         <div>
           <label class="input-label">{{ t('admin.accounts.apiKeyRequired') }}</label>
@@ -1392,7 +1398,7 @@
             class="input font-mono"
             :placeholder="apiKeySecretPlaceholder"
           />
-          <p class="input-hint">{{ apiKeyHint }}</p>
+          <p v-if="apiKeyHint" class="input-hint">{{ apiKeyHint }}</p>
         </div>
 
         <!-- Gemini API Key tier selection -->
@@ -2131,6 +2137,54 @@
           @update:resetTimezone="editResetTimezone = $event"
         />
       </div>
+
+      <!-- Grok OAuth Custom Upstream URL (仅改写转发端点，OAuth 授权/刷新不受影响) -->
+      <div
+        v-if="form.platform === 'grok' && isOAuthFlow"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+      >
+        <div class="mb-3 flex items-center justify-between">
+          <div>
+            <label class="input-label mb-0">{{ t('admin.accounts.grokCustomBaseUrl.title') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.grokCustomBaseUrl.hint') }}
+            </p>
+          </div>
+          <button
+            type="button"
+            data-testid="grok-custom-base-url-toggle"
+            @click="grokOAuthCustomBaseUrlEnabled = !grokOAuthCustomBaseUrlEnabled"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              grokOAuthCustomBaseUrlEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                grokOAuthCustomBaseUrlEnabled ? 'translate-x-5' : 'translate-x-0'
+              ]"
+            />
+          </button>
+        </div>
+        <div v-if="grokOAuthCustomBaseUrlEnabled" class="space-y-2">
+          <input
+            v-model="grokOAuthBaseUrl"
+            type="text"
+            class="input"
+            data-testid="grok-custom-base-url-input"
+            :placeholder="t('admin.accounts.grokCustomBaseUrl.placeholder')"
+          />
+          <GrokBaseUrlPresets @select="grokOAuthBaseUrl = $event" />
+        </div>
+      </div>
+
+      <HeaderOverrideEditor
+        v-if="form.platform === 'grok' && isOAuthFlow"
+        v-model:enabled="headerOverrideEnabled"
+        v-model:rows="headerOverrideRows"
+        :platform="form.platform"
+      />
 
       <!-- OpenAI OAuth Model Mapping (OAuth 类型没有 apikey 容器，需要独立的模型映射区域) -->
       <div
@@ -3003,6 +3057,38 @@
         </div>
       </div>
 
+      <div
+        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey')"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+      >
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <label class="input-label mb-0">{{ t('admin.accounts.openai.longContextBilling') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.openai.longContextBillingDesc') }}
+            </p>
+          </div>
+          <button
+            type="button"
+            data-testid="openai-long-context-billing-toggle"
+            role="switch"
+            :aria-checked="openAILongContextBillingEnabled"
+            @click="toggleOpenAILongContextBilling"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              openAILongContextBillingEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                openAILongContextBillingEnabled ? 'translate-x-5' : 'translate-x-0'
+              ]"
+            />
+          </button>
+        </div>
+      </div>
+
       <!-- OpenAI OAuth Codex 官方客户端限制开关 -->
       <div
         v-if="form.platform === 'openai' && accountCategory === 'oauth-based' && !isUserScope"
@@ -3188,6 +3274,12 @@
         :show-mobile-refresh-token-option="!isUserScope && form.platform === 'openai'"
         :show-session-token-option="false"
         :show-access-token-option="false"
+        :show-codex-session-import-option="!isUserScope && form.platform === 'openai'"
+        :show-agent-identity-option="!isUserScope && form.platform === 'openai'"
+        :show-codex-pat-option="!isUserScope && form.platform === 'openai'"
+        :show-sso-option="!isUserScope && form.platform === 'grok'"
+        :show-manual-option="true"
+        :initial-input-method="'manual'"
         :platform="form.platform"
         :show-project-id="form.platform === 'gemini' && geminiOAuthType === 'code_assist'"
         @generate-url="handleGenerateUrl"
@@ -3195,6 +3287,9 @@
         @validate-refresh-token="handleValidateRefreshToken"
         @validate-mobile-refresh-token="handleOpenAIValidateMobileRT"
         @validate-session-token="handleValidateSessionToken"
+        @import-codex-session="handleOpenAIImportCodexSession"
+        @import-codex-pat="handleOpenAIImportCodexPAT"
+        @import-sso="handleGrokImportSSO"
       />
 
     </div>
@@ -3552,6 +3647,7 @@ import type {
   AccountType,
   CheckMixedChannelResponse,
   CreateAccountRequest,
+  CodexSessionImportMessage,
   CustomAccountProtocol,
   GroupPlatform,
   OpenAICompactMode
@@ -3565,6 +3661,7 @@ import GroupSelector from '@/components/common/GroupSelector.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
+import GrokBaseUrlPresets from '@/components/account/GrokBaseUrlPresets.vue'
 import HeaderOverrideEditor from '@/components/account/HeaderOverrideEditor.vue'
 import {
   applyHeaderOverride,
@@ -3605,6 +3702,8 @@ interface OAuthFlowExposed {
   sessionKey: string
   refreshToken: string
   sessionToken: string
+  codexSession: string
+  codexPAT: string
   inputMethod: AuthInputMethod
   reset: () => void
 }
@@ -3654,6 +3753,7 @@ const apiKeySecretPlaceholder = computed(() => {
   if (form.platform === 'custom') return 'sk-...'
   if (form.platform === 'kiro') return 'sk-...'
   if (form.platform === 'openai') return 'sk-proj-...'
+  if (form.platform === 'grok') return 'xai-...'
   return 'sk-ant-...'
 })
 
@@ -3817,9 +3917,45 @@ const selectedErrorCodes = ref<number[]>([])
 const customErrorCodeInput = ref<number | null>(null)
 const headerOverrideEnabled = ref(false)
 const headerOverrideRows = ref<HeaderOverrideRow[]>([])
+
+// Grok OAuth 自定义上游地址只改写转发端点，不影响 OAuth 授权和刷新。
+const grokOAuthCustomBaseUrlEnabled = ref(false)
+const grokOAuthBaseUrl = ref('')
+
+const validateGrokOAuthUpstreamConfig = (): boolean => {
+  if (grokOAuthCustomBaseUrlEnabled.value) {
+    const trimmed = grokOAuthBaseUrl.value.trim()
+    if (!trimmed) {
+      appStore.showError(t('admin.accounts.grokCustomBaseUrl.required'))
+      return false
+    }
+    if (!/^https?:\/\//i.test(trimmed)) {
+      appStore.showError(t('admin.accounts.grokCustomBaseUrl.invalid'))
+      return false
+    }
+  }
+  if (headerOverrideEnabled.value) {
+    const headerError = validateHeaderOverrideRows(headerOverrideRows.value)
+    if (headerError) {
+      appStore.showError(t(`admin.accounts.headerOverride.${headerError}`))
+      return false
+    }
+  }
+  return true
+}
+
+const applyGrokOAuthUpstreamConfig = (credentials: Record<string, unknown>) => {
+  if (grokOAuthCustomBaseUrlEnabled.value) {
+    credentials.base_url = grokOAuthBaseUrl.value.trim()
+  }
+  applyHeaderOverride(credentials, headerOverrideEnabled.value, headerOverrideRows.value, 'create')
+}
+
 const interceptWarmupRequests = ref(false)
 const autoPauseOnExpired = ref(true)
 const openaiPassthroughEnabled = ref(false)
+const openAILongContextBillingEnabled = ref(false)
+const openAILongContextBillingTouched = ref(false)
 const openAICompactMode = ref<OpenAICompactMode>('auto')
 const openaiOAuthResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OFF)
 const openaiAPIKeyResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OFF)
@@ -3828,6 +3964,11 @@ const anthropicPassthroughEnabled = ref(false)
 const anthropicAPIKeyAuthScheme = ref<AnthropicAPIKeyAuthScheme>(ANTHROPIC_API_KEY_AUTH_SCHEME_X_API_KEY)
 const webSearchEmulationMode = ref('default')
 const webSearchGlobalEnabled = ref(false)
+
+const toggleOpenAILongContextBilling = () => {
+  openAILongContextBillingEnabled.value = !openAILongContextBillingEnabled.value
+  openAILongContextBillingTouched.value = true
+}
 const {
   globalEnabled: quotaNotifyGlobalEnabled,
   state: quotaNotifyState,
@@ -4150,6 +4291,8 @@ const isOAuthFlow = computed(() => {
   }
   return accountCategory.value === 'oauth-based'
 })
+
+const isGrokSSOInputMethod = computed(() => form.platform === 'grok' && oauthFlowRef.value?.inputMethod === 'sso_cookie')
 
 const isManualInputMethod = computed(() => {
   return oauthFlowRef.value?.inputMethod === 'manual'
@@ -4869,6 +5012,8 @@ const resetForm = () => {
   customErrorCodeInput.value = null
   headerOverrideEnabled.value = false
   headerOverrideRows.value = []
+  grokOAuthCustomBaseUrlEnabled.value = false
+  grokOAuthBaseUrl.value = ''
   interceptWarmupRequests.value = false
   autoPauseOnExpired.value = PERSONAL_ACCOUNT_DEFAULT_AUTO_PAUSE_ON_EXPIRED
   openaiPassthroughEnabled.value = false
@@ -4962,6 +5107,7 @@ const buildOpenAIExtra = (base?: Record<string, unknown>): Record<string, unknow
     delete extra.openai_passthrough
     delete extra.openai_oauth_passthrough
   }
+  extra.openai_long_context_billing_enabled = openAILongContextBillingEnabled.value
 
   if (accountCategory.value === 'oauth-based' && codexCLIOnlyEnabled.value) {
     extra.codex_cli_only = true
@@ -4974,6 +5120,17 @@ const buildOpenAIExtra = (base?: Record<string, unknown>): Record<string, unknow
     delete extra.openai_compact_mode
   }
 
+  return Object.keys(extra).length > 0 ? extra : undefined
+}
+
+const buildOpenAICodexImportExtra = (): Record<string, unknown> | undefined => {
+  const extra = buildOpenAIExtra()
+  if (!extra) {
+    return undefined
+  }
+  if (!openAILongContextBillingTouched.value) {
+    delete extra.openai_long_context_billing_enabled
+  }
   return Object.keys(extra).length > 0 ? extra : undefined
 }
 
@@ -5110,7 +5267,7 @@ const handleSubmit = async () => {
 
   // For OAuth-based type, handle OAuth flow (goes to step 2)
   if (isOAuthFlow.value) {
-    if (!form.name.trim()) {
+    if (!isGrokSSOInputMethod.value && !form.name.trim()) {
       appStore.showError(t('admin.accounts.pleaseEnterAccountName'))
       return
     }
@@ -5409,6 +5566,190 @@ const handleValidateRefreshToken = (rt: string) => {
 
 const handleValidateSessionToken = (_sessionToken: string) => {
   // Session token validation removed
+}
+
+const buildOpenAICodexImportCredentialExtras = (): Record<string, unknown> | null => {
+  const credentials: Record<string, unknown> = {}
+  if (!isOpenAIModelRestrictionDisabled.value) {
+    const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
+    if (modelMapping) {
+      credentials.model_mapping = modelMapping
+    }
+  }
+
+  const compactModelMapping = buildOpenAICompactModelMapping()
+  if (compactModelMapping) {
+    credentials.compact_model_mapping = compactModelMapping
+  }
+
+  if (!applyTempUnschedConfig(credentials)) {
+    return null
+  }
+  return credentials
+}
+
+const formatCodexImportMessages = (messages?: CodexSessionImportMessage[]) => {
+  return (messages || [])
+    .map((item) => {
+      const name = item.name ? ` ${item.name}` : ''
+      return `#${item.index}${name}: ${item.message}`
+    })
+    .join('\n')
+}
+
+const isAgentIdentityImportContent = (content: string) => {
+  const isAgentIdentityValue = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.length > 0 && value.every(isAgentIdentityValue)
+    if (!value || typeof value !== 'object') return false
+    const record = value as Record<string, unknown>
+    const authMode = record.auth_mode ?? record.authMode
+    const agentIdentity = record.agent_identity ?? record.agentIdentity
+    return (typeof authMode === 'string' && authMode.toLowerCase() === 'agentidentity')
+      || (!!agentIdentity && typeof agentIdentity === 'object')
+  }
+
+  try {
+    return isAgentIdentityValue(JSON.parse(content))
+  } catch {
+    const lines = content.split('\n').map((line) => line.trim()).filter(Boolean)
+    if (lines.length === 0) return false
+    try {
+      return lines.every((line) => isAgentIdentityValue(JSON.parse(line)))
+    } catch {
+      return false
+    }
+  }
+}
+
+const handleOpenAIImportCodexSession = async (content: string) => {
+  const oauthClient = openaiOAuth
+  const trimmed = content.trim()
+  if (!trimmed) {
+    oauthClient.error.value = t('admin.accounts.oauth.openai.codexSessionEmpty')
+    return
+  }
+  if (oauthFlowRef.value?.inputMethod === 'agent_identity' && !isAgentIdentityImportContent(trimmed)) {
+    oauthClient.error.value = t('admin.accounts.oauth.openai.agentIdentityInvalid')
+    return
+  }
+
+  const credentialExtras = buildOpenAICodexImportCredentialExtras()
+  if (credentialExtras === null) {
+    return
+  }
+
+  oauthClient.loading.value = true
+  oauthClient.error.value = ''
+
+  try {
+    const extra = buildOpenAICodexImportExtra()
+    const result = await adminAPI.accounts.importCodexSession({
+      content: trimmed,
+      name: form.name,
+      notes: form.notes || null,
+      proxy_id: form.proxy_id,
+      concurrency: form.concurrency,
+      load_factor: form.load_factor ?? undefined,
+      priority: form.priority,
+      rate_multiplier: form.rate_multiplier,
+      group_ids: form.group_ids,
+      expires_at: form.expires_at,
+      auto_pause_on_expired: autoPauseOnExpired.value,
+      credential_extras: Object.keys(credentialExtras).length > 0 ? credentialExtras : undefined,
+      extra,
+      update_existing: true
+    })
+
+    const successCount = result.created + result.updated
+    const params = {
+      created: result.created,
+      updated: result.updated,
+      skipped: result.skipped,
+      failed: result.failed
+    }
+
+    if (successCount > 0 && result.failed === 0) {
+      appStore.showSuccess(t('admin.accounts.oauth.openai.codexSessionImportSuccess', params))
+      emit('created')
+      handleClose()
+      return
+    }
+
+    const errorText = formatCodexImportMessages(result.errors)
+    const warningText = formatCodexImportMessages(result.warnings)
+    oauthClient.error.value = [errorText, warningText].filter(Boolean).join('\n')
+
+    if (result.failed === 0) {
+      appStore.showWarning(t('admin.accounts.oauth.openai.codexSessionImportSuccess', params))
+      return
+    }
+
+    if (successCount > 0) {
+      appStore.showWarning(t('admin.accounts.oauth.openai.codexSessionImportPartial', params))
+      emit('created')
+      return
+    }
+
+    appStore.showError(t('admin.accounts.oauth.openai.codexSessionImportFailed'))
+  } catch (error: any) {
+    oauthClient.error.value =
+      error.response?.data?.detail ||
+      error.response?.data?.message ||
+      error.message ||
+      t('admin.accounts.oauth.openai.codexSessionImportFailed')
+    appStore.showError(oauthClient.error.value)
+  } finally {
+    oauthClient.loading.value = false
+  }
+}
+
+const handleOpenAIImportCodexPAT = async (accessToken: string) => {
+  const oauthClient = openaiOAuth
+  const trimmed = accessToken.trim()
+  if (!trimmed) {
+    oauthClient.error.value = t('admin.accounts.oauth.openai.codexPatEmpty')
+    return
+  }
+
+  const credentialExtras = buildOpenAICodexImportCredentialExtras()
+  if (credentialExtras === null) {
+    return
+  }
+
+  oauthClient.loading.value = true
+  oauthClient.error.value = ''
+
+  try {
+    const extra = buildOpenAICodexImportExtra()
+    await adminAPI.accounts.createOpenAICodexPAT({
+      access_token: trimmed,
+      name: form.name,
+      notes: form.notes || null,
+      proxy_id: form.proxy_id,
+      concurrency: form.concurrency,
+      load_factor: form.load_factor ?? undefined,
+      priority: form.priority,
+      rate_multiplier: form.rate_multiplier,
+      group_ids: form.group_ids,
+      expires_at: form.expires_at,
+      auto_pause_on_expired: autoPauseOnExpired.value,
+      credential_extras: Object.keys(credentialExtras).length > 0 ? credentialExtras : undefined,
+      extra
+    })
+
+    appStore.showSuccess(t('admin.accounts.accountCreated'))
+    emit('created')
+    handleClose()
+  } catch (error: any) {
+    oauthClient.error.value =
+      error.response?.data?.detail ||
+      error.response?.data?.message ||
+      error.message ||
+      t('admin.accounts.oauth.openai.codexPatImportFailed')
+    appStore.showError(oauthClient.error.value)
+  } finally {
+    oauthClient.loading.value = false
+  }
 }
 
 const formatDateTimeLocal = formatDateTimeLocalInput
@@ -5796,6 +6137,7 @@ const handleGrokValidateRT = async (refreshTokenInput: string) => {
     grokOAuth.error.value = t('admin.accounts.oauth.grok.pleaseEnterRefreshToken')
     return
   }
+  if (!validateGrokOAuthUpstreamConfig()) return
 
   grokOAuth.loading.value = true
   grokOAuth.error.value = ''
@@ -5816,6 +6158,7 @@ const handleGrokValidateRT = async (refreshTokenInput: string) => {
         }
 
         const credentials = grokOAuth.buildCredentials(tokenInfo)
+        applyGrokOAuthUpstreamConfig(credentials)
         const extra = grokOAuth.buildExtraInfo(tokenInfo)
         const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
         if (modelMapping) {
@@ -5870,6 +6213,76 @@ const handleGrokValidateRT = async (refreshTokenInput: string) => {
       grokOAuth.error.value = errors.join('\n')
       appStore.showError(t('admin.accounts.oauth.batchFailed'))
     }
+  } finally {
+    grokOAuth.loading.value = false
+  }
+}
+
+const handleGrokImportSSO = async (ssoInput: string) => {
+  const ssoTokens = ssoInput
+    .split('\n')
+    .map((token) => token.trim())
+    .filter((token) => token)
+  if (ssoTokens.length === 0) return
+  if (!validateGrokOAuthUpstreamConfig()) return
+
+  grokOAuth.loading.value = true
+  grokOAuth.error.value = ''
+
+  const credentials: Record<string, unknown> = {}
+  applyGrokOAuthUpstreamConfig(credentials)
+  const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
+  if (modelMapping) {
+    credentials.model_mapping = modelMapping
+  }
+  if (!applyTempUnschedConfig(credentials)) {
+    grokOAuth.loading.value = false
+    return
+  }
+
+  try {
+    const result = await adminAPI.grok.createFromSSO({
+      sso_tokens: ssoTokens,
+      name: form.name || undefined,
+      notes: form.notes || undefined,
+      proxy_id: form.proxy_id,
+      group_ids: form.group_ids,
+      credentials,
+      concurrency: form.concurrency,
+      load_factor: form.load_factor ?? undefined,
+      priority: form.priority,
+      rate_multiplier: form.rate_multiplier,
+      expires_at: form.expires_at,
+      auto_pause_on_expired: autoPauseOnExpired.value
+    })
+
+    const successCount = result.created?.length || 0
+    const failedCount = result.failed?.length || 0
+    if (successCount > 0 && failedCount === 0) {
+      appStore.showSuccess(
+        ssoTokens.length > 1
+          ? t('admin.accounts.oauth.batchSuccess', { count: successCount })
+          : t('admin.accounts.accountCreated')
+      )
+      emit('created')
+      handleClose()
+    } else if (successCount > 0 && failedCount > 0) {
+      appStore.showWarning(
+        t('admin.accounts.oauth.batchPartialSuccess', { success: successCount, failed: failedCount })
+      )
+      grokOAuth.error.value = (result.failed || [])
+        .map((item) => `#${item.index}: ${item.error || 'Unknown error'}`)
+        .join('\n')
+      emit('created')
+    } else {
+      grokOAuth.error.value = (result.failed || [])
+        .map((item) => `#${item.index}: ${item.error || 'Unknown error'}`)
+        .join('\n') || t('admin.accounts.oauth.grok.failedToConvertSSO')
+      appStore.showError(t('admin.accounts.oauth.batchFailed'))
+    }
+  } catch (error: any) {
+    grokOAuth.error.value = error.response?.data?.detail || error.message || t('admin.accounts.oauth.grok.failedToConvertSSO')
+    appStore.showError(grokOAuth.error.value)
   } finally {
     grokOAuth.loading.value = false
   }
@@ -6066,6 +6479,7 @@ const handleAntigravityExchange = async (authCode: string) => {
 // Grok OAuth 授权码兑换
 const handleGrokExchange = async (authCode: string) => {
   if (!authCode.trim() || !grokOAuth.sessionId.value) return
+  if (!validateGrokOAuthUpstreamConfig()) return
 
   grokOAuth.loading.value = true
   grokOAuth.error.value = ''
@@ -6088,6 +6502,7 @@ const handleGrokExchange = async (authCode: string) => {
     if (!tokenInfo) return
 
     const credentials = grokOAuth.buildCredentials(tokenInfo)
+    applyGrokOAuthUpstreamConfig(credentials)
     const extra = grokOAuth.buildExtraInfo(tokenInfo)
     const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
     if (modelMapping) {

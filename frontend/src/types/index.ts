@@ -156,6 +156,7 @@ export interface AdminUser extends User {
   group_rates?: Record<number, number>
   // 当前并发数（仅管理员列表接口返回）
   current_concurrency?: number
+  deleted_at?: string | null
 }
 
 export interface LoginRequest {
@@ -588,6 +589,10 @@ export interface Group {
   platform: GroupPlatform
   required_account_level?: Exclude<AccountLevel, 'unknown'> | ''
   rate_multiplier: number
+  peak_rate_enabled: boolean
+  peak_start: string
+  peak_end: string
+  peak_rate_multiplier: number
   rpm_limit?: number // Group-level RPM cap (0 = unlimited); overrides user-level rpm_limit when set
   is_exclusive: boolean
   status: 'active' | 'inactive'
@@ -598,9 +603,21 @@ export interface Group {
   weekly_limit_usd: number | null
   monthly_limit_usd: number | null
   // 图片生成计费配置（仅 antigravity 平台使用）
+  allow_image_generation: boolean
+  allow_batch_image_generation: boolean
+  image_rate_independent: boolean
+  image_rate_multiplier: number
   image_price_1k: number | null
   image_price_2k: number | null
   image_price_4k: number | null
+  batch_image_discount_multiplier: number
+  batch_image_hold_multiplier: number
+  video_rate_independent: boolean
+  video_rate_multiplier: number
+  video_price_480p: number | null
+  video_price_720p: number | null
+  video_price_1080p: number | null
+  web_search_price_per_call?: number | null
   // Claude Code 客户端限制
   claude_code_only: boolean
   fallback_group_id: number | null
@@ -729,9 +746,25 @@ export interface CreateGroupRequest {
   daily_limit_usd?: number | null
   weekly_limit_usd?: number | null
   monthly_limit_usd?: number | null
+  allow_image_generation?: boolean
+  allow_batch_image_generation?: boolean
+  image_rate_independent?: boolean
+  image_rate_multiplier?: number
   image_price_1k?: number | null
   image_price_2k?: number | null
   image_price_4k?: number | null
+  batch_image_discount_multiplier?: number
+  batch_image_hold_multiplier?: number
+  video_rate_independent?: boolean
+  video_rate_multiplier?: number
+  video_price_480p?: number | null
+  video_price_720p?: number | null
+  video_price_1080p?: number | null
+  web_search_price_per_call?: number | null
+  peak_rate_enabled?: boolean
+  peak_start?: string
+  peak_end?: string
+  peak_rate_multiplier?: number
   claude_code_only?: boolean
   fallback_group_id?: number | null
   fallback_group_id_on_invalid_request?: number | null
@@ -767,9 +800,25 @@ export interface UpdateGroupRequest {
   daily_limit_usd?: number | null
   weekly_limit_usd?: number | null
   monthly_limit_usd?: number | null
+  allow_image_generation?: boolean
+  allow_batch_image_generation?: boolean
+  image_rate_independent?: boolean
+  image_rate_multiplier?: number
   image_price_1k?: number | null
   image_price_2k?: number | null
   image_price_4k?: number | null
+  batch_image_discount_multiplier?: number
+  batch_image_hold_multiplier?: number
+  video_rate_independent?: boolean
+  video_rate_multiplier?: number
+  video_price_480p?: number | null
+  video_price_720p?: number | null
+  video_price_1080p?: number | null
+  web_search_price_per_call?: number | null
+  peak_rate_enabled?: boolean
+  peak_start?: string
+  peak_end?: string
+  peak_rate_multiplier?: number
   claude_code_only?: boolean
   fallback_group_id?: number | null
   fallback_group_id_on_invalid_request?: number | null
@@ -921,6 +970,48 @@ export interface TempUnschedulableStatus {
   state?: TempUnschedulableState
 }
 
+export interface UpstreamBillingData {
+  object: 'sub2api.key_billing'
+  schema_version: 1
+  billing_scope: 'token'
+  group_rate_multiplier: number
+  user_rate_multiplier?: number
+  resolved_rate_multiplier: number
+  peak_rate_enabled: boolean
+  peak_start?: string
+  peak_end?: string
+  peak_rate_multiplier?: number
+  applied_peak_multiplier?: number
+  effective_rate_multiplier: number
+  timezone?: string
+  observed_at: string
+}
+
+export type UpstreamBillingProbeStatus = 'ok' | 'unsupported' | 'failed'
+
+export interface UpstreamBillingProbeSnapshot {
+  status: UpstreamBillingProbeStatus
+  data?: UpstreamBillingData
+  received_at?: string
+  fresh_until?: string
+  last_attempt_at: string
+  next_probe_at: string
+  failure_count?: number
+  http_status?: number
+  last_error?: string
+}
+
+export interface UpstreamBillingProbeSettings {
+  enabled: boolean
+  interval_minutes: number
+}
+
+export interface UpstreamBillingProbeResult {
+  account_id: number
+  snapshot?: UpstreamBillingProbeSnapshot
+  error?: string
+}
+
 export interface Account {
   id: number
   name: string
@@ -934,6 +1025,8 @@ export interface Account {
     OpenAICompactState & {
       model_rate_limits?: Record<string, { rate_limited_at: string; rate_limit_reset_at: string }>
       antigravity_credits_overages?: Record<string, { activated_at: string; active_until: string }>
+      upstream_billing_probe_enabled?: boolean
+      upstream_billing_probe?: UpstreamBillingProbeSnapshot
     } & Record<string, unknown>
   proxy_id: number | null
   proxy_fallback_origin_id?: number | null
@@ -1023,6 +1116,14 @@ export interface Account {
   current_window_cost?: number | null // 当前窗口费用
   active_sessions?: number | null // 当前活跃会话数
   current_rpm?: number | null // 当前分钟 RPM 计数
+
+  // 影子账号关系（spark 维度影子）
+  parent_account_id?: number | null
+  quota_dimension?: string
+  parent_email?: string
+  parent_plan_type?: string
+  parent_privacy_mode?: string
+  parent_subscription_expires_at?: string
 }
 
 export interface AccountQuotaDimensionSummary {
@@ -1263,6 +1364,34 @@ export interface GrokQuotaWindow {
   reset_at?: string | null
 }
 
+export interface GrokBillingProductUsage {
+  product: string
+  usage_percent?: number | null
+}
+
+export interface GrokBillingSummary {
+  period_type?: string
+  usage_percent?: number | null
+  period_start?: string
+  period_end?: string
+  product_usage?: GrokBillingProductUsage[]
+  monthly_limit_cents?: number | null
+  used_cents?: number | null
+  included_used_cents?: number | null
+  billing_period_start?: string
+  billing_period_end?: string
+  used_percent?: number | null
+  plan?: string
+  status_code?: number
+  source?: string
+  fetched_at?: string
+  updated_at?: string
+  weekly_updated_at?: string
+  monthly_updated_at?: string
+  partial?: boolean
+  failed_windows?: string[]
+}
+
 export interface AccountUsageInfo {
   source?: 'passive' | 'active'
   updated_at: string | null
@@ -1286,6 +1415,12 @@ export interface AccountUsageInfo {
   grok_last_headers_seen_at?: string
   grok_last_status_code?: number
   grok_local_usage?: WindowStats | null
+  grok_local_usage_24h?: WindowStats | null
+  grok_local_usage_7d?: WindowStats | null
+  grok_local_usage_monthly?: WindowStats | null
+  grok_billing?: GrokBillingSummary | null
+  subscription_tier?: string
+  subscription_tier_raw?: string
   ai_credits?: Array<{
     credit_type?: string
     amount?: number
@@ -1487,10 +1622,75 @@ export interface AdminDataImportResult {
   errors?: AdminDataImportError[]
 }
 
+export interface CodexSessionImportRequest {
+  content?: string
+  contents?: string[]
+  name?: string
+  notes?: string | null
+  group_ids?: number[]
+  proxy_id?: number | null
+  concurrency?: number
+  priority?: number
+  rate_multiplier?: number
+  load_factor?: number | null
+  expires_at?: number | null
+  auto_pause_on_expired?: boolean
+  credential_extras?: Record<string, unknown>
+  extra?: Record<string, unknown>
+  update_existing?: boolean
+  skip_default_group_bind?: boolean
+  confirm_mixed_channel_risk?: boolean
+}
+
+export interface OpenAICodexPATCreateRequest {
+  access_token: string
+  name?: string
+  notes?: string | null
+  group_ids?: number[]
+  proxy_id?: number | null
+  concurrency?: number
+  priority?: number
+  rate_multiplier?: number
+  load_factor?: number | null
+  expires_at?: number | null
+  auto_pause_on_expired?: boolean
+  credential_extras?: Record<string, unknown>
+  extra?: Record<string, unknown>
+  skip_default_group_bind?: boolean
+  confirm_mixed_channel_risk?: boolean
+}
+
+export interface CodexSessionImportMessage {
+  index: number
+  name?: string
+  message: string
+}
+
+export interface CodexSessionImportItem {
+  index: number
+  name?: string
+  action: 'created' | 'updated' | 'skipped' | 'failed'
+  account_id?: number
+  message?: string
+}
+
+export interface CodexSessionImportResult {
+  total: number
+  created: number
+  updated: number
+  skipped: number
+  failed: number
+  items?: CodexSessionImportItem[]
+  warnings?: CodexSessionImportMessage[]
+  errors?: CodexSessionImportMessage[]
+}
+
 // ==================== Usage & Redeem Types ====================
 
 export type RedeemCodeType = 'balance' | 'points' | 'concurrency' | 'subscription' | 'invitation'
-export type UsageRequestType = 'unknown' | 'sync' | 'stream' | 'ws_v2'
+export type UsageRequestType = 'unknown' | 'sync' | 'stream' | 'ws_v2' | 'cyber'
+export type ImageSizeSource = 'output' | 'input' | 'default' | 'legacy'
+export type ImageSizeBreakdown = Record<string, number>
 
 export interface UsageLog {
   id: number
@@ -1536,6 +1736,12 @@ export interface UsageLog {
   // 图片生成字段
   image_count: number
   image_size: string | null
+  image_input_size: string | null
+  image_output_size: string | null
+  image_size_source: ImageSizeSource | null
+  image_size_breakdown: ImageSizeBreakdown | null
+  image_input_tokens: number
+  image_input_cost: number
   image_output_tokens: number
   image_output_cost: number
 
@@ -1804,6 +2010,7 @@ export interface UpdateUserRequest {
   role?: 'admin' | 'user'
   balance?: number
   concurrency?: number
+  rpm_limit?: number
   status?: 'active' | 'disabled'
   allowed_groups?: number[] | null
   // 用户专属分组倍率配置 (group_id -> rate_multiplier | null)

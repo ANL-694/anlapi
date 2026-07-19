@@ -2,10 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
-
 	"log"
 	"strings"
+	"time"
 
 	"ikik-api/internal/config"
 )
@@ -18,6 +19,27 @@ type APIKeyRateLimitCacheData struct {
 	Window5h int64   `json:"window_5h"` // unix timestamp, 0 = not started
 	Window1d int64   `json:"window_1d"`
 	Window7d int64   `json:"window_7d"`
+}
+
+type UserPlatformQuotaKey struct {
+	UserID   int64
+	Platform string
+}
+
+const UserPlatformQuotaCacheSchemaV1 = int64(1)
+
+type UserPlatformQuotaCacheEntry struct {
+	DailyUsageUSD      float64
+	WeeklyUsageUSD     float64
+	MonthlyUsageUSD    float64
+	Version            int64
+	SchemaVersion      int64
+	DailyLimitUSD      *float64
+	WeeklyLimitUSD     *float64
+	MonthlyLimitUSD    *float64
+	DailyWindowStart   *time.Time
+	WeeklyWindowStart  *time.Time
+	MonthlyWindowStart *time.Time
 }
 
 // BillingCache defines cache operations for billing service
@@ -39,12 +61,21 @@ type BillingCache interface {
 	SetAPIKeyRateLimit(ctx context.Context, keyID int64, data *APIKeyRateLimitCacheData) error
 	UpdateAPIKeyRateLimitUsage(ctx context.Context, keyID int64, cost float64) error
 	InvalidateAPIKeyRateLimit(ctx context.Context, keyID int64) error
+
+	GetUserPlatformQuotaCache(ctx context.Context, userID int64, platform string) (*UserPlatformQuotaCacheEntry, bool, error)
+	SetUserPlatformQuotaCache(ctx context.Context, userID int64, platform string, entry *UserPlatformQuotaCacheEntry, ttl time.Duration) error
+	DeleteUserPlatformQuotaCache(ctx context.Context, userID int64, platform string) error
+	IncrUserPlatformQuotaUsageCache(ctx context.Context, userID int64, platform string, cost float64, ttl time.Duration, markDirty bool) error
+	PopDirtyUserPlatformQuotaKeys(ctx context.Context, count int) ([]UserPlatformQuotaKey, error)
+	ReaddDirtyUserPlatformQuotaKeys(ctx context.Context, keys []UserPlatformQuotaKey) error
+	BatchGetUserPlatformQuotaCache(ctx context.Context, keys []UserPlatformQuotaKey) ([]*UserPlatformQuotaCacheEntry, error)
 }
 
 // ModelPricing 模型价格配置（per-token价格，与LiteLLM格式一致）
 type ModelPricing struct {
 	InputPricePerToken                 float64 // 每token输入价格 (USD)
 	InputPricePerTokenPriority         float64 // priority service tier 下每token输入价格 (USD)
+	ImageInputPricePerToken            float64 // 图片输入 token 价格 (USD)；0 时回退到普通输入价
 	OutputPricePerToken                float64 // 每token输出价格 (USD)
 	OutputPricePerTokenPriority        float64 // priority service tier 下每token输出价格 (USD)
 	CacheCreationPricePerToken         float64 // 缓存创建每token价格 (USD)
@@ -94,6 +125,7 @@ func serviceTierCostMultiplier(serviceTier string) float64 {
 // UsageTokens 使用的token数量
 type UsageTokens struct {
 	InputTokens           int
+	ImageInputTokens      int
 	OutputTokens          int
 	CacheCreationTokens   int
 	CacheReadTokens       int
@@ -104,15 +136,21 @@ type UsageTokens struct {
 
 // CostBreakdown 费用明细
 type CostBreakdown struct {
-	InputCost         float64
-	OutputCost        float64
-	ImageOutputCost   float64
-	CacheCreationCost float64
-	CacheReadCost     float64
-	TotalCost         float64
-	ActualCost        float64 // 应用倍率后的实际费用
-	BillingMode       string  // 计费模式（"token"/"per_request"/"image"），由 CalculateCostUnified 填充
+	InputCost                 float64 // 文本输入费用（不含图片输入，图片输入单独记入 ImageInputCost）
+	ImageInputCost            float64 // 图片输入 token 费用（如 gpt-image-2 图片编辑）
+	OutputCost                float64
+	ImageOutputCost           float64
+	CacheCreationCost         float64
+	CacheReadCost             float64
+	TotalCost                 float64
+	ActualCost                float64 // 应用倍率后的实际费用
+	BillingMode               string  // 计费模式（"token"/"per_request"/"image"），由 CalculateCostUnified 填充
+	LongContextBillingApplied bool
 }
+
+// ErrModelPricingUnavailable indicates that none of the configured pricing
+// sources can price the requested model.
+var ErrModelPricingUnavailable = errors.New("pricing not found")
 
 // BillingService 计费服务
 type BillingService struct {
@@ -305,7 +343,10 @@ func (s *BillingService) initFallbackPricing() {
 		CacheReadPricePerToken: 0.125e-6,
 		SupportsCacheBreakdown: false,
 	}
-	// xAI Grok Build 0.1 (official docs: $1 input / $2 output per MTok)
+	// xAI Grok Build 0.1 (official docs: $1 input / $0.20 cached input /
+	// $2 output per MTok). Composer is available only through Grok Build and
+	// has no standalone public API rate card, so its aliases use this coding
+	// model rate instead of silently billing at zero.
 	s.fallbackPrices["grok-build-0.1"] = &ModelPricing{
 		InputPricePerToken:     1e-6,
 		OutputPricePerToken:    2e-6,
@@ -428,7 +469,7 @@ func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
 		return s.applyModelSpecificPricingPolicy(model, fallback), nil
 	}
 
-	return nil, fmt.Errorf("pricing not found for model: %s", model)
+	return nil, fmt.Errorf("%w for model: %s", ErrModelPricingUnavailable, model)
 }
 
 // GetModelPricingWithChannel 获取模型定价，渠道配置的价格覆盖默认值
@@ -468,6 +509,7 @@ func (s *BillingService) GetModelPricingWithChannel(model string, channelPricing
 		pricing.ImageOutputPricePerToken = 0
 	}
 	pricing.ImageOutputPriceExplicit = true
+	applyChannelImageInputPrice(channelPricing, pricing)
 	return pricing, nil
 }
 
@@ -475,16 +517,17 @@ func (s *BillingService) GetModelPricingWithChannel(model string, channelPricing
 
 // CostInput 统一计费输入
 type CostInput struct {
-	Ctx            context.Context
-	Model          string
-	GroupID        *int64 // 用于渠道定价查找
-	Tokens         UsageTokens
-	RequestCount   int    // 按次计费时使用
-	SizeTier       string // 按次/图片模式的层级标签（"1K","2K","4K","HD" 等）
-	RateMultiplier float64
-	ServiceTier    string                // "priority","flex","" 等
-	Resolver       *ModelPricingResolver // 定价解析器
-	Resolved       *ResolvedPricing      // 可选：预解析的定价结果（避免重复 Resolve 调用）
+	Ctx                       context.Context
+	Model                     string
+	GroupID                   *int64 // 用于渠道定价查找
+	Tokens                    UsageTokens
+	RequestCount              int    // 按次计费时使用
+	SizeTier                  string // 按次/图片模式的层级标签（"1K","2K","4K","HD" 等）
+	RateMultiplier            float64
+	ServiceTier               string                // "priority","flex","" 等
+	Resolver                  *ModelPricingResolver // 定价解析器
+	Resolved                  *ResolvedPricing      // 可选：预解析的定价结果（避免重复 Resolve 调用）
+	LongContextBillingEnabled *bool
 }
 
 // CalculateCostUnified 统一计费入口，支持三种计费模式。
@@ -492,7 +535,18 @@ type CostInput struct {
 func (s *BillingService) CalculateCostUnified(input CostInput) (*CostBreakdown, error) {
 	if input.Resolver == nil {
 		// 无 Resolver，回退到旧路径
-		return s.calculateCostInternal(input.Model, input.Tokens, input.RateMultiplier, input.ServiceTier, nil)
+		applyLongContextBilling := true
+		if input.LongContextBillingEnabled != nil {
+			applyLongContextBilling = *input.LongContextBillingEnabled
+		}
+		return s.calculateCostInternalWithPolicy(
+			input.Model,
+			input.Tokens,
+			input.RateMultiplier,
+			input.ServiceTier,
+			nil,
+			applyLongContextBilling,
+		)
 	}
 
 	// 优先使用预解析结果，避免重复 Resolve 调用
@@ -532,13 +586,16 @@ func (s *BillingService) calculateTokenCost(resolved *ResolvedPricing, input Cos
 
 	pricing := input.Resolver.GetIntervalPricing(resolved, totalContext)
 	if pricing == nil {
-		return nil, fmt.Errorf("no pricing available for model: %s", input.Model)
+		return nil, fmt.Errorf("no pricing available for model: %s: %w", input.Model, ErrModelPricingUnavailable)
 	}
 
 	pricing = s.applyModelSpecificPricingPolicy(input.Model, pricing)
 
 	// 长上下文定价仅在无区间定价时应用（区间定价已包含上下文分层）
 	applyLongCtx := len(resolved.Intervals) == 0
+	if input.LongContextBillingEnabled != nil {
+		applyLongCtx = applyLongCtx && *input.LongContextBillingEnabled
+	}
 
 	return s.computeTokenBreakdown(pricing, input.Tokens, input.RateMultiplier, input.ServiceTier, applyLongCtx), nil
 }
@@ -598,7 +655,10 @@ func (s *BillingService) computeTokenBreakdown(
 		imageOutputTierMultiplier = tierMultiplier
 	}
 
-	if applyLongCtx && s.shouldApplySessionLongContextPricing(tokens, pricing) {
+	longContextPricingEligible := applyLongCtx && s.shouldApplySessionLongContextPricing(tokens, pricing)
+	var baselineCost *CostBreakdown
+	if longContextPricingEligible {
+		baselineCost = s.computeTokenBreakdown(pricing, tokens, rateMultiplier, serviceTier, false)
 		inputPrice *= pricing.LongContextInputMultiplier
 		outputPrice *= pricing.LongContextOutputMultiplier
 		cacheReadPrice *= pricing.LongContextInputMultiplier
@@ -629,9 +689,10 @@ func (s *BillingService) computeTokenBreakdown(
 
 	bd.CacheReadCost = float64(tokens.CacheReadTokens) * cacheReadPrice * cacheReadTierMultiplier
 
-	bd.TotalCost = bd.InputCost + bd.OutputCost + bd.ImageOutputCost +
+	bd.TotalCost = bd.InputCost + bd.ImageInputCost + bd.OutputCost + bd.ImageOutputCost +
 		bd.CacheCreationCost + bd.CacheReadCost
 	bd.ActualCost = bd.TotalCost * rateMultiplier
+	bd.LongContextBillingApplied = baselineCost != nil && bd.ActualCost > baselineCost.ActualCost
 
 	return bd
 }
@@ -690,7 +751,28 @@ func (s *BillingService) CalculateCostWithServiceTier(model string, tokens Usage
 	return s.calculateCostInternal(model, tokens, rateMultiplier, serviceTier, nil)
 }
 
+func (s *BillingService) calculateCostWithServiceTierPolicy(
+	model string,
+	tokens UsageTokens,
+	rateMultiplier float64,
+	serviceTier string,
+	longContextBillingEnabled bool,
+) (*CostBreakdown, error) {
+	return s.calculateCostInternalWithPolicy(model, tokens, rateMultiplier, serviceTier, nil, longContextBillingEnabled)
+}
+
 func (s *BillingService) calculateCostInternal(model string, tokens UsageTokens, rateMultiplier float64, serviceTier string, channelPricing *ChannelModelPricing) (*CostBreakdown, error) {
+	return s.calculateCostInternalWithPolicy(model, tokens, rateMultiplier, serviceTier, channelPricing, true)
+}
+
+func (s *BillingService) calculateCostInternalWithPolicy(
+	model string,
+	tokens UsageTokens,
+	rateMultiplier float64,
+	serviceTier string,
+	channelPricing *ChannelModelPricing,
+	longContextBillingEnabled bool,
+) (*CostBreakdown, error) {
 	var pricing *ModelPricing
 	var err error
 	if channelPricing != nil {
@@ -702,8 +784,7 @@ func (s *BillingService) calculateCostInternal(model string, tokens UsageTokens,
 		return nil, err
 	}
 
-	// 旧路径始终检查长上下文定价（无区间定价概念）
-	return s.computeTokenBreakdown(pricing, tokens, rateMultiplier, serviceTier, true), nil
+	return s.computeTokenBreakdown(pricing, tokens, rateMultiplier, serviceTier, longContextBillingEnabled), nil
 }
 
 func (s *BillingService) applyModelSpecificPricingPolicy(model string, pricing *ModelPricing) *ModelPricing {
@@ -835,13 +916,15 @@ func (s *BillingService) CalculateCostWithLongContext(model string, tokens Usage
 
 	// 合并成本
 	return &CostBreakdown{
-		InputCost:         inRangeCost.InputCost + outRangeCost.InputCost,
-		OutputCost:        inRangeCost.OutputCost,
-		ImageOutputCost:   inRangeCost.ImageOutputCost,
-		CacheCreationCost: inRangeCost.CacheCreationCost,
-		CacheReadCost:     inRangeCost.CacheReadCost + outRangeCost.CacheReadCost,
-		TotalCost:         inRangeCost.TotalCost + outRangeCost.TotalCost,
-		ActualCost:        inRangeCost.ActualCost + outRangeCost.ActualCost,
+		InputCost:                 inRangeCost.InputCost + outRangeCost.InputCost,
+		ImageInputCost:            inRangeCost.ImageInputCost + outRangeCost.ImageInputCost,
+		OutputCost:                inRangeCost.OutputCost,
+		ImageOutputCost:           inRangeCost.ImageOutputCost,
+		CacheCreationCost:         inRangeCost.CacheCreationCost,
+		CacheReadCost:             inRangeCost.CacheReadCost + outRangeCost.CacheReadCost,
+		TotalCost:                 inRangeCost.TotalCost + outRangeCost.TotalCost,
+		ActualCost:                inRangeCost.ActualCost + outRangeCost.ActualCost,
+		LongContextBillingApplied: outRangeCost.ActualCost > 0,
 	}, nil
 }
 
@@ -907,6 +990,51 @@ type ImagePriceConfig struct {
 	Price4K *float64 // 4K 尺寸价格（nil 表示使用默认值）
 }
 
+// VideoPriceConfig 视频生成计费配置。所有价格均为每秒单价（USD/s）。
+type VideoPriceConfig struct {
+	Price480P  *float64
+	Price720P  *float64
+	Price1080P *float64
+}
+
+const (
+	defaultImageGenerationPrice = 0.134
+
+	defaultGrokImagineImagePrice1K        = 0.02
+	defaultGrokImagineImagePrice2K        = 0.02
+	defaultGrokImagineImageQualityPrice1K = 0.05
+	defaultGrokImagineImageQualityPrice2K = 0.07
+
+	defaultGrokImagineVideoPrice480P    = 0.05
+	defaultGrokImagineVideoPrice720P    = 0.07
+	defaultGrokImagineVideo15Price480P  = 0.08
+	defaultGrokImagineVideo15Price720P  = 0.14
+	defaultGrokImagineVideo15Price1080P = 0.25
+
+	// OpenAI web search 官方价格为 10 USD / 1000 次。
+	defaultWebSearchPricePerCall = 0.01
+)
+
+// CalculateWebSearchCost 计算 Codex alpha/search 网页搜索按次费用。
+func (s *BillingService) CalculateWebSearchCost(callCount int, groupPrice *float64, rateMultiplier float64) *CostBreakdown {
+	if callCount <= 0 {
+		return &CostBreakdown{}
+	}
+	unitPrice := defaultWebSearchPricePerCall
+	if groupPrice != nil && *groupPrice >= 0 {
+		unitPrice = *groupPrice
+	}
+	totalCost := unitPrice * float64(callCount)
+	if rateMultiplier < 0 {
+		rateMultiplier = 0
+	}
+	return &CostBreakdown{
+		TotalCost:   totalCost,
+		ActualCost:  totalCost * rateMultiplier,
+		BillingMode: string(BillingModePerRequest),
+	}
+}
+
 // CalculateImageCost 计算图片生成费用
 // model: 请求的模型名称（用于获取 LiteLLM 默认价格）
 // imageSize: 图片尺寸 "1K", "2K", "4K"
@@ -917,6 +1045,7 @@ func (s *BillingService) CalculateImageCost(model string, imageSize string, imag
 	if imageCount <= 0 {
 		return &CostBreakdown{}
 	}
+	imageSize = NormalizeImageBillingTierOrDefault(imageSize)
 
 	// 获取单价
 	unitPrice := s.getImageUnitPrice(model, imageSize, groupConfig)
@@ -934,6 +1063,26 @@ func (s *BillingService) CalculateImageCost(model string, imageSize string, imag
 		TotalCost:   totalCost,
 		ActualCost:  actualCost,
 		BillingMode: string(BillingModeImage),
+	}
+}
+
+// CalculateVideoCost 计算视频生成费用，价格按秒计。
+func (s *BillingService) CalculateVideoCost(model string, resolution string, videoCount int, durationSeconds int, groupConfig *VideoPriceConfig, rateMultiplier float64) *CostBreakdown {
+	if videoCount <= 0 {
+		return &CostBreakdown{}
+	}
+	resolution = NormalizeVideoBillingResolutionOrDefault(resolution)
+	durationSeconds = NormalizeVideoBillingDurationSecondsOrDefault(durationSeconds)
+
+	perSecondPrice := s.getVideoUnitPrice(model, resolution, groupConfig)
+	totalCost := perSecondPrice * float64(durationSeconds) * float64(videoCount)
+	if rateMultiplier < 0 {
+		rateMultiplier = 0
+	}
+	return &CostBreakdown{
+		TotalCost:   totalCost,
+		ActualCost:  totalCost * rateMultiplier,
+		BillingMode: string(BillingModeVideo),
 	}
 }
 
@@ -961,8 +1110,32 @@ func (s *BillingService) getImageUnitPrice(model string, imageSize string, group
 	return s.getDefaultImagePrice(model, imageSize)
 }
 
+func (s *BillingService) getVideoUnitPrice(model string, resolution string, groupConfig *VideoPriceConfig) float64 {
+	if groupConfig != nil {
+		switch resolution {
+		case VideoBillingResolution480P:
+			if groupConfig.Price480P != nil {
+				return *groupConfig.Price480P
+			}
+		case VideoBillingResolution720P:
+			if groupConfig.Price720P != nil {
+				return *groupConfig.Price720P
+			}
+		case VideoBillingResolution1080P:
+			if groupConfig.Price1080P != nil {
+				return *groupConfig.Price1080P
+			}
+		}
+	}
+	return s.getDefaultVideoPrice(model, resolution)
+}
+
 // getDefaultImagePrice 获取 LiteLLM 默认图片价格
 func (s *BillingService) getDefaultImagePrice(model string, imageSize string) float64 {
+	if price, ok := getDefaultGrokImagineImagePrice(model, imageSize); ok {
+		return price
+	}
+
 	basePrice := 0.0
 
 	// 从 PricingService 获取 output_cost_per_image
@@ -975,7 +1148,7 @@ func (s *BillingService) getDefaultImagePrice(model string, imageSize string) fl
 
 	// 如果没有找到价格，使用硬编码默认值（$0.134，来自 gemini-3-pro-image-preview）
 	if basePrice <= 0 {
-		basePrice = 0.134
+		basePrice = defaultImageGenerationPrice
 	}
 
 	// 2K 尺寸 1.5 倍，4K 尺寸翻倍
@@ -987,4 +1160,62 @@ func (s *BillingService) getDefaultImagePrice(model string, imageSize string) fl
 	}
 
 	return basePrice
+}
+
+func (s *BillingService) getDefaultVideoPrice(model string, resolution string) float64 {
+	if price, ok := getDefaultGrokImagineVideoPrice(model, resolution); ok {
+		return price
+	}
+	return s.getDefaultImagePrice(model, ImageBillingSize2K)
+}
+
+func getDefaultGrokImagineImagePrice(model string, imageSize string) (float64, bool) {
+	model = strings.ToLower(strings.TrimSpace(model))
+	switch model {
+	case "grok-imagine-image-quality":
+		return getGrokImagineImageTierPrice(imageSize, defaultGrokImagineImageQualityPrice1K, defaultGrokImagineImageQualityPrice2K), true
+	case "grok-imagine", "grok-imagine-image", "grok-imagine-edit":
+		return getGrokImagineImageTierPrice(imageSize, defaultGrokImagineImagePrice1K, defaultGrokImagineImagePrice2K), true
+	default:
+		return 0, false
+	}
+}
+
+func getGrokImagineImageTierPrice(imageSize string, price1K float64, price2K float64) float64 {
+	switch NormalizeImageBillingTierOrDefault(imageSize) {
+	case ImageBillingSize1K:
+		return price1K
+	case ImageBillingSize2K, ImageBillingSize4K:
+		return price2K
+	default:
+		return price2K
+	}
+}
+
+func getDefaultGrokImagineVideoPrice(model string, resolution string) (float64, bool) {
+	model = strings.ToLower(strings.TrimSpace(model))
+	switch {
+	case strings.HasPrefix(model, "grok-imagine-video-1.5"):
+		switch NormalizeVideoBillingResolutionOrDefault(resolution) {
+		case VideoBillingResolution480P:
+			return defaultGrokImagineVideo15Price480P, true
+		case VideoBillingResolution720P:
+			return defaultGrokImagineVideo15Price720P, true
+		case VideoBillingResolution1080P:
+			return defaultGrokImagineVideo15Price1080P, true
+		default:
+			return defaultGrokImagineVideo15Price480P, true
+		}
+	case strings.HasPrefix(model, "grok-imagine-video"):
+		switch NormalizeVideoBillingResolutionOrDefault(resolution) {
+		case VideoBillingResolution480P:
+			return defaultGrokImagineVideoPrice480P, true
+		case VideoBillingResolution720P, VideoBillingResolution1080P:
+			return defaultGrokImagineVideoPrice720P, true
+		default:
+			return defaultGrokImagineVideoPrice480P, true
+		}
+	default:
+		return 0, false
+	}
 }

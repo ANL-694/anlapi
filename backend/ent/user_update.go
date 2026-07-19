@@ -22,6 +22,7 @@ import (
 	"ikik-api/ent/usagelog"
 	"ikik-api/ent/user"
 	"ikik-api/ent/userattributevalue"
+	"ikik-api/ent/userplatformquota"
 	"ikik-api/ent/usersubscription"
 	"time"
 
@@ -794,6 +795,21 @@ func (_u *UserUpdate) AddPendingAuthSessions(v ...*PendingAuthSession) *UserUpda
 	return _u.AddPendingAuthSessionIDs(ids...)
 }
 
+// AddPlatformQuotaIDs adds the "platform_quotas" edge to the UserPlatformQuota entity by IDs.
+func (_u *UserUpdate) AddPlatformQuotaIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddPlatformQuotaIDs(ids...)
+	return _u
+}
+
+// AddPlatformQuotas adds the "platform_quotas" edges to the UserPlatformQuota entity.
+func (_u *UserUpdate) AddPlatformQuotas(v ...*UserPlatformQuota) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlatformQuotaIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -1133,6 +1149,27 @@ func (_u *UserUpdate) RemovePendingAuthSessions(v ...*PendingAuthSession) *UserU
 		ids[i] = v[i].ID
 	}
 	return _u.RemovePendingAuthSessionIDs(ids...)
+}
+
+// ClearPlatformQuotas clears all "platform_quotas" edges to the UserPlatformQuota entity.
+func (_u *UserUpdate) ClearPlatformQuotas() *UserUpdate {
+	_u.mutation.ClearPlatformQuotas()
+	return _u
+}
+
+// RemovePlatformQuotaIDs removes the "platform_quotas" edge to UserPlatformQuota entities by IDs.
+func (_u *UserUpdate) RemovePlatformQuotaIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemovePlatformQuotaIDs(ids...)
+	return _u
+}
+
+// RemovePlatformQuotas removes "platform_quotas" edges to UserPlatformQuota entities.
+func (_u *UserUpdate) RemovePlatformQuotas(v ...*UserPlatformQuota) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlatformQuotaIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -2094,6 +2131,51 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.PlatformQuotasCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlatformQuotasTable,
+			Columns: []string{user.PlatformQuotasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userplatformquota.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPlatformQuotasIDs(); len(nodes) > 0 && !_u.mutation.PlatformQuotasCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlatformQuotasTable,
+			Columns: []string{user.PlatformQuotasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userplatformquota.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PlatformQuotasIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlatformQuotasTable,
+			Columns: []string{user.PlatformQuotasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userplatformquota.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -2865,6 +2947,21 @@ func (_u *UserUpdateOne) AddPendingAuthSessions(v ...*PendingAuthSession) *UserU
 	return _u.AddPendingAuthSessionIDs(ids...)
 }
 
+// AddPlatformQuotaIDs adds the "platform_quotas" edge to the UserPlatformQuota entity by IDs.
+func (_u *UserUpdateOne) AddPlatformQuotaIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddPlatformQuotaIDs(ids...)
+	return _u
+}
+
+// AddPlatformQuotas adds the "platform_quotas" edges to the UserPlatformQuota entity.
+func (_u *UserUpdateOne) AddPlatformQuotas(v ...*UserPlatformQuota) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlatformQuotaIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
@@ -3204,6 +3301,27 @@ func (_u *UserUpdateOne) RemovePendingAuthSessions(v ...*PendingAuthSession) *Us
 		ids[i] = v[i].ID
 	}
 	return _u.RemovePendingAuthSessionIDs(ids...)
+}
+
+// ClearPlatformQuotas clears all "platform_quotas" edges to the UserPlatformQuota entity.
+func (_u *UserUpdateOne) ClearPlatformQuotas() *UserUpdateOne {
+	_u.mutation.ClearPlatformQuotas()
+	return _u
+}
+
+// RemovePlatformQuotaIDs removes the "platform_quotas" edge to UserPlatformQuota entities by IDs.
+func (_u *UserUpdateOne) RemovePlatformQuotaIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemovePlatformQuotaIDs(ids...)
+	return _u
+}
+
+// RemovePlatformQuotas removes "platform_quotas" edges to UserPlatformQuota entities.
+func (_u *UserUpdateOne) RemovePlatformQuotas(v ...*UserPlatformQuota) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlatformQuotaIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -4188,6 +4306,51 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(pendingauthsession.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PlatformQuotasCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlatformQuotasTable,
+			Columns: []string{user.PlatformQuotasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userplatformquota.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPlatformQuotasIDs(); len(nodes) > 0 && !_u.mutation.PlatformQuotasCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlatformQuotasTable,
+			Columns: []string{user.PlatformQuotasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userplatformquota.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PlatformQuotasIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlatformQuotasTable,
+			Columns: []string{user.PlatformQuotasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userplatformquota.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

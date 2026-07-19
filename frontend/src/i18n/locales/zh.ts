@@ -1,4 +1,9 @@
-export default {
+import zhAudit from './zh/admin/audit'
+import zhPromptAudit from './zh/admin/promptAudit'
+import sub2Zh from './zh/index'
+import { mergeLocaleMessages } from './merge'
+
+const anlZhOverrides = {
   // Home Page
   home: {
     viewOnGithub: '在 GitHub 上查看',
@@ -513,6 +518,7 @@ export default {
     redeemCodes: '兑换码',
     ops: '运维监控',
     riskControl: '风控中心',
+    securityAudit: '安全审计',
     modules: '插件模块',
     promoCodes: '优惠码',
     settings: '系统设置',
@@ -799,6 +805,15 @@ export default {
     invalidOrExpiredToken: '密码重置链接无效或已过期。请重新请求一个新链接。'
   },
 
+  // Step-up（敏感操作二次验证）
+  stepUp: {
+    title: '需要二次验证',
+    hint: '请输入身份验证器应用中的 6 位验证码以继续此敏感操作。',
+    verifyFailed: '验证失败，请重试',
+    notEnabled: '此操作需要开启二次验证，请先在个人资料中启用 TOTP。',
+    adminApiKeyForbidden: '管理 API Key 无法执行此操作，请使用已通过二次验证的管理员会话。'
+  },
+
   // Dashboard
   dashboard: {
     title: '仪表盘',
@@ -816,6 +831,17 @@ export default {
     todayTokens: '今日 Token',
     todayPlatformUsage: '今日平台用量',
     todayPlatformUsageHint: '按平台拆分今日请求、Token 与实际消费。',
+    platformQuotasTitle: '平台消费配额',
+    platformQuotasHint: '按实际消费金额统计',
+    platformQuotasEmpty: '当前账号未配置平台配额，使用记录产生后会显示在这里。',
+    platformQuotaUnlimited: '不限额',
+    platformQuotaNotStarted: '窗口尚未开始',
+    platformQuotaResetsAt: '{time} 重置',
+    platformQuotaWindows: {
+      daily: '每日',
+      weekly: '每周',
+      monthly: '30 天'
+    },
     totalTokens: '累计 Token',
     cacheToday: '今日缓存',
     performance: '性能指标',
@@ -914,7 +940,7 @@ export default {
     apiKey: 'API Key',
     baseUrl: 'Base URL',
     credentialsJson: '凭证 JSON',
-    credentialsJsonPlaceholder: '{\n  "access_token": "...",\n  "refresh_token": "...",\n  "expires_at": "..."\n}',
+    credentialsJsonPlaceholder: '请输入包含 access_token、refresh_token 和 expires_at 的 JSON',
     accountDetails: '账号信息',
     oauthAuthorization: 'OAuth 授权',
     completeAuthorization: '完成授权',
@@ -2253,6 +2279,8 @@ export default {
 
   // Admin
   admin: {
+    ...zhAudit,
+    ...zhPromptAudit,
     riskControl: {
       title: '风控中心',
       description: '配置内容审计策略并查看审核记录',
@@ -3300,6 +3328,26 @@ export default {
       viewApiKeys: '查看 API 密钥',
       groups: '分组',
       apiKeys: 'API密钥',
+      platformQuotas: {
+        menu: '平台配额',
+        title: '用户平台配额',
+        hint: '限制该用户在各上游平台的实际消费金额；留空表示不限额。',
+        platform: '平台',
+        windows: {
+          daily: '每日限额',
+          weekly: '每周限额',
+          monthly: '30 天限额'
+        },
+        unlimited: '不限额',
+        used: '已用',
+        resetWindow: '重置当前窗口用量',
+        notStarted: '窗口尚未开始',
+        saved: '平台配额已保存',
+        resetDone: '窗口用量已重置',
+        loadFailed: '加载平台配额失败',
+        saveFailed: '保存平台配额失败',
+        resetFailed: '重置窗口用量失败'
+      },
       userApiKeys: '用户 API 密钥',
       noApiKeys: '此用户暂无 API 密钥',
       group: '分组',
@@ -3705,7 +3753,35 @@ export default {
       },
       imagePricing: {
         title: '图片生成计费',
-        description: '配置图片生成模型的图片生成价格，留空则使用默认价格'
+        description: '配置图片生成能力和图片基础单价，留空则使用默认价格',
+        allowImageGeneration: '允许当前分组生图',
+        allowBatchImageGeneration: '允许当前分组批量生图',
+        independentMultiplier: '生图倍率独立',
+        imageMultiplier: '生图独立倍率',
+        batchDiscountMultiplier: '批量生图折扣倍率',
+        batchHoldMultiplier: '批量冻结价格比例',
+        batchSectionHint: '批量生图仅影响批量任务：结算价格会叠加批量折扣倍率，提交时冻结金额按普通生图原价 × 批量冻结价格比例计算。参考图也会产生上游输入 token 消耗，建议批量生图折扣倍率设置大于 0.5。',
+        batchDisabledHint: '请先开启当前分组生图，才能开启批量生图。',
+        batchGeminiOnlyHint: '批量生图当前仅支持 Gemini 分组。',
+        modeHint: '默认关闭独立倍率时，图片费用 = 图片价格 × 当前分组有效倍率；开启独立倍率后，图片费用 = 图片价格 × 生图独立倍率。',
+        finalPricePreview: '最终单张价格预览',
+        notConfigured: '未配置'
+      },
+      videoPricing: {
+        title: '视频生成计费',
+        description: '配置 Grok 视频生成的每秒单价（USD/秒），留空则使用默认每秒价。',
+        independentMultiplier: '视频倍率独立',
+        videoMultiplier: '视频独立倍率',
+        modeHint: '视频按秒计费：费用 = 每秒价格 × 时长。默认叠加当前分组有效倍率；开启独立倍率后改用视频独立倍率。',
+        finalPricePreview: '最终每秒价格预览',
+        notConfigured: '未配置'
+      },
+      peakRate: {
+        enable: '启用高峰倍率',
+        peakStart: '高峰开始',
+        peakEnd: '高峰结束',
+        peakMultiplier: '高峰倍率',
+        multiplierHint: '作用于 token 计费倍率；token 计费的图片 token 同样适用，0 表示高峰 token 请求按 0 倍计费'
       },
       modelsList: {
         title: '自定义 /v1/models 模型列表',
@@ -4133,10 +4209,10 @@ export default {
         actions: '操作'
       },
       form: {
-        user: '用户',
-        group: '订阅分组',
-        validityDays: '有效期（天）',
-        adjustDays: '调整天数'
+		user: '用户',
+		group: '订阅分组',
+		validityDays: '有效期（天）',
+		adjustDays: '调整天数'
       },
       selectUser: '选择用户',
       selectGroup: '选择订阅分组',
@@ -4422,6 +4498,13 @@ export default {
       privacyAntigravitySet: '已关闭遥测和营销邮件',
       privacyAntigravityFailed: '隐私设置失败',
       setPrivacy: '设置隐私',
+      duplicateAccount: '复制账号',
+      duplicateSuccess: '账号“{name}”已复制',
+      duplicateFailed: '复制账号失败',
+      createSparkShadow: '创建 Spark 影子账号',
+      createSparkShadowConfirm: '为“{name}”创建链接型 Spark 影子账号？影子共享母账号凭据，仅服务 Spark 模型。',
+      createSparkShadowSuccess: 'Spark 影子账号已创建',
+      createSparkShadowFailed: '创建 Spark 影子账号失败',
       shareScope: {
         platform: '平台账号',
         platformMeta: '系统号池',
@@ -4637,6 +4720,7 @@ export default {
         resetTooltipReady: '消耗 1 次重置次数以立即恢复当前窗口',
         resetTooltipNeedQuery: '先点击“次数”加载剩余重置次数',
         resetTooltipNoCredits: '没有可用的重置次数',
+        resetTooltipShadow: '影子账号共享母账号额度，请在母账号上执行重置',
         noCreditsAvailable: '没有可用的重置次数',
         resetSuccess: '已重置 {windows} 个窗口'
       },
@@ -5181,6 +5265,32 @@ export default {
           refreshTokenAuth: '手动输入 RT',
           refreshTokenDesc: '输入您已有的 OpenAI Refresh Token，支持批量输入（每行一个），系统将自动验证并创建账号。',
           refreshTokenPlaceholder: '粘贴您的 OpenAI Refresh Token...\n支持多个，每行一个',
+          mobileRefreshTokenAuth: '手动输入 Mobile RT',
+          accessTokenAuth: '手动输入 AT',
+          codexSessionAuth: 'Codex OAuth auth.json / AT 导入',
+          codexSessionDesc: '粘贴 Codex OAuth auth.json 或 accessToken，按第一步配置创建账号。',
+          codexSessionInputLabel: 'Codex OAuth auth.json 或 accessToken',
+          codexSessionPlaceholder: '支持多行，每行一个 token 或 auth.json 对象',
+          codexSessionHint: 'OAuth session/accessToken 导入继续沿用原有过期规则。',
+          codexSessionImportAndCreate: '导入并创建账号',
+          codexSessionEmpty: '请输入 Codex auth.json 或 accessToken',
+          codexSessionImportFailed: 'Codex 账号导入失败',
+          codexSessionImportSuccess: '导入完成：新增 {created}，更新 {updated}，跳过 {skipped}',
+          codexSessionImportPartial: '部分成功：新增 {created}，更新 {updated}，跳过 {skipped}，失败 {failed}',
+          agentIdentityAuth: 'Agent Identity auth.json',
+          agentIdentityDesc: '导入 Codex Agent Identity auth.json，不保存 OAuth access token 或 refresh token。',
+          agentIdentityInputLabel: 'Agent Identity auth.json',
+          agentIdentityPlaceholder: '粘贴一个 Agent Identity auth.json 对象',
+          agentIdentityHint: '文件必须使用 auth_mode=agentIdentity；每次上游请求都会动态签名。',
+          agentIdentityInvalid: '请选择 auth_mode=agentIdentity 的 Codex auth.json。',
+          codexPatAuth: 'Codex Personal Access Token',
+          codexPatDesc: '输入 Codex at- Personal Access Token，系统会先调用 OpenAI whoami 校验后再创建账号。',
+          codexPatInputLabel: 'Codex PAT',
+          codexPatPlaceholder: 'at-...',
+          codexPatHint: '这是独立认证模式，不保存 refresh_token，也不会写入 OAuth access_token 过期时间。',
+          codexPatImportAndCreate: '校验并创建 Codex PAT 账号',
+          codexPatEmpty: '请输入 Codex Personal Access Token',
+          codexPatImportFailed: 'Codex PAT 账号创建失败',
           sessionTokenAuth: '手动输入 ST',
           sessionTokenDesc: '输入您已有的 Session Token，支持批量输入（每行一个），系统将自动验证并创建账号。',
           sessionTokenPlaceholder: '粘贴您的 Session Token...\n支持多个，每行一个',
@@ -6241,6 +6351,52 @@ export default {
     ops: {
       title: '运维监控',
       description: '运维监控与排障',
+      systemLogs: {
+        title: '系统日志',
+        description: '优先显示最新日志，可按条件筛选、搜索和清理。',
+        queue: '队列',
+        written: '已写入',
+        dropped: '已丢弃',
+        failed: '写入失败',
+        runtimeConfig: '运行时日志配置（立即生效）',
+        all: '全部',
+        level: '级别',
+        stacktraceThreshold: '堆栈阈值',
+        samplingInitial: '采样初始条数',
+        samplingThereafter: '后续采样间隔',
+        retentionDays: '保留天数',
+        caller: '调用方',
+        sampling: '采样',
+        saveAndApply: '保存并应用',
+        resetDefaults: '重置默认值',
+        latestWriteError: '最近写入错误：',
+        timeRange: '时间范围',
+        startTime: '开始时间（可选）',
+        endTime: '结束时间（可选）',
+        host: 'Host',
+        component: '组件',
+        componentPlaceholder: '例如 http.access',
+        keyId: 'KEY ID',
+        platform: '平台',
+        model: '模型',
+        keyword: '关键词',
+        keywordPlaceholder: 'message/request_id',
+        search: '搜索',
+        cleanCurrentFilters: '清理当前筛选结果',
+        refreshHealth: '刷新健康状态',
+        empty: '暂无系统日志',
+        time: '时间',
+        logDetails: '日志详情',
+        loadFailed: '加载系统日志失败',
+        runtimeConfigActive: '运行时日志配置已生效',
+        runtimeConfigSaveFailed: '保存日志配置失败',
+        resetRuntimeConfigConfirm: '确定要重置为启动配置（env/yaml）并立即应用吗？',
+        runtimeConfigReset: '已重置为启动日志配置',
+        runtimeConfigResetFailed: '重置日志配置失败',
+        cleanupConfirm: '确定要清理匹配当前筛选条件的系统日志吗？此操作不可撤销。',
+        cleanupSuccess: '清理完成，已删除 {count} 条日志。',
+        cleanupFailed: '清理系统日志失败'
+      },
       // Dashboard
       systemHealth: '系统健康',
       overview: '概览',
@@ -7222,6 +7378,15 @@ export default {
         totpHint: '允许用户使用 Google Authenticator 等应用进行二次验证',
         totpKeyNotConfigured: '请先在环境变量中配置 TOTP_ENCRYPTION_KEY。使用命令 openssl rand -hex 32 生成密钥。'
       },
+      security: {
+        stepUp: '敏感操作二次验证 (step-up 2FA)',
+        stepUpHint: '开启后，账号/代理导出、备份创建与下载、备份恢复、S3 配置修改、提升管理员等敏感操作需要先完成 TOTP 二次验证（15 分钟内有效）。开启前需本人已启用 2FA；关闭该开关本身也需要二次验证。',
+        stepUpEnableRequiresTotp: '开启敏感操作二次验证前，请先在个人资料中为当前账号启用 2FA (TOTP)。',
+        sessionBinding: '会话 IP/UA 绑定',
+        sessionBindingHint: '将登录会话与客户端 IP 和 User-Agent 绑定，任一变化即强制该会话失效并需重新登录。移动网络或多出口网络可能频繁更换 IP，默认关闭。',
+        auditRetention: '操作日志保留天数',
+        auditRetentionHint: '设置审计日志的保留期限，填 0 表示永久保留。'
+      },
       apiKeyAcl: {
         title: 'API Key IP 访问控制',
         description: '控制 API Key 白名单和黑名单使用哪个客户端 IP 判断',
@@ -7991,11 +8156,13 @@ export default {
         scopeOAuth: '仅 OAuth 账号',
         scopeAPIKey: '仅 API Key 账号',
         scopeBedrock: '仅 Bedrock 账号',
-        userIds: '指定用户 ID',
-        userIdsHint: '留空表示全部用户，指定用户规则优先。',
-        userIdPlaceholder: '例如：1001',
-        addUserId: '添加用户',
-        removeUserId: '移除用户',
+        userIds: '指定用户',
+        userIdsHint: '输入任意邮箱关键词进行模糊搜索。留空表示对全部 Sub2API 用户生效；选中用户的 API Key 请求优先匹配用户规则。',
+        userSearchPlaceholder: '输入用户邮箱搜索',
+        userSearchEmpty: '未找到匹配用户',
+        userDeleted: '（已删除）',
+        userIdFallback: '用户 #{id}',
+        removeUser: '移除用户',
         errorMessage: '错误消息',
         errorMessagePlaceholder: '拦截时返回的自定义错误消息',
         errorMessageHint: '留空则使用默认错误消息。',
@@ -8031,6 +8198,17 @@ export default {
         frontendRedirectUrlLabel: '前端回调地址',
         frontendRedirectUrlPlaceholder: '/auth/wechat/callback',
         frontendRedirectUrlHint: '通常用于前端路由回调地址，需与后端配置保持一致。'
+      },
+      platformQuotas: {
+        defaultTitle: '新用户平台消费配额',
+        defaultHint: '新用户注册时复制为独立配额。留空表示该平台和时间窗口不限额。',
+        sourceTitle: '来源专属平台配额',
+        sourceHint: '仅覆盖已填写的限额；留空时继续使用上方全局默认值。',
+        platform: '平台',
+        daily: '每日限额',
+        weekly: '每周限额',
+        monthly: '30 天限额',
+        unlimited: '不限额'
       },
       authSourceDefaults: {
         title: '认证来源默认值',
@@ -8079,7 +8257,30 @@ export default {
       },
       openaiExperimentalScheduler: {
         title: 'OpenAI 实验调度策略',
-        description: '默认关闭。开启后仅影响本网关在 OpenAI 账号间的实验性调度选择逻辑，不代表上游 OpenAI 官方能力。'
+        description: '默认关闭。开启后仅影响本网关在 OpenAI 账号间的实验性调度选择逻辑，不代表上游 OpenAI 官方能力。',
+        lowRatePriorityTitle: '低倍率优先',
+        lowRatePriorityDescription: '开启后优先选择计费倍率较低的账号；倍率相同时，再比较账号优先级和当前负载等。启用实验调度策略后，此开关不生效。',
+        oauthRateTitle: 'OAuth 调度参考倍率',
+        oauthRatePriorityDescription: '同一分组同时包含 API Key 和 OAuth 账号时，OAuth 账号按此倍率与已探测的 API Key 计费倍率一起排序。',
+        oauthRateWeightedDescription: '同一分组同时包含 API Key 和 OAuth 账号时，计算“计费倍率”得分时，OAuth 账号按此倍率参与计算。',
+        stickyWeightedTitle: '粘性加权',
+        stickyWeightedDescription: '开启后 previous_response_id 和 session_hash 粘性进入高级调度打分；关闭时仍按旧逻辑硬命中粘性账号。',
+        subscriptionPriorityTitle: '订阅优先',
+        subscriptionPriorityDescription: '开启后先在 ChatGPT 订阅账号池中按权值选取；订阅池拿不到席位时再回退到非订阅账号池。',
+        weightsTitle: '调度权值覆盖',
+        weightsDescription: '留空时使用配置/环境变量值；配置未设置时使用内置默认值。页面非空设置优先。',
+        defaultPlaceholder: '配置/默认：{value}',
+        topKLabel: 'TopK',
+        priorityWeight: '优先级',
+        loadWeight: '负载',
+        queueWeight: '排队',
+        errorRateWeight: '错误率',
+        ttftWeight: '首包延迟',
+        resetWeight: '重置窗口',
+        quotaHeadroomWeight: '额度余量',
+        upstreamCostWeight: '计费倍率',
+        previousResponseWeight: 'previous_response 粘性',
+        sessionStickyWeight: 'session_hash 粘性'
       },
       openaiFreeAccountRepair: {
         title: 'OpenAI Free 账号自动修复',
@@ -8788,10 +8989,10 @@ export default {
       deletePlanConfirm: '确定要删除此套餐吗？',
       originalPrice: '原价',
       price: '价格',
-      subscriptionCnyPayPreview: 'CNY 通道实扣预览：{amount}',
-      subscriptionCnyPayPreviewWithFee: '（含 {feeRate}% 手续费：{total}）',
-      validityDays: '有效期（天）',
-      validityUnit: '有效期单位',
+		subscriptionCnyPayPreview: 'CNY 通道实扣预览：{amount}',
+		subscriptionCnyPayPreviewWithFee: '（含 {feeRate}% 手续费：{total}）',
+		validity: '有效期',
+		validityUnit: '有效期单位',
       sortOrder: '排序',
       forSale: '上架状态',
       onSale: '上架',
@@ -8828,7 +9029,7 @@ export default {
       selectGroup: '请选择分组',
       groupRequired: '请选择订阅分组',
       priceRequired: '价格必须大于 0',
-      validityDaysRequired: '有效期天数必须大于 0',
+		validityRequired: '有效期必须大于 0',
       groupMissing: '缺失',
       groupInfo: '分组信息',
       platform: '平台',
@@ -8849,3 +9050,5 @@ export default {
     }
   }
 }
+
+export default mergeLocaleMessages(sub2Zh, anlZhOverrides)

@@ -7,6 +7,7 @@ This directory contains files for deploying ikik-api on Linux servers.
 | Method | Best For | Setup Wizard |
 |--------|----------|--------------|
 | **Docker Compose** | Quick setup, all-in-one | Not needed (auto-setup) |
+| **Apple container** | Native local stack on macOS 26 | Not needed (auto-setup) |
 | **Binary Install** | Production servers, systemd | Web-based wizard |
 
 ## Files
@@ -16,14 +17,33 @@ This directory contains files for deploying ikik-api on Linux servers.
 | `docker-compose.yml` | Docker Compose configuration (named volumes) |
 | `docker-compose.local.yml` | Docker Compose configuration (local directories, easy migration) |
 | `docker-deploy.sh` | **One-click Docker deployment script (recommended)** |
-| `.env.example` | Docker environment variables template |
+| `apple-container.sh` | Native Apple `container` lifecycle script |
+| `APPLE_CONTAINER.md` | Apple `container` deployment and operations guide |
+| `.env.example` | Container environment variables template |
 | `DOCKER.md` | Docker Hub documentation |
 | `install.sh` | One-click binary installation script |
-| `install-datamanagementd.sh` | datamanagementd 涓€閿畨瑁呰剼鏈?|
+| `install-datamanagementd.sh` | datamanagementd 一键安装脚本 |
 | `ikik-api.service` | Systemd service unit file |
 | `ikik-api-datamanagementd.service` | datamanagementd systemd service unit file |
-| `DATAMANAGEMENTD_CN.md` | datamanagementd 閮ㄧ讲涓庤仈鍔ㄨ鏄庯紙涓枃锛?|
+| `DATAMANAGEMENTD_CN.md` | datamanagementd 部署与联动说明（中文） |
 | `config.example.yaml` | Example configuration file |
+
+---
+
+## Apple container Deployment
+
+Apple-silicon Macs running macOS 26 can run the complete Sub2API, PostgreSQL, and Redis stack with Apple `container` 1.1.0 or newer:
+
+```bash
+./apple-container.sh init
+./apple-container.sh up
+./apple-container.sh status
+./apple-container.sh logs app -f
+```
+
+The script uses Apple named volumes, starts dependencies in order, and performs live readiness checks. It does not provide a continuous restart supervisor; run `./apple-container.sh up` after a host reboot. Docker Compose remains the recommended production deployment path.
+
+See [APPLE_CONTAINER.md](./APPLE_CONTAINER.md) for configuration, upgrades, persistence, networking behavior, and limitations.
 
 ---
 
@@ -76,6 +96,7 @@ cd ikik-api/deploy
 
 # Configure environment
 cp .env.example .env
+chmod 600 .env
 nano .env  # Set POSTGRES_PASSWORD and other required variables
 
 # Generate secure secrets (recommended)
@@ -148,11 +169,13 @@ SELECT
   (SELECT COUNT(*) FROM user_allowed_groups) AS new_pair_count;
 ```
 
-### datamanagementd锛堟暟鎹鐞嗭級鑱斿姩
+### datamanagementd（数据管理）联动
 
-濡傞渶鍚敤绠＄悊鍚庡彴鈥滄暟鎹鐞嗏€濆姛鑳斤紝璇烽澶栭儴缃插涓绘満 `datamanagementd`锛?
-- 涓昏繘绋嬪浐瀹氭帰娴?`/tmp/ikik-api-datamanagement.sock`
-- Docker 鍦烘櫙涓嬮渶鎶婂涓绘満 Socket 鎸傝浇鍒板鍣ㄥ唴鍚岃矾寰?- 璇︾粏姝ラ瑙侊細`deploy/DATAMANAGEMENTD_CN.md`
+如需启用管理后台“数据管理”功能，请额外部署宿主机 `datamanagementd`：
+
+- 主进程固定探测 `/tmp/ikik-api-datamanagement.sock`
+- Docker 场景下需把宿主机 Socket 挂载到容器内同路径
+- 详细步骤见：`deploy/DATAMANAGEMENTD_CN.md`
 
 
 ### Commands
@@ -314,7 +337,9 @@ Requires your own OAuth client credentials.
 GEMINI_OAUTH_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GEMINI_OAUTH_CLIENT_SECRET=GOCSPX-your-client-secret
 
-# 鍙€夛細濡傞渶浣跨敤 Gemini CLI 鍐呯疆 OAuth Client锛圕ode Assist / Google One锛?# 瀹夊叏璇存槑锛氭湰浠撳簱涓嶄細鍐呯疆璇?client_secret锛岃鍦ㄨ繍琛岀幆澧冮€氳繃鐜鍙橀噺娉ㄥ叆銆?# GEMINI_CLI_OAUTH_CLIENT_SECRET=GOCSPX-your-built-in-secret
+# 可选：如需使用 Gemini CLI 内置 OAuth Client（Code Assist / Google One）
+# 安全说明：本仓库不会内置该 client_secret，请在运行环境通过环境变量注入。
+# GEMINI_CLI_OAUTH_CLIENT_SECRET=GOCSPX-your-built-in-secret
 ```
 
 **Step 3: Create Account in Admin UI**
@@ -442,7 +467,7 @@ If you need to use AI Studio OAuth for Gemini accounts, add the OAuth client cre
    Environment=GEMINI_OAUTH_CLIENT_SECRET=GOCSPX-your-client-secret
    ```
 
-   濡傞渶浣跨敤鈥滃唴缃?Gemini CLI OAuth Client鈥濓紙Code Assist / Google One锛夛紝杩橀渶瑕佹敞鍏ワ細
+   如需使用“内置 Gemini CLI OAuth Client”（Code Assist / Google One），还需要注入：
    ```ini
    Environment=GEMINI_CLI_OAUTH_CLIENT_SECRET=GOCSPX-your-built-in-secret
    ```

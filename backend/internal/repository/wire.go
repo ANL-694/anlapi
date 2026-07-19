@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -67,7 +68,9 @@ var ProviderSet = wire.NewSet(
 	NewUserRepository,
 	NewAPIKeyRepository,
 	NewGroupRepository,
+	NewAdminGroupRepository,
 	NewAccountRepository,
+	NewAdminAccountRepository,
 	NewCarpoolRepository,
 	NewScheduledTestPlanRepository,   // 定时测试计划仓储
 	NewScheduledTestResultRepository, // 定时测试结果仓储
@@ -79,6 +82,7 @@ var ProviderSet = wire.NewSet(
 	NewEmailBroadcastRepository,
 	NewUsageLogRepository,
 	NewUsageBillingRepository,
+	NewBatchImageRepository,
 	NewAccountSharePolicyRepository,
 	NewAccountBatchTaskRepository,
 	NewIdempotencyRepository,
@@ -86,6 +90,8 @@ var ProviderSet = wire.NewSet(
 	NewDashboardAggregationRepository,
 	NewSettingRepository,
 	NewOpsRepository,
+	NewAuditLogRepository,
+	NewUserPlatformQuotaRepository,
 	NewUserSubscriptionRepository,
 	NewUserAttributeDefinitionRepository,
 	NewUserAttributeValueRepository,
@@ -120,6 +126,10 @@ var ProviderSet = wire.NewSet(
 	NewRedeemCache,
 	NewUpdateCache,
 	NewGeminiTokenCache,
+	NewImageTaskStore,
+	NewBatchImageQueue,
+	NewBatchImageDownloadLimiter,
+	NewLeaderLockCache,
 	ProvideSchedulerCache,
 	NewSchedulerOutboxRepository,
 	NewProxyLatencyCache,
@@ -137,6 +147,9 @@ var ProviderSet = wire.NewSet(
 	NewS3BackupStoreFactory,
 	NewReceiptCodeObjectStoreFactory,
 	NewShopFileCardObjectStoreFactory,
+
+	// Image storage (async image task result offload)
+	ProvideImageStorage,
 
 	// HTTP service ports (DI Strategy A: return interface directly)
 	NewTurnstileVerifier,
@@ -167,6 +180,19 @@ var ProviderSet = wire.NewSet(
 func ProvideEnt(cfg *config.Config) (*ent.Client, error) {
 	client, _, err := InitEnt(cfg)
 	return client, err
+}
+
+// ProvideImageStorage 提供异步图片任务结果转存所用的对象存储实现。
+// 仅当开关打开且 S3 凭证齐全时返回具体实现，否则返回 nil（功能整体禁用）。
+func ProvideImageStorage(cfg *config.Config) (service.ImageStorage, error) {
+	if !cfg.ImageStorage.Active() {
+		return nil, nil
+	}
+	store, err := NewS3ImageStorage(context.Background(), &cfg.ImageStorage)
+	if err != nil {
+		return nil, err
+	}
+	return store, nil
 }
 
 // ProvideSQLDB 从 Ent 客户端提取底层的 *sql.DB 连接。

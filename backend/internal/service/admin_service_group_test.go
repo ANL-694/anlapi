@@ -221,6 +221,77 @@ func TestAdminService_CreateGroup_NilImagePricing(t *testing.T) {
 	require.Nil(t, repo.created.ImagePrice4K)
 }
 
+func TestAdminService_CreateGroup_PersistsOfficialMediaAndPeakConfig(t *testing.T) {
+	repo := &groupRepoStubForAdmin{}
+	svc := &adminServiceImpl{groupRepo: repo}
+	imageMultiplier := 0.8
+	batchDiscount := 0.5
+	batchHold := 0.6
+	videoMultiplier := 1.2
+	video720P := 0.07
+	peakMultiplier := 2.5
+
+	group, err := svc.CreateGroup(context.Background(), &CreateGroupInput{
+		Name:                         "media-group",
+		Platform:                     PlatformGemini,
+		RateMultiplier:               1,
+		SubscriptionType:             SubscriptionTypeSubscription,
+		AllowImageGeneration:         true,
+		AllowBatchImageGeneration:    true,
+		ImageRateIndependent:         true,
+		ImageRateMultiplier:          &imageMultiplier,
+		BatchImageDiscountMultiplier: &batchDiscount,
+		BatchImageHoldMultiplier:     &batchHold,
+		VideoRateIndependent:         true,
+		VideoRateMultiplier:          &videoMultiplier,
+		VideoPrice720P:               &video720P,
+		PeakRateEnabled:              true,
+		PeakStart:                    "14:00",
+		PeakEnd:                      "18:00",
+		PeakRateMultiplier:           &peakMultiplier,
+	})
+	require.NoError(t, err)
+	require.Same(t, repo.created, group)
+	require.True(t, group.AllowBatchImageGeneration)
+	require.Equal(t, imageMultiplier, group.ImageRateMultiplier)
+	require.Equal(t, batchDiscount, group.BatchImageDiscountMultiplier)
+	require.Equal(t, batchHold, group.BatchImageHoldMultiplier)
+	require.Equal(t, videoMultiplier, group.VideoRateMultiplier)
+	require.Equal(t, &video720P, group.VideoPrice720P)
+	require.True(t, group.PeakRateEnabled)
+	require.Equal(t, peakMultiplier, group.PeakRateMultiplier)
+}
+
+func TestAdminService_CreateGroup_RejectsBatchHoldBelowDiscount(t *testing.T) {
+	repo := &groupRepoStubForAdmin{}
+	svc := &adminServiceImpl{groupRepo: repo}
+	discount := 0.8
+	hold := 0.6
+
+	_, err := svc.CreateGroup(context.Background(), &CreateGroupInput{
+		Name:                         "invalid-batch",
+		Platform:                     PlatformGemini,
+		RateMultiplier:               1,
+		BatchImageDiscountMultiplier: &discount,
+		BatchImageHoldMultiplier:     &hold,
+	})
+	require.ErrorContains(t, err, "batch_image_hold_multiplier")
+	require.Nil(t, repo.created)
+}
+
+func TestAdminService_CreateGroup_GrokDefaultsMediaGateEnabled(t *testing.T) {
+	repo := &groupRepoStubForAdmin{}
+	svc := &adminServiceImpl{groupRepo: repo}
+
+	group, err := svc.CreateGroup(context.Background(), &CreateGroupInput{
+		Name:           "grok-media",
+		Platform:       PlatformGrok,
+		RateMultiplier: 1,
+	})
+	require.NoError(t, err)
+	require.True(t, group.AllowImageGeneration)
+}
+
 func TestAdminService_CreateGroupCopyAccounts_RejectsMismatchedOpenAILevelBeforeCreate(t *testing.T) {
 	repo := &groupRepoStubForAdmin{
 		getByIDByID: map[int64]*Group{

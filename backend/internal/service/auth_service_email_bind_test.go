@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	dbent "ikik-api/ent"
 	"ikik-api/ent/authidentity"
 	"ikik-api/ent/enttest"
@@ -17,7 +18,6 @@ import (
 	"ikik-api/internal/pkg/pagination"
 	"ikik-api/internal/repository"
 	"ikik-api/internal/service"
-	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -747,6 +747,10 @@ func (s *emailBindUserRepoStub) GetByID(_ context.Context, id int64) (*service.U
 	return cloneEmailBindUser(user), nil
 }
 
+func (s *emailBindUserRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	return s.GetByID(ctx, id)
+}
+
 func (s *emailBindUserRepoStub) GetByEmail(_ context.Context, email string) (*service.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -810,8 +814,8 @@ func (s *emailBindUserRepoStub) UpdateUserLastActiveAt(context.Context, int64, t
 }
 
 func (s *emailBindUserRepoStub) UpdateBalance(context.Context, int64, float64) error { return nil }
-func (s *emailBindUserRepoStub) DeductBalance(context.Context, int64, float64) error  { return nil }
-func (s *emailBindUserRepoStub) UpdateConcurrency(context.Context, int64, int) error   { return nil }
+func (s *emailBindUserRepoStub) DeductBalance(context.Context, int64, float64) error { return nil }
+func (s *emailBindUserRepoStub) UpdateConcurrency(context.Context, int64, int) error { return nil }
 
 func (s *emailBindUserRepoStub) ExistsByEmail(_ context.Context, email string) (bool, error) {
 	s.mu.Lock()

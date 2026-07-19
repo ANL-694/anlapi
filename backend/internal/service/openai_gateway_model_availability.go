@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"strings"
+
+	"ikik-api/internal/config"
 )
 
 // DiagnoseModelAvailabilityForPlatform reports whether the requested model is
@@ -20,8 +22,19 @@ func (s *OpenAIGatewayService) DiagnoseModelAvailabilityForPlatform(
 	if requestedModel == "" {
 		return ModelAvailabilityDiagnosis{HasAccountsInPool: true, HasModelSupport: true}
 	}
+	repo, ok := s.accountRepo.(ModelAvailabilityCandidateRepository)
+	if !ok || repo == nil {
+		return ModelAvailabilityDiagnosis{HasAccountsInPool: true, HasModelSupport: true}
+	}
 
-	accounts, err := s.listSchedulableAccounts(ctx, groupID, platform)
+	platform = normalizeOpenAICompatiblePlatform(platform)
+	queryGroupID := groupID
+	includeGrouped := false
+	if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple {
+		queryGroupID = nil
+		includeGrouped = true
+	}
+	accounts, err := repo.ListModelAvailabilityCandidates(ctx, queryGroupID, []string{platform}, includeGrouped)
 	if err != nil {
 		return ModelAvailabilityDiagnosis{HasAccountsInPool: true, HasModelSupport: true}
 	}

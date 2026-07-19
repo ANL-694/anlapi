@@ -41,7 +41,7 @@ func TestApplyCodexOAuthTransform_ToolContinuationPreservesInput(t *testing.T) {
 	second, ok := input[1].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "o1", second["id"])
-	require.Equal(t, "fc1", second["call_id"])
+	require.Equal(t, "fc_1", second["call_id"])
 }
 
 func TestApplyCodexOAuthTransform_ToolContinuationPreservesNativeMessageAndReasoningIDs(t *testing.T) {
@@ -87,11 +87,11 @@ func TestApplyCodexOAuthTransform_ToolContinuationNormalizesToolReferenceIDsOnly
 
 	first, ok := input[0].(map[string]any)
 	require.True(t, ok)
-	require.Equal(t, "fc1", first["id"])
+	require.Equal(t, "fc_1", first["id"])
 
 	second, ok := input[1].(map[string]any)
 	require.True(t, ok)
-	require.Equal(t, "fc1", second["call_id"])
+	require.Equal(t, "fc_1", second["call_id"])
 }
 
 func TestApplyCodexOAuthTransform_ToolSearchOutputPreservesCallID(t *testing.T) {
@@ -111,7 +111,7 @@ func TestApplyCodexOAuthTransform_ToolSearchOutputPreservesCallID(t *testing.T) 
 	first, ok := input[0].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "tool_search_output", first["type"])
-	require.Equal(t, "fc1", first["call_id"])
+	require.Equal(t, "fc_1", first["call_id"])
 }
 
 func TestApplyCodexOAuthTransform_CustomAndMCPToolOutputsPreserveCallID(t *testing.T) {
@@ -131,11 +131,11 @@ func TestApplyCodexOAuthTransform_CustomAndMCPToolOutputsPreserveCallID(t *testi
 
 	first, ok := input[0].(map[string]any)
 	require.True(t, ok)
-	require.Equal(t, "fccustom", first["call_id"])
+	require.Equal(t, "fc_custom", first["call_id"])
 
 	second, ok := input[1].(map[string]any)
 	require.True(t, ok)
-	require.Equal(t, "fcmcp", second["call_id"])
+	require.Equal(t, "fc_mcp", second["call_id"])
 }
 
 func TestApplyCodexOAuthTransform_ImageAndWebSearchCallsDoNotGainCallID(t *testing.T) {
@@ -188,7 +188,7 @@ func TestApplyCodexOAuthTransform_ConvertsToolRoleMessageToFunctionCallOutput(t 
 	item, ok := input[0].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "function_call_output", item["type"])
-	require.Equal(t, "fc1", item["call_id"])
+	require.Equal(t, "fc_1", item["call_id"])
 	require.Equal(t, "ok", item["output"])
 	_, hasRole := item["role"]
 	require.False(t, hasRole)
@@ -307,7 +307,7 @@ func TestApplyCodexOAuthTransform_AddsFallbackNameForFunctionCallInput(t *testin
 	require.True(t, ok)
 	require.Equal(t, "function_call", item["type"])
 	require.Equal(t, "tool", item["name"])
-	require.Equal(t, "fc1", item["call_id"])
+	require.Equal(t, "fc_1", item["call_id"])
 }
 
 func TestApplyCodexOAuthTransform_PreservesFunctionCallInputName(t *testing.T) {
@@ -326,7 +326,7 @@ func TestApplyCodexOAuthTransform_PreservesFunctionCallInputName(t *testing.T) {
 	item, ok := input[0].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "shell", item["name"])
-	require.Equal(t, "fc1", item["call_id"])
+	require.Equal(t, "fc_1", item["call_id"])
 }
 
 func TestApplyCodexOAuthTransform_PreservesMCPToolCallIDAndName(t *testing.T) {
@@ -351,7 +351,7 @@ func TestApplyCodexOAuthTransform_PreservesMCPToolCallIDAndName(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "mcp_tool_call", item["type"])
 	require.Equal(t, "remote_tool", item["name"])
-	require.Equal(t, "fcabc", item["call_id"])
+	require.Equal(t, "fc_abc", item["call_id"])
 }
 
 func TestCodexInputItemRequiresNameTypesAllowCallID(t *testing.T) {
@@ -582,6 +582,145 @@ func TestEnsureOpenAIResponsesImageGenerationTool_PreservesExistingImageTool(t *
 	tool, ok := tools[0].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "webp", tool["output_format"])
+}
+
+func TestEnsureOpenAIResponsesImageGenerationTool_PreservesImageGenNamespace(t *testing.T) {
+	tests := []struct {
+		name    string
+		reqBody map[string]any
+	}{
+		{
+			name: "top-level tools",
+			reqBody: map[string]any{
+				"model": "gpt-5.5",
+				"tools": []any{
+					map[string]any{
+						"type": "namespace",
+						"name": "image_gen",
+						"tools": []any{
+							map[string]any{"type": "function", "name": "imagegen"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "responses lite additional_tools",
+			reqBody: map[string]any{
+				"model": "gpt-5.5",
+				"input": []any{
+					map[string]any{
+						"type": "additional_tools",
+						"tools": []any{
+							map[string]any{
+								"type": "namespace",
+								"name": "image_gen",
+								"tools": []any{
+									map[string]any{"type": "function", "name": "imagegen"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.True(t, hasOpenAIImageGenerationTool(tt.reqBody))
+
+			modified := ensureOpenAIResponsesImageGenerationTool(tt.reqBody)
+
+			require.False(t, modified)
+			tools, _ := tt.reqBody["tools"].([]any)
+			for _, rawTool := range tools {
+				tool, ok := rawTool.(map[string]any)
+				require.True(t, ok)
+				require.NotEqual(t, "image_generation", firstNonEmptyString(tool["type"]))
+			}
+		})
+	}
+}
+
+func TestCodexImageGenerationBridge_PreservesClientImageFunctionTools(t *testing.T) {
+	tests := []struct {
+		name       string
+		reqBody    map[string]any
+		wantClient bool
+	}{
+		{
+			name: "flat image_gen function",
+			reqBody: map[string]any{
+				"model": "gpt-5.5",
+				"input": "draw a cat",
+				"tools": []any{
+					map[string]any{"type": "function", "name": "image_gen.imagegen"},
+				},
+			},
+			wantClient: true,
+		},
+		{
+			name: "nested image_gen function",
+			reqBody: map[string]any{
+				"model": "gpt-5.5",
+				"input": "draw a cat",
+				"tools": []any{
+					map[string]any{
+						"type": "function",
+						"function": map[string]any{
+							"name": "image_gen.imagegen",
+						},
+					},
+				},
+			},
+			wantClient: true,
+		},
+		{
+			name: "similar function name still receives hosted bridge",
+			reqBody: map[string]any{
+				"model": "gpt-5.5",
+				"input": "draw a cat",
+				"tools": []any{
+					map[string]any{"type": "function", "name": "image_gen.imagegenerator"},
+				},
+			},
+			wantClient: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.reqBody["instructions"] = "existing instructions"
+			require.Equal(t, tt.wantClient, hasCodexImageGenerationFunctionTool(tt.reqBody))
+
+			toolModified := ensureOpenAIResponsesImageGenerationTool(tt.reqBody)
+			choiceModified := ensureOpenAIResponsesImageGenerationToolChoiceAuto(tt.reqBody)
+			instructionsModified := applyCodexImageGenerationBridgeInstructions(tt.reqBody)
+
+			require.Equal(t, !tt.wantClient, toolModified)
+			require.Equal(t, !tt.wantClient, choiceModified)
+			require.Equal(t, !tt.wantClient, instructionsModified)
+
+			hasHostedTool := false
+			tools, _ := tt.reqBody["tools"].([]any)
+			for _, rawTool := range tools {
+				tool, ok := rawTool.(map[string]any)
+				if ok && firstNonEmptyString(tool["type"]) == "image_generation" {
+					hasHostedTool = true
+				}
+			}
+			require.Equal(t, !tt.wantClient, hasHostedTool)
+
+			if tt.wantClient {
+				require.NotContains(t, tt.reqBody, "tool_choice")
+				require.Equal(t, "existing instructions", tt.reqBody["instructions"])
+			} else {
+				require.Equal(t, "auto", tt.reqBody["tool_choice"])
+				require.Contains(t, tt.reqBody["instructions"], codexImageGenerationBridgeMarker)
+			}
+		})
+	}
 }
 
 func TestApplyCodexImageGenerationBridgeInstructions_AppendsBridgeOnce(t *testing.T) {
@@ -1282,23 +1421,96 @@ func TestIsInstructionsEmpty(t *testing.T) {
 	}
 }
 
-func TestFilterCodexInput_DropsReasoningItemsRegardlessOfPreserveReferences(t *testing.T) {
-	// Reasoning items in input[] reference rs_* IDs that were emitted by
-	// chatgpt.com under store=false (forced by applyCodexOAuthTransform).
-	// They are never persisted upstream, so forwarding them produces a
-	// guaranteed 404 ("Item with id 'rs_...' not found"). Drop them
-	// regardless of preserveReferences. See: wenyi401/ikik-api issue #1957.
+func TestFilterCodexInput_PreservesReasoningStripsID(t *testing.T) {
+	build := func() []any {
+		return []any{map[string]any{
+			"type":              "reasoning",
+			"id":                "rs_0672f12450da0b9c0169f07220a6c08198b68c2455ced99344",
+			"encrypted_content": "gAAAAAB-enc-payload",
+			"summary":           []any{},
+		}}
+	}
 
+	for _, preserve := range []bool{true, false} {
+		preserve := preserve
+		t.Run(fmt.Sprintf("preserveReferences=%v", preserve), func(t *testing.T) {
+			filtered := filterCodexInput(build(), preserve)
+			require.Len(t, filtered, 1)
+			item, ok := filtered[0].(map[string]any)
+			require.True(t, ok)
+			require.Equal(t, "reasoning", item["type"])
+			require.Equal(t, "gAAAAAB-enc-payload", item["encrypted_content"])
+			_, hasID := item["id"]
+			require.False(t, hasID)
+			summary, ok := item["summary"].([]any)
+			require.True(t, ok)
+			require.Len(t, summary, 0)
+		})
+	}
+}
+
+func TestFilterCodexInput_BareReasoningStripsIDBackfillsSummary(t *testing.T) {
+	input := []any{map[string]any{
+		"type": "reasoning",
+		"id":   "rs_0672f12450da0b9c0169f07220a6c08198b68c2455ced99344",
+	}}
+	filtered := filterCodexInput(input, false)
+	require.Len(t, filtered, 1)
+	item, ok := filtered[0].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "reasoning", item["type"])
+	_, hasID := item["id"]
+	require.False(t, hasID)
+	summary, ok := item["summary"].([]any)
+	require.True(t, ok)
+	require.Len(t, summary, 0)
+}
+
+func TestFilterCodexInput_ReasoningBackfillsMissingSummary(t *testing.T) {
+	input := []any{map[string]any{
+		"type":              "reasoning",
+		"id":                "rs_abc",
+		"encrypted_content": "gAAAAAB-enc",
+	}}
+	filtered := filterCodexInput(input, false)
+	require.Len(t, filtered, 1)
+	item, ok := filtered[0].(map[string]any)
+	require.True(t, ok)
+	summary, ok := item["summary"].([]any)
+	require.True(t, ok)
+	require.Len(t, summary, 0)
+	require.Equal(t, "gAAAAAB-enc", item["encrypted_content"])
+}
+
+func TestFilterCodexInput_PreservesReasoningSummaryAndContent(t *testing.T) {
+	summary := []any{map[string]any{"type": "summary_text", "text": "Considered the options."}}
+	content := []any{map[string]any{"type": "reasoning_text", "text": "internal chain"}}
+	input := []any{map[string]any{
+		"type":              "reasoning",
+		"id":                "rs_abc",
+		"summary":           summary,
+		"content":           content,
+		"encrypted_content": "gAAAAAB-enc",
+	}}
+	filtered := filterCodexInput(input, false)
+	require.Len(t, filtered, 1)
+	item, ok := filtered[0].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, summary, item["summary"])
+	require.Equal(t, content, item["content"])
+	require.Equal(t, "gAAAAAB-enc", item["encrypted_content"])
+	_, hasID := item["id"]
+	require.False(t, hasID)
+}
+
+func TestFilterCodexInput_PreservesReasoningInMixedInput(t *testing.T) {
 	build := func() []any {
 		return []any{
 			map[string]any{"type": "message", "id": "msg_0", "role": "user", "content": "hi"},
-			map[string]any{
-				"type":    "reasoning",
-				"id":      "rs_0672f12450da0b9c0169f07220a6c08198b68c2455ced99344",
-				"summary": []any{},
-			},
-			map[string]any{"type": "function_call", "id": "fc_1", "call_id": "call_1", "name": "tool"},
-			map[string]any{"type": "function_call_output", "call_id": "call_1", "output": "{}"},
+			map[string]any{"type": "reasoning", "id": "rs_1", "encrypted_content": "gAAAAAB-enc-1", "summary": []any{}},
+			map[string]any{"type": "reasoning", "id": "rs_2", "summary": []any{}},
+			map[string]any{"type": "function_call", "id": "fc_1", "call_id": "fc_1", "name": "tool", "arguments": "{}"},
+			map[string]any{"type": "function_call_output", "call_id": "fc_1", "output": "{}"},
 		}
 	}
 
@@ -1306,31 +1518,30 @@ func TestFilterCodexInput_DropsReasoningItemsRegardlessOfPreserveReferences(t *t
 		preserve := preserve
 		t.Run(fmt.Sprintf("preserveReferences=%v", preserve), func(t *testing.T) {
 			filtered := filterCodexInput(build(), preserve)
-
+			require.Len(t, filtered, 5)
+			byType := make(map[string][]map[string]any)
 			for _, raw := range filtered {
 				item, ok := raw.(map[string]any)
 				require.True(t, ok)
-				require.NotEqual(t, "reasoning", item["type"],
-					"reasoning items must be dropped from input on the OAuth path")
+				typ, _ := item["type"].(string)
+				byType[typ] = append(byType[typ], item)
 				if id, ok := item["id"].(string); ok {
-					require.False(t, strings.HasPrefix(id, "rs_"),
-						"no item carrying an rs_* id should survive the filter")
+					require.False(t, strings.HasPrefix(id, "rs_"))
 				}
 			}
-
-			// Sanity check: the non-reasoning items should still be present.
-			gotTypes := make(map[string]int)
-			for _, raw := range filtered {
-				item, ok := raw.(map[string]any)
-				require.True(t, ok)
-				typ, ok := item["type"].(string)
-				require.True(t, ok)
-				gotTypes[typ]++
+			require.Len(t, byType["reasoning"], 2)
+			for _, reasoning := range byType["reasoning"] {
+				_, hasID := reasoning["id"]
+				require.False(t, hasID)
+				_, hasSummary := reasoning["summary"]
+				require.True(t, hasSummary)
 			}
-			require.Equal(t, 1, gotTypes["message"])
-			require.Equal(t, 1, gotTypes["function_call"])
-			require.Equal(t, 1, gotTypes["function_call_output"])
-			require.Equal(t, 0, gotTypes["reasoning"])
+			require.Equal(t, "gAAAAAB-enc-1", byType["reasoning"][0]["encrypted_content"])
+			require.Len(t, byType["message"], 1)
+			require.Len(t, byType["function_call"], 1)
+			require.Equal(t, "fc_1", byType["function_call"][0]["call_id"])
+			require.Len(t, byType["function_call_output"], 1)
+			require.Equal(t, "fc_1", byType["function_call_output"][0]["call_id"])
 		})
 	}
 }

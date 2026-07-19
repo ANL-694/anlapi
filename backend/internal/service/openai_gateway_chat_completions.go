@@ -26,8 +26,8 @@ import (
 // Codex upstreams reject with "Unsupported parameter: ...". They must be
 // stripped when forwarding a raw client body through the Responses-shape
 // short-circuit in ForwardAsChatCompletions (see isResponsesShape branch).
-// The normal Chat Completions 鈫?Responses conversion path is unaffected
-// because ChatCompletionsRequest has no fields for these parameters 鈥?unknown
+// The normal Chat Completions to Responses conversion path is unaffected
+// because ChatCompletionsRequest has no fields for these parameters; unknown
 // fields are dropped naturally by json.Unmarshal. Kept semantically in sync
 // with the list in openai_gateway_service.go:2034 used by the /v1/responses
 // passthrough path.
@@ -59,6 +59,20 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 			},
 		})
 		return nil, errors.New("codex_cli_only restriction: only codex official clients are allowed")
+	}
+
+	if account.Platform == PlatformGrok {
+		if account.IsGrokOAuth() {
+			if eligible, reason := grokChatResponsesBridgeEligibility(body); eligible {
+				return s.forwardGrokChatCompletionsViaResponses(ctx, c, account, body, promptCacheKey, defaultMappedModel)
+			} else {
+				logger.L().Debug("grok chat_completions: using raw fallback",
+					zap.Int64("account_id", account.ID),
+					zap.String("reason", reason),
+				)
+			}
+		}
+		return s.forwardAsRawChatCompletions(ctx, c, account, body, defaultMappedModel)
 	}
 
 	if account.Type == AccountTypeAPIKey && (account.IsFreeModelOpenAICompatible() || account.IsKiro() || !openai_compat.ShouldUseResponsesAPI(account.Extra)) {
@@ -94,7 +108,7 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 	// 3. Build the upstream (Responses API) body.
 	//
 	// Cursor compatibility: some clients (notably Cursor cloud) send Responses
-	// API shaped bodies 鈥?`input: [...]` with no `messages` field 鈥?to the
+	// API-shaped bodies (`input: [...]` with no `messages` field) to the
 	// /v1/chat/completions URL. Running those through ChatCompletionsToResponses
 	// would silently drop Cursor's `input` array (the struct has no Input field)
 	// and produce `input: null`, which Codex upstreams reject with
@@ -118,7 +132,7 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 		// Strip Responses API parameters that no Codex upstream accepts.
 		// Because this branch forwards the raw body (the normal path rebuilds
 		// it from ChatCompletionsRequest and drops unknown fields naturally),
-		// we must filter these fields explicitly here 鈥?otherwise the upstream
+		// we must filter these fields explicitly here; otherwise the upstream
 		// rejects the request with "Unsupported parameter: ...".
 		for _, field := range cursorResponsesUnsupportedFields {
 			if stripped, derr := sjson.DeleteBytes(responsesBody, field); derr == nil {
@@ -270,6 +284,13 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 
 		upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(respBody))
 		upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
+		if !agentIdentityTaskRecoveryWasTried(ctx) && s.isAgentIdentityAccount(ctx, account) && isAgentIdentityTaskInvalidHTTPResponse(resp.StatusCode, respBody) {
+			expectedTaskID := account.GetCredential("task_id")
+			if err := s.recoverAgentIdentityTask(ctx, account, expectedTaskID); err != nil {
+				return nil, fmt.Errorf("agent identity task recovery failed: %w", err)
+			}
+			return s.ForwardAsChatCompletions(markAgentIdentityTaskRecoveryTried(ctx), c, account, body, promptCacheKey, defaultMappedModel)
+		}
 		if account.Type == AccountTypeAPIKey &&
 			openai_compat.ResolveResponsesSupport(account.Extra) == openai_compat.ResponsesSupportUnknown &&
 			!isResponsesEndpointSupportedByStatus(resp.StatusCode) {
@@ -307,14 +328,14 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 				Message:            upstreamMsg,
 				Detail:             upstreamDetail,
 			})
-			s.handleOpenAIAccountUpstreamError(ctx, account, resp.StatusCode, resp.Header, respBody)
+			shouldDisable := s.handleOpenAIAccountUpstreamError(ctx, account, resp.StatusCode, resp.Header, respBody, upstreamModel)
 			return nil, &UpstreamFailoverError{
 				StatusCode:             resp.StatusCode,
 				ResponseBody:           respBody,
-				RetryableOnSameAccount: account.IsPoolMode() && (account.IsPoolModeRetryableStatus(resp.StatusCode) || isOpenAITransientProcessingError(resp.StatusCode, upstreamMsg, respBody)),
+				RetryableOnSameAccount: !shouldDisable && account.IsPoolMode() && (account.IsPoolModeRetryableStatus(resp.StatusCode) || isOpenAITransientProcessingError(resp.StatusCode, upstreamMsg, respBody)),
 			}
 		}
-		return s.handleChatCompletionsErrorResponse(resp, c, account)
+		return s.handleChatCompletionsErrorResponse(resp, c, account, upstreamModel)
 	}
 
 	// 9. Handle normal response
@@ -389,8 +410,9 @@ func (s *OpenAIGatewayService) handleChatCompletionsErrorResponse(
 	resp *http.Response,
 	c *gin.Context,
 	account *Account,
+	requestedModel ...string,
 ) (*OpenAIForwardResult, error) {
-	return s.handleCompatErrorResponse(resp, c, account, writeChatCompletionsError)
+	return s.handleCompatErrorResponse(resp, c, account, writeChatCompletionsError, requestedModel...)
 }
 
 // handleChatBufferedStreamingResponse reads all Responses SSE events from the
@@ -607,9 +629,9 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 
 	handleScanErr := func(err error) {
 		if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-			logger.L().Warn("openai chat_completions stream: read error",
+			logger.FromContext(c.Request.Context()).Warn("openai chat_completions stream: read error",
 				zap.Error(err),
-				zap.String("request_id", requestID),
+				zap.String("upstream_request_id", requestID),
 			)
 		}
 	}
@@ -631,7 +653,13 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 				return resultWithUsage(), nil
 			}
 		}
-		handleScanErr(scanner.Err())
+		if err := scanner.Err(); err != nil {
+			handleScanErr(err)
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return resultWithUsage(), fmt.Errorf("stream usage incomplete: %w", err)
+			}
+			return resultWithUsage(), newOpenAIUpstreamStreamReadError(err)
+		}
 		return finalizeStream()
 	}
 
@@ -675,7 +703,10 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 			}
 			if ev.err != nil {
 				handleScanErr(ev.err)
-				return finalizeStream()
+				if errors.Is(ev.err, context.Canceled) || errors.Is(ev.err, context.DeadlineExceeded) {
+					return resultWithUsage(), fmt.Errorf("stream usage incomplete: %w", ev.err)
+				}
+				return resultWithUsage(), newOpenAIUpstreamStreamReadError(ev.err)
 			}
 			lastDataAt = time.Now()
 			line := ev.line

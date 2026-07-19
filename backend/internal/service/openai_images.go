@@ -454,7 +454,20 @@ func applyOpenAIImagesDefaults(req *OpenAIImagesRequest) {
 }
 
 func isOpenAIImageGenerationModel(model string) bool {
-	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), "gpt-image-")
+	return IsGPTImageGenerationModel(model) || isGrokImageGenerationModel(model)
+}
+
+// IsGPTImageGenerationModel identifies the GPT native image-generation model family.
+func IsGPTImageGenerationModel(model string) bool {
+	model = strings.ToLower(strings.TrimSpace(model))
+	return strings.HasPrefix(model, "gpt-image-")
+}
+
+func isGrokImageGenerationModel(model string) bool {
+	model = strings.ToLower(strings.TrimSpace(model))
+	return model == "grok-imagine" ||
+		model == "grok-imagine-edit" ||
+		strings.HasPrefix(model, "grok-imagine-image")
 }
 
 func validateOpenAIImagesModel(model string) error {
@@ -623,6 +636,7 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 	if resp.StatusCode >= 400 {
 		respBody := s.readUpstreamErrorBody(resp)
 		_ = resp.Body.Close()
+		respBody = s.redactAgentIdentitySensitiveBody(upstreamCtx, account, respBody)
 		resp.Body = io.NopCloser(bytes.NewReader(respBody))
 		upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(respBody))
 		upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
@@ -637,14 +651,14 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 				Kind:               "failover",
 				Message:            upstreamMsg,
 			})
-			s.handleFailoverSideEffects(upstreamCtx, resp, account, respBody, upstreamModel)
+			shouldDisable := s.handleFailoverSideEffects(upstreamCtx, resp, account, respBody, upstreamModel)
 			return nil, &UpstreamFailoverError{
 				StatusCode:             resp.StatusCode,
 				ResponseBody:           respBody,
-				RetryableOnSameAccount: account.IsPoolMode() && account.IsPoolModeRetryableStatus(resp.StatusCode),
+				RetryableOnSameAccount: !shouldDisable && account.IsPoolMode() && account.IsPoolModeRetryableStatus(resp.StatusCode),
 			}
 		}
-		return s.handleErrorResponse(upstreamCtx, resp, c, account, forwardBody)
+		return s.handleErrorResponse(upstreamCtx, resp, c, account, forwardBody, upstreamModel)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -911,6 +925,9 @@ func mergeOpenAIUsage(dst *OpenAIUsage, body []byte) {
 		}
 		if parsed.CacheReadInputTokens > 0 {
 			dst.CacheReadInputTokens = parsed.CacheReadInputTokens
+		}
+		if parsed.ImageInputTokens > 0 {
+			dst.ImageInputTokens = parsed.ImageInputTokens
 		}
 		if parsed.ImageOutputTokens > 0 {
 			dst.ImageOutputTokens = parsed.ImageOutputTokens

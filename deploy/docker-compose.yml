@@ -47,6 +47,7 @@ services:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
       - SERVER_MODE=${SERVER_MODE:-release}
+      - ENABLE_SERVER_TIMING=${ENABLE_SERVER_TIMING:-false}
       - RUN_MODE=${RUN_MODE:-standard}
 
       # =======================================================================
@@ -232,12 +233,13 @@ services:
         hard: 100000
     volumes:
       - redis_data:/data
+    # Keep this as one shell command; every continued option line needs a trailing backslash.
     command: >
       sh -c '
-        redis-server
-        --save 60 1
-        --appendonly yes
-        --appendfsync everysec
+        redis-server \
+        --save 60 1 \
+        --appendonly yes \
+        --appendfsync everysec \
         --requirepass "$$REDIS_PASSWORD"'
     environment:
       - TZ=${TZ:-Asia/Shanghai}
