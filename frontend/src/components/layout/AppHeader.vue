@@ -25,14 +25,17 @@
           v-if="user"
           to="/purchase"
           class="app-header-balance"
-          :aria-label="t('common.balance')"
-          :title="t('common.balance')"
+          :aria-label="`${t('dashboard.rechargeBalance')}: $${formattedBalance}`"
+          :title="t('dashboard.rechargeBalance')"
         >
-          <Icon name="dollar" size="sm" class="text-[var(--app-primary)]" />
+          <span class="app-header-balance-icon" aria-hidden="true">
+            <Icon name="dollar" size="sm" />
+          </span>
           <span class="app-header-balance-label">{{ t('common.balance') }}</span>
           <span class="app-header-balance-value">
             ${{ formattedBalance }}
           </span>
+          <span class="app-header-balance-action">{{ t('dashboard.rechargeBalance') }}</span>
         </router-link>
 
         <div v-if="user" class="relative" ref="dropdownRef">

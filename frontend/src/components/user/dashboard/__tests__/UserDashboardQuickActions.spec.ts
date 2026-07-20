@@ -14,8 +14,15 @@ describe('UserDashboardQuickActions', () => {
     expect(componentSource).toContain('to="/usage"')
   })
 
-  it('uses theme contrast tokens for the primary recharge action', () => {
-    expect(componentSource).toContain('background: var(--ui-brand)')
-    expect(componentSource).toContain('color: var(--ui-brand-contrast)')
+  it('shows live balance, key, and today usage context instead of a passive button row', () => {
+    expect(componentSource).toContain('formattedBalance')
+    expect(componentSource).toContain('props.stats.total_api_keys')
+    expect(componentSource).toContain('props.stats.today_requests')
+    expect(componentSource).toContain("t('dashboard.rechargeBalance')")
+  })
+
+  it('keeps keyboard focus and reduced-motion states visible', () => {
+    expect(componentSource).toContain('.dashboard-action-balance:focus-visible')
+    expect(componentSource).toContain('@media (prefers-reduced-motion: reduce)')
   })
 })

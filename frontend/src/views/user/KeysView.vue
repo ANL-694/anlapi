@@ -42,6 +42,7 @@
           <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
         </UiIconButton>
         <button @click="openCreateModal" class="btn btn-primary" data-tour="keys-create-btn">
+          <Icon name="plus" size="sm" />
           {{ t('keys.createKey') }}
         </button>
       </div>

@@ -779,8 +779,8 @@
     @apply inline-flex shrink-0 items-center gap-1.5 px-2 py-1.5;
     min-height: 2.125rem;
     border-radius: var(--ui-radius-lg);
-    border: 1px solid var(--app-border);
-    background: color-mix(in srgb, var(--app-surface-muted) 78%, transparent);
+    border: 1px solid color-mix(in srgb, var(--app-primary) 38%, var(--app-border));
+    background: color-mix(in srgb, var(--app-primary-soft) 72%, var(--app-surface));
     color: var(--app-text);
     font-variant-numeric: tabular-nums;
     transition:
@@ -790,9 +790,18 @@
   }
 
   .app-header-balance:hover {
-    border-color: var(--app-border-strong);
-    background: var(--app-surface);
+    border-color: var(--app-primary);
+    background: color-mix(in srgb, var(--app-primary-soft) 90%, var(--app-surface));
     color: var(--app-text);
+  }
+
+  .app-header-balance-icon {
+    @apply inline-flex items-center justify-center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: var(--ui-radius-md);
+    background: var(--app-surface);
+    color: var(--app-primary);
   }
 
   .app-header-balance-label {
@@ -807,12 +816,19 @@
     font-weight: 700;
   }
 
+  .app-header-balance-action {
+    margin-left: 0.125rem;
+    color: var(--app-primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
   .dark .app-header-balance {
-    background: color-mix(in srgb, var(--app-surface-muted) 72%, transparent);
+    background: color-mix(in srgb, var(--app-primary-soft) 72%, var(--app-surface));
   }
 
   .dark .app-header-balance:hover {
-    background: var(--app-surface);
+    background: color-mix(in srgb, var(--app-primary-soft) 90%, var(--app-surface));
   }
 
   .app-header-avatar {
@@ -879,6 +895,10 @@
     }
 
     .app-header-balance-label {
+      display: none;
+    }
+
+    .app-header-balance-action {
       display: none;
     }
 

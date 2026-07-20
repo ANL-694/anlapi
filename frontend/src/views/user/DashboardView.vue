@@ -5,8 +5,8 @@
         <LoadingSpinner />
       </div>
       <template v-else-if="stats">
+        <UserDashboardQuickActions :user="user" :stats="stats" />
         <UserDashboardStats :stats="stats" :user="user" :is-simple="authStore.isSimpleMode" />
-        <UserDashboardQuickActions />
         <UserDashboardCharts
           v-model:startDate="startDate"
           v-model:endDate="endDate"
