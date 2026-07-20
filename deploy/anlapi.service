@@ -9,6 +9,7 @@ Type=simple
 User=anlapi
 Group=anlapi
 WorkingDirectory=/opt/anlapi
+EnvironmentFile=/opt/anlapi/.env
 ExecStart=/opt/anlapi/anlapi
 Restart=always
 RestartSec=5
