@@ -1,0 +1,33 @@
+services:
+  ikik-api:
+    depends_on:
+      oauth-vault-postgres:
+        condition: service_healthy
+
+  oauth-vault-postgres:
+    image: postgres:18-alpine
+    container_name: ikik-api-oauth-vault-postgres
+    restart: unless-stopped
+    environment:
+      - PGDATA=/var/lib/postgresql/data
+      - POSTGRES_USER=${OAUTH_VAULT_POSTGRES_USER:-anl_oauth_vault}
+      - POSTGRES_PASSWORD=${OAUTH_VAULT_POSTGRES_PASSWORD:?OAUTH_VAULT_POSTGRES_PASSWORD is required}
+      - POSTGRES_DB=${OAUTH_VAULT_POSTGRES_DB:-anl_oauth_vault}
+    volumes:
+      - oauth_vault_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ikik-api-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${OAUTH_VAULT_POSTGRES_USER:-anl_oauth_vault} -d ${OAUTH_VAULT_POSTGRES_DB:-anl_oauth_vault}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  oauth_vault_postgres_data:
+    driver: local

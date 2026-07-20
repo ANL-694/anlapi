@@ -120,9 +120,10 @@ func (s *authRepoStub) GetRateLimitData(ctx context.Context, id int64) (*APIKeyR
 }
 
 type authCacheStub struct {
-	getAuthCache   func(ctx context.Context, key string) (*APIKeyAuthCacheEntry, error)
-	setAuthKeys    []string
-	deleteAuthKeys []string
+	getAuthCache     func(ctx context.Context, key string) (*APIKeyAuthCacheEntry, error)
+	setAuthKeys      []string
+	deleteAuthKeys   []string
+	subscribeHandler func(cacheKey string)
 }
 
 func (s *authCacheStub) GetCreateAttemptCount(ctx context.Context, userID int64) (int, error) {
@@ -167,7 +168,60 @@ func (s *authCacheStub) PublishAuthCacheInvalidation(ctx context.Context, cacheK
 }
 
 func (s *authCacheStub) SubscribeAuthCacheInvalidation(ctx context.Context, handler func(cacheKey string)) error {
+	s.subscribeHandler = handler
 	return nil
+}
+
+func TestAPIKeyService_RevocationSubscriberWorksWithoutL1Cache(t *testing.T) {
+	cache := &authCacheStub{}
+	svc := NewAPIKeyService(
+		&authRepoStub{}, nil, nil, nil, nil, cache,
+		&config.Config{APIKeyAuth: config.APIKeyAuthCacheConfig{L2TTLSeconds: 300}},
+	)
+	require.Nil(t, svc.authCacheL1)
+
+	svc.StartAuthCacheInvalidationSubscriber(context.Background())
+	require.NotNil(t, cache.subscribeHandler)
+	cacheKey := svc.authCacheKey("sk-remote-revoked")
+	cache.subscribeHandler(authCacheRevokeMessagePrefix + cacheKey)
+
+	require.True(t, svc.isAuthCacheRevoked(cacheKey))
+	require.Contains(t, cache.deleteAuthKeys, cacheKey)
+}
+
+func TestAPIKeyService_RevocationRejectsInFlightAuthSnapshot(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	cache := &authCacheStub{}
+	repo := &authRepoStub{
+		getByKeyForAuth: func(_ context.Context, key string) (*APIKey, error) {
+			close(started)
+			<-release
+			return &APIKey{
+				ID:     1,
+				UserID: 7,
+				Key:    key,
+				Status: StatusAPIKeyActive,
+				User:   &User{ID: 7, Status: StatusActive},
+			}, nil
+		},
+	}
+	cfg := &config.Config{APIKeyAuth: config.APIKeyAuthCacheConfig{L2TTLSeconds: 300}}
+	svc := NewAPIKeyService(repo, nil, nil, nil, nil, cache, cfg)
+
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := svc.GetByKey(context.Background(), "sk-in-flight-delete")
+		errCh <- err
+	}()
+
+	<-started
+	svc.revokeAuthCacheByKey(context.Background(), "sk-in-flight-delete")
+	close(release)
+
+	err := <-errCh
+	require.ErrorIs(t, err, ErrAPIKeyNotFound)
+	require.Empty(t, cache.setAuthKeys)
 }
 
 func TestAPIKeyService_GetByKey_UsesL2Cache(t *testing.T) {

@@ -26,10 +26,14 @@ func IsAccountAllowedForRequestGroup(ctx context.Context, account *Account) bool
 		return false
 	}
 	group := GroupFromContext(ctx)
-	if group != nil &&
-		(group.IsUserPrivateScope() || group.IsUserCarpoolScope()) &&
-		NormalizeAccountShareMode(account.ShareMode) == AccountShareModePublic {
-		return false
+	if group != nil && NormalizeAccountShareMode(account.ShareMode) == AccountShareModePublic {
+		if group.IsUserCarpoolScope() {
+			return false
+		}
+		if group.IsUserPrivateScope() {
+			requestUserID := AuthenticatedUserIDFromContext(ctx)
+			return account.OwnerUserID != nil && requestUserID > 0 && *account.OwnerUserID == requestUserID
+		}
 	}
 	return true
 }

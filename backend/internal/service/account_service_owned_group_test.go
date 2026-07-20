@@ -657,7 +657,7 @@ func TestAccountServiceAutoRepairSuspectedOpenAIFreeAccountSuspendsPublicShareAn
 	require.Equal(t, AccountLevelFree, account.AccountLevel)
 	require.Equal(t, AccountShareStatusSuspended, account.ShareStatus)
 	require.Equal(t, "quota proof", account.ErrorMessage)
-	require.Equal(t, []int64{10}, repo.boundGroupIDs[accountID])
+	require.Equal(t, []int64{99, 10}, repo.boundGroupIDs[accountID])
 	require.Len(t, repo.updatedAccounts, 1)
 	require.Equal(t, AccountLevelFree, repo.updatedAccounts[0].AccountLevel)
 }
@@ -701,6 +701,9 @@ func TestAccountServiceValidateOwnedPublicSharePolicyRequiresEnabledPositivePoli
 
 func TestAccountServiceInitialOwnedAccountGroupIDsUsesPublicPoolForPublicMode(t *testing.T) {
 	svc := &AccountService{
+		privateGroupProvisioner: &ownedPrivateGroupProvisionerStub{
+			group: &Group{ID: 99, Platform: PlatformOpenAI, Status: StatusActive, Scope: GroupScopeUserPrivate},
+		},
 		groupRepo: &ownedPublicShareGroupRepoStub{
 			groups: []Group{
 				{ID: 11, Name: "Plus Shared Pool", Platform: PlatformOpenAI, Status: StatusActive, Scope: GroupScopePublic, RequiredAccountLevel: AccountLevelPlus},
@@ -716,7 +719,7 @@ func TestAccountServiceInitialOwnedAccountGroupIDsUsesPublicPoolForPublicMode(t 
 	}, []int64{99})
 
 	require.NoError(t, err)
-	require.Equal(t, []int64{11}, groupIDs)
+	require.Equal(t, []int64{99, 11}, groupIDs)
 }
 
 func TestAccountServiceInitialOwnedAccountGroupIDsIgnoresRequestedGroupsForPrivateMode(t *testing.T) {
@@ -835,7 +838,7 @@ func TestAccountServiceCreateOwnedRejectsManualAccountLevel(t *testing.T) {
 }
 
 func TestValidateOwnedAccountSourceAllowsOAuthMetadataURLs(t *testing.T) {
-	err := validateOwnedAccountSource(AccountTypeOAuth, map[string]any{
+	err := validateOwnedAccountSource(PlatformOpenAI, AccountTypeOAuth, map[string]any{
 		"access_token": "oauth-access-token",
 		"scope":        "openid https://www.googleapis.com/auth/cloud-platform",
 	}, map[string]any{
@@ -847,7 +850,7 @@ func TestValidateOwnedAccountSourceAllowsOAuthMetadataURLs(t *testing.T) {
 }
 
 func TestValidateOwnedAccountSourceRejectsCustomEndpointURL(t *testing.T) {
-	err := validateOwnedAccountSource(AccountTypeOAuth, map[string]any{
+	err := validateOwnedAccountSource(PlatformOpenAI, AccountTypeOAuth, map[string]any{
 		"access_token": "oauth-access-token",
 	}, map[string]any{
 		"custom_base_url": "https://evil.example.com",
@@ -856,15 +859,22 @@ func TestValidateOwnedAccountSourceRejectsCustomEndpointURL(t *testing.T) {
 	require.ErrorIs(t, err, ErrOwnedAccountCredentialsNotAllowed)
 }
 
-func TestValidateOwnedAccountSourceAllowsAPIKeyAccountAndRejectsOAuthBaseURL(t *testing.T) {
-	err := validateOwnedAccountSource(AccountTypeAPIKey, map[string]any{
+func TestValidateOwnedAccountSourceAllowsOfficialFreeModelAndRejectsArbitraryAPIKeyUpstream(t *testing.T) {
+	err := validateOwnedAccountSource(PlatformOpenAI, AccountTypeAPIKey, map[string]any{
 		"api_key":  "sk-test",
-		"base_url": "https://third-party.example.com",
-	}, nil)
+		"base_url": "https://api.groq.com/openai/v1",
+	}, map[string]any{"free_model_provider": "groq"})
 
 	require.NoError(t, err)
 
-	err = validateOwnedAccountSource(AccountTypeOAuth, map[string]any{
+	err = validateOwnedAccountSource(PlatformOpenAI, AccountTypeAPIKey, map[string]any{
+		"api_key":  "sk-test",
+		"base_url": "https://third-party.example.com",
+	}, map[string]any{"free_model_provider": "groq"})
+
+	require.ErrorIs(t, err, ErrOwnedAccountAPIKeySourceNotAllowed)
+
+	err = validateOwnedAccountSource(PlatformOpenAI, AccountTypeOAuth, map[string]any{
 		"access_token": "oauth-access-token",
 		"base_url":     "https://third-party.example.com",
 	}, nil)
@@ -1283,7 +1293,7 @@ func TestAccountServiceManagedGroupIDsKeepsApprovedPublicAccountInPublicPool(t *
 	groupIDs, err := svc.managedOwnedAccountGroupIDsForShareMode(context.Background(), ownerID, account, AccountShareModePublic)
 
 	require.NoError(t, err)
-	require.Equal(t, []int64{18}, groupIDs)
+	require.Equal(t, []int64{99, 18}, groupIDs)
 }
 
 func TestAccountServiceDuplicateIdentityKeys(t *testing.T) {

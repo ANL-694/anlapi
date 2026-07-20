@@ -45,6 +45,11 @@ export async function getById(id: number): Promise<ApiKey> {
   return data
 }
 
+export async function ensureImageGenerationKey(): Promise<ApiKey> {
+  const { data } = await apiClient.post<ApiKey>('/keys/image-generation/ensure')
+  return data
+}
+
 /**
  * Create new API key
  * @param name - Key name
@@ -139,6 +144,7 @@ export async function toggleStatus(id: number, status: 'active' | 'inactive'): P
 export const keysAPI = {
   list,
   getById,
+  ensureImageGenerationKey,
   create,
   update,
   delete: deleteKey,

@@ -68,6 +68,7 @@ type Config struct {
 	Turnstile               TurnstileConfig               `mapstructure:"turnstile"`
 	Database                DatabaseConfig                `mapstructure:"database"`
 	Redis                   RedisConfig                   `mapstructure:"redis"`
+	OAuthVault              OAuthVaultConfig              `mapstructure:"oauth_vault"`
 	Ops                     OpsConfig                     `mapstructure:"ops"`
 	JWT                     JWTConfig                     `mapstructure:"jwt"`
 	Totp                    TotpConfig                    `mapstructure:"totp"`
@@ -1233,6 +1234,26 @@ type DatabaseConfig struct {
 	UserPlatformQuotaFlushBatchSize int `mapstructure:"user_platform_quota_flush_batch_size"`
 }
 
+// OAuthVaultConfig controls the location and node capability of OAuth
+// credentials. The default legacy mode preserves the current deployment until
+// the separate Vault database has been provisioned and verified.
+type OAuthVaultConfig struct {
+	// Mode is one of legacy, external, or disabled.
+	Mode string `mapstructure:"mode"`
+	// DSN points to an independent PostgreSQL instance. It must not be the
+	// replicated business database.
+	DSN string `mapstructure:"dsn"`
+	// EncryptionKey is a 64-hex-character AES-256 key held only by OAuth-capable
+	// nodes. It is intentionally not generated into the main database.
+	EncryptionKey string `mapstructure:"encryption_key"`
+	// AllowLegacyFallback permits a controlled migration window where old rows
+	// containing sensitive fields can still be read before backfill completes.
+	AllowLegacyFallback    bool `mapstructure:"allow_legacy_fallback"`
+	MaxOpenConns           int  `mapstructure:"max_open_conns"`
+	MaxIdleConns           int  `mapstructure:"max_idle_conns"`
+	ConnMaxLifetimeMinutes int  `mapstructure:"conn_max_lifetime_minutes"`
+}
+
 func (d *DatabaseConfig) DSN() string {
 	// 当密码为空时不包含 password 参数，避免 libpq 解析错误
 	if d.Password == "" {
@@ -1845,6 +1866,17 @@ func setDefaults() {
 	viper.SetDefault("database.user_platform_quota_flusher_enabled", false)
 	viper.SetDefault("database.user_platform_quota_flush_interval_ms", 2000)
 	viper.SetDefault("database.user_platform_quota_flush_batch_size", 1000)
+
+	// OAuth credential Vault. Keep the default compatible with existing
+	// deployments; external mode is enabled only after a separate database and
+	// node-local encryption key have been provisioned.
+	viper.SetDefault("oauth_vault.mode", "legacy")
+	viper.SetDefault("oauth_vault.dsn", "")
+	viper.SetDefault("oauth_vault.encryption_key", "")
+	viper.SetDefault("oauth_vault.allow_legacy_fallback", true)
+	viper.SetDefault("oauth_vault.max_open_conns", 16)
+	viper.SetDefault("oauth_vault.max_idle_conns", 8)
+	viper.SetDefault("oauth_vault.conn_max_lifetime_minutes", 30)
 
 	// Redis
 	viper.SetDefault("redis.host", "localhost")
@@ -2549,6 +2581,34 @@ func (c *Config) Validate() error {
 	}
 	if c.Database.ConnMaxIdleTimeMinutes < 0 {
 		return fmt.Errorf("database.conn_max_idle_time_minutes must be non-negative")
+	}
+	c.OAuthVault.Mode = strings.ToLower(strings.TrimSpace(c.OAuthVault.Mode))
+	switch c.OAuthVault.Mode {
+	case "":
+		c.OAuthVault.Mode = "legacy"
+	case "legacy", "external", "disabled":
+	default:
+		return fmt.Errorf("oauth_vault.mode must be one of legacy, external, disabled")
+	}
+	if c.OAuthVault.MaxOpenConns <= 0 {
+		return fmt.Errorf("oauth_vault.max_open_conns must be positive")
+	}
+	if c.OAuthVault.MaxIdleConns < 0 || c.OAuthVault.MaxIdleConns > c.OAuthVault.MaxOpenConns {
+		return fmt.Errorf("oauth_vault.max_idle_conns must be between 0 and max_open_conns")
+	}
+	if c.OAuthVault.ConnMaxLifetimeMinutes < 0 {
+		return fmt.Errorf("oauth_vault.conn_max_lifetime_minutes must be non-negative")
+	}
+	if c.OAuthVault.Mode == "external" {
+		if strings.TrimSpace(c.OAuthVault.DSN) == "" {
+			return fmt.Errorf("oauth_vault.dsn is required when oauth_vault.mode=external")
+		}
+		if len(strings.TrimSpace(c.OAuthVault.EncryptionKey)) != 64 {
+			return fmt.Errorf("oauth_vault.encryption_key must be 64 hexadecimal characters when oauth_vault.mode=external")
+		}
+		if _, err := hex.DecodeString(strings.TrimSpace(c.OAuthVault.EncryptionKey)); err != nil {
+			return fmt.Errorf("oauth_vault.encryption_key must be hexadecimal: %w", err)
+		}
 	}
 	if c.Redis.DialTimeoutSeconds <= 0 {
 		return fmt.Errorf("redis.dial_timeout_seconds must be positive")

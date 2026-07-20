@@ -36,6 +36,18 @@ func TestLoadServerTimingConfig(t *testing.T) {
 	})
 }
 
+func TestLoadNormalizesOAuthVaultMode(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	t.Setenv("OAUTH_VAULT_MODE", " EXTERNAL ")
+	t.Setenv("OAUTH_VAULT_DSN", "host=127.0.0.1 port=5433 user=vault dbname=vault sslmode=disable")
+	t.Setenv("OAUTH_VAULT_ENCRYPTION_KEY", strings.Repeat("a", 64))
+
+	cfg, err := Load()
+
+	require.NoError(t, err)
+	require.Equal(t, "external", cfg.OAuthVault.Mode)
+}
+
 func TestLoadForBootstrapAllowsMissingJWTSecret(t *testing.T) {
 	viper.Reset()
 	t.Setenv("JWT_SECRET", "")

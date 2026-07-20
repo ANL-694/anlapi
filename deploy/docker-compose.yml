@@ -65,6 +65,17 @@ services:
       - DATABASE_CONN_MAX_IDLE_TIME_MINUTES=${DATABASE_CONN_MAX_IDLE_TIME_MINUTES:-5}
 
       # =======================================================================
+      # OAuth Credential Vault
+      # =======================================================================
+      - OAUTH_VAULT_MODE=${OAUTH_VAULT_MODE:-legacy}
+      - OAUTH_VAULT_DSN=${OAUTH_VAULT_DSN:-}
+      - OAUTH_VAULT_ENCRYPTION_KEY=${OAUTH_VAULT_ENCRYPTION_KEY:-}
+      - OAUTH_VAULT_ALLOW_LEGACY_FALLBACK=${OAUTH_VAULT_ALLOW_LEGACY_FALLBACK:-true}
+      - OAUTH_VAULT_MAX_OPEN_CONNS=${OAUTH_VAULT_MAX_OPEN_CONNS:-16}
+      - OAUTH_VAULT_MAX_IDLE_CONNS=${OAUTH_VAULT_MAX_IDLE_CONNS:-8}
+      - OAUTH_VAULT_CONN_MAX_LIFETIME_MINUTES=${OAUTH_VAULT_CONN_MAX_LIFETIME_MINUTES:-30}
+
+      # =======================================================================
       # Redis Configuration
       # =======================================================================
       - REDIS_HOST=redis

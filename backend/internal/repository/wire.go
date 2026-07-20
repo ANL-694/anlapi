@@ -69,8 +69,9 @@ var ProviderSet = wire.NewSet(
 	NewAPIKeyRepository,
 	NewGroupRepository,
 	NewAdminGroupRepository,
-	NewAccountRepository,
-	NewAdminAccountRepository,
+	NewOAuthCredentialVault,
+	NewAccountRepositoryWithOAuthVault,
+	NewAdminAccountRepositoryWithOAuthVault,
 	NewCarpoolRepository,
 	NewScheduledTestPlanRepository,   // 定时测试计划仓储
 	NewScheduledTestResultRepository, // 定时测试结果仓储

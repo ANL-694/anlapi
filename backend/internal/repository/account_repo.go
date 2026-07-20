@@ -44,8 +44,9 @@ import (
 //   - sql: 原生 SQL 执行器，用于复杂查询和批量操作
 //   - schedulerCache: 调度器缓存，用于在账号状态变更时同步快照
 type accountRepository struct {
-	client *dbent.Client // Ent ORM 客户端
-	sql    sqlExecutor   // 原生 SQL 执行接口
+	client     *dbent.Client // Ent ORM 客户端
+	sql        sqlExecutor   // 原生 SQL 执行接口
+	oauthVault service.OAuthCredentialVault
 	// schedulerCache 用于在账号状态变更时主动同步快照到缓存，
 	// 确保粘性会话能及时感知账号不可用状态。
 	// Used to proactively sync account snapshot to cache when status changes,
@@ -90,16 +91,31 @@ func NewAccountRepository(client *dbent.Client, sqlDB *sql.DB, schedulerCache se
 	return newAccountRepositoryWithSQL(client, sqlDB, schedulerCache)
 }
 
+// NewAccountRepositoryWithOAuthVault enables node-local OAuth credential
+// storage without wrapping the repository and losing optional interfaces.
+func NewAccountRepositoryWithOAuthVault(client *dbent.Client, sqlDB *sql.DB, schedulerCache service.SchedulerCache, vault service.OAuthCredentialVault) service.AccountRepository {
+	return newAccountRepositoryWithSQL(client, sqlDB, schedulerCache, vault)
+}
+
 // NewAdminAccountRepository exposes the account repository's atomic duplication capability
 // as an explicit dependency of the admin service.
 func NewAdminAccountRepository(client *dbent.Client, sqlDB *sql.DB, schedulerCache service.SchedulerCache) service.AdminAccountRepository {
 	return newAccountRepositoryWithSQL(client, sqlDB, schedulerCache)
 }
 
+// NewAdminAccountRepositoryWithOAuthVault is the vault-aware admin variant.
+func NewAdminAccountRepositoryWithOAuthVault(client *dbent.Client, sqlDB *sql.DB, schedulerCache service.SchedulerCache, vault service.OAuthCredentialVault) service.AdminAccountRepository {
+	return newAccountRepositoryWithSQL(client, sqlDB, schedulerCache, vault)
+}
+
 // newAccountRepositoryWithSQL 是内部构造函数，支持依赖注入 SQL 执行器。
 // 这种设计便于单元测试时注入 mock 对象。
-func newAccountRepositoryWithSQL(client *dbent.Client, sqlq sqlExecutor, schedulerCache service.SchedulerCache) *accountRepository {
-	return &accountRepository{client: client, sql: sqlq, schedulerCache: schedulerCache}
+func newAccountRepositoryWithSQL(client *dbent.Client, sqlq sqlExecutor, schedulerCache service.SchedulerCache, vault ...service.OAuthCredentialVault) *accountRepository {
+	var oauthVault service.OAuthCredentialVault
+	if len(vault) > 0 {
+		oauthVault = vault[0]
+	}
+	return &accountRepository{client: client, sql: sqlq, schedulerCache: schedulerCache, oauthVault: oauthVault}
 }
 
 func translateAccountPersistenceError(err error, notFound *infraerrors.ApplicationError) error {
@@ -113,7 +129,7 @@ func translateAccountPersistenceError(err error, notFound *infraerrors.Applicati
 }
 
 func (r *accountRepository) Create(ctx context.Context, account *service.Account) error {
-	if err := createAccountRecord(ctx, r.client, account); err != nil {
+	if err := r.createAccountRecord(ctx, r.client, account); err != nil {
 		return err
 	}
 	if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, &account.ID, nil, buildSchedulerGroupPayload(account.GroupIDs)); err != nil {
@@ -122,7 +138,35 @@ func (r *accountRepository) Create(ctx context.Context, account *service.Account
 	return nil
 }
 
-func createAccountRecord(ctx context.Context, client *dbent.Client, account *service.Account) error {
+func (r *accountRepository) createAccountRecord(ctx context.Context, client *dbent.Client, account *service.Account) error {
+	if account == nil {
+		return service.ErrAccountNilInput
+	}
+	if service.IsOAuthCredentialAccount(account.Type) && r.oauthVaultMode() == service.OAuthCredentialVaultModeDisabled {
+		return service.ErrOAuthCredentialVaultDisabled
+	}
+	if service.IsOAuthCredentialAccount(account.Type) && r.oauthVaultMode() == service.OAuthCredentialVaultModeExternal {
+		persisted, sensitive, _ := service.SplitOAuthCredentials(account.Credentials)
+		account.Credentials = persisted
+		if err := createAccountRecordRaw(ctx, client, account); err != nil {
+			return err
+		}
+		version, err := r.oauthVault.Put(ctx, r.oauthVaultKey(account.ID, account.OwnerUserID), sensitive)
+		if err != nil {
+			_ = client.Account.DeleteOneID(account.ID).Exec(ctx)
+			return err
+		}
+		persisted = service.SetOAuthCredentialVaultVersion(persisted, version)
+		if _, err := client.Account.UpdateOneID(account.ID).SetCredentials(normalizeJSONMap(persisted)).Save(ctx); err != nil {
+			return err
+		}
+		account.Credentials = service.MergeOAuthCredentials(persisted, sensitive)
+		return nil
+	}
+	return createAccountRecordRaw(ctx, client, account)
+}
+
+func createAccountRecordRaw(ctx context.Context, client *dbent.Client, account *service.Account) error {
 	if account == nil {
 		return service.ErrAccountNilInput
 	}
@@ -220,7 +264,7 @@ func (r *accountRepository) CreateWithAccountGroups(ctx context.Context, account
 		txClient = r.client
 	}
 
-	if err := createAccountRecord(ctx, txClient, account); err != nil {
+	if err := r.createAccountRecord(ctx, txClient, account); err != nil {
 		return err
 	}
 	groupIDs := make([]int64, 0, len(groups))
@@ -331,6 +375,12 @@ func (r *accountRepository) GetByIDs(ctx context.Context, ids []int64) ([]*servi
 		out := accountEntityToService(entAcc)
 		if out == nil {
 			continue
+		}
+		if err := r.hydrateOAuthAccount(ctx, out); err != nil {
+			if errors.Is(err, service.ErrOAuthCredentialVaultDisabled) {
+				continue
+			}
+			return nil, err
 		}
 
 		// Prefer the preloaded proxy edge when available.
@@ -454,6 +504,16 @@ func (r *accountRepository) updateAccount(ctx context.Context, account *service.
 	if account == nil {
 		return nil
 	}
+	persistedCredentials, err := r.prepareOAuthCredentialsForWrite(
+		ctx,
+		account.ID,
+		account.OwnerUserID,
+		account.Type,
+		account.Credentials,
+	)
+	if err != nil {
+		return err
+	}
 
 	baseCtx := ctx
 	contextTx := dbent.TxFromContext(ctx)
@@ -474,7 +534,7 @@ func (r *accountRepository) updateAccount(ctx context.Context, account *service.
 		}
 	}
 
-	updated, err := r.updateLockedAccount(ctx, client, account, explicitProbeEnabled)
+	updated, err := r.updateLockedAccount(ctx, client, account, persistedCredentials, explicitProbeEnabled)
 	if err != nil {
 		return translateAccountPersistenceError(err, service.ErrAccountNotFound)
 	}
@@ -494,8 +554,8 @@ func (r *accountRepository) updateAccount(ctx context.Context, account *service.
 	return nil
 }
 
-func (r *accountRepository) updateLockedAccount(ctx context.Context, client *dbent.Client, account *service.Account, explicitProbeEnabled *bool) (*dbent.Account, error) {
-	extra, err := lockAndMergeAccountProbeExtra(ctx, client, account, explicitProbeEnabled)
+func (r *accountRepository) updateLockedAccount(ctx context.Context, client *dbent.Client, account *service.Account, persistedCredentials map[string]any, explicitProbeEnabled *bool) (*dbent.Account, error) {
+	extra, err := lockAndMergeAccountProbeExtra(ctx, client, account, persistedCredentials, explicitProbeEnabled)
 	if err != nil {
 		return nil, err
 	}
@@ -512,7 +572,7 @@ func (r *accountRepository) updateLockedAccount(ctx context.Context, client *dbe
 		SetPlatform(account.Platform).
 		SetAccountLevel(service.NormalizeAccountLevel(account.AccountLevel)).
 		SetType(account.Type).
-		SetCredentials(normalizeJSONMap(account.Credentials)).
+		SetCredentials(normalizeJSONMap(persistedCredentials)).
 		SetExtra(extra).
 		SetShareMode(service.NormalizeAccountShareMode(account.ShareMode)).
 		SetShareStatus(service.NormalizeAccountShareStatus(account.ShareStatus)).
@@ -600,8 +660,8 @@ func (r *accountRepository) updateLockedAccount(ctx context.Context, client *dbe
 	return builder.Save(ctx)
 }
 
-func lockAndMergeAccountProbeExtra(ctx context.Context, client *dbent.Client, account *service.Account, explicitProbeEnabled *bool) (map[string]any, error) {
-	credentials, err := json.Marshal(normalizeJSONMap(account.Credentials))
+func lockAndMergeAccountProbeExtra(ctx context.Context, client *dbent.Client, account *service.Account, persistedCredentials map[string]any, explicitProbeEnabled *bool) (map[string]any, error) {
+	credentials, err := json.Marshal(normalizeJSONMap(persistedCredentials))
 	if err != nil {
 		return nil, err
 	}
@@ -674,7 +734,18 @@ func lockAndMergeAccountProbeExtra(ctx context.Context, client *dbent.Client, ac
 }
 
 func (r *accountRepository) UpdateCredentials(ctx context.Context, id int64, credentials map[string]any) error {
-	payload, err := json.Marshal(normalizeJSONMap(credentials))
+	persistedCredentials := normalizeJSONMap(credentials)
+	if r.oauthVaultMode() != service.OAuthCredentialVaultModeLegacy {
+		_, accountType, ownerUserID, err := r.loadAccountVaultIdentity(ctx, id)
+		if err != nil {
+			return err
+		}
+		persistedCredentials, err = r.prepareOAuthCredentialsForWrite(ctx, id, ownerUserID, accountType, credentials)
+		if err != nil {
+			return err
+		}
+	}
+	payload, err := json.Marshal(persistedCredentials)
 	if err != nil {
 		return err
 	}
@@ -735,9 +806,22 @@ func (r *accountRepository) UpdateCredentials(ctx context.Context, id int64, cre
 }
 
 func (r *accountRepository) Delete(ctx context.Context, id int64) error {
+	if err := r.rejectDisabledOAuthMutation(ctx, []int64{id}); err != nil {
+		return err
+	}
 	groupIDs, err := r.loadAccountGroupIDs(ctx, id)
 	if err != nil {
 		return err
+	}
+	var vaultKey service.OAuthCredentialVaultKey
+	var deleteVaultEntry bool
+	if r.oauthVaultMode() == service.OAuthCredentialVaultModeExternal {
+		_, accountType, ownerUserID, identityErr := r.loadAccountVaultIdentity(ctx, id)
+		if identityErr != nil {
+			return identityErr
+		}
+		deleteVaultEntry = service.IsOAuthCredentialAccount(accountType)
+		vaultKey = r.oauthVaultKey(id, ownerUserID)
 	}
 	// 使用事务保证账号与关联分组的删除原子性
 	tx, err := r.client.Tx(ctx)
@@ -767,6 +851,11 @@ func (r *accountRepository) Delete(ctx context.Context, id int64) error {
 	if tx != nil {
 		if err := tx.Commit(); err != nil {
 			return err
+		}
+	}
+	if deleteVaultEntry && r.oauthVault != nil {
+		if err := r.oauthVault.Delete(ctx, vaultKey); err != nil {
+			logger.LegacyPrintf("repository.account", "[OAuthVault] delete orphaned credential entry failed: account=%d err=%v", id, err)
 		}
 	}
 	if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, &id, nil, buildSchedulerGroupPayload(groupIDs)); err != nil {
@@ -1299,6 +1388,102 @@ func (r *accountRepository) ListActive(ctx context.Context) ([]service.Account, 
 	return r.accountsToService(ctx, accounts)
 }
 
+// ListOAuthRefreshCandidatePage returns a bounded, ID-cursor-stable page for
+// background OAuth refresh. In external Vault mode refresh-token eligibility
+// is evaluated after hydration because the replicated accounts table must not
+// contain the token used by the SQL predicate.
+func (r *accountRepository) ListOAuthRefreshCandidatePage(ctx context.Context, options service.OAuthRefreshPageOptions) (*service.OAuthRefreshCandidatePage, error) {
+	if r.sql == nil {
+		return nil, errors.New("account repository SQL executor not configured")
+	}
+	if len(options.Platforms) == 0 {
+		return nil, errors.New("oauth refresh candidate platforms cannot be empty")
+	}
+	if options.Limit <= 0 || options.Limit > 1000 {
+		return nil, errors.New("oauth refresh candidate page limit must be between 1 and 1000")
+	}
+
+	query := `
+		SELECT id
+		FROM accounts
+		WHERE deleted_at IS NULL
+			AND platform = ANY($1)
+			AND id > $2`
+	if options.ActiveOnly {
+		query += `
+			AND status = 'active'`
+	}
+	if options.IncludeSetupToken {
+		query += `
+			AND type IN ('oauth', 'setup-token')`
+	} else {
+		query += `
+			AND type = 'oauth'`
+	}
+	if options.RequireRefreshToken && r.oauthVaultMode() != service.OAuthCredentialVaultModeExternal {
+		query += `
+			AND credentials ? 'refresh_token'
+			AND btrim(credentials->>'refresh_token') <> ''`
+	}
+	if options.ExcludeRetryCooldown {
+		query += `
+			AND (
+				temp_unschedulable_until > NOW()
+				AND temp_unschedulable_reason LIKE 'token refresh retry exhausted:%'
+			) IS NOT TRUE`
+	}
+	query += `
+		ORDER BY id ASC
+		LIMIT $3`
+
+	rows, err := r.sql.QueryContext(ctx, query, pq.Array(options.Platforms), options.AfterID, options.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	ids := make([]int64, 0, options.Limit)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	page := &service.OAuthRefreshCandidatePage{
+		Accounts: []service.Account{},
+		HasMore:  len(ids) == options.Limit,
+	}
+	if len(ids) == 0 {
+		return page, nil
+	}
+	page.NextAfterID = ids[len(ids)-1]
+	accounts, err := r.GetByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	accountsByID := make(map[int64]*service.Account, len(accounts))
+	for _, account := range accounts {
+		if account != nil {
+			accountsByID[account.ID] = account
+		}
+	}
+	page.Accounts = make([]service.Account, 0, len(accounts))
+	for _, id := range ids {
+		account := accountsByID[id]
+		if account == nil {
+			continue
+		}
+		if options.RequireRefreshToken && strings.TrimSpace(account.GetCredential("refresh_token")) == "" {
+			continue
+		}
+		page.Accounts = append(page.Accounts, *account)
+	}
+	return page, nil
+}
+
 func (r *accountRepository) ListByPlatform(ctx context.Context, platform string) ([]service.Account, error) {
 	accounts, err := r.client.Account.Query().
 		Where(
@@ -1390,6 +1575,10 @@ func (r *accountRepository) SetGrokCredentialErrorIfMatch(
 	snapshot service.GrokCredentialMutationSnapshot,
 	errorMsg string,
 ) (bool, error) {
+	credentialsJSON, err := r.persistedCredentialsJSON(snapshot.CredentialsJSON)
+	if err != nil {
+		return false, err
+	}
 	result, err := r.sql.ExecContext(ctx, `
 		WITH updated AS (
 		UPDATE accounts AS a
@@ -1419,7 +1608,7 @@ func (r *accountRepository) SetGrokCredentialErrorIfMatch(
 		INSERT INTO scheduler_outbox (event_type, account_id, group_id, payload)
 		SELECT $10, updated.id, NULL, NULL FROM updated
 	`, service.StatusError, errorMsg, id, service.StatusActive, service.PlatformGrok, service.AccountTypeOAuth,
-		snapshot.CredentialsJSON, snapshot.ProxyID, string(service.GrokCredentialReasonProxyInvalid),
+		string(credentialsJSON), snapshot.ProxyID, string(service.GrokCredentialReasonProxyInvalid),
 		service.SchedulerOutboxEventAccountChanged)
 	if err != nil {
 		return false, err
@@ -1446,7 +1635,7 @@ func (r *accountRepository) SetGrokOAuthErrorIfCredentialsUnchanged(
 	if r == nil || r.sql == nil {
 		return false, errors.New("account repository SQL executor is not configured")
 	}
-	expectedJSON, err := json.Marshal(normalizeJSONMap(expectedCredentials))
+	expectedJSON, err := r.persistedCredentialsJSONMap(expectedCredentials)
 	if err != nil {
 		return false, err
 	}
@@ -1463,7 +1652,6 @@ func (r *accountRepository) SetGrokOAuthErrorIfCredentialsUnchanged(
 			AND a.type = $5
 			AND a.status = $6
 			AND a.credentials = $7::jsonb
-			AND NULLIF(BTRIM(a.credentials->>'refresh_token'), '') IS NULL
 		RETURNING a.id
 		)
 		INSERT INTO scheduler_outbox (event_type, account_id, group_id, payload)
@@ -1507,11 +1695,19 @@ func (r *accountRepository) UpdateGrokOAuthCredentialsIfUnchanged(
 	if r == nil || r.sql == nil {
 		return false, errors.New("account repository SQL executor is not configured")
 	}
-	expectedJSON, err := json.Marshal(normalizeJSONMap(expectedCredentials))
+	expectedJSON, err := r.persistedCredentialsJSONMap(expectedCredentials)
 	if err != nil {
 		return false, err
 	}
-	credentialsJSON, err := json.Marshal(normalizeJSONMap(credentials))
+	_, accountType, ownerUserID, err := r.loadAccountVaultIdentity(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	preparedCredentials, err := r.prepareOAuthCredentialsForWrite(ctx, id, ownerUserID, accountType, credentials)
+	if err != nil {
+		return false, err
+	}
+	credentialsJSON, err := json.Marshal(normalizeJSONMap(preparedCredentials))
 	if err != nil {
 		return false, err
 	}
@@ -1567,7 +1763,7 @@ func (r *accountRepository) SetGrokOAuthRefreshErrorIfCredentialsUnchanged(
 	if r == nil || r.sql == nil {
 		return false, errors.New("account repository SQL executor is not configured")
 	}
-	expectedJSON, err := json.Marshal(normalizeJSONMap(expectedCredentials))
+	expectedJSON, err := r.persistedCredentialsJSONMap(expectedCredentials)
 	if err != nil {
 		return false, err
 	}
@@ -1628,7 +1824,7 @@ func (r *accountRepository) SetGrokOAuthRefreshTempUnschedulableIfCredentialsUnc
 	if r == nil || r.sql == nil {
 		return false, errors.New("account repository SQL executor is not configured")
 	}
-	expectedJSON, err := json.Marshal(normalizeJSONMap(expectedCredentials))
+	expectedJSON, err := r.persistedCredentialsJSONMap(expectedCredentials)
 	if err != nil {
 		return false, err
 	}
@@ -2643,6 +2839,9 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 	if len(ids) == 0 {
 		return 0, nil
 	}
+	if err := r.rejectDisabledOAuthMutation(ctx, ids); err != nil {
+		return 0, err
+	}
 
 	setClauses := make([]string, 0, 8)
 	args := make([]any, 0, 8)
@@ -2932,6 +3131,12 @@ func (r *accountRepository) accountsToService(ctx context.Context, accounts []*d
 			if origin.proxy != nil {
 				out.ProxyFallbackOrigin = origin.proxy
 			}
+		}
+		if err := r.hydrateOAuthAccount(ctx, out); err != nil {
+			if errors.Is(err, service.ErrOAuthCredentialVaultDisabled) {
+				continue
+			}
+			return nil, err
 		}
 		outAccounts = append(outAccounts, *out)
 	}

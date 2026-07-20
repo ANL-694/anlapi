@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"time"
 
 	"ikik-api/internal/pkg/ip"
@@ -12,6 +13,11 @@ const (
 	StatusAPIKeyDisabled       = "disabled"
 	StatusAPIKeyQuotaExhausted = "quota_exhausted"
 	StatusAPIKeyExpired        = "expired"
+)
+
+// System-managed API key purposes. An empty ManagedType means a user-created key.
+const (
+	APIKeyManagedTypeImageGeneration = "image_generation"
 )
 
 // Rate limit window durations
@@ -46,6 +52,10 @@ type APIKey struct {
 	Group               *Group
 	GroupRoutes         []APIKeyGroupRoute
 	CurrentConcurrency  int
+	// ManagedType is populated for keys maintained by the platform. It is not
+	// stored on api_keys; the binding is kept in a separate table so ordinary
+	// key CRUD remains backwards-compatible.
+	ManagedType string `json:"managed_type,omitempty"`
 
 	// Quota fields
 	Quota     float64    // Quota limit in USD (0 = unlimited)
@@ -62,6 +72,10 @@ type APIKey struct {
 	Window5hStart *time.Time // Start of current 5h window
 	Window1dStart *time.Time // Start of current 1d window
 	Window7dStart *time.Time // Start of current 7d window
+}
+
+func (k *APIKey) IsSystemManaged() bool {
+	return k != nil && strings.TrimSpace(k.ManagedType) != ""
 }
 
 type APIKeyGroupRoute struct {

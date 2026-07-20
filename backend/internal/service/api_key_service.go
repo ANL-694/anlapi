@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -35,9 +36,15 @@ var (
 	ErrAPIKeyQuotaExhausted = infraerrors.TooManyRequests("API_KEY_QUOTA_EXHAUSTED", "api key 额度已用完")
 
 	// Rate limit errors
-	ErrAPIKeyRateLimit5hExceeded = infraerrors.TooManyRequests("API_KEY_RATE_5H_EXCEEDED", "api key 5小时限额已用完")
-	ErrAPIKeyRateLimit1dExceeded = infraerrors.TooManyRequests("API_KEY_RATE_1D_EXCEEDED", "api key 日限额已用完")
-	ErrAPIKeyRateLimit7dExceeded = infraerrors.TooManyRequests("API_KEY_RATE_7D_EXCEEDED", "api key 7天限额已用完")
+	ErrAPIKeyRateLimit5hExceeded       = infraerrors.TooManyRequests("API_KEY_RATE_5H_EXCEEDED", "api key 5小时限额已用完")
+	ErrAPIKeyRateLimit1dExceeded       = infraerrors.TooManyRequests("API_KEY_RATE_1D_EXCEEDED", "api key 日限额已用完")
+	ErrAPIKeyRateLimit7dExceeded       = infraerrors.TooManyRequests("API_KEY_RATE_7D_EXCEEDED", "api key 7天限额已用完")
+	ErrSystemAPIKeyImmutable           = infraerrors.Forbidden("SYSTEM_API_KEY_IMMUTABLE", "系统维护的 API Key 只能删除后自动重新生成")
+	ErrImageGenerationGroupUnavailable = infraerrors.NotFound("IMAGE_GENERATION_GROUP_UNAVAILABLE", "当前没有可用的 GPT 生图分组")
+	// ErrSystemAPIKeyStoreUnavailable is intentionally not exposed to users. It
+	// allows old SQLite/unit-test schemas to run before the new migration is
+	// applied while production still fails explicit ensure requests loudly.
+	ErrSystemAPIKeyStoreUnavailable = errors.New("system api key binding store is unavailable")
 )
 
 const (
@@ -79,6 +86,16 @@ type APIKeyRepository interface {
 	IncrementRateLimitUsage(ctx context.Context, id int64, cost float64) error
 	ResetRateLimitWindows(ctx context.Context, id int64) error
 	GetRateLimitData(ctx context.Context, id int64) (*APIKeyRateLimitData, error)
+}
+
+// SystemAPIKeyRepository is an optional capability implemented by the SQL
+// repository. Keeping it separate avoids forcing every existing test double or
+// alternate repository implementation to know about the system-key table.
+type SystemAPIKeyRepository interface {
+	EnsureSystemAPIKey(ctx context.Context, key *APIKey, purpose string) (*APIKey, error)
+	ListSystemAPIKeyPurposes(ctx context.Context, userID int64) (map[int64]string, error)
+	GetSystemAPIKeyID(ctx context.Context, userID int64, purpose string) (int64, bool, error)
+	GetSystemAPIKeyPurpose(ctx context.Context, userID, keyID int64) (string, bool, error)
 }
 
 // APIKeyRateLimitData holds rate limit usage and window state for an API key.
@@ -214,6 +231,7 @@ type APIKeyService struct {
 	authCacheL1           *ristretto.Cache
 	authCfg               apiKeyAuthCacheConfig
 	authGroup             singleflight.Group
+	revokedAuthKeys       sync.Map // auth cache key -> expiration time
 	lastUsedTouchL1       sync.Map // keyID -> nextAllowedAt(time.Time)
 	lastUsedTouchSF       singleflight.Group
 }
@@ -548,17 +566,199 @@ func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIK
 		return nil, fmt.Errorf("create api key: %w", err)
 	}
 
-	s.InvalidateAuthCacheByKey(ctx, apiKey.Key)
+	s.restoreAuthCacheByKey(ctx, apiKey.Key)
 	s.compileAPIKeyIPRules(apiKey)
 
 	return apiKey, nil
 }
 
+func (s *APIKeyService) systemAPIKeyRepository() (SystemAPIKeyRepository, bool) {
+	repo, ok := s.apiKeyRepo.(SystemAPIKeyRepository)
+	return repo, ok
+}
+
+func isIgnorableSystemAPIKeyError(err error) bool {
+	return errors.Is(err, ErrSystemAPIKeyStoreUnavailable) ||
+		errors.Is(err, ErrImageGenerationGroupUnavailable)
+}
+
+func (s *APIKeyService) annotateSystemAPIKey(ctx context.Context, key *APIKey) error {
+	if key == nil {
+		return nil
+	}
+	repo, ok := s.systemAPIKeyRepository()
+	if !ok {
+		return nil
+	}
+	purpose, found, err := repo.GetSystemAPIKeyPurpose(ctx, key.UserID, key.ID)
+	if err != nil {
+		return err
+	}
+	if found {
+		key.ManagedType = purpose
+	}
+	return nil
+}
+
+func (s *APIKeyService) annotateSystemAPIKeys(ctx context.Context, userID int64, keys []APIKey) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	repo, ok := s.systemAPIKeyRepository()
+	if !ok {
+		return nil
+	}
+	purposes, err := repo.ListSystemAPIKeyPurposes(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for i := range keys {
+		keys[i].ManagedType = purposes[keys[i].ID]
+	}
+	return nil
+}
+
+func (s *APIKeyService) imageGenerationGroups(ctx context.Context, userID int64) ([]Group, error) {
+	groups, err := s.GetAvailableGroups(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	eligible := make([]Group, 0, len(groups))
+	for i := range groups {
+		group := &groups[i]
+		if !group.IsActive() || !strings.EqualFold(strings.TrimSpace(group.Platform), PlatformOpenAI) || !group.AllowImageGeneration {
+			continue
+		}
+		eligible = append(eligible, *group)
+	}
+	if len(eligible) == 0 {
+		return nil, ErrImageGenerationGroupUnavailable
+	}
+	return eligible, nil
+}
+
+func selectSystemImageGroup(groups []Group, currentGroupID *int64) *Group {
+	var selected *Group
+	for i := range groups {
+		group := &groups[i]
+		if currentGroupID != nil && group.ID == *currentGroupID {
+			return group
+		}
+		if selected == nil ||
+			group.SortOrder < selected.SortOrder ||
+			(group.SortOrder == selected.SortOrder && group.ID < selected.ID) {
+			selected = group
+		}
+	}
+	return selected
+}
+
+func systemImageKeyRoutesMatch(key *APIKey, groupID int64) bool {
+	return key != nil && len(key.GroupRoutes) == 1 &&
+		key.GroupRoutes[0].GroupID == groupID && key.GroupRoutes[0].Enabled
+}
+
+func bindSystemImageKeyToGroup(key *APIKey, group *Group) {
+	if key == nil || group == nil {
+		return
+	}
+	groupID := group.ID
+	key.Name = "GPT 生图专线"
+	key.GroupID = &groupID
+	key.Group = group
+	key.GroupRoutes = []APIKeyGroupRoute{{
+		GroupID:         groupID,
+		Priority:        100,
+		Weight:          1,
+		Enabled:         true,
+		CooldownSeconds: 30,
+		Group:           group,
+	}}
+	key.Status = StatusAPIKeyActive
+}
+
+// EnsureSystemImageKey returns the user's single platform-managed image key.
+// The SQL repository enforces the user/purpose uniqueness boundary, so this
+// method is safe to call from both the explicit endpoint and key-list refresh.
+func (s *APIKeyService) EnsureSystemImageKey(ctx context.Context, userID int64) (*APIKey, error) {
+	repo, ok := s.systemAPIKeyRepository()
+	if !ok {
+		return nil, ErrSystemAPIKeyStoreUnavailable
+	}
+	groups, groupsErr := s.imageGenerationGroups(ctx, userID)
+
+	if keyID, found, err := repo.GetSystemAPIKeyID(ctx, userID, APIKeyManagedTypeImageGeneration); err != nil {
+		if !errors.Is(err, ErrSystemAPIKeyStoreUnavailable) {
+			return nil, err
+		}
+	} else if found {
+		existing, getErr := s.apiKeyRepo.GetByID(ctx, keyID)
+		if getErr == nil && existing != nil && existing.UserID == userID {
+			if groupsErr != nil {
+				return nil, groupsErr
+			}
+			group := selectSystemImageGroup(groups, existing.GroupID)
+			if group == nil {
+				return nil, ErrImageGenerationGroupUnavailable
+			}
+			needsUpdate := existing.Name != "GPT 生图专线" ||
+				existing.GroupID == nil || *existing.GroupID != group.ID ||
+				!systemImageKeyRoutesMatch(existing, group.ID) || existing.Status != StatusAPIKeyActive
+			if needsUpdate {
+				bindSystemImageKeyToGroup(existing, group)
+				if err := s.apiKeyRepo.Update(ctx, existing); err != nil {
+					return nil, fmt.Errorf("rebind system image api key: %w", err)
+				}
+				s.InvalidateAuthCacheByKey(ctx, existing.Key)
+			}
+			existing.ManagedType = APIKeyManagedTypeImageGeneration
+			s.compileAPIKeyIPRules(existing)
+			return existing, nil
+		}
+		if getErr != nil && !errors.Is(getErr, ErrAPIKeyNotFound) {
+			return nil, getErr
+		}
+	}
+
+	if groupsErr != nil {
+		return nil, groupsErr
+	}
+	group := selectSystemImageGroup(groups, nil)
+	if group == nil {
+		return nil, ErrImageGenerationGroupUnavailable
+	}
+	generatedKey, err := s.GenerateKey()
+	if err != nil {
+		return nil, fmt.Errorf("generate system image api key: %w", err)
+	}
+	key := &APIKey{
+		UserID: userID,
+		Key:    generatedKey,
+	}
+	bindSystemImageKeyToGroup(key, group)
+	created, err := repo.EnsureSystemAPIKey(ctx, key, APIKeyManagedTypeImageGeneration)
+	if err != nil {
+		return nil, err
+	}
+	created.ManagedType = APIKeyManagedTypeImageGeneration
+	s.InvalidateAuthCacheByKey(ctx, created.Key)
+	s.compileAPIKeyIPRules(created)
+	return created, nil
+}
+
 // List 获取用户的API Key列表
 func (s *APIKeyService) List(ctx context.Context, userID int64, params pagination.PaginationParams, filters APIKeyListFilters) ([]APIKey, *pagination.PaginationResult, error) {
+	if _, ok := s.systemAPIKeyRepository(); ok {
+		if _, err := s.EnsureSystemImageKey(ctx, userID); err != nil && !isIgnorableSystemAPIKeyError(err) {
+			return nil, nil, fmt.Errorf("ensure system image api key: %w", err)
+		}
+	}
 	keys, pagination, err := s.apiKeyRepo.ListByUserID(ctx, userID, params, filters)
 	if err != nil {
 		return nil, nil, fmt.Errorf("list api keys: %w", err)
+	}
+	if err := s.annotateSystemAPIKeys(ctx, userID, keys); err != nil && !errors.Is(err, ErrSystemAPIKeyStoreUnavailable) {
+		return nil, nil, fmt.Errorf("annotate system api keys: %w", err)
 	}
 	s.fillCurrentConcurrency(ctx, keys)
 	return keys, pagination, nil
@@ -613,6 +813,9 @@ func (s *APIKeyService) GetByID(ctx context.Context, id int64) (*APIKey, error) 
 		return nil, fmt.Errorf("get api key: %w", err)
 	}
 	s.compileAPIKeyIPRules(apiKey)
+	if err := s.annotateSystemAPIKey(ctx, apiKey); err != nil && !errors.Is(err, ErrSystemAPIKeyStoreUnavailable) {
+		return nil, fmt.Errorf("annotate system api key: %w", err)
+	}
 	if apiKey != nil {
 		apiKey.CurrentConcurrency = s.currentConcurrencyForAPIKey(ctx, apiKey.ID)
 	}
@@ -622,8 +825,14 @@ func (s *APIKeyService) GetByID(ctx context.Context, id int64) (*APIKey, error) 
 // GetByKey 根据Key字符串获取API Key（用于认证）
 func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, error) {
 	cacheKey := s.authCacheKey(key)
+	if s.isAuthCacheRevoked(cacheKey) {
+		return nil, fmt.Errorf("get api key: %w", ErrAPIKeyNotFound)
+	}
 
 	if entry, ok := s.getAuthCacheEntry(ctx, cacheKey); ok {
+		if s.isAuthCacheRevoked(cacheKey) {
+			return nil, fmt.Errorf("get api key: %w", ErrAPIKeyNotFound)
+		}
 		if apiKey, used, err := s.applyAuthCacheEntry(key, entry); used {
 			if err != nil {
 				return nil, fmt.Errorf("get api key: %w", err)
@@ -641,6 +850,9 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 			return nil, err
 		}
 		entry, _ := value.(*APIKeyAuthCacheEntry)
+		if s.isAuthCacheRevoked(cacheKey) {
+			return nil, fmt.Errorf("get api key: %w", ErrAPIKeyNotFound)
+		}
 		if apiKey, used, err := s.applyAuthCacheEntry(key, entry); used {
 			if err != nil {
 				return nil, fmt.Errorf("get api key: %w", err)
@@ -652,6 +864,9 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 		entry, err := s.loadAuthCacheEntry(ctx, key, cacheKey)
 		if err != nil {
 			return nil, err
+		}
+		if s.isAuthCacheRevoked(cacheKey) {
+			return nil, fmt.Errorf("get api key: %w", ErrAPIKeyNotFound)
 		}
 		if apiKey, used, err := s.applyAuthCacheEntry(key, entry); used {
 			if err != nil {
@@ -665,6 +880,9 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 	apiKey, err := s.apiKeyRepo.GetByKeyForAuth(ctx, key)
 	if err != nil {
 		return nil, fmt.Errorf("get api key: %w", err)
+	}
+	if s.isAuthCacheRevoked(cacheKey) {
+		return nil, fmt.Errorf("get api key: %w", ErrAPIKeyNotFound)
 	}
 	apiKey.Key = key
 	s.compileAPIKeyIPRules(apiKey)
@@ -681,6 +899,15 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 	// 验证所有权
 	if apiKey.UserID != userID {
 		return nil, ErrInsufficientPerms
+	}
+	if repo, ok := s.systemAPIKeyRepository(); ok {
+		purpose, found, err := repo.GetSystemAPIKeyPurpose(ctx, userID, id)
+		if err != nil && !errors.Is(err, ErrSystemAPIKeyStoreUnavailable) {
+			return nil, err
+		}
+		if found && purpose != "" {
+			return nil, ErrSystemAPIKeyImmutable
+		}
 	}
 
 	// 验证 IP 白名单格式
@@ -838,17 +1065,36 @@ func (s *APIKeyService) Delete(ctx context.Context, id int64, userID int64) erro
 	if ownerID != userID {
 		return ErrInsufficientPerms
 	}
+	systemPurpose := ""
+	if repo, ok := s.systemAPIKeyRepository(); ok {
+		purpose, found, purposeErr := repo.GetSystemAPIKeyPurpose(ctx, userID, id)
+		if purposeErr != nil && !errors.Is(purposeErr, ErrSystemAPIKeyStoreUnavailable) {
+			return purposeErr
+		}
+		if found {
+			systemPurpose = purpose
+		}
+	}
 
 	// 清除Redis缓存（使用 userID 而非 apiKey.UserID）
 	if s.cache != nil {
 		_ = s.cache.DeleteCreateAttemptCount(ctx, userID)
 	}
-	s.InvalidateAuthCacheByKey(ctx, key)
+	s.revokeAuthCacheByKey(ctx, key)
 
 	if err := s.apiKeyRepo.Delete(ctx, id); err != nil {
+		s.restoreAuthCacheByKey(ctx, key)
 		return fmt.Errorf("delete api key: %w", err)
 	}
 	s.lastUsedTouchL1.Delete(id)
+
+	if systemPurpose == APIKeyManagedTypeImageGeneration {
+		// Deletion remains successful even when the image group is temporarily
+		// unavailable. The next key-list request retries reconciliation.
+		if _, err := s.EnsureSystemImageKey(ctx, userID); err != nil && !errors.Is(err, ErrImageGenerationGroupUnavailable) {
+			return fmt.Errorf("recreate system image api key after delete: %w", err)
+		}
+	}
 
 	return nil
 }

@@ -208,6 +208,7 @@
             Kiro
           </button>
           <button
+            v-if="!isUserScope"
             type="button"
             @click="form.platform = 'custom'"
             :class="[
@@ -258,6 +259,7 @@
           </button>
 
           <button
+            v-if="!isUserScope"
             type="button"
             data-testid="grok-account-type-api-key"
             @click="accountCategory = 'apikey'"
@@ -359,10 +361,10 @@
       <!-- Account Type Selection (OpenAI) -->
       <div v-if="form.platform === 'openai'">
         <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
-        <div :class="['mt-2 grid gap-3', isUserScope ? 'grid-cols-1' : 'grid-cols-2']" data-tour="account-form-type">
+        <div :class="['mt-2 grid gap-3', isUserScope ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3']" data-tour="account-form-type">
           <button
             type="button"
-            @click="accountCategory = 'oauth-based'"
+            @click="selectOpenAIAccountType('oauth')"
             :class="[
               'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
               accountCategory === 'oauth-based'
@@ -387,11 +389,13 @@
           </button>
 
           <button
+            v-if="!isUserScope"
             type="button"
-            @click="accountCategory = 'apikey'"
+            data-testid="openai-account-type-api-key"
+            @click="selectOpenAIAccountType('apikey')"
             :class="[
               'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
-              accountCategory === 'apikey'
+              accountCategory === 'apikey' && !isOpenAIImageAPIKeyMode
                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                 : 'border-gray-200 hover:border-purple-300 dark:border-dark-600 dark:hover:border-purple-700'
             ]"
@@ -399,7 +403,7 @@
             <div
               :class="[
                 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                accountCategory === 'apikey'
+                accountCategory === 'apikey' && !isOpenAIImageAPIKeyMode
                   ? 'bg-purple-500 text-white'
                   : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
               ]"
@@ -412,6 +416,52 @@
             </div>
           </button>
 
+          <button
+            v-if="!isUserScope"
+            type="button"
+            data-testid="openai-account-type-image-api-key"
+            @click="selectOpenAIAccountType('image-apikey')"
+            :class="[
+              'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
+              isOpenAIImageAPIKeyMode
+                ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20'
+                : 'border-gray-200 hover:border-sky-300 dark:border-dark-600 dark:hover:border-sky-700'
+            ]"
+          >
+            <div
+              :class="[
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                isOpenAIImageAPIKeyMode
+                  ? 'bg-sky-500 text-white'
+                  : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
+              ]"
+            >
+              <Icon name="sparkles" size="sm" />
+            </div>
+            <div class="min-w-0">
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">{{
+                t('admin.accounts.openai.imageApiKeyTitle')
+              }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{
+                t('admin.accounts.openai.imageApiKeyDesc')
+              }}</span>
+            </div>
+          </button>
+
+        </div>
+
+        <div
+          v-if="isOpenAIImageAPIKeyMode"
+          data-testid="openai-image-api-key-group-requirement"
+          class="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-200"
+        >
+          <Icon name="exclamationTriangle" size="sm" class="mt-0.5 shrink-0" />
+          <div>
+            <p>{{ t('admin.accounts.openai.imageApiKeyGroupRequirement') }}</p>
+            <p v-if="imageGenerationAssignableGroups.length === 0" class="mt-1 font-medium">
+              {{ t('admin.accounts.openai.imageApiKeyNoEligibleGroup') }}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -473,6 +523,7 @@
           </button>
 
           <button
+            v-if="!isUserScope"
             type="button"
             @click="accountCategory = 'apikey'"
             :class="[
@@ -893,6 +944,7 @@
             </div>
           </button>
           <button
+            v-if="!isUserScope"
             type="button"
             @click="accountCategory = 'apikey'"
             :class="[
@@ -953,6 +1005,7 @@
             </div>
           </button>
           <button
+            v-if="!isUserScope"
             type="button"
             @click="accountCategory = 'apikey'"
             :class="[
@@ -1380,6 +1433,7 @@
             v-model="apiKeyBaseUrl"
             type="text"
             class="input"
+            data-testid="account-api-key-base-url"
             :placeholder="apiKeyBaseUrlPlaceholder"
           />
           <p v-if="baseUrlHint" class="input-hint">{{ baseUrlHint }}</p>
@@ -1413,10 +1467,33 @@
 
         <!-- Model Restriction Section (Antigravity 已在上层条件排除) -->
         <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
-          <label class="input-label">{{ t('admin.accounts.modelRestriction') }}</label>
+          <label class="input-label">{{
+            isOpenAIImageAPIKeyMode
+              ? t('admin.accounts.openai.imageApiKeyModelRestriction')
+              : t('admin.accounts.modelRestriction')
+          }}</label>
 
           <div
-            v-if="isOpenAIModelRestrictionDisabled"
+            v-if="isOpenAIImageAPIKeyMode"
+            data-testid="openai-image-api-key-models"
+            class="rounded-lg border border-sky-200 bg-sky-50 p-3 dark:border-sky-800/50 dark:bg-sky-900/20"
+          >
+            <p class="text-xs text-sky-800 dark:text-sky-200">
+              {{ t('admin.accounts.openai.imageApiKeyModelsLocked') }}
+            </p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <span
+                v-for="model in GPT_IMAGE_MODELS"
+                :key="model"
+                class="rounded border border-sky-200 bg-white px-2 py-1 font-mono text-xs text-sky-800 dark:border-sky-700 dark:bg-dark-700 dark:text-sky-200"
+              >
+                {{ model }}
+              </span>
+            </div>
+          </div>
+
+          <div
+            v-else-if="isOpenAIModelRestrictionDisabled"
             class="mb-3 rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20"
           >
             <p class="text-xs text-amber-700 dark:text-amber-400">
@@ -2140,7 +2217,7 @@
 
       <!-- Grok OAuth Custom Upstream URL (仅改写转发端点，OAuth 授权/刷新不受影响) -->
       <div
-        v-if="form.platform === 'grok' && isOAuthFlow"
+        v-if="form.platform === 'grok' && isOAuthFlow && !isUserScope"
         class="border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="mb-3 flex items-center justify-between">
@@ -2180,7 +2257,7 @@
       </div>
 
       <HeaderOverrideEditor
-        v-if="form.platform === 'grok' && isOAuthFlow"
+        v-if="form.platform === 'grok' && isOAuthFlow && !isUserScope"
         v-model:enabled="headerOverrideEnabled"
         v-model:rows="headerOverrideRows"
         :platform="form.platform"
@@ -2939,7 +3016,7 @@
 
       <!-- OpenAI 自动透传开关（OAuth/API Key） -->
       <div
-        v-if="form.platform === 'openai' && !isUserScope"
+        v-if="form.platform === 'openai' && !isUserScope && !isOpenAIImageAPIKeyMode"
         class="border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="flex items-center justify-between">
@@ -2969,7 +3046,7 @@
 
       <!-- OpenAI WS Mode 三态（off/ctx_pool/passthrough） -->
       <div
-        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isUserScope"
+        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isUserScope && !isOpenAIImageAPIKeyMode"
         class="border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="flex items-center justify-between">
@@ -3058,7 +3135,7 @@
       </div>
 
       <div
-        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey')"
+        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isOpenAIImageAPIKeyMode"
         class="border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="flex items-center justify-between gap-4">
@@ -3121,7 +3198,7 @@
 
       <!-- OpenAI Compact 能力配置 -->
       <div
-        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isUserScope"
+        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isUserScope && !isOpenAIImageAPIKeyMode"
         class="border-t border-gray-200 pt-4 dark:border-dark-600 space-y-4"
       >
         <div class="flex items-center justify-between">
@@ -3248,7 +3325,7 @@
         <GroupSelector
           v-if="!authStore.isSimpleMode && !isUserScope"
           v-model="form.group_ids"
-          :groups="assignableGroups"
+          :groups="isOpenAIImageAPIKeyMode ? imageGenerationAssignableGroups : assignableGroups"
           :platform="groupSelectorPlatform"
           :mixed-scheduling="mixedScheduling"
           data-tour="account-form-groups"
@@ -3711,6 +3788,9 @@ interface OAuthFlowExposed {
 const { t } = useI18n()
 const authStore = useAuthStore()
 
+const OPENAI_OFFICIAL_BASE_URL = 'https://api.openai.com'
+const GPT_IMAGE_MODELS = getModelsByPlatform('openai').filter((model) => model.startsWith('gpt-image-'))
+
 const oauthStepTitle = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.oauth.openai.title')
   if (form.platform === 'gemini') return t('admin.accounts.oauth.gemini.title')
@@ -3722,6 +3802,7 @@ const oauthStepTitle = computed(() => {
 
 // Platform-specific hints for API Key type
 const baseUrlHint = computed(() => {
+  if (isOpenAIImageAPIKeyMode.value) return t('admin.accounts.openai.imageApiKeyBaseUrlHint')
   if (form.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (form.platform === 'grok') return t('admin.accounts.grok.baseUrlHint')
@@ -3740,7 +3821,7 @@ const apiKeyHint = computed(() => {
 })
 
 const apiKeyBaseUrlPlaceholder = computed(() => {
-  if (form.platform === 'openai') return 'https://api.openai.com'
+  if (form.platform === 'openai') return OPENAI_OFFICIAL_BASE_URL
   if (form.platform === 'gemini') return 'https://generativelanguage.googleapis.com'
   if (form.platform === 'grok') return 'https://api.x.ai/v1'
   if (form.platform === 'kiro') return 'https://your-kiro-endpoint/v1'
@@ -3778,6 +3859,14 @@ const isUserScope = computed(() => accountScope.value === 'user')
 const canManageProxy = computed(() => props.allowProxy !== false)
 const canManageBillingRate = computed(() => !isUserScope.value && props.allowBillingRate !== false)
 const assignableGroups = computed(() => accountAssignableGroups(props.groups))
+const imageGenerationAssignableGroups = computed(() =>
+  assignableGroups.value.filter(
+    (group) => group.platform === 'openai' && group.allow_image_generation === true
+  )
+)
+const imageGenerationAssignableGroupIDs = computed(() =>
+  new Set(imageGenerationAssignableGroups.value.map((group) => group.id))
+)
 const userProxyForcesPrivate = computed(() => isUserScope.value && !!form.proxy_id)
 const userApiKeyForcesPrivate = computed(() => isUserScope.value && form.type === 'apikey')
 const userShareForcesPrivate = computed(() => userProxyForcesPrivate.value || userApiKeyForcesPrivate.value)
@@ -3873,6 +3962,8 @@ const ANTHROPIC_API_KEY_AUTH_SCHEME_AUTHORIZATION_BEARER: AnthropicAPIKeyAuthSch
 const step = ref(1)
 const submitting = ref(false)
 const accountCategory = ref<'oauth-based' | 'apikey' | 'bedrock' | 'service_account'>('oauth-based') // UI selection for account category
+const openAIAPIKeyMode = ref<'standard' | 'image'>('standard')
+const openAIAPIKeyBaseUrlBeforeImageMode = ref<string | null>(null)
 const addMethod = ref<AddMethod>('oauth') // For oauth-based: 'oauth' or 'setup-token'
 const apiKeyBaseUrl = ref('https://api.anthropic.com')
 const apiKeyValue = ref('')
@@ -3923,7 +4014,7 @@ const grokOAuthCustomBaseUrlEnabled = ref(false)
 const grokOAuthBaseUrl = ref('')
 
 const validateGrokOAuthUpstreamConfig = (): boolean => {
-  if (grokOAuthCustomBaseUrlEnabled.value) {
+  if (!isUserScope.value && grokOAuthCustomBaseUrlEnabled.value) {
     const trimmed = grokOAuthBaseUrl.value.trim()
     if (!trimmed) {
       appStore.showError(t('admin.accounts.grokCustomBaseUrl.required'))
@@ -3934,7 +4025,7 @@ const validateGrokOAuthUpstreamConfig = (): boolean => {
       return false
     }
   }
-  if (headerOverrideEnabled.value) {
+  if (!isUserScope.value && headerOverrideEnabled.value) {
     const headerError = validateHeaderOverrideRows(headerOverrideRows.value)
     if (headerError) {
       appStore.showError(t(`admin.accounts.headerOverride.${headerError}`))
@@ -3945,10 +4036,12 @@ const validateGrokOAuthUpstreamConfig = (): boolean => {
 }
 
 const applyGrokOAuthUpstreamConfig = (credentials: Record<string, unknown>) => {
-  if (grokOAuthCustomBaseUrlEnabled.value) {
+  if (!isUserScope.value && grokOAuthCustomBaseUrlEnabled.value) {
     credentials.base_url = grokOAuthBaseUrl.value.trim()
   }
-  applyHeaderOverride(credentials, headerOverrideEnabled.value, headerOverrideRows.value, 'create')
+  if (!isUserScope.value) {
+    applyHeaderOverride(credentials, headerOverrideEnabled.value, headerOverrideRows.value, 'create')
+  }
 }
 
 const interceptWarmupRequests = ref(false)
@@ -4122,7 +4215,7 @@ const openAIWSModeConcurrencyHintKey = computed(() =>
 )
 
 const isOpenAIModelRestrictionDisabled = computed(() =>
-  form.platform === 'openai' && openaiPassthroughEnabled.value
+  form.platform === 'openai' && !isOpenAIImageAPIKeyMode.value && openaiPassthroughEnabled.value
 )
 
 const mixedChannelWarningMessageText = computed(() => {
@@ -4199,6 +4292,41 @@ const form = reactive({
   group_ids: [] as number[],
   expires_at: null as number | null
 })
+
+const isOpenAIImageAPIKeyMode = computed(() =>
+  !isUserScope.value &&
+  form.platform === 'openai' &&
+  accountCategory.value === 'apikey' &&
+  openAIAPIKeyMode.value === 'image'
+)
+
+const selectOpenAIAccountType = (selection: 'oauth' | 'apikey' | 'image-apikey') => {
+  const wasImageMode = openAIAPIKeyMode.value === 'image'
+  if (selection !== 'image-apikey') {
+    if (wasImageMode && openAIAPIKeyBaseUrlBeforeImageMode.value !== null) {
+      apiKeyBaseUrl.value = openAIAPIKeyBaseUrlBeforeImageMode.value
+    }
+    openAIAPIKeyBaseUrlBeforeImageMode.value = null
+    openAIAPIKeyMode.value = 'standard'
+    accountCategory.value = selection === 'oauth' ? 'oauth-based' : 'apikey'
+    return
+  }
+
+  if (!wasImageMode) {
+    openAIAPIKeyBaseUrlBeforeImageMode.value = apiKeyBaseUrl.value
+  }
+	openAIAPIKeyMode.value = 'image'
+	accountCategory.value = 'apikey'
+	form.platform = 'openai'
+	form.type = 'apikey'
+	apiKeyBaseUrl.value = OPENAI_OFFICIAL_BASE_URL
+	const selectedEligibleGroupIDs = form.group_ids.filter((groupID) =>
+		imageGenerationAssignableGroupIDs.value.has(groupID)
+	)
+	if (selectedEligibleGroupIDs.length === 0 && imageGenerationAssignableGroups.value.length > 0) {
+		form.group_ids = [imageGenerationAssignableGroups.value[0].id]
+	}
+}
 
 watch(() => [form.platform, form.type, isUserScope.value], () => {
   if (!showHeaderOverrideEditor.value) {
@@ -4448,8 +4576,12 @@ watch(
 watch(
   () => form.platform,
   (newPlatform) => {
+    if (newPlatform !== 'openai') {
+      openAIAPIKeyMode.value = 'standard'
+      openAIAPIKeyBaseUrlBeforeImageMode.value = null
+    }
     if (isUserScope.value) {
-      accountCategory.value = newPlatform === 'custom' || newPlatform === 'grok' ? 'apikey' : 'oauth-based'
+      accountCategory.value = newPlatform === 'custom' ? 'apikey' : 'oauth-based'
       addMethod.value = 'oauth'
       antigravityAccountType.value = 'oauth'
       form.type = accountCategory.value === 'apikey' ? 'apikey' : 'oauth'
@@ -4499,7 +4631,7 @@ watch(
       modelMappings.value = getKiroDefaultModelMappings()
       allowedModels.value = []
     } else if (newPlatform === 'grok') {
-      accountCategory.value = isUserScope.value ? 'apikey' : 'oauth-based'
+      accountCategory.value = 'oauth-based'
       addMethod.value = 'oauth'
       modelRestrictionMode.value = 'mapping'
       form.concurrency = 1
@@ -4975,6 +5107,8 @@ const resetForm = () => {
   form.group_ids = []
   form.expires_at = null
   accountCategory.value = 'oauth-based'
+  openAIAPIKeyMode.value = 'standard'
+  openAIAPIKeyBaseUrlBeforeImageMode.value = null
   addMethod.value = 'oauth'
   kiroAuthMode.value = 'oauth'
   kiroOAuthProvider.value = 'Google'
@@ -5101,7 +5235,7 @@ const buildOpenAIExtra = (base?: Record<string, unknown>): Record<string, unknow
   // 清理兼容旧键，统一改用分类型开关。
   delete extra.responses_websockets_v2_enabled
   delete extra.openai_ws_enabled
-  if (openaiPassthroughEnabled.value) {
+  if (!isOpenAIImageAPIKeyMode.value && openaiPassthroughEnabled.value) {
     extra.openai_passthrough = true
   } else {
     delete extra.openai_passthrough
@@ -5421,10 +5555,17 @@ const handleSubmit = async () => {
     appStore.showError(t('admin.accounts.custom.baseUrlRequired'))
     return
   }
-  if (form.platform === 'kiro' && !apiKeyBaseUrl.value.trim()) {
-    appStore.showError(t('admin.accounts.kiro.baseUrlRequired'))
-    return
-  }
+	if (form.platform === 'kiro' && !apiKeyBaseUrl.value.trim()) {
+		appStore.showError(t('admin.accounts.kiro.baseUrlRequired'))
+		return
+	}
+	if (
+		isOpenAIImageAPIKeyMode.value &&
+		!form.group_ids.some((groupID) => imageGenerationAssignableGroupIDs.value.has(groupID))
+	) {
+		appStore.showError(t('admin.accounts.openai.imageApiKeyGroupRequired'))
+		return
+	}
 
   // Determine default base URL based on platform
   const defaultBaseUrl =
@@ -5456,12 +5597,14 @@ const handleSubmit = async () => {
     allowedModels.value = []
   }
   if (!isOpenAIModelRestrictionDisabled.value) {
-    const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
+    const modelMapping = isOpenAIImageAPIKeyMode.value
+      ? buildModelMappingObject('whitelist', GPT_IMAGE_MODELS, [])
+      : buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
     if (modelMapping) {
       credentials.model_mapping = modelMapping
     }
   }
-  if (form.platform === 'openai') {
+  if (form.platform === 'openai' && !isOpenAIImageAPIKeyMode.value) {
     const compactModelMapping = buildOpenAICompactModelMapping()
     if (compactModelMapping) {
       credentials.compact_model_mapping = compactModelMapping
@@ -5504,9 +5647,13 @@ const handleSubmit = async () => {
     }
   }
 
+  const groupIDs = isOpenAIImageAPIKeyMode.value
+    ? form.group_ids.filter((groupID) => imageGenerationAssignableGroupIDs.value.has(groupID))
+    : form.group_ids
+
   await doCreateAccount({
     ...form,
-    group_ids: form.group_ids,
+    group_ids: groupIDs,
     extra,
     auto_pause_on_expired: autoPauseOnExpired.value
   })

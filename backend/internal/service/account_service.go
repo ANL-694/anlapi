@@ -27,6 +27,7 @@ var (
 	ErrOwnedAccountTypeNotAllowed              = infraerrors.BadRequest("OWNED_ACCOUNT_TYPE_NOT_ALLOWED", "user accounts only support OAuth or API key accounts")
 	ErrOwnedAccountCredentialsInvalid          = infraerrors.BadRequest("OWNED_ACCOUNT_CREDENTIALS_INVALID", "account credentials are invalid")
 	ErrOwnedAccountCredentialsNotAllowed       = infraerrors.BadRequest("OWNED_ACCOUNT_CREDENTIALS_NOT_ALLOWED", "user OAuth accounts cannot include API keys, custom URLs, upstream endpoints, cookies or manual session credentials")
+	ErrOwnedAccountAPIKeySourceNotAllowed      = infraerrors.BadRequest("OWNED_ACCOUNT_APIKEY_SOURCE_NOT_ALLOWED", "user API key accounts must use a supported free-model provider and its official endpoint")
 	ErrOwnedAccountLevelNotAllowed             = infraerrors.BadRequest("OWNED_ACCOUNT_LEVEL_NOT_ALLOWED", "user accounts can only set unknown, team or k12 account level")
 	ErrOwnedAccountGroupPlatformMismatch       = infraerrors.BadRequest("OWNED_ACCOUNT_GROUP_PLATFORM_MISMATCH", "account group platform does not match account platform")
 	ErrOwnedAccountGroupValidationUnavailable  = infraerrors.InternalServer("OWNED_ACCOUNT_GROUP_VALIDATION_UNAVAILABLE", "owned account group validation is unavailable")
@@ -687,7 +688,7 @@ func (s *AccountService) createOwned(ctx context.Context, ownerUserID int64, req
 		return nil, ErrOwnedAccountLevelNotAllowed
 	}
 	applyOwnedPersonalAccountTemplateToCreate(&req)
-	if err := validateOwnedAccountSource(req.Type, req.Credentials, req.Extra); err != nil {
+	if err := validateOwnedAccountSource(req.Platform, req.Type, req.Credentials, req.Extra); err != nil {
 		return nil, err
 	}
 	proxyID, err := s.ValidateOwnedProxyID(ctx, ownerUserID, req.ProxyID)
@@ -762,7 +763,7 @@ func isAllowedOwnedAccountType(accountType string) bool {
 	return normalized == AccountTypeOAuth || normalized == AccountTypeAPIKey
 }
 
-func validateOwnedAccountSource(accountType string, credentials, extra map[string]any) error {
+func validateOwnedAccountSource(platform, accountType string, credentials, extra map[string]any) error {
 	if !isAllowedOwnedAccountType(accountType) {
 		return ErrOwnedAccountTypeNotAllowed
 	}
@@ -790,6 +791,9 @@ func validateOwnedAccountSource(accountType string, credentials, extra map[strin
 			return ErrOwnedAccountCredentialsInvalid.WithMetadata(map[string]string{
 				"field": "api_key",
 			})
+		}
+		if err := validateOwnedFreeModelAPIKey(platform, credentials, extra); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -1197,7 +1201,7 @@ func (s *AccountService) UpdateOwned(ctx context.Context, ownerUserID, accountID
 		groupIDs = managedGroupIDs
 		shouldBindGroups = true
 	}
-	if err := validateOwnedAccountSource(account.Type, account.Credentials, account.Extra); err != nil {
+	if err := validateOwnedAccountSource(account.Platform, account.Type, account.Credentials, account.Extra); err != nil {
 		return nil, err
 	}
 	if req.Credentials != nil || req.Extra != nil {
@@ -1545,7 +1549,7 @@ func (s *AccountService) BulkUpdateOwned(ctx context.Context, ownerUserID int64,
 		nextAccount := *account
 		nextAccount.Credentials = nextCredentials
 		nextAccount.Extra = nextExtra
-		if err := validateOwnedAccountSource(account.Type, nextCredentials, nextExtra); err != nil {
+		if err := validateOwnedAccountSource(account.Platform, account.Type, nextCredentials, nextExtra); err != nil {
 			return nil, err
 		}
 		nextConcurrency := ownedPersonalDefaultConcurrency
@@ -1771,7 +1775,7 @@ func (s *AccountService) ApproveOwnedPublicShareWithOptions(ctx context.Context,
 	if ownedAccountForcesPrivateShare(account.Type) {
 		return nil, ErrOwnedAccountAPIKeyPublicShareNotAllowed
 	}
-	if err := validateOwnedAccountSource(account.Type, account.Credentials, account.Extra); err != nil {
+	if err := validateOwnedAccountSource(account.Platform, account.Type, account.Credentials, account.Extra); err != nil {
 		return nil, err
 	}
 	if !isOwnedAccountPublicShareApprovable(account, opts.AllowRateLimited) {
@@ -1891,14 +1895,11 @@ func (s *AccountService) repairedOpenAIAccountGroupIDs(ctx context.Context, acco
 	if account == nil || account.OwnerUserID == nil {
 		return nil, ErrAccountNotFound
 	}
-	groupIDs := []int64{}
-	if NormalizeAccountShareMode(account.ShareMode) != AccountShareModePublic {
-		privateGroup, err := s.getPrivateGroupForOwnedAccount(ctx, *account.OwnerUserID, account.Platform)
-		if err != nil {
-			return nil, err
-		}
-		groupIDs = append(groupIDs, privateGroup.ID)
+	privateGroup, err := s.getPrivateGroupForOwnedAccount(ctx, *account.OwnerUserID, account.Platform)
+	if err != nil {
+		return nil, err
 	}
+	groupIDs := []int64{privateGroup.ID}
 	if s.groupRepo == nil {
 		return normalizeGroupIDs(groupIDs)
 	}
@@ -2035,7 +2036,11 @@ func (s *AccountService) publicOwnedAccountGroupIDs(ctx context.Context, ownerUs
 	if account == nil || publicGroup == nil {
 		return nil, ErrOwnedAccountPublicPoolUnavailable
 	}
-	return normalizeGroupIDs([]int64{publicGroup.ID})
+	privateGroup, err := s.getPrivateGroupForOwnedAccount(ctx, ownerUserID, account.Platform)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeGroupIDs([]int64{privateGroup.ID, publicGroup.ID})
 }
 
 func (s *AccountService) validateOwnedAccountGroupBinding(ctx context.Context, ownerUserID int64, platform, accountType string, groupIDs []int64) ([]int64, error) {

@@ -93,6 +93,12 @@
             <div class="flex items-center gap-1.5">
 	              <span class="font-medium text-[var(--app-text)]">{{ value }}</span>
               <span
+                v-if="row.managed_type === 'image_generation'"
+                class="badge badge-success whitespace-nowrap"
+              >
+                {{ t('keys.imageGenerationRoute') }}
+              </span>
+              <span
                 v-if="row.ip_whitelist?.length > 0 || row.ip_blacklist?.length > 0"
                 class="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ui-success)]"
                 :title="t('keys.ipRestrictionEnabled')"
@@ -105,8 +111,10 @@
               <button
                 :ref="(el) => setGroupButtonRef(row.id, el)"
                 @click="openGroupSelector(row)"
-	                class="-mx-2 -my-1 flex min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-[var(--app-surface-muted)]"
-                :title="t('keys.clickToChangeGroup')"
+	                class="-mx-2 -my-1 flex min-w-0 max-w-full items-center gap-2 rounded-lg px-2 py-1 transition-colors"
+                :class="row.is_system_managed ? 'cursor-default' : 'cursor-pointer hover:bg-[var(--app-surface-muted)]'"
+	                :title="row.is_system_managed ? t('keys.systemGroupLocked') : t('keys.clickToChangeGroup')"
+                :disabled="row.is_system_managed"
               >
                 <GroupBadge
                   v-if="isPrivateRouterKey(row)"
@@ -129,8 +137,9 @@
 	                <span v-else class="text-sm text-[var(--app-muted)]">{{
                   t('keys.noGroup')
                 }}</span>
-	                <span class="shrink-0 text-xs text-[var(--app-muted)]">{{ t('keys.selectGroup') }}</span>
+	                <span class="shrink-0 text-xs text-[var(--app-muted)]">{{ row.is_system_managed ? t('keys.systemManaged') : t('keys.selectGroup') }}</span>
                 <svg
+	                  v-if="!row.is_system_managed"
 	                  class="h-3.5 w-3.5 shrink-0 text-[var(--app-muted)] opacity-60 transition-opacity group-hover/dropdown:opacity-100"
                   fill="none"
                   stroke="currentColor"
@@ -356,6 +365,7 @@
               </button>
               <!-- Toggle Status Button -->
               <button
+                v-if="!row.is_system_managed"
                 @click="toggleKeyStatus(row)"
                 :class="[
                   'flex flex-col items-center gap-0.5 rounded-lg p-1.5 transition-colors',
@@ -370,6 +380,7 @@
               </button>
               <!-- Edit Button -->
               <button
+                v-if="!row.is_system_managed"
                 @click="editKey(row)"
 	                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-primary-hover)]"
               >
@@ -1069,7 +1080,9 @@
     <ConfirmDialog
       :show="showDeleteDialog"
       :title="t('keys.deleteKey')"
-      :message="t('keys.deleteConfirmMessage', { name: selectedKey?.name })"
+	      :message="selectedKey?.is_system_managed
+        ? t('keys.deleteSystemConfirmMessage', { name: selectedKey?.name })
+        : t('keys.deleteConfirmMessage', { name: selectedKey?.name })"
       :confirm-text="t('common.delete')"
       :cancel-text="t('common.cancel')"
       :danger="true"
@@ -1782,6 +1795,7 @@ const openCreateModal = () => {
 }
 
 const editKey = (key: ApiKey) => {
+  if (key.is_system_managed) return
   selectedKey.value = key
   const hasIPRestriction = (key.ip_whitelist?.length > 0) || (key.ip_blacklist?.length > 0)
   const hasExpiration = !!key.expires_at
@@ -1812,6 +1826,7 @@ const editKey = (key: ApiKey) => {
 }
 
 const toggleKeyStatus = async (key: ApiKey) => {
+  if (key.is_system_managed) return
   const newStatus = key.status === 'active' ? 'inactive' : 'active'
   try {
     await keysAPI.toggleStatus(key.id, newStatus)
@@ -1825,6 +1840,7 @@ const toggleKeyStatus = async (key: ApiKey) => {
 }
 
 const openGroupSelector = (key: ApiKey) => {
+  if (key.is_system_managed) return
   if (groupSelectorKeyId.value === key.id) {
     groupSelectorKeyId.value = null
     dropdownPosition.value = null

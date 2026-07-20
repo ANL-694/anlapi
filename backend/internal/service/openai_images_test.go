@@ -84,10 +84,10 @@ func TestOpenAIGatewayServiceParseOpenAIImagesRequest_MultipartEditWithMaskAndNa
 	writer := multipart.NewWriter(&body)
 	require.NoError(t, writer.WriteField("model", "gpt-image-2"))
 	require.NoError(t, writer.WriteField("prompt", "replace foreground"))
-	require.NoError(t, writer.WriteField("output_format", "png"))
-	require.NoError(t, writer.WriteField("input_fidelity", "high"))
+	require.NoError(t, writer.WriteField("output_format", "webp"))
 	require.NoError(t, writer.WriteField("output_compression", "80"))
 	require.NoError(t, writer.WriteField("partial_images", "2"))
+	require.NoError(t, writer.WriteField("stream", "true"))
 
 	imageHeader := make(textproto.MIMEHeader)
 	imageHeader.Set("Content-Disposition", `form-data; name="image"; filename="source.png"`)
@@ -120,8 +120,7 @@ func TestOpenAIGatewayServiceParseOpenAIImagesRequest_MultipartEditWithMaskAndNa
 	require.Len(t, parsed.Uploads, 1)
 	require.NotNil(t, parsed.MaskUpload)
 	require.True(t, parsed.HasMask)
-	require.Equal(t, "png", parsed.OutputFormat)
-	require.Equal(t, "high", parsed.InputFidelity)
+	require.Equal(t, "webp", parsed.OutputFormat)
 	require.NotNil(t, parsed.OutputCompression)
 	require.Equal(t, 80, *parsed.OutputCompression)
 	require.NotNil(t, parsed.PartialImages)
@@ -187,9 +186,10 @@ func TestOpenAIGatewayServiceParseOpenAIImagesRequest_JSONEditURLs(t *testing.T)
 		"prompt":"replace the background",
 		"images":[{"image_url":"https://example.com/source.png"}],
 		"mask":{"image_url":"https://example.com/mask.png"},
-		"input_fidelity":"high",
+		"output_format":"webp",
 		"output_compression":90,
 		"partial_images":2,
+		"stream":true,
 		"response_format":"url"
 	}`)
 
@@ -205,7 +205,6 @@ func TestOpenAIGatewayServiceParseOpenAIImagesRequest_JSONEditURLs(t *testing.T)
 	require.NotNil(t, parsed)
 	require.Equal(t, []string{"https://example.com/source.png"}, parsed.InputImageURLs)
 	require.Equal(t, "https://example.com/mask.png", parsed.MaskImageURL)
-	require.Equal(t, "high", parsed.InputFidelity)
 	require.NotNil(t, parsed.OutputCompression)
 	require.Equal(t, 90, *parsed.OutputCompression)
 	require.NotNil(t, parsed.PartialImages)
@@ -422,7 +421,7 @@ func TestOpenAIGatewayServiceForwardImages_OAuthUsesResponsesAPI(t *testing.T) {
 
 func TestOpenAIGatewayServiceForwardImages_APIKeyGenerationUsesConfiguredV1BaseURL(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	body := []byte(`{"model":"gpt-image-2","prompt":"draw a cat","response_format":"b64_json"}`)
+	body := []byte(`{"model":"gpt-image-2","prompt":"draw a cat","size":"1536x864","response_format":"url"}`)
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/images/generations", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -471,8 +470,11 @@ func TestOpenAIGatewayServiceForwardImages_APIKeyGenerationUsesConfiguredV1BaseU
 	require.Equal(t, "Bearer test-api-key", upstream.lastReq.Header.Get("Authorization"))
 	require.Equal(t, "application/json", upstream.lastReq.Header.Get("Content-Type"))
 	require.Equal(t, "gpt-image-2", gjson.GetBytes(upstream.lastBody, "model").String())
+	require.Equal(t, "1536x864", gjson.GetBytes(upstream.lastBody, "size").String())
+	require.False(t, gjson.GetBytes(upstream.lastBody, "response_format").Exists())
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Equal(t, "aGVsbG8=", gjson.Get(rec.Body.String(), "data.0.b64_json").String())
+	require.Equal(t, "data:image/png;base64,aGVsbG8=", gjson.Get(rec.Body.String(), "data.0.url").String())
 }
 
 func TestOpenAIGatewayServiceForwardImages_APIKeyEditUsesConfiguredV1BaseURL(t *testing.T) {
@@ -482,6 +484,7 @@ func TestOpenAIGatewayServiceForwardImages_APIKeyEditUsesConfiguredV1BaseURL(t *
 	writer := multipart.NewWriter(&body)
 	require.NoError(t, writer.WriteField("model", "gpt-image-2"))
 	require.NoError(t, writer.WriteField("prompt", "replace background"))
+	require.NoError(t, writer.WriteField("response_format", "b64_json"))
 	imagePart, err := writer.CreateFormFile("image", "source.png")
 	require.NoError(t, err)
 	_, err = imagePart.Write([]byte("png-image-content"))
@@ -534,6 +537,7 @@ func TestOpenAIGatewayServiceForwardImages_APIKeyEditUsesConfiguredV1BaseURL(t *
 	require.Contains(t, upstream.lastReq.Header.Get("Content-Type"), "multipart/form-data")
 	require.Contains(t, string(upstream.lastBody), `name="model"`)
 	require.Contains(t, string(upstream.lastBody), "gpt-image-2")
+	require.NotContains(t, string(upstream.lastBody), `name="response_format"`)
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Equal(t, "ZWRpdGVk", gjson.Get(rec.Body.String(), "data.0.b64_json").String())
 }
@@ -620,7 +624,6 @@ func TestOpenAIGatewayServiceForwardImages_OAuthEditsMultipartUsesResponsesAPI(t
 	writer := multipart.NewWriter(&body)
 	require.NoError(t, writer.WriteField("model", "gpt-image-2"))
 	require.NoError(t, writer.WriteField("prompt", "replace background with aurora"))
-	require.NoError(t, writer.WriteField("input_fidelity", "high"))
 	require.NoError(t, writer.WriteField("output_format", "webp"))
 	require.NoError(t, writer.WriteField("quality", "high"))
 
@@ -684,7 +687,7 @@ func TestOpenAIGatewayServiceForwardImages_OAuthEditsMultipartUsesResponsesAPI(t
 	require.Equal(t, 1, result.ImageCount)
 	require.Equal(t, "gpt-image-2", gjson.GetBytes(upstream.lastBody, "tools.0.model").String())
 	require.Equal(t, "edit", gjson.GetBytes(upstream.lastBody, "tools.0.action").String())
-	require.Equal(t, "high", gjson.GetBytes(upstream.lastBody, "tools.0.input_fidelity").String())
+	require.False(t, gjson.GetBytes(upstream.lastBody, "tools.0.input_fidelity").Exists())
 	require.Equal(t, "webp", gjson.GetBytes(upstream.lastBody, "tools.0.output_format").String())
 	require.True(t, strings.HasPrefix(gjson.GetBytes(upstream.lastBody, "input.0.content.1.image_url").String(), "data:image/png;base64,"))
 	require.True(t, strings.HasPrefix(gjson.GetBytes(upstream.lastBody, "tools.0.input_image_mask.image_url").String(), "data:image/png;base64,"))

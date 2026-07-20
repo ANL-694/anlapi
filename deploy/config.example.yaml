@@ -814,6 +814,24 @@ database:
   conn_max_idle_time_minutes: 5
 
 # =============================================================================
+# OAuth Credential Vault
+# OAuth 凭据保险库
+# =============================================================================
+# 美国主节点使用 external，国内灾备节点使用 disabled。
+# legacy 仅用于迁移前兼容，完成迁移后不要继续使用。
+oauth_vault:
+  mode: "legacy" # legacy | external | disabled
+  # 必须指向美国独立 PostgreSQL 实例，不能指向会复制到国内的业务数据库。
+  dsn: ""
+  # 64 位十六进制 AES-256 密钥，只保存在允许使用 OAuth 的美国节点。
+  encryption_key: ""
+  # 仅迁移窗口临时开启；审计通过后应设为 false。
+  allow_legacy_fallback: true
+  max_open_conns: 16
+  max_idle_conns: 8
+  conn_max_lifetime_minutes: 30
+
+# =============================================================================
 # Redis Configuration
 # Redis 配置
 # =============================================================================

@@ -680,6 +680,8 @@ export interface ApiKey {
   created_at: string
   updated_at: string
   current_concurrency: number
+  managed_type?: 'image_generation' | string
+  is_system_managed?: boolean
   group?: Group
   rate_limit_5h: number
   rate_limit_1d: number

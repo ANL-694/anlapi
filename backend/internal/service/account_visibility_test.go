@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"ikik-api/internal/pkg/ctxkey"
 	"github.com/stretchr/testify/require"
+	"ikik-api/internal/pkg/ctxkey"
 )
 
-func TestIsAccountVisibleToRequestUserExcludesPublicShareModeFromPrivateGroup(t *testing.T) {
+func TestIsAccountVisibleToRequestUserAllowsOwnerPublicShareModeInPrivateGroup(t *testing.T) {
 	ownerID := int64(42)
 	account := &Account{
 		ID:          10,
@@ -23,10 +23,27 @@ func TestIsAccountVisibleToRequestUserExcludesPublicShareModeFromPrivateGroup(t 
 		OwnerUserID: &ownerID,
 	})
 
-	require.False(t, IsAccountVisibleToRequestUser(ctx, account))
+	require.True(t, IsAccountVisibleToRequestUser(ctx, account))
+
+	nonOwnerContext := context.WithValue(context.Background(), ctxkey.AuthenticatedUserID, int64(100))
+	nonOwnerContext = context.WithValue(nonOwnerContext, ctxkey.Group, &Group{
+		ID:          99,
+		Scope:       GroupScopeUserPrivate,
+		OwnerUserID: &ownerID,
+	})
+	require.False(t, IsAccountVisibleToRequestUser(nonOwnerContext, account))
 
 	account.ShareMode = AccountShareModePrivate
 	require.True(t, IsAccountVisibleToRequestUser(ctx, account))
+}
+
+func TestIsAccountAllowedForRequestGroupRejectsPublicShareModeFromCarpoolGroup(t *testing.T) {
+	ownerID := int64(42)
+	account := &Account{OwnerUserID: &ownerID, ShareMode: AccountShareModePublic}
+	ctx := context.WithValue(context.Background(), ctxkey.AuthenticatedUserID, ownerID)
+	ctx = context.WithValue(ctx, ctxkey.Group, &Group{Scope: GroupScopeUserCarpool, OwnerUserID: &ownerID})
+
+	require.False(t, IsAccountAllowedForRequestGroup(ctx, account))
 }
 
 func TestIsAccountVisibleToRequestUserKeepsApprovedPublicShareVisibleInPublicGroup(t *testing.T) {

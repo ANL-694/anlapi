@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
+	"strings"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -15,6 +16,11 @@ import (
 )
 
 const apiKeyAuthSnapshotVersion = 16 // v16: include group peak, media, batch image, and web-search billing config
+
+const (
+	authCacheRevokeMessagePrefix  = "revoke:"
+	authCacheRestoreMessagePrefix = "restore:"
+)
 
 type apiKeyAuthCacheConfig struct {
 	l1Size        int
@@ -93,11 +99,31 @@ func (s *APIKeyService) initAuthCache(cfg *config.Config) {
 // StartAuthCacheInvalidationSubscriber starts the Pub/Sub subscriber for L1 cache invalidation.
 // This should be called after the service is fully initialized.
 func (s *APIKeyService) StartAuthCacheInvalidationSubscriber(ctx context.Context) {
-	if s.cache == nil || s.authCacheL1 == nil {
+	if s.cache == nil {
 		return
 	}
 	if err := s.cache.SubscribeAuthCacheInvalidation(ctx, func(cacheKey string) {
-		s.authCacheL1.Del(cacheKey)
+		if strings.HasPrefix(cacheKey, authCacheRevokeMessagePrefix) {
+			cacheKey = strings.TrimPrefix(cacheKey, authCacheRevokeMessagePrefix)
+			s.markAuthCacheRevoked(cacheKey)
+			if s.authCacheL1 != nil {
+				s.authCacheL1.Del(cacheKey)
+			}
+			_ = s.cache.DeleteAuthCache(ctx, cacheKey)
+			return
+		}
+		if strings.HasPrefix(cacheKey, authCacheRestoreMessagePrefix) {
+			cacheKey = strings.TrimPrefix(cacheKey, authCacheRestoreMessagePrefix)
+			s.revokedAuthKeys.Delete(cacheKey)
+			if s.authCacheL1 != nil {
+				s.authCacheL1.Del(cacheKey)
+			}
+			_ = s.cache.DeleteAuthCache(ctx, cacheKey)
+			return
+		}
+		if s.authCacheL1 != nil {
+			s.authCacheL1.Del(cacheKey)
+		}
 	}); err != nil {
 		// Log but don't fail - L1 cache will still work, just without cross-instance invalidation
 		slog.Warn("failed to start auth cache invalidation subscriber", "error", err)
@@ -141,14 +167,21 @@ func (s *APIKeyService) setAuthCacheL1(cacheKey string, entry *APIKeyAuthCacheEn
 }
 
 func (s *APIKeyService) setAuthCacheEntry(ctx context.Context, cacheKey string, entry *APIKeyAuthCacheEntry, ttl time.Duration) {
-	if entry == nil {
+	if entry == nil || s.isAuthCacheRevoked(cacheKey) {
 		return
 	}
 	s.setAuthCacheL1(cacheKey, entry)
+	if s.isAuthCacheRevoked(cacheKey) {
+		s.deleteAuthCache(ctx, cacheKey)
+		return
+	}
 	if s.cache == nil || !s.authCfg.l2Enabled() {
 		return
 	}
 	_ = s.cache.SetAuthCache(ctx, cacheKey, entry, s.authCfg.jitterTTL(ttl))
+	if s.isAuthCacheRevoked(cacheKey) {
+		s.deleteAuthCache(ctx, cacheKey)
+	}
 }
 
 func (s *APIKeyService) deleteAuthCache(ctx context.Context, cacheKey string) {

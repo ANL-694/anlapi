@@ -1,20 +1,23 @@
 import { defineComponent } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AdminGroup } from '@/types'
 
 const {
   createAccountMock,
   importCodexSessionMock,
   createOpenAICodexPATMock,
+  showErrorMock,
 } = vi.hoisted(() => ({
   createAccountMock: vi.fn(),
   importCodexSessionMock: vi.fn(),
   createOpenAICodexPATMock: vi.fn(),
+  showErrorMock: vi.fn(),
 }))
 
 vi.mock('@/stores/app', () => ({
   useAppStore: () => ({
-    showError: vi.fn(),
+    showError: showErrorMock,
     showSuccess: vi.fn(),
     showWarning: vi.fn(),
   }),
@@ -81,9 +84,9 @@ const OAuthAuthorizationFlowStub = defineComponent({
   `,
 })
 
-function mountModal() {
+function mountModal(groups: AdminGroup[] = []) {
   return mount(CreateAccountModal, {
-    props: { show: true, proxies: [], groups: [] },
+    props: { show: true, proxies: [], groups },
     global: {
       stubs: {
         BaseDialog: BaseDialogStub,
@@ -146,6 +149,7 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
       warnings: [],
     })
     createOpenAICodexPATMock.mockReset().mockResolvedValue({})
+    showErrorMock.mockReset()
   })
 
   it('sends false explicitly for normal OpenAI account creation by default', async () => {
@@ -153,6 +157,82 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
 
     expect(createAccountMock).toHaveBeenCalledTimes(1)
     expect(createAccountMock.mock.calls[0]?.[0]?.extra?.openai_long_context_billing_enabled).toBe(false)
+  })
+
+  it('creates the GPT Image shortcut through the OpenAI API Key flow with locked models', async () => {
+    const imageGroup = {
+      id: 91,
+      name: 'GPT Image',
+      platform: 'openai',
+      scope: 'public',
+      subscription_type: 'standard',
+      is_exclusive: false,
+      allow_image_generation: true,
+    } as unknown as AdminGroup
+    const wrapper = mountModal([imageGroup])
+    await selectButtonByText(wrapper, 'OpenAI')
+    await wrapper.get('[data-testid="openai-account-type-image-api-key"]').trigger('click')
+
+    expect((wrapper.get('[data-testid="account-api-key-base-url"]').element as HTMLInputElement).value)
+      .toBe('https://api.openai.com')
+    expect(wrapper.get('[data-testid="openai-image-api-key-group-requirement"]').text())
+      .toContain('admin.accounts.openai.imageApiKeyGroupRequirement')
+    expect(wrapper.get('[data-testid="openai-image-api-key-models"]').text())
+      .toContain('gpt-image-1')
+    expect(wrapper.get('[data-testid="openai-image-api-key-models"]').text())
+      .toContain('gpt-image-1.5')
+    expect(wrapper.get('[data-testid="openai-image-api-key-models"]').text())
+      .toContain('gpt-image-2')
+
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('GPT Image upstream')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('test-image-api-key')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(createAccountMock).toHaveBeenCalledTimes(1)
+    expect(createAccountMock.mock.calls[0]?.[0]).toMatchObject({
+      platform: 'openai',
+      type: 'apikey',
+      credentials: {
+        base_url: 'https://api.openai.com',
+        api_key: 'test-image-api-key',
+        model_mapping: {
+          'gpt-image-1': 'gpt-image-1',
+          'gpt-image-1.5': 'gpt-image-1.5',
+          'gpt-image-2': 'gpt-image-2',
+        },
+      },
+      group_ids: [91],
+    })
+  })
+
+  it('blocks the GPT Image shortcut when no eligible image group exists', async () => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'OpenAI')
+    await wrapper.get('[data-testid="openai-account-type-image-api-key"]').trigger('click')
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('GPT Image upstream')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('test-image-api-key')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(createAccountMock).not.toHaveBeenCalled()
+    expect(showErrorMock).toHaveBeenCalledWith('admin.accounts.openai.imageApiKeyGroupRequired')
+  })
+
+  it('restores the ordinary OpenAI API Key Base URL after leaving the GPT Image shortcut', async () => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'OpenAI')
+    await wrapper.get('[data-testid="openai-account-type-api-key"]').trigger('click')
+    await wrapper.get('[data-testid="account-api-key-base-url"]').setValue('https://gateway.example.com')
+
+    await wrapper.get('[data-testid="openai-account-type-image-api-key"]').trigger('click')
+    expect((wrapper.get('[data-testid="account-api-key-base-url"]').element as HTMLInputElement).value)
+      .toBe('https://api.openai.com')
+
+    await wrapper.get('[data-testid="openai-account-type-api-key"]').trigger('click')
+    expect((wrapper.get('[data-testid="account-api-key-base-url"]').element as HTMLInputElement).value)
+      .toBe('https://gateway.example.com')
+    expect(wrapper.find('[data-testid="openai-image-api-key-models"]').exists()).toBe(false)
   })
 
   it('exposes Agent Identity in the OpenAI authorization methods', async () => {

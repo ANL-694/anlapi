@@ -65,10 +65,21 @@ func main() {
 	// Parse command line flags
 	setupMode := flag.Bool("setup", false, "Run setup wizard in CLI mode")
 	showVersion := flag.Bool("version", false, "Show version information")
+	auditOAuthVault := flag.Bool("audit-oauth-vault", false, "Audit OAuth credential isolation without modifying data")
+	migrateOAuthVault := flag.Bool("migrate-oauth-vault", false, "Move OAuth credentials from the business database into the external Vault")
 	flag.Parse()
 
 	if *showVersion {
 		log.Printf("ikik-api %s (commit: %s, built: %s)\n", Version, Commit, Date)
+		return
+	}
+	if *auditOAuthVault || *migrateOAuthVault {
+		if *auditOAuthVault && *migrateOAuthVault {
+			log.Fatal("Choose only one of --audit-oauth-vault or --migrate-oauth-vault")
+		}
+		if err := runOAuthVaultMaintenance(*migrateOAuthVault); err != nil {
+			log.Fatalf("OAuth Vault maintenance failed: %v", err)
+		}
 		return
 	}
 

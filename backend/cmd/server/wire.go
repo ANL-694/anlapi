@@ -82,6 +82,7 @@ func provideServiceBuildInfo(buildInfo handler.BuildInfo) service.BuildInfo {
 func provideCleanup(
 	entClient *ent.Client,
 	rdb *redis.Client,
+	oauthCredentialVault service.OAuthCredentialVault,
 	opsMetricsCollector *service.OpsMetricsCollector,
 	opsAggregation *service.OpsAggregationService,
 	opsAlertEvaluator *service.OpsAlertEvaluatorService,
@@ -338,6 +339,12 @@ func provideCleanup(
 		}
 
 		infraSteps := []cleanupStep{
+			{"OAuthCredentialVault", func() error {
+				if oauthCredentialVault == nil {
+					return nil
+				}
+				return oauthCredentialVault.Close()
+			}},
 			{"Redis", func() error {
 				if rdb == nil {
 					return nil
