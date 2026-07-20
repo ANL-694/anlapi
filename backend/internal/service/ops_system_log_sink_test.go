@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/pkg/logger"
 )
 
 func TestOpsSystemLogSink_ShouldIndex(t *testing.T) {

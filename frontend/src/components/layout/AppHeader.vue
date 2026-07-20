@@ -85,7 +85,7 @@
 
                 <a
                   v-if="authStore.isAdmin"
-                  href="https://github.com/wenyi401/ikik-api"
+                  href="https://github.com/ANL-694/anl-api"
                   target="_blank"
                   rel="noopener noreferrer"
                   @click="closeDropdown"

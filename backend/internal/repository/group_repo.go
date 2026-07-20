@@ -8,15 +8,15 @@ import (
 	"sort"
 	"strings"
 
+	dbent "anl-api/ent"
+	"anl-api/ent/apikey"
+	"anl-api/ent/apikeygrouproute"
+	"anl-api/ent/group"
+	"anl-api/ent/predicate"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 	"github.com/lib/pq"
-	dbent "ikik-api/ent"
-	"ikik-api/ent/apikey"
-	"ikik-api/ent/apikeygrouproute"
-	"ikik-api/ent/group"
-	"ikik-api/ent/predicate"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

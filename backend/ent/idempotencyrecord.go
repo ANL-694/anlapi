@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"anl-api/ent/idempotencyrecord"
 	"fmt"
-	"ikik-api/ent/idempotencyrecord"
 	"strings"
 	"time"
 

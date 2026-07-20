@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/handler/dto"
-	"ikik-api/internal/service"
+	"anl-api/internal/handler/dto"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

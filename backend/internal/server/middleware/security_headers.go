@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 	"github.com/gin-gonic/gin"
 )
 

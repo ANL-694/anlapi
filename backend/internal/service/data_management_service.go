@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 const (
-	DefaultDataManagementAgentSocketPath = "/tmp/ikik-api-datamanagement.sock"
-	LegacyBackupAgentSocketPath          = "/tmp/ikik-api-backup.sock"
+	DefaultDataManagementAgentSocketPath = "/tmp/anlapi-datamanagement.sock"
+	LegacyBackupAgentSocketPath          = "/tmp/anl-api-backup.sock"
 
 	DataManagementDeprecatedReason         = "DATA_MANAGEMENT_DEPRECATED"
 	DataManagementAgentSocketMissingReason = "DATA_MANAGEMENT_AGENT_SOCKET_MISSING"

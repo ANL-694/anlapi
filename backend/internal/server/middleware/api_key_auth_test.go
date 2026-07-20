@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
 )
 
 func TestSimpleModeBypassesQuotaCheck(t *testing.T) {

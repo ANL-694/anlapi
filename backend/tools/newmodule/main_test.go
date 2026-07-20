@@ -55,7 +55,7 @@ func TestRunGeneratesGofmtCleanModule(t *testing.T) {
 
 	// next steps：确切 import 行、不自动插装的提示、配置示例与作者指南链接。
 	nextSteps := out.String()
-	require.Contains(t, nextSteps, `_ "ikik-api/internal/modules/foo"`)
+	require.Contains(t, nextSteps, `_ "anl-api/internal/modules/foo"`)
 	require.Contains(t, nextSteps, "internal/modules/standard/imports.go")
 	require.Contains(t, nextSteps, "enabled: true")
 	require.Contains(t, nextSteps, "docs/plugin-architecture/MODULE-AUTHOR-GUIDE.md")

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 func (r *opsRepository) GetThroughputTrend(ctx context.Context, filter *service.OpsDashboardFilter, bucketSeconds int) (*service.OpsThroughputTrendResponse, error) {

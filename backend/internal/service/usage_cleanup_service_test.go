@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -11,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,6 +86,16 @@ type cleanupBackupCall struct {
 	endTime    time.Time
 	expireDays int
 	data       string
+}
+
+type usageCleanupSettingRepoStub struct {
+	SettingRepository
+	value string
+	err   error
+}
+
+func (s *usageCleanupSettingRepoStub) GetValue(context.Context, string) (string, error) {
+	return s.value, s.err
 }
 
 func (s *dashboardRepoStub) AggregateRange(ctx context.Context, start, end time.Time) error {
@@ -461,6 +472,41 @@ func TestUsageCleanupServiceAutoRetentionSnapshotFailureDoesNotBackupOrDelete(t 
 	require.Empty(t, backup.calls)
 	require.Empty(t, repo.created)
 	require.Empty(t, repo.deleteCalls)
+}
+
+func TestUsageCleanupServiceEffectiveAutoRetentionConfigSettingReadErrors(t *testing.T) {
+	want := config.UsageCleanupAutoRetentionConfig{
+		Enabled:          true,
+		RetainDays:       9,
+		RunIntervalHours: 12,
+		WindowDays:       2,
+		BackupExpireDays: 5,
+	}
+	tests := []struct {
+		name    string
+		err     error
+		wantLog bool
+	}{
+		{name: "setting not found", err: fmt.Errorf("wrapped: %w", ErrSettingNotFound), wantLog: false},
+		{name: "repository failure", err: errors.New("database unavailable"), wantLog: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logSink, restore := captureStructuredLog(t)
+			defer restore()
+
+			repo := &usageCleanupSettingRepoStub{err: tt.err}
+			svc := NewUsageCleanupServiceWithBackup(nil, nil, nil, nil, repo, &config.Config{
+				UsageCleanup: config.UsageCleanupConfig{AutoRetention: want},
+			})
+
+			got := svc.effectiveAutoRetentionConfig(context.Background())
+
+			require.Equal(t, want, got)
+			require.Equal(t, tt.wantLog, logSink.ContainsMessage("load dynamic auto retention config failed"))
+		})
+	}
 }
 
 func TestSanitizeUsageCleanupFiltersRequestTypePriority(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/antigravity"
 	"github.com/stretchr/testify/require"
 )
 

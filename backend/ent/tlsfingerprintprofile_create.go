@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/tlsfingerprintprofile"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/tlsfingerprintprofile"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/internal/service"
 )
 
 type idempotencyRepository struct {

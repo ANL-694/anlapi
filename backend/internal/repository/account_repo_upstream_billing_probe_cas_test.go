@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"testing"
 
+	dbent "anl-api/ent"
+	"anl-api/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
-	dbent "ikik-api/ent"
-	"ikik-api/internal/service"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

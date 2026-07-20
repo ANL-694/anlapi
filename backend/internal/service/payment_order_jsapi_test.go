@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"ikik-api/internal/payment"
+	"anl-api/internal/payment"
 )
 
 func TestUsesOfficialWxpayVisibleMethodDerivesFromEnabledProviderInstance(t *testing.T) {

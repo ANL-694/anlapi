@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
+	"anl-api/internal/config"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
 )
 
 type openAIFastPolicyRepoStub struct {

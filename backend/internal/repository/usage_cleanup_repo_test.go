@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

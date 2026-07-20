@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/payment"
+	dbent "anl-api/ent"
+	"anl-api/internal/payment"
 )
 
 type paymentOrderProviderSnapshot struct {

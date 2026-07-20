@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -45,7 +45,7 @@ func initMiddlewareTestLoggerWithLevel(t *testing.T, level string) *testLogSink 
 	if err := logger.Init(logger.InitOptions{
 		Level:       level,
 		Format:      "json",
-		ServiceName: "ikik-api",
+		ServiceName: "anl-api",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: false,

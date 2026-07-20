@@ -11,10 +11,10 @@ import (
 	"strings"
 	"unsafe"
 
+	"anl-api/internal/domain"
+	"anl-api/internal/pkg/antigravity"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"ikik-api/internal/domain"
-	"ikik-api/internal/pkg/antigravity"
 )
 
 var (

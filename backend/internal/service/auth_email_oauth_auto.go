@@ -7,10 +7,10 @@ import (
 	"net/mail"
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/logger"
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/logger"
 )
 
 type EmailOAuthIdentityInput struct {

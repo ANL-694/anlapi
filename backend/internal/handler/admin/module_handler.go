@@ -3,9 +3,9 @@ package admin
 import (
 	"sort"
 
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/plugin"
-	"ikik-api/internal/util/logredact"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/plugin"
+	"anl-api/internal/util/logredact"
 
 	"github.com/gin-gonic/gin"
 )

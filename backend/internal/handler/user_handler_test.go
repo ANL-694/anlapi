@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/pagination"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/pagination"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -29,6 +29,9 @@ func (s *userHandlerRepoStub) Create(context.Context, *service.User) error { ret
 func (s *userHandlerRepoStub) GetByID(context.Context, int64) (*service.User, error) {
 	cloned := *s.user
 	return &cloned, nil
+}
+func (s *userHandlerRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	return s.GetByID(ctx, id)
 }
 func (s *userHandlerRepoStub) GetByEmail(context.Context, string) (*service.User, error) {
 	cloned := *s.user
@@ -270,19 +273,19 @@ func TestUserHandlerGetProfileReturnsLegacyCompatibilityFields(t *testing.T) {
 			AvatarURL:    "https://cdn.example.com/linuxdo.png",
 			AvatarSource: "remote_url",
 		},
-			identities: []service.UserAuthIdentityRecord{
-				{
-					ProviderType:    "linuxdo",
-					ProviderKey:     "linuxdo",
-					ProviderSubject: "linuxdo-subject-21",
-					VerifiedAt:      &verifiedAt,
-					Metadata: map[string]any{
-						"username":   "linuxdo-handle",
-						"avatar_url": "https://cdn.example.com/linuxdo.png",
-					},
+		identities: []service.UserAuthIdentityRecord{
+			{
+				ProviderType:    "linuxdo",
+				ProviderKey:     "linuxdo",
+				ProviderSubject: "linuxdo-subject-21",
+				VerifiedAt:      &verifiedAt,
+				Metadata: map[string]any{
+					"username":   "linuxdo-handle",
+					"avatar_url": "https://cdn.example.com/linuxdo.png",
 				},
 			},
-		}
+		},
+	}
 	handler := NewUserHandler(service.NewUserService(repo, nil, nil, nil), nil, nil, nil, nil)
 
 	recorder := httptest.NewRecorder()

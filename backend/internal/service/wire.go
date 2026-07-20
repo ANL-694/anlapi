@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/internal/config"
+	"anl-api/internal/payment"
+	"anl-api/internal/pkg/kirocooldown"
+	"anl-api/internal/pkg/logger"
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
-	dbent "ikik-api/ent"
-	"ikik-api/internal/config"
-	"ikik-api/internal/payment"
-	"ikik-api/internal/pkg/kirocooldown"
-	"ikik-api/internal/pkg/logger"
 )
 
 // BuildInfo contains build information

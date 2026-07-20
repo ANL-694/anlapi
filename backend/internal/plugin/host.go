@@ -4,7 +4,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	ent "ikik-api/ent"
+	ent "anl-api/ent"
 )
 
 // Host 是模块可使用的宿主能力面（纯数据结构，由宿主装配后注入 Provision）。

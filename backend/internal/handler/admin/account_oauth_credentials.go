@@ -4,10 +4,10 @@ import (
 	"log/slog"
 	"strconv"
 
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
 )
 
 type ApplyOAuthCredentialsRequest struct {

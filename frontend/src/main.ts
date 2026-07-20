@@ -30,7 +30,7 @@ async function bootstrap() {
   appStore.initFromInjectedConfig()
 
   // Set document title immediately after config is loaded
-	if (appStore.siteName && appStore.siteName !== 'ikik-api') {
+	if (appStore.siteName && appStore.siteName !== 'anl-api') {
 		document.title = `${appStore.siteName} - AI API Gateway`
 	}
 	updateFavicon(appStore.siteLogo)

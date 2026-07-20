@@ -3,14 +3,14 @@
 package ent
 
 import (
+	"anl-api/ent/authidentity"
+	"anl-api/ent/authidentitychannel"
+	"anl-api/ent/identityadoptiondecision"
+	"anl-api/ent/predicate"
+	"anl-api/ent/user"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/authidentitychannel"
-	"ikik-api/ent/identityadoptiondecision"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/user"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/geminicli"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/geminicli"
+	"anl-api/internal/service"
 
 	"github.com/imroc/req/v3"
 )

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -87,7 +87,7 @@ func captureHandlerStructuredLog(t *testing.T) (*handlerInMemoryLogSink, func())
 	err := logger.Init(logger.InitOptions{
 		Level:       "debug",
 		Format:      "json",
-		ServiceName: "ikik-api",
+		ServiceName: "anl-api",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: true,

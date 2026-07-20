@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/handler"
-	"ikik-api/internal/pkg/websearch"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/handler"
+	"anl-api/internal/pkg/websearch"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"

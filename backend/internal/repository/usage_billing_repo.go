@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/service"
 	"github.com/shopspring/decimal"
-	dbent "ikik-api/ent"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/service"
 )
 
 type usageBillingRepository struct {

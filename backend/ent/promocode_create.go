@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/promocode"
+	"anl-api/ent/promocodeusage"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/promocode"
-	"ikik-api/ent/promocodeusage"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

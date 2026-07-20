@@ -14,10 +14,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/gatewayhook"
-	"ikik-api/internal/pkg/ctxkey"
-	middleware "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/gatewayhook"
+	"anl-api/internal/pkg/ctxkey"
+	middleware "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"

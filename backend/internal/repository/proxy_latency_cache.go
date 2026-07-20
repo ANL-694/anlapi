@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 

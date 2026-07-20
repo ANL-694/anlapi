@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -160,6 +160,7 @@ func TestDuplicateAccountHandlerReplaysSameIdempotencyKey(t *testing.T) {
 			Type:        service.AccountTypeAPIKey,
 			Status:      service.StatusActive,
 			Schedulable: false,
+			Credentials: map[string]any{"api_key": "recovery-secret-key"},
 		},
 	}
 	router := setupDuplicateAccountRouter(t, svc)
@@ -184,6 +185,8 @@ func TestDuplicateAccountHandlerReplaysSameIdempotencyKey(t *testing.T) {
 	require.Equal(t, "admin:77", svc.actorScope)
 	require.Equal(t, "duplicate-account-42", svc.operationKey)
 	require.Equal(t, "true", second.Header().Get("X-Idempotency-Replayed"))
+	require.NotContains(t, first.Body.String(), "recovery-secret-key")
+	require.NotContains(t, second.Body.String(), "recovery-secret-key")
 }
 
 func TestDuplicateAccountHandlerRecoversAfterMarkSucceededFailure(t *testing.T) {
@@ -195,6 +198,7 @@ func TestDuplicateAccountHandlerRecoversAfterMarkSucceededFailure(t *testing.T) 
 			Type:        service.AccountTypeAPIKey,
 			Status:      service.StatusActive,
 			Schedulable: false,
+			Credentials: map[string]any{"api_key": "recovered-secret-key"},
 		},
 	}
 	router := setupDuplicateAccountRouter(t, svc)
@@ -221,6 +225,8 @@ func TestDuplicateAccountHandlerRecoversAfterMarkSucceededFailure(t *testing.T) 
 	require.Equal(t, "admin:77", svc.recoverScope)
 	require.Equal(t, "duplicate-account-42-recovery", svc.recoverKey)
 	require.Contains(t, second.Body.String(), `"id":43`)
+	require.NotContains(t, first.Body.String(), "recovered-secret-key")
+	require.NotContains(t, second.Body.String(), "recovered-secret-key")
 }
 
 func TestDuplicateAccountHandlerPreservesIdempotencyErrorWhenRecoveryLookupFails(t *testing.T) {

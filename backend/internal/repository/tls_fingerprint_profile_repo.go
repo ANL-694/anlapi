@@ -3,10 +3,10 @@ package repository
 import (
 	"context"
 
-	"ikik-api/ent"
-	"ikik-api/ent/tlsfingerprintprofile"
-	"ikik-api/internal/model"
-	"ikik-api/internal/service"
+	"anl-api/ent"
+	"anl-api/ent/tlsfingerprintprofile"
+	"anl-api/internal/model"
+	"anl-api/internal/service"
 )
 
 type tlsFingerprintProfileRepository struct {

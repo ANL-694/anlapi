@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
+	dbent "anl-api/ent"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
 )
 
 var (

@@ -5,8 +5,8 @@ package quotaview
 import (
 	"time"
 
-	"ikik-api/internal/pkg/timezone"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/timezone"
+	"anl-api/internal/service"
 )
 
 // LazyZeroQuotaForResponse 按 D14 规则把过期档位归零（不写 DB）。

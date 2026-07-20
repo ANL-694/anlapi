@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/pagination"
 )
 
 // PromoCodeRepository 优惠码仓储接口

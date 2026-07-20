@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/setting"
-	dbuser "ikik-api/ent/user"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/setting"
+	dbuser "anl-api/ent/user"
+	"anl-api/internal/service"
 )
 
 const (

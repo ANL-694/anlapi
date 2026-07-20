@@ -21,10 +21,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/config"
-	"ikik-api/internal/payment"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	"anl-api/internal/config"
+	"anl-api/internal/payment"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 const (

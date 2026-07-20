@@ -11,9 +11,9 @@ import (
 	"sync"
 	"testing"
 
-	"ikik-api/internal/config"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
@@ -26,6 +26,43 @@ type openAIResponsesFailoverCancelUpstream struct {
 	mu         sync.Mutex
 	accountIDs []int64
 	onFirstDo  func()
+}
+
+type openAIResponsesFailoverAccountRepo struct {
+	service.AccountRepository
+	accounts []service.Account
+}
+
+func (r openAIResponsesFailoverAccountRepo) GetByID(_ context.Context, id int64) (*service.Account, error) {
+	for i := range r.accounts {
+		if r.accounts[i].ID == id {
+			account := r.accounts[i]
+			return &account, nil
+		}
+	}
+	return nil, service.ErrNoAvailableAccounts
+}
+
+func (r openAIResponsesFailoverAccountRepo) ListSchedulableByGroupIDAndPlatform(_ context.Context, _ int64, platform string) ([]service.Account, error) {
+	return r.accountsForPlatform(platform), nil
+}
+
+func (r openAIResponsesFailoverAccountRepo) ListSchedulableByPlatform(_ context.Context, platform string) ([]service.Account, error) {
+	return r.accountsForPlatform(platform), nil
+}
+
+func (r openAIResponsesFailoverAccountRepo) ListSchedulableUngroupedByPlatform(_ context.Context, platform string) ([]service.Account, error) {
+	return r.accountsForPlatform(platform), nil
+}
+
+func (r openAIResponsesFailoverAccountRepo) accountsForPlatform(platform string) []service.Account {
+	out := make([]service.Account, 0, len(r.accounts))
+	for _, account := range r.accounts {
+		if account.Platform == platform {
+			out = append(out, account)
+		}
+	}
+	return out
 }
 
 func (u *openAIResponsesFailoverCancelUpstream) Do(_ *http.Request, _ string, accountID int64, _ int) (*http.Response, error) {
@@ -75,7 +112,7 @@ func newOpenAIResponsesFailoverTestHandler(t *testing.T, upstream service.HTTPUp
 			Credentials: map[string]any{"access_token": "token-2"},
 		},
 	}
-	accountRepo := openAIImagesFailoverAccountRepo{accounts: accounts}
+	accountRepo := openAIResponsesFailoverAccountRepo{accounts: accounts}
 	cfg := &config.Config{RunMode: config.RunModeSimple}
 	gatewayService := service.NewOpenAIGatewayService(
 		accountRepo,

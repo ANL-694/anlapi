@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/enttest"
-	"ikik-api/internal/config"
-	"ikik-api/internal/repository"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	"anl-api/ent/enttest"
+	"anl-api/internal/config"
+	"anl-api/internal/repository"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

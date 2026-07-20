@@ -8,10 +8,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
 	"github.com/alitto/pond/v2"
 	"go.uber.org/zap"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
 )
 
 const (

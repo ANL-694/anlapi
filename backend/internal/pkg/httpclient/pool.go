@@ -23,10 +23,10 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/pkg/proxyurl"
-	"ikik-api/internal/pkg/proxyutil"
-	"ikik-api/internal/pkg/servertiming"
-	"ikik-api/internal/util/urlvalidator"
+	"anl-api/internal/pkg/proxyurl"
+	"anl-api/internal/pkg/proxyutil"
+	"anl-api/internal/pkg/servertiming"
+	"anl-api/internal/util/urlvalidator"
 )
 
 // Transport 连接池默认配置

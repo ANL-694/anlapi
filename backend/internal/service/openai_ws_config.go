@@ -3,7 +3,7 @@ package service
 import (
 	"time"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 func ResolveOpenAIWSClientFirstMessageTimeout(cfg *config.Config) time.Duration {

@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/geminicli"
-	"ikik-api/internal/pkg/httpclient"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/geminicli"
+	"anl-api/internal/pkg/httpclient"
 )
 
 const defaultGeminiBatchRequeueAfter = 30 * time.Second

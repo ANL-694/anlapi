@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
 )
 
 // billInvAccountRepoStub 捕获 legacy 路径下的账号配额增量。

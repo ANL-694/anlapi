@@ -1,6 +1,6 @@
 # Pinia Stores Documentation
 
-This directory contains all Pinia stores for the ikik-api frontend application.
+This directory contains all Pinia stores for the anl-api frontend application.
 
 ## Stores Overview
 

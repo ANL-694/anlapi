@@ -1,4 +1,4 @@
-# ikik-api
+# anl-api
 
 ![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)
@@ -7,11 +7,11 @@
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-LGPL--3.0-blue)
 
-ikik-api is a self-hosted AI API gateway and subscription management platform based on Sub2API. It provides account pooling, API key management, multi-provider request forwarding, usage accounting, subscription billing, moderation controls, and admin operations for AI API services.
+anl-api is a self-hosted AI API gateway and subscription management platform based on Sub2API. It provides account pooling, API key management, multi-provider request forwarding, usage accounting, subscription billing, moderation controls, and admin operations for AI API services.
 
 English | [中文](README_CN.md) | [日本語](README_JA.md)
 
-Website: [https://ikik.net](https://ikik.net)
+Website: [https://api.anlmc.top](https://api.anlmc.top)
 
 QQ group: `146499741`
 
@@ -142,7 +142,7 @@ make build-frontend
 Build a Docker image:
 
 ```bash
-docker build -t ikik-api:local .
+docker build -t anl-api:local .
 ```
 
 ## Tests
@@ -186,7 +186,7 @@ go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0 run ./... -
 
 ## Deployment Notes
 
-For production, run ikik-api behind a reverse proxy such as Nginx, Caddy, or a managed load balancer.
+For production, run anl-api behind a reverse proxy such as Nginx, Caddy, or a managed load balancer.
 
 ### Nginx Reverse Proxy Note
 
@@ -221,7 +221,7 @@ This project follows the license included in [LICENSE](LICENSE).
 
 ## Acknowledgements
 
-ikik-api is based on Sub2API and extends it for self-hosted AI gateway, subscription, accounting, and operation workflows.
+anl-api is based on Sub2API and extends it for self-hosted AI gateway, subscription, accounting, and operation workflows.
 
 - [PIXEL-API/PixelAPI](https://github.com/PIXEL-API/PixelAPI)
 - [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api)

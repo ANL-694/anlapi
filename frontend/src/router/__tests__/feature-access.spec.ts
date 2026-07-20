@@ -30,6 +30,12 @@ const appStore = vi.hoisted(() => ({
   fetchPublicSettings: vi.fn(),
 }))
 
+const complianceStore = vi.hoisted(() => ({
+  initialized: true,
+  fetchStatus: vi.fn(),
+  requireAcknowledgement: vi.fn(),
+}))
+
 vi.mock('vue-router', () => ({
   createWebHistory: vi.fn(() => ({})),
   createRouter: vi.fn(() => ({
@@ -54,11 +60,7 @@ vi.mock('@/stores/adminSettings', () => ({
 }))
 
 vi.mock('@/stores/adminCompliance', () => ({
-  useAdminComplianceStore: () => ({
-    initialized: true,
-    fetchStatus: vi.fn(),
-    requireAcknowledgement: vi.fn(),
-  }),
+  useAdminComplianceStore: () => complianceStore,
 }))
 
 vi.mock('@/composables/useNavigationLoading', () => ({
@@ -117,6 +119,41 @@ describe('feature route guard', () => {
     appStore.publicSettingsLoaded = false
     appStore.cachedPublicSettings = null
     appStore.fetchPublicSettings.mockReset()
+    complianceStore.initialized = true
+    complianceStore.fetchStatus.mockReset()
+    complianceStore.requireAcknowledgement.mockReset()
+  })
+
+  it('管理员首次进入管理路由时加载合规状态', async () => {
+    authStore.isAdmin = true
+    complianceStore.initialized = false
+    complianceStore.fetchStatus.mockResolvedValue({ required: false })
+
+    const { navigation, next } = runGuard({ requiresAdmin: true }, '/admin/users')
+    await navigation
+
+    expect(complianceStore.fetchStatus).toHaveBeenCalledOnce()
+    expect(next).toHaveBeenCalledOnce()
+    expect(next).toHaveBeenCalledWith()
+  })
+
+  it('管理员合规接口返回 423 时记录强制确认状态', async () => {
+    authStore.isAdmin = true
+    complianceStore.initialized = false
+    complianceStore.fetchStatus.mockRejectedValue({
+      status: 423,
+      code: 'ADMIN_COMPLIANCE_ACK_REQUIRED',
+      metadata: { version: 'v2026.06.10' },
+    })
+
+    const { navigation, next } = runGuard({ requiresAdmin: true }, '/admin/users')
+    await navigation
+
+    expect(complianceStore.requireAcknowledgement).toHaveBeenCalledWith({
+      version: 'v2026.06.10',
+    })
+    expect(next).toHaveBeenCalledOnce()
+    expect(next).toHaveBeenCalledWith()
   })
 
   it('waits for the first public-settings request before deciding payment access', async () => {

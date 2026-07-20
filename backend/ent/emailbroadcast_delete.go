@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/emailbroadcast"
+	"anl-api/ent/predicate"
 	"context"
-	"ikik-api/ent/emailbroadcast"
-	"ikik-api/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"

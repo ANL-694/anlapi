@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/authidentity"
+	"anl-api/ent/authidentitychannel"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/authidentitychannel"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

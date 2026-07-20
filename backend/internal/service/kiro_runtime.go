@@ -14,13 +14,13 @@ import (
 	"strings"
 	"time"
 
+	kiropkg "anl-api/internal/pkg/kiro"
+	"anl-api/internal/pkg/logger"
 	"github.com/cespare/xxhash/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"go.uber.org/zap"
-	kiropkg "ikik-api/internal/pkg/kiro"
-	"ikik-api/internal/pkg/logger"
 )
 
 type kiroEndpointConfig struct {

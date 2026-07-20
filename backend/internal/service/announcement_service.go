@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/domain"
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/domain"
+	"anl-api/internal/pkg/pagination"
 )
 
 type AnnouncementService struct {

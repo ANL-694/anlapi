@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/account"
+	"anl-api/ent/predicate"
+	"anl-api/ent/proxy"
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"ikik-api/ent/account"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/proxy"
 	"math"
 
 	"entgo.io/ent"

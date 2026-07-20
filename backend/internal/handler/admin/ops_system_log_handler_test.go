@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

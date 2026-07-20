@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ikik-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/apicompat"
 )
 
 const compatPromptCacheKeyPrefix = "compat_cc_"

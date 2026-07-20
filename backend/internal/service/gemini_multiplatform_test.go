@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/pkg/pagination"
 )
 
 // mockAccountRepoForGemini Gemini 测试用的 mock

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
 )
 

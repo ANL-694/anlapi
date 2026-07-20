@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/util/logredact"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/util/logredact"
 )
 
 // tokenRefreshTempUnschedDuration token 刷新重试耗尽后临时不可调度的持续时间
@@ -1432,6 +1432,7 @@ func isNonRetryableRefreshError(err error) bool {
 		"access_denied",             // 访问被拒绝
 		"missing_project_id",        // 缺少 project_id
 		"no refresh token available",
+		"try signing in again",
 		"grok_oauth_entitlement_denied",
 		"entitlement_denied",
 		"invalid_scope",

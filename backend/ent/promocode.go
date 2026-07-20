@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"anl-api/ent/promocode"
 	"fmt"
-	"ikik-api/ent/promocode"
 	"strings"
 	"time"
 

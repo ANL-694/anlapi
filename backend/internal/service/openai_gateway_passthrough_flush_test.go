@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/apicompat"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/apicompat"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

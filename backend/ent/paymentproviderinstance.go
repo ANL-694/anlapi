@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"anl-api/ent/paymentproviderinstance"
 	"fmt"
-	"ikik-api/ent/paymentproviderinstance"
 	"strings"
 	"time"
 

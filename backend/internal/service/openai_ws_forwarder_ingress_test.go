@@ -8,10 +8,10 @@ import (
 	"net"
 	"testing"
 
+	"anl-api/internal/config"
 	coderws "github.com/coder/websocket"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
-	"ikik-api/internal/config"
 )
 
 func TestIsOpenAIWSClientDisconnectError(t *testing.T) {

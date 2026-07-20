@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"testing"
 
+	dbent "anl-api/ent"
+	"anl-api/ent/enttest"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
-	dbent "ikik-api/ent"
-	"ikik-api/ent/enttest"
-	"ikik-api/internal/service"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

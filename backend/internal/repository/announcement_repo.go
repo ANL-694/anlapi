@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/announcement"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/announcement"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

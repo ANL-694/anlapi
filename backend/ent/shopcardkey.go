@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/shopcardkey"
+	"anl-api/ent/shoporder"
+	"anl-api/ent/shopproduct"
 	"fmt"
-	"ikik-api/ent/shopcardkey"
-	"ikik-api/ent/shoporder"
-	"ikik-api/ent/shopproduct"
 	"strings"
 	"time"
 

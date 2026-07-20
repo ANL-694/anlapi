@@ -3,8 +3,8 @@ package schema
 import (
 	"time"
 
-	"ikik-api/ent/schema/mixins"
-	"ikik-api/internal/domain"
+	"anl-api/ent/schema/mixins"
+	"anl-api/internal/domain"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"

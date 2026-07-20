@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/antigravity"
-	"ikik-api/internal/pkg/tlsfingerprint"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/tlsfingerprint"
 	"github.com/stretchr/testify/require"
 )
 

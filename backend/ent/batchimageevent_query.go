@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/batchimageevent"
+	"anl-api/ent/predicate"
 	"context"
 	"fmt"
-	"ikik-api/ent/batchimageevent"
-	"ikik-api/ent/predicate"
 	"math"
 
 	"entgo.io/ent"

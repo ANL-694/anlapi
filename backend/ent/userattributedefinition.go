@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/userattributedefinition"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/userattributedefinition"
 	"strings"
 	"time"
 

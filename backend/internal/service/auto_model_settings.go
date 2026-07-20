@@ -128,7 +128,7 @@ func DefaultAutoModelSettings() AutoModelSettings {
 		Enabled: false,
 		Models: []AutoModelRule{
 			{
-				Name:               "ikik-auto",
+				Name:               "anl-auto",
 				Enabled:            true,
 				Description:        "Route simple requests to a smaller model and complex work to a stronger model.",
 				SmallModel:         "gpt-5.4-mini",
@@ -637,7 +637,7 @@ func chooseAIAutoRouterTarget(ctx context.Context, rule AutoModelRule, score int
 	req.Header.Set("Authorization", "Bearer "+routerAPIKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("X-Ikik-Auto-Router", "1")
+	req.Header.Set("X-ANL-Auto-Router", "1")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -966,7 +966,7 @@ func normalizeAutoRouterReasoning(value string) string {
 }
 
 func defaultAutoRouterPrompt() string {
-	return strings.TrimSpace(`You are Ikik API's model router. You do not answer the end user.
+	return strings.TrimSpace(`You are ANL API's model router. You do not answer the end user.
 Choose exactly one model from the candidate_models list.
 
 Routing policy:

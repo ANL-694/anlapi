@@ -5,13 +5,16 @@ set -euo pipefail
 # 用法：
 #   sudo ./install-datamanagementd.sh --binary /path/to/datamanagementd
 # 或：
-#   sudo ./install-datamanagementd.sh --source /path/to/ikik-api/repo
+#   sudo ./install-datamanagementd.sh --source /path/to/anl-api/repo
 
 BIN_PATH=""
 SOURCE_PATH=""
-INSTALL_DIR="/opt/ikik-api"
-DATA_DIR="/var/lib/ikik-api/datamanagement"
-SERVICE_FILE_NAME="ikik-api-datamanagementd.service"
+INSTALL_DIR="/opt/anlapi"
+DATA_DIR="/var/lib/anlapi/datamanagement"
+SERVICE_NAME="anlapi-datamanagementd"
+SERVICE_FILE_NAME="${SERVICE_NAME}.service"
+SERVICE_USER="anlapi"
+SOCKET_PATH="/tmp/anlapi-datamanagement.sock"
 
 function print_help() {
   cat <<'EOF'
@@ -20,12 +23,12 @@ function print_help() {
 
 参数:
   --binary  指定已构建的 datamanagementd 二进制路径
-  --source  指定 ikik-api 仓库路径（脚本会执行 go build）
+  --source  指定 anl-api 仓库路径（脚本会执行 go build）
   -h, --help 显示帮助
 
 示例:
   sudo ./install-datamanagementd.sh --binary ./datamanagement/datamanagementd
-  sudo ./install-datamanagementd.sh --source /opt/ikik-api-src
+  sudo ./install-datamanagementd.sh --source /opt/anlapi-src
 EOF
 }
 
@@ -81,11 +84,11 @@ if [[ ! -f "$BIN_PATH" ]]; then
   exit 1
 fi
 
-if ! id ikik-api >/dev/null 2>&1; then
-  echo "[2/6] 创建系统用户 ikik-api..."
-  useradd --system --no-create-home --shell /usr/sbin/nologin ikik-api
+if ! id "$SERVICE_USER" >/dev/null 2>&1; then
+  echo "[2/6] 创建系统用户 $SERVICE_USER..."
+  useradd --system --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER"
 else
-  echo "[2/6] 系统用户 ikik-api 已存在，跳过创建"
+  echo "[2/6] 系统用户 $SERVICE_USER 已存在，跳过创建"
 fi
 
 echo "[3/6] 安装 datamanagementd 二进制..."
@@ -94,7 +97,7 @@ install -m 0755 "$BIN_PATH" "$INSTALL_DIR/datamanagementd"
 
 echo "[4/6] 准备数据目录..."
 mkdir -p "$DATA_DIR"
-chown -R ikik-api:ikik-api /var/lib/ikik-api
+chown -R "$SERVICE_USER:$SERVICE_USER" /var/lib/anlapi
 chmod 0750 "$DATA_DIR"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -107,17 +110,17 @@ fi
 echo "[5/6] 安装 systemd 服务..."
 cp "$SERVICE_TEMPLATE" "/etc/systemd/system/$SERVICE_FILE_NAME"
 systemctl daemon-reload
-systemctl enable --now ikik-api-datamanagementd
+systemctl enable --now "$SERVICE_NAME"
 
 echo "[6/6] 完成，当前状态："
-systemctl --no-pager --full status ikik-api-datamanagementd || true
+systemctl --no-pager --full status "$SERVICE_NAME" || true
 
 cat <<'EOF'
 
 下一步建议：
-1. 查看日志：sudo journalctl -u ikik-api-datamanagementd -f
-2. 在 ikik-api（容器部署时）挂载 socket:
-   /tmp/ikik-api-datamanagement.sock:/tmp/ikik-api-datamanagement.sock
+1. 查看日志：sudo journalctl -u $SERVICE_NAME -f
+2. 在 anl-api（容器部署时）挂载 socket:
+   $SOCKET_PATH:$SOCKET_PATH
 3. 进入管理后台“数据管理”页面确认 agent=enabled
 
 EOF

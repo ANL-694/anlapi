@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/handler"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/handler"
-	"ikik-api/internal/service"
 )
 
 func TestProvideServiceBuildInfo(t *testing.T) {

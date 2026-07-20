@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

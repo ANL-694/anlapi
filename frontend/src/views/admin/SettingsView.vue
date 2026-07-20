@@ -6480,7 +6480,7 @@
                       v-model="form.payment_product_name_prefix"
                       type="text"
                       class="input"
-                      placeholder="ikik-api"
+                      placeholder="anl-api"
                     />
                   </div>
                   <div>
@@ -6502,7 +6502,7 @@
                       class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300"
                     >
                       {{
-                        (form.payment_product_name_prefix || "ikik-api") +
+                        (form.payment_product_name_prefix || "anl-api") +
                         " 100 " +
                         (form.payment_product_name_suffix || "CNY")
                       }}
@@ -7473,14 +7473,14 @@ function localText(zh: string, en: string): string {
 
 const paymentGuideHref = computed(() =>
   locale.value.startsWith("zh")
-    ? "https://github.com/wenyi401/ikik-api/blob/main/docs/PAYMENT_CN.md"
-    : "https://github.com/wenyi401/ikik-api/blob/main/docs/PAYMENT.md",
+    ? "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT_CN.md"
+    : "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT.md",
 );
 
 const paymentMethodsHref = computed(() =>
   locale.value.startsWith("zh")
-    ? "https://github.com/wenyi401/ikik-api/blob/main/docs/PAYMENT_CN.md#支持的支付方式"
-    : "https://github.com/wenyi401/ikik-api/blob/main/docs/PAYMENT.md#supported-payment-methods",
+    ? "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT_CN.md#支持的支付方式"
+    : "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT.md#supported-payment-methods",
 );
 
 type SettingsTab =
@@ -7769,7 +7769,7 @@ const form = reactive<SettingsForm>({
   user_private_group_rate_multiplier: 1,
   user_private_group_commission_rate: 0,
   user_private_group_rpm_limit: 0,
-  site_name: "ikik-api",
+  site_name: "anl-api",
   site_logo: "",
   site_subtitle: "AI API 接入与用量管理平台",
   api_base_url: "",
@@ -7952,7 +7952,7 @@ const form = reactive<SettingsForm>({
     enabled: false,
     models: [
       {
-        name: "ikik-auto",
+        name: "anl-auto",
         enabled: true,
         description: "",
         allowed_group_ids: [],
@@ -8678,7 +8678,7 @@ function parseTablePageSizeOptionsInput(raw: string): number[] | null {
 }
 
 function defaultAutoRouterPrompt(): string {
-  return `You are Ikik API's model router. You do not answer the end user.
+  return `You are ANL API's model router. You do not answer the end user.
 Choose exactly one model from the candidate_models list.
 
 Routing policy:
@@ -8694,7 +8694,7 @@ Return only valid JSON:
 
 function createDefaultAutoModelRule(): AutoModelRule {
   return {
-    name: "ikik-auto",
+    name: "anl-auto",
     enabled: true,
     description: "",
     allowed_group_ids: [],
@@ -8922,9 +8922,9 @@ function addAutoModelRule(): void {
   const names = new Set(
     form.auto_model_settings.models.map((rule) => rule.name.toLowerCase()),
   );
-  let nextName = "ikik-auto";
+  let nextName = "anl-auto";
   for (let index = 2; names.has(nextName.toLowerCase()); index += 1) {
-    nextName = `ikik-auto-${index}`;
+    nextName = `anl-auto-${index}`;
   }
   form.auto_model_settings.models.push({
     ...createDefaultAutoModelRule(),

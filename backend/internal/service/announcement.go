@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"ikik-api/internal/domain"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/domain"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
 )
 
 const (

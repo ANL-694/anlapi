@@ -11,7 +11,7 @@ $supervisor = Join-Path $AppRoot 'supervise-anl-api.ps1'
 $postgresScript = Join-Path $windowsRoot 'Start-AnlDrPostgres.ps1'
 $backupScript = Join-Path $windowsRoot 'Backup-AnlDr.ps1'
 $redisRoot = Join-Path $AppRoot 'runtime\redis'
-$appBinary = Join-Path $AppRoot 'anl-api.exe'
+$appBinary = Join-Path $AppRoot 'anlapi.exe'
 
 foreach ($required in @($supervisor, $postgresScript, $backupScript, $appBinary)) {
   if (-not (Test-Path -LiteralPath $required)) { throw ('Required path is missing: ' + $required) }

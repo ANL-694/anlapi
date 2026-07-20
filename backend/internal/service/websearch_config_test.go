@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"ikik-api/internal/pkg/websearch"
+	"anl-api/internal/pkg/websearch"
 	"github.com/stretchr/testify/require"
 )
 

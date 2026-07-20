@@ -16,18 +16,18 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/domain"
-	"ikik-api/internal/handler/dto"
-	"ikik-api/internal/pkg/antigravity"
-	"ikik-api/internal/pkg/claude"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/geminicli"
-	"ikik-api/internal/pkg/kiro"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/pkg/timezone"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/domain"
+	"anl-api/internal/handler/dto"
+	"anl-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/claude"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/geminicli"
+	"anl-api/internal/pkg/kiro"
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/pkg/timezone"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
@@ -453,6 +453,22 @@ func (h *AccountHandler) buildAccountResponseWithRuntime(ctx context.Context, ac
 	return item
 }
 
+func (h *AccountHandler) buildDuplicateAccountResponseWithRuntime(ctx context.Context, account *service.Account) AccountWithConcurrency {
+	item := h.buildAccountResponseWithRuntime(ctx, account)
+	redactAccountCredentials(item.Account)
+	return item
+}
+
+func redactAccountCredentials(account *dto.Account) {
+	if account == nil {
+		return
+	}
+	account.Credentials = map[string]any{}
+	for i := range account.AccountGroups {
+		redactAccountCredentials(account.AccountGroups[i].Account)
+	}
+}
+
 // List handles listing all accounts with pagination
 // GET /api/v1/admin/accounts
 func (h *AccountHandler) List(c *gin.Context) {
@@ -865,7 +881,7 @@ func (h *AccountHandler) Duplicate(c *gin.Context) {
 			if execErr != nil {
 				return nil, execErr
 			}
-			return h.buildAccountResponseWithRuntime(ctx, account), nil
+			return h.buildDuplicateAccountResponseWithRuntime(ctx, account), nil
 		},
 	)
 	if err != nil {
@@ -876,7 +892,7 @@ func (h *AccountHandler) Duplicate(c *gin.Context) {
 				slog.Warn("account_duplicate_recovery_failed", "account_id", accountID, "actor_scope", actorScope, "reason", reason, "error", recoverErr)
 			} else if recovered != nil {
 				c.Header("X-Idempotency-Recovered", "true")
-				response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), recovered))
+				response.Success(c, h.buildDuplicateAccountResponseWithRuntime(c.Request.Context(), recovered))
 				return
 			}
 		}
@@ -1283,6 +1299,19 @@ func (h *AccountHandler) refreshSingleAccount(ctx context.Context, account *serv
 				return nil, "", fmt.Errorf("failed to clear account error: %w", clearErr)
 			}
 		}
+	} else if account.Platform == service.PlatformGrok {
+		if h.grokOAuthService == nil {
+			return nil, "", fmt.Errorf("grok oauth service is not configured")
+		}
+		tokenInfo, err := h.grokOAuthService.RefreshAccountToken(ctx, account)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to refresh Grok credentials: %w", err)
+		}
+
+		newCredentials = service.MergeCredentials(account.Credentials, h.grokOAuthService.BuildAccountCredentials(tokenInfo))
+		if baseURL := strings.TrimSpace(account.GetCredential("base_url")); baseURL != "" {
+			newCredentials["base_url"] = baseURL
+		}
 	} else if account.Platform == service.PlatformKiro {
 		tokenInfo, err := h.kiroOAuthService.RefreshAccountToken(ctx, account)
 		if err != nil {
@@ -1339,6 +1368,9 @@ func (h *AccountHandler) refreshSingleAccount(ctx context.Context, account *serv
 	h.adminService.EnsureOpenAIPrivacy(ctx, updatedAccount)
 	// Antigravity OAuth: 刷新成功后检查并设置 privacy_mode
 	h.adminService.EnsureAntigravityPrivacy(ctx, updatedAccount)
+	if h.rateLimitService == nil {
+		return updatedAccount, "", nil
+	}
 
 	recoveredAccount, err := h.recoverAccountStateAfterRefresh(ctx, updatedAccount.ID)
 	if err != nil {

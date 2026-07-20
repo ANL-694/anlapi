@@ -3,15 +3,15 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/shopcardkey"
+	"anl-api/ent/shopcategory"
+	"anl-api/ent/shopdrawcycle"
+	"anl-api/ent/shoporder"
+	"anl-api/ent/shopproduct"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/shopcardkey"
-	"ikik-api/ent/shopcategory"
-	"ikik-api/ent/shopdrawcycle"
-	"ikik-api/ent/shoporder"
-	"ikik-api/ent/shopproduct"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

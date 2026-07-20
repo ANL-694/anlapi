@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/model"
+	"anl-api/internal/model"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

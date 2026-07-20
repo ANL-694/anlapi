@@ -16,7 +16,7 @@ package gatewayplatform
 import (
 	"context"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	dbent "ikik-api/ent"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	infraerrors "anl-api/internal/pkg/errors"
 	"github.com/lib/pq"
 )
 

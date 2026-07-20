@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/ent"
-	"ikik-api/ent/securitysecret"
-	"ikik-api/internal/config"
+	"anl-api/ent"
+	"anl-api/ent/securitysecret"
+	"anl-api/internal/config"
 )
 
 const (

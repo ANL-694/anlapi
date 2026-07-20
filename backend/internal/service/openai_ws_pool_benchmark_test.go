@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 func BenchmarkOpenAIWSPoolAcquire(b *testing.B) {

@@ -15,15 +15,15 @@ import (
 	"sync"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	"anl-api/ent/authidentitychannel"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/httpclient"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/util/httputil"
 	"entgo.io/ent/dialect"
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/authidentitychannel"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/httpclient"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/util/httputil"
 )
 
 // AdminService interface defines admin management operations

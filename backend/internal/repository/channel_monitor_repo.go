@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/ent/channelmonitor"
+	"anl-api/ent/channelmonitorhistory"
+	"anl-api/internal/service"
 	"github.com/lib/pq"
-	dbent "ikik-api/ent"
-	"ikik-api/ent/channelmonitor"
-	"ikik-api/ent/channelmonitorhistory"
-	"ikik-api/internal/service"
 
 	entsql "entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqljson"

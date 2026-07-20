@@ -9,9 +9,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -295,12 +295,27 @@ func TestSettingHandler_UpdateSettings_PersistsPaymentVisibleMethodsAndAdvancedS
 	handler := NewSettingHandler(svc, nil, nil, nil, nil, nil)
 
 	body := map[string]any{
-		"promo_code_enabled":                    true,
-		"payment_visible_method_alipay_source":  "easypay",
-		"payment_visible_method_wxpay_source":   "wxpay",
-		"payment_visible_method_alipay_enabled": true,
-		"payment_visible_method_wxpay_enabled":  false,
-		"openai_advanced_scheduler_enabled":     true,
+		"promo_code_enabled":                                      true,
+		"payment_visible_method_alipay_source":                    "easypay",
+		"payment_visible_method_wxpay_source":                     "wxpay",
+		"payment_visible_method_alipay_enabled":                   true,
+		"payment_visible_method_wxpay_enabled":                    false,
+		"openai_low_upstream_rate_priority_enabled":               true,
+		"openai_oauth_scheduling_rate_multiplier":                 0.05,
+		"openai_advanced_scheduler_enabled":                       true,
+		"openai_advanced_scheduler_sticky_weighted_enabled":       true,
+		"openai_advanced_scheduler_subscription_priority_enabled": true,
+		"openai_advanced_scheduler_lb_top_k":                      " 3 ",
+		"openai_advanced_scheduler_weight_priority":               "2.50",
+		"openai_advanced_scheduler_weight_load":                   "0",
+		"openai_advanced_scheduler_weight_queue":                  "0.75",
+		"openai_advanced_scheduler_weight_error_rate":             "1.25",
+		"openai_advanced_scheduler_weight_ttft":                   "0.5",
+		"openai_advanced_scheduler_weight_reset":                  "",
+		"openai_advanced_scheduler_weight_quota_headroom":         "0.2",
+		"openai_advanced_scheduler_weight_upstream_cost":          "1.5",
+		"openai_advanced_scheduler_weight_previous_response":      "8",
+		"openai_advanced_scheduler_weight_session_sticky":         "4",
 	}
 	rawBody, err := json.Marshal(body)
 	require.NoError(t, err)
@@ -317,7 +332,22 @@ func TestSettingHandler_UpdateSettings_PersistsPaymentVisibleMethodsAndAdvancedS
 	require.Equal(t, service.VisibleMethodSourceOfficialWechat, repo.values[service.SettingPaymentVisibleMethodWxpaySource])
 	require.Equal(t, "true", repo.values[service.SettingPaymentVisibleMethodAlipayEnabled])
 	require.Equal(t, "false", repo.values[service.SettingPaymentVisibleMethodWxpayEnabled])
+	require.Equal(t, "true", repo.values[service.SettingKeyOpenAILowUpstreamRatePriorityEnabled])
+	require.Equal(t, "0.05", repo.values[service.SettingKeyOpenAIOAuthSchedulingRateMultiplier])
 	require.Equal(t, "true", repo.values["openai_advanced_scheduler_enabled"])
+	require.Equal(t, "true", repo.values[service.SettingKeyOpenAIAdvancedSchedulerStickyWeightedEnabled])
+	require.Equal(t, "true", repo.values[service.SettingKeyOpenAIAdvancedSchedulerSubscriptionPriorityEnabled])
+	require.Equal(t, "3", repo.values[service.SettingKeyOpenAIAdvancedSchedulerLBTopK])
+	require.Equal(t, "2.5", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightPriority])
+	require.Equal(t, "0", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightLoad])
+	require.Equal(t, "0.75", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightQueue])
+	require.Equal(t, "1.25", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightErrorRate])
+	require.Equal(t, "0.5", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightTTFT])
+	require.Equal(t, "", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightReset])
+	require.Equal(t, "0.2", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightQuotaHeadroom])
+	require.Equal(t, "1.5", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightUpstreamCost])
+	require.Equal(t, "8", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightPreviousResponse])
+	require.Equal(t, "4", repo.values[service.SettingKeyOpenAIAdvancedSchedulerWeightSessionSticky])
 
 	var resp response.Response
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
@@ -327,7 +357,22 @@ func TestSettingHandler_UpdateSettings_PersistsPaymentVisibleMethodsAndAdvancedS
 	require.Equal(t, service.VisibleMethodSourceOfficialWechat, data["payment_visible_method_wxpay_source"])
 	require.Equal(t, true, data["payment_visible_method_alipay_enabled"])
 	require.Equal(t, false, data["payment_visible_method_wxpay_enabled"])
+	require.Equal(t, true, data["openai_low_upstream_rate_priority_enabled"])
+	require.Equal(t, 0.05, data["openai_oauth_scheduling_rate_multiplier"])
 	require.Equal(t, true, data["openai_advanced_scheduler_enabled"])
+	require.Equal(t, true, data["openai_advanced_scheduler_sticky_weighted_enabled"])
+	require.Equal(t, true, data["openai_advanced_scheduler_subscription_priority_enabled"])
+	require.Equal(t, "3", data["openai_advanced_scheduler_lb_top_k"])
+	require.Equal(t, "2.5", data["openai_advanced_scheduler_weight_priority"])
+	require.Equal(t, "0", data["openai_advanced_scheduler_weight_load"])
+	require.Equal(t, "0.75", data["openai_advanced_scheduler_weight_queue"])
+	require.Equal(t, "1.25", data["openai_advanced_scheduler_weight_error_rate"])
+	require.Equal(t, "0.5", data["openai_advanced_scheduler_weight_ttft"])
+	require.Equal(t, "", data["openai_advanced_scheduler_weight_reset"])
+	require.Equal(t, "0.2", data["openai_advanced_scheduler_weight_quota_headroom"])
+	require.Equal(t, "1.5", data["openai_advanced_scheduler_weight_upstream_cost"])
+	require.Equal(t, "8", data["openai_advanced_scheduler_weight_previous_response"])
+	require.Equal(t, "4", data["openai_advanced_scheduler_weight_session_sticky"])
 }
 
 func TestSettingHandler_UpdateSettings_PreservesLegacyBlankPaymentVisibleMethodSource(t *testing.T) {

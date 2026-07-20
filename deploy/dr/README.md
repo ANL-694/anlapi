@@ -37,7 +37,7 @@
 
 1. 备份美国应用、业务库和配置。
 2. 部署支持外部 Vault 的新程序，建立美国独立 Vault PostgreSQL。
-3. 运行 `ikik-api --migrate-oauth-vault`，审计通过后关闭 legacy fallback。
+3. 运行 `anlapi --migrate-oauth-vault`，审计通过后关闭 legacy fallback。
 4. 运行 `Prepare-AnlDrPublisher.sh configure`，允许一次 PostgreSQL 重启。
 5. 运行 `Prepare-AnlDrPublisher.sh publication`。
 6. 在国内运行 `Initialize-AnlDrSubscriber.ps1`，完成初始复制并注册每小时备份任务，应用保持停止。

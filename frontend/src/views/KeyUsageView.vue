@@ -373,10 +373,10 @@ const appStore = useAppStore()
 
 // ==================== Site Settings (same as HomeView) ====================
 
-const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'ikik-api')
+const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'anl-api')
 const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
 const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
-const githubUrl = 'https://github.com/wenyi401/ikik-api'
+const githubUrl = 'https://github.com/ANL-694/anl-api'
 
 // ==================== Theme (same as HomeView) ====================
 

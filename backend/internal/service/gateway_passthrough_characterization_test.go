@@ -18,10 +18,10 @@ import (
 	"strings"
 	"testing"
 
+	"anl-api/internal/config"
+	"anl-api/internal/model"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/model"
 )
 
 // passCharSplitSSEEvents 按 SSE 事件边界（空行 "\n\n"）分帧。

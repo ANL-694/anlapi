@@ -14,25 +14,25 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/domain"
-	"ikik-api/internal/gatewayhook"
-	"ikik-api/internal/gatewayplatform"
-	"ikik-api/internal/pkg/antigravity"
-	"ikik-api/internal/pkg/claude"
-	"ikik-api/internal/pkg/ctxkey"
-	pkgerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/geminicli"
-	pkghttputil "ikik-api/internal/pkg/httputil"
-	"ikik-api/internal/pkg/ip"
-	"ikik-api/internal/pkg/kiro"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/pkg/timezone"
-	"ikik-api/internal/pkg/xai"
-	"ikik-api/internal/securityaudit"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/domain"
+	"anl-api/internal/gatewayhook"
+	"anl-api/internal/gatewayplatform"
+	"anl-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/claude"
+	"anl-api/internal/pkg/ctxkey"
+	pkgerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/geminicli"
+	pkghttputil "anl-api/internal/pkg/httputil"
+	"anl-api/internal/pkg/ip"
+	"anl-api/internal/pkg/kiro"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/pkg/timezone"
+	"anl-api/internal/pkg/xai"
+	"anl-api/internal/securityaudit"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -1414,7 +1414,7 @@ func writeMixedModelsList(c *gin.Context, modelIDs []string) {
 			ID:          modelID,
 			Object:      "model",
 			Created:     1704067200,
-			OwnedBy:     "ikik",
+			OwnedBy:     "anl",
 			Type:        "model",
 			DisplayName: modelID,
 		})

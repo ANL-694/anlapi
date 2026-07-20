@@ -20,9 +20,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/servertiming"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/servertiming"
 )
 
 const (

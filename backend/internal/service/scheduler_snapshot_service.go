@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
 )
 
 var (

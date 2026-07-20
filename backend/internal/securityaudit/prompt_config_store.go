@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/service"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 

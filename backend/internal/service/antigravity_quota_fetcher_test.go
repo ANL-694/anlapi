@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"ikik-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/antigravity"
 )
 
 // ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/payment"
+	"anl-api/internal/payment"
 )
 
 func TestEasyPaySignConsistentOutput(t *testing.T) {

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
 )
 
 const codexImportClockSkewSeconds int64 = 120

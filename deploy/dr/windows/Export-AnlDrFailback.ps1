@@ -2,7 +2,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$DomesticFenceConfirmation,
   [string]$AppRoot = 'D:\anl-api',
-  [string]$DatabaseName = 'anl_api_dr',
+  [string]$DatabaseName = 'anlapi_dr',
   [string]$ExportRoot = 'D:\anl-api-dr-failback'
 )
 
@@ -33,7 +33,7 @@ Start-Sleep -Seconds 10
 $values = Read-EnvFile $envPath
 $env:PGPASSWORD = $values['DATABASE_PASSWORD']
 try {
-  $audit = & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -f $auditSql
+  $audit = & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -f $auditSql
   if ($LASTEXITCODE -ne 0 -or $audit -notcontains 'oauth_sensitive_rows=0') { throw 'OAuth isolation audit failed.' }
   New-Item -ItemType Directory -Path $ExportRoot -Force | Out-Null
   $timestamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
@@ -41,7 +41,7 @@ try {
   $final = Join-Path $ExportRoot ('anl-core-failback-' + $timestamp + '.dump')
   $previousErrorActionPreference = $ErrorActionPreference
   $ErrorActionPreference = 'Continue'
-  & $pgDump -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName --format=custom --no-owner --no-privileges --file=$partial 2>&1 | Out-Null
+  & $pgDump -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName --format=custom --no-owner --no-privileges --file=$partial 2>&1 | Out-Null
   $dumpExitCode = $LASTEXITCODE
   $ErrorActionPreference = $previousErrorActionPreference
   if ($dumpExitCode -ne 0) { throw 'Final failback pg_dump failed.' }

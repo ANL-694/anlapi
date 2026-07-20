@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/paymentorder"
-	"ikik-api/ent/paymentproviderinstance"
-	"ikik-api/internal/payment"
+	dbent "anl-api/ent"
+	"anl-api/ent/paymentorder"
+	"anl-api/ent/paymentproviderinstance"
+	"anl-api/internal/payment"
 )
 
 // GetWebhookProvider returns the provider instance that should verify a webhook.

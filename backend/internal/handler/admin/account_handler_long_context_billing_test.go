@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/service"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

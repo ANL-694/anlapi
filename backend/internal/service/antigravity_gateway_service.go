@@ -20,8 +20,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ikik-api/internal/pkg/antigravity"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

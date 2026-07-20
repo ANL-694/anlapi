@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"anl-api/internal/config"
+	"anl-api/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/service"
 )
 
 func disabledOAuthVault() service.OAuthCredentialVault {

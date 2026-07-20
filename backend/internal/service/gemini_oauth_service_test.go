@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/geminicli"
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/geminicli"
+	"anl-api/internal/pkg/pagination"
 )
 
 // =====================

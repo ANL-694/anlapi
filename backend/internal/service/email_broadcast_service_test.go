@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/domain"
+	"anl-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/domain"
-	"ikik-api/internal/pkg/pagination"
 )
 
 type emailBroadcastRepoStub struct {
@@ -394,8 +394,8 @@ func TestPreviewHTML_UsesSiteNameWhenAvailable(t *testing.T) {
 	svc, _ := newTestEmailBroadcastService()
 	got := svc.PreviewHTML(context.Background(), "subj", "hi", EmailBroadcastBodyFormatText)
 	require.Contains(t, got, "subj")
-	// Stub settingRepo returns empty values → fallback to "ikik-api".
-	require.Contains(t, got, "ikik-api")
+	// Stub settingRepo returns empty values → fallback to "anl-api".
+	require.Contains(t, got, "anl-api")
 }
 
 // settingRepoStubWithValues lets a test pre-seed setting values.
@@ -433,7 +433,7 @@ func TestResolveSenderName_PrefersSMTPFromName(t *testing.T) {
 	repo := &settingRepoStubWithValues{
 		values: map[string]string{
 			SettingKeySMTPFromName: "TurboAPI",
-			SettingKeySiteName:     "ikik-api instance",
+			SettingKeySiteName:     "anl-api instance",
 		},
 	}
 	emailSvc := NewEmailService(repo, nil)

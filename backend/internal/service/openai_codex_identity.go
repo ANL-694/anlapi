@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"ikik-api/internal/pkg/openai"
+	"anl-api/internal/pkg/openai"
 )
 
 // codexUpstreamMinVersion 上游 /backend-api/codex 接受的最低 version 头：

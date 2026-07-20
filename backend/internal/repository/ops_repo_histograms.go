@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 func (r *opsRepository) GetLatencyHistogram(ctx context.Context, filter *service.OpsDashboardFilter) (*service.OpsLatencyHistogramResponse, error) {

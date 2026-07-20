@@ -4,9 +4,9 @@ import (
 	"sort"
 	"strings"
 
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

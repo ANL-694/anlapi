@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 // ModelAvailabilityDiagnosis describes whether the requested model can be

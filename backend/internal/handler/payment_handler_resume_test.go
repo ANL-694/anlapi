@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/enttest"
-	"ikik-api/internal/payment"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/enttest"
+	"anl-api/internal/payment"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

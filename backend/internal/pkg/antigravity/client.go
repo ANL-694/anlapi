@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/proxyurl"
-	"ikik-api/internal/pkg/proxyutil"
-	"ikik-api/internal/pkg/servertiming"
+	"anl-api/internal/pkg/proxyurl"
+	"anl-api/internal/pkg/proxyutil"
+	"anl-api/internal/pkg/servertiming"
 )
 
 // ForbiddenError 表示上游返回 403 Forbidden

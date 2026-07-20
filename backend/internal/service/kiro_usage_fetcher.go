@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/pkg/httpclient"
+	kiropkg "anl-api/internal/pkg/kiro"
 	"github.com/google/uuid"
-	"ikik-api/internal/pkg/httpclient"
-	kiropkg "ikik-api/internal/pkg/kiro"
 )
 
 const (

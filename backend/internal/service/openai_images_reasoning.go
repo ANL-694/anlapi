@@ -1,6 +1,6 @@
 package service
 
-import "ikik-api/internal/config"
+import "anl-api/internal/config"
 
 const (
 	OpenAIImagesResponsesReasoningEffortLow     = config.OpenAIImagesResponsesReasoningEffortLow

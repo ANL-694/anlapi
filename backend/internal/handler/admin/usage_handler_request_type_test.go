@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/usagestats"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/usagestats"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

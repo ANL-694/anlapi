@@ -288,7 +288,7 @@
                 </div>
               </div>
               <p class="text-sm font-semibold uppercase tracking-[0.18em] text-[#6e6e80]">
-                ikik
+                anl
               </p>
             </div>
 
@@ -610,7 +610,7 @@ const sourceHints = computed(() => {
 
 async function shareWebsite() {
   const url = typeof window !== 'undefined' ? window.location.href : ''
-  const title = `${displayName.value} - ikik`
+  const title = `${displayName.value} - anl`
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       await navigator.share({
@@ -636,7 +636,7 @@ async function shareImage() {
   try {
     const canvas = await renderShareCanvas()
     const blob = await canvasToBlob(canvas, 'image/png')
-    const filename = `ikik-profile-${props.user?.id || 'user'}.png`
+    const filename = `anl-profile-${props.user?.id || 'user'}.png`
     const file = new File([blob], filename, { type: 'image/png' })
     const navWithCanShare = navigator as Navigator & {
       canShare?: (data: ProfileShareData) => boolean
@@ -647,7 +647,7 @@ async function shareImage() {
       (!navWithCanShare.canShare || navWithCanShare.canShare({ files: [file] }))
     ) {
       await navigator.share({
-        title: `${displayName.value} - ikik`,
+        title: `${displayName.value} - anl`,
         files: [file]
       })
       return
@@ -701,7 +701,7 @@ async function renderShareCanvas(): Promise<HTMLCanvasElement> {
     drawTruncatedText(ctx, primaryEmailDisplay.value, 196, 146, 450)
   }
   ctx.font = '700 18px Inter, "Microsoft YaHei", sans-serif'
-  ctx.fillText('IKIK', 820, 116)
+  ctx.fillText('ANL', 820, 116)
 
   ctx.fillStyle = '#6e6e80'
   ctx.font = '600 18px Inter, "Microsoft YaHei", sans-serif'

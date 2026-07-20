@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strings"
 
+	"anl-api/internal/gatewayhook"
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/securityaudit"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"ikik-api/internal/gatewayhook"
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/securityaudit"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
 )
 
 // ProvideGatewayHookChain 装配网关 pre-flight 钩子链（Wire 注入的核心钩子；

@@ -16,9 +16,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/logger"
 )
 
 const (

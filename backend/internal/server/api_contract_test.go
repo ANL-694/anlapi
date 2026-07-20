@@ -15,13 +15,13 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/handler"
-	adminhandler "ikik-api/internal/handler/admin"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/usagestats"
-	"ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/handler"
+	adminhandler "anl-api/internal/handler/admin"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/usagestats"
+	"anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -588,7 +588,7 @@ func TestAPIContracts(t *testing.T) {
 					service.SettingKeySMTPUsername: "user",
 					service.SettingKeySMTPPassword: "secret",
 					service.SettingKeySMTPFrom:     "no-reply@example.com",
-					service.SettingKeySMTPFromName: "ikik-api",
+					service.SettingKeySMTPFromName: "anl-api",
 					service.SettingKeySMTPUseTLS:   "true",
 
 					service.SettingKeyTurnstileEnabled:   "true",
@@ -617,7 +617,7 @@ func TestAPIContracts(t *testing.T) {
 					service.SettingKeyOIDCConnectUserInfoIDPath:       "",
 					service.SettingKeyOIDCConnectUserInfoUsernamePath: "",
 
-					service.SettingKeySiteName:     "ikik-api",
+					service.SettingKeySiteName:     "anl-api",
 					service.SettingKeySiteLogo:     "",
 					service.SettingKeySiteSubtitle: "Subtitle",
 					service.SettingKeyAPIBaseURL:   "https://api.example.com",
@@ -629,15 +629,19 @@ func TestAPIContracts(t *testing.T) {
 					service.SettingKeyTableDefaultPageSize: "20",
 					service.SettingKeyTablePageSizeOptions: "[10,20,50,100,1000]",
 
-					service.SettingKeyOpsMonitoringEnabled:           "false",
-					service.SettingKeyOpsRealtimeMonitoringEnabled:   "true",
-					service.SettingKeyOpsQueryModeDefault:            "auto",
-					service.SettingKeyOpsMetricsIntervalSeconds:      "60",
-					service.SettingPaymentVisibleMethodAlipaySource:  service.VisibleMethodSourceEasyPayAlipay,
-					service.SettingPaymentVisibleMethodWxpaySource:   service.VisibleMethodSourceOfficialWechat,
-					service.SettingPaymentVisibleMethodAlipayEnabled: "true",
-					service.SettingPaymentVisibleMethodWxpayEnabled:  "false",
-					"openai_advanced_scheduler_enabled":              "true",
+					service.SettingKeyOpsMonitoringEnabled:                               "false",
+					service.SettingKeyOpsRealtimeMonitoringEnabled:                       "true",
+					service.SettingKeyOpsQueryModeDefault:                                "auto",
+					service.SettingKeyOpsMetricsIntervalSeconds:                          "60",
+					service.SettingPaymentVisibleMethodAlipaySource:                      service.VisibleMethodSourceEasyPayAlipay,
+					service.SettingPaymentVisibleMethodWxpaySource:                       service.VisibleMethodSourceOfficialWechat,
+					service.SettingPaymentVisibleMethodAlipayEnabled:                     "true",
+					service.SettingPaymentVisibleMethodWxpayEnabled:                      "false",
+					service.SettingKeyOpenAILowUpstreamRatePriorityEnabled:               "true",
+					service.SettingKeyOpenAIOAuthSchedulingRateMultiplier:                "0.05",
+					"openai_advanced_scheduler_enabled":                                  "true",
+					service.SettingKeyOpenAIAdvancedSchedulerStickyWeightedEnabled:       "false",
+					service.SettingKeyOpenAIAdvancedSchedulerSubscriptionPriorityEnabled: "false",
 				})
 			},
 			method:     http.MethodGet,
@@ -660,7 +664,7 @@ func TestAPIContracts(t *testing.T) {
 					"smtp_username": "user",
 					"smtp_password_configured": true,
 					"smtp_from_email": "no-reply@example.com",
-					"smtp_from_name": "ikik-api",
+					"smtp_from_name": "anl-api",
 					"smtp_use_tls": true,
 					"turnstile_enabled": true,
 					"turnstile_site_key": "site-key",
@@ -695,7 +699,7 @@ func TestAPIContracts(t *testing.T) {
 						"ops_realtime_monitoring_enabled": true,
 						"ops_query_mode_default": "auto",
 						"ops_metrics_interval_seconds": 60,
-						"site_name": "ikik-api",
+						"site_name": "anl-api",
 						"site_logo": "",
 						"site_subtitle": "Subtitle",
 						"api_base_url": "https://api.example.com",
@@ -767,6 +771,30 @@ func TestAPIContracts(t *testing.T) {
 					"openai_low_upstream_rate_priority_enabled": true,
 					"openai_oauth_scheduling_rate_multiplier": 0.05,
 					"openai_advanced_scheduler_enabled": true,
+					"openai_advanced_scheduler_sticky_weighted_enabled": false,
+					"openai_advanced_scheduler_subscription_priority_enabled": false,
+					"openai_advanced_scheduler_lb_top_k": "",
+					"openai_advanced_scheduler_weight_priority": "",
+					"openai_advanced_scheduler_weight_load": "",
+					"openai_advanced_scheduler_weight_queue": "",
+					"openai_advanced_scheduler_weight_error_rate": "",
+					"openai_advanced_scheduler_weight_ttft": "",
+					"openai_advanced_scheduler_weight_reset": "",
+					"openai_advanced_scheduler_weight_quota_headroom": "",
+					"openai_advanced_scheduler_weight_upstream_cost": "",
+					"openai_advanced_scheduler_weight_previous_response": "",
+					"openai_advanced_scheduler_weight_session_sticky": "",
+					"openai_advanced_scheduler_effective_lb_top_k": "7",
+					"openai_advanced_scheduler_effective_weight_priority": "1",
+					"openai_advanced_scheduler_effective_weight_load": "1",
+					"openai_advanced_scheduler_effective_weight_queue": "0.7",
+					"openai_advanced_scheduler_effective_weight_error_rate": "0.8",
+					"openai_advanced_scheduler_effective_weight_ttft": "0.5",
+					"openai_advanced_scheduler_effective_weight_reset": "0",
+					"openai_advanced_scheduler_effective_weight_quota_headroom": "0",
+					"openai_advanced_scheduler_effective_weight_upstream_cost": "0",
+					"openai_advanced_scheduler_effective_weight_previous_response": "5",
+					"openai_advanced_scheduler_effective_weight_session_sticky": "3",
 					"openai_free_account_repair_enabled": false,
 					"openai_free_account_repair_weekly_threshold_usd": 60,
 					"openai_fast_policy_settings": {
@@ -926,7 +954,7 @@ func TestAPIContracts(t *testing.T) {
 					"oidc_connect_userinfo_email_path": "",
 					"oidc_connect_userinfo_id_path": "",
 					"oidc_connect_userinfo_username_path": "",
-					"site_name": "ikik-api",
+					"site_name": "anl-api",
 					"site_logo": "",
 					"site_subtitle": "AI API 接入与用量管理平台",
 					"api_base_url": "",
@@ -976,6 +1004,30 @@ func TestAPIContracts(t *testing.T) {
 					"openai_low_upstream_rate_priority_enabled": false,
 					"openai_oauth_scheduling_rate_multiplier": 1,
 					"openai_advanced_scheduler_enabled": false,
+					"openai_advanced_scheduler_sticky_weighted_enabled": false,
+					"openai_advanced_scheduler_subscription_priority_enabled": false,
+					"openai_advanced_scheduler_lb_top_k": "",
+					"openai_advanced_scheduler_weight_priority": "",
+					"openai_advanced_scheduler_weight_load": "",
+					"openai_advanced_scheduler_weight_queue": "",
+					"openai_advanced_scheduler_weight_error_rate": "",
+					"openai_advanced_scheduler_weight_ttft": "",
+					"openai_advanced_scheduler_weight_reset": "",
+					"openai_advanced_scheduler_weight_quota_headroom": "",
+					"openai_advanced_scheduler_weight_upstream_cost": "",
+					"openai_advanced_scheduler_weight_previous_response": "",
+					"openai_advanced_scheduler_weight_session_sticky": "",
+					"openai_advanced_scheduler_effective_lb_top_k": "7",
+					"openai_advanced_scheduler_effective_weight_priority": "1",
+					"openai_advanced_scheduler_effective_weight_load": "1",
+					"openai_advanced_scheduler_effective_weight_queue": "0.7",
+					"openai_advanced_scheduler_effective_weight_error_rate": "0.8",
+					"openai_advanced_scheduler_effective_weight_ttft": "0.5",
+					"openai_advanced_scheduler_effective_weight_reset": "0",
+					"openai_advanced_scheduler_effective_weight_quota_headroom": "0",
+					"openai_advanced_scheduler_effective_weight_upstream_cost": "0",
+					"openai_advanced_scheduler_effective_weight_previous_response": "5",
+					"openai_advanced_scheduler_effective_weight_session_sticky": "3",
 					"openai_free_account_repair_enabled": false,
 					"openai_free_account_repair_weekly_threshold_usd": 60,
 					"openai_fast_policy_settings": {
@@ -1321,6 +1373,10 @@ func (r *stubUserRepo) GetByID(ctx context.Context, id int64) (*service.User, er
 	}
 	clone := *user
 	return &clone, nil
+}
+
+func (r *stubUserRepo) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	return r.GetByID(ctx, id)
 }
 
 func (r *stubUserRepo) GetByEmail(ctx context.Context, email string) (*service.User, error) {

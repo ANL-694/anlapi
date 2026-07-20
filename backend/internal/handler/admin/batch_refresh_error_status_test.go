@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 func TestBatchRefreshUnauthorizedErrorMarksAccountError(t *testing.T) {

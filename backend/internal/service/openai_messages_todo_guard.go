@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"strings"
 
-	"ikik-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/apicompat"
 )
 
 const (
-	openAICompatClaudeCodeTodoGuardMarker = "<ikik-api-claude-code-todo-guard>"
-	openAICompatClaudeCodeTodoGuardText   = openAICompatClaudeCodeTodoGuardMarker + "\nWhen using Claude Code todo or task tracking tools, keep the visible task list consistent. Do not send final or summary text while any item remains in_progress. Before finishing, asking the user to choose, or reporting a blocker, update the todo list so completed work is completed and deferred work is pending/open; leave an item in_progress only when active work will continue in the same turn.\n</ikik-api-claude-code-todo-guard>"
+	openAICompatClaudeCodeTodoGuardMarker = "<anl-api-claude-code-todo-guard>"
+	openAICompatClaudeCodeTodoGuardText   = openAICompatClaudeCodeTodoGuardMarker + "\nWhen using Claude Code todo or task tracking tools, keep the visible task list consistent. Do not send final or summary text while any item remains in_progress. Before finishing, asking the user to choose, or reporting a blocker, update the todo list so completed work is completed and deferred work is pending/open; leave an item in_progress only when active work will continue in the same turn.\n</anl-api-claude-code-todo-guard>"
 )
 
 func appendOpenAICompatClaudeCodeTodoGuard(req *apicompat.ResponsesRequest) bool {

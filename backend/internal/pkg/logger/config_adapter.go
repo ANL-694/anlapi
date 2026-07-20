@@ -1,6 +1,6 @@
 package logger
 
-import "ikik-api/internal/config"
+import "anl-api/internal/config"
 
 func OptionsFromConfig(cfg config.LogConfig) InitOptions {
 	return InitOptions{

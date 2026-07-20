@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/service"
 )
 
 type grokMediaEligibilityProberStub struct {

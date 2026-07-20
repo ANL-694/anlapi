@@ -8,10 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -88,7 +88,7 @@ func newRuntimeOpsService(t *testing.T) *service.OpsService {
 	if err := logger.Init(logger.InitOptions{
 		Level:       "info",
 		Format:      "json",
-		ServiceName: "ikik-api",
+		ServiceName: "anl-api",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: false,

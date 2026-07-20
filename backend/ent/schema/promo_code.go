@@ -3,7 +3,7 @@ package schema
 import (
 	"time"
 
-	"ikik-api/internal/domain"
+	"anl-api/internal/domain"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"

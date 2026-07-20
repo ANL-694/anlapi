@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 )
 
 type accountSharePolicyRepository struct {

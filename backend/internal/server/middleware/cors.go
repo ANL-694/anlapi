@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 	"github.com/gin-gonic/gin"
 )
 

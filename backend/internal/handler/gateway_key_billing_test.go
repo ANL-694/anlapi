@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/timezone"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/timezone"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

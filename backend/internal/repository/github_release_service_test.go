@@ -223,7 +223,7 @@ func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Success() {
 	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(s.T(), "/repos/test/repo/releases/latest", r.URL.Path)
 		require.Equal(s.T(), "application/vnd.github.v3+json", r.Header.Get("Accept"))
-		require.Equal(s.T(), "ikik-api-Updater", r.Header.Get("User-Agent"))
+		require.Equal(s.T(), "anl-api-Updater", r.Header.Get("User-Agent"))
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(releaseJSON))
@@ -243,6 +243,33 @@ func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Success() {
 	require.Equal(s.T(), "Release 1.0.0", release.Name)
 	require.Len(s.T(), release.Assets, 1)
 	require.Equal(s.T(), "app-linux-amd64.tar.gz", release.Assets[0].Name)
+}
+
+func (s *GitHubReleaseServiceSuite) TestFetchLatestReleaseSendsTokenToGitHubAPI() {
+	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(s.T(), "Bearer private-test-token", r.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v1.0.0","html_url":"https://github.com/test/repo/releases/tag/v1.0.0"}`))
+	}))
+
+	client := &githubReleaseClient{
+		httpClient: &http.Client{
+			Transport: &testTransport{testServerURL: s.srv.URL},
+		},
+		githubToken: "private-test-token",
+	}
+
+	_, err := client.FetchLatestRelease(context.Background(), "test/repo")
+	require.NoError(s.T(), err)
+}
+
+func (s *GitHubReleaseServiceSuite) TestGitHubAuthorizationSkipsUntrustedHost() {
+	req, err := http.NewRequest(http.MethodGet, "https://objects.githubusercontent.com/release.bin", nil)
+	require.NoError(s.T(), err)
+	client := &githubReleaseClient{githubToken: "private-test-token"}
+
+	client.setGitHubAuthorization(req)
+	require.Empty(s.T(), req.Header.Get("Authorization"))
 }
 
 func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Non200() {

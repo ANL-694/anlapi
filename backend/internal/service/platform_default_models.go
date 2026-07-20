@@ -1,12 +1,12 @@
 package service
 
 import (
-	"ikik-api/internal/pkg/antigravity"
-	"ikik-api/internal/pkg/claude"
-	"ikik-api/internal/pkg/geminicli"
-	"ikik-api/internal/pkg/kiro"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/pkg/xai"
+	"anl-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/claude"
+	"anl-api/internal/pkg/geminicli"
+	"anl-api/internal/pkg/kiro"
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/pkg/xai"
 )
 
 // DefaultModelIDsForPlatform 返回平台默认模型 ID 列表（未知平台回退 Claude 默认集）。

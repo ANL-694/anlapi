@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/ent/pendingauthsession"
+	"anl-api/ent/pendingauthsession"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

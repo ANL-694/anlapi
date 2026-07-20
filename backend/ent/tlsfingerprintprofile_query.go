@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/tlsfingerprintprofile"
 	"context"
 	"fmt"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/tlsfingerprintprofile"
 	"math"
 
 	"entgo.io/ent"

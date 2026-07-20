@@ -3,7 +3,7 @@ package service
 import (
 	"math"
 
-	"ikik-api/internal/payment"
+	"anl-api/internal/payment"
 	"github.com/shopspring/decimal"
 )
 

@@ -1,5 +1,5 @@
 /**
- * Core Type Definitions for ikik-api Frontend
+ * Core Type Definitions for anl-api Frontend
  */
 
 // ==================== Common Types ====================

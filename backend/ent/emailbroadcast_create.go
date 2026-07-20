@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/emailbroadcast"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/emailbroadcast"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 

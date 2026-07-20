@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/httpclient"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/httpclient"
+	"anl-api/internal/service"
 )
 
 func NewProxyExitInfoProber(cfg *config.Config) service.ProxyExitInfoProber {

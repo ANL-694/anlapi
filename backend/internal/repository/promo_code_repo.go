@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/promocode"
-	"ikik-api/ent/promocodeusage"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/promocode"
+	"anl-api/ent/promocodeusage"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

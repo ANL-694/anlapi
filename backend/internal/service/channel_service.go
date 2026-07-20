@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"golang.org/x/sync/singleflight"

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/usagestats"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/usagestats"
 )
 
 type geminiModelClass string

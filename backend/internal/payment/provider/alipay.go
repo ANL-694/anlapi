@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"anl-api/internal/payment"
 	"github.com/smartwalle/alipay/v3"
-	"ikik-api/internal/payment"
 )
 
 // Alipay product codes.

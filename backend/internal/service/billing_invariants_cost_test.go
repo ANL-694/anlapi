@@ -15,8 +15,8 @@ package service
 import (
 	"testing"
 
+	"anl-api/internal/config"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
 )
 
 // billInvManualPricingService 构造带手工定价表的 BillingService（无动态价格源）。

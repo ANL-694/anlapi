@@ -11,7 +11,7 @@ import (
 
 	"github.com/pquerna/otp/totp"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 var (
@@ -93,7 +93,7 @@ const (
 	totpLoginTTL    = 5 * time.Minute
 	totpAttemptsTTL = 15 * time.Minute
 	maxTotpAttempts = 5
-	totpIssuer      = "ikik-api"
+	totpIssuer      = "anl-api"
 )
 
 // TotpService handles TOTP operations

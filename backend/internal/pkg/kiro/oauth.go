@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"anl-api/internal/pkg/proxyurl"
 	"github.com/google/uuid"
-	"ikik-api/internal/pkg/proxyurl"
 )
 
 const (

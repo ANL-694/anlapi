@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	dbent "anl-api/ent"
+	dbaccount "anl-api/ent/account"
+	"anl-api/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
-	dbent "ikik-api/ent"
-	dbaccount "ikik-api/ent/account"
-	"ikik-api/internal/service"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

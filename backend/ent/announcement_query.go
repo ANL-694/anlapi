@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/announcement"
+	"anl-api/ent/announcementread"
+	"anl-api/ent/predicate"
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"ikik-api/ent/announcement"
-	"ikik-api/ent/announcementread"
-	"ikik-api/ent/predicate"
 	"math"
 
 	"entgo.io/ent"

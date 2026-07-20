@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { RouterView, useRouter, useRoute } from 'vue-router'
-import { onMounted, onBeforeUnmount, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import Toast from '@/components/common/Toast.vue'
 import NavigationProgress from '@/components/common/NavigationProgress.vue'
+import AdminComplianceDialog from '@/components/admin/AdminComplianceDialog.vue'
 import { resolveDocumentTitle } from '@/router/title'
 import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
-import { useAppStore, useAuthStore, useSubscriptionStore, useAnnouncementStore } from '@/stores'
+import { useAppStore, useAuthStore, useSubscriptionStore, useAnnouncementStore, useAdminComplianceStore } from '@/stores'
 import { getSetupStatus } from '@/api/setup'
 import { updateFavicon } from '@/utils/branding'
 
@@ -15,8 +16,12 @@ const appStore = useAppStore()
 const authStore = useAuthStore()
 const subscriptionStore = useSubscriptionStore()
 const announcementStore = useAnnouncementStore()
+const adminComplianceStore = useAdminComplianceStore()
 const skipSetupRedirect =
   import.meta.env.DEV && import.meta.env.VITE_SKIP_SETUP_REDIRECT === 'true'
+const adminComplianceVisible = computed(
+  () => authStore.isAuthenticated && authStore.isAdmin && adminComplianceStore.shouldShow
+)
 
 // Watch for site settings changes and update favicon/title
 watch(
@@ -35,6 +40,28 @@ function onVisibilityChange() {
     announcementStore.fetchAnnouncements()
   }
 }
+
+function onAdminComplianceRequired(event: Event) {
+  if (!authStore.isAuthenticated || !authStore.isAdmin) {
+    return
+  }
+
+  const detail = (event as CustomEvent<Record<string, string>>).detail || {}
+  adminComplianceStore.requireAcknowledgement(detail)
+}
+
+watch(
+  () => [authStore.isAuthenticated, authStore.isAdmin] as const,
+  ([isAuthenticated, isAdmin]) => {
+    adminComplianceStore.reset()
+    if (isAuthenticated && isAdmin) {
+      adminComplianceStore.fetchStatus().catch((error) => {
+        console.error('Failed to fetch admin compliance status:', error)
+      })
+    }
+  },
+  { immediate: true }
+)
 
 watch(
   () => authStore.isAuthenticated,
@@ -76,9 +103,12 @@ router.afterEach(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  window.removeEventListener('admin-compliance-required', onAdminComplianceRequired)
 })
 
 onMounted(async () => {
+  window.addEventListener('admin-compliance-required', onAdminComplianceRequired)
+
   // Check if setup is needed
   if (!skipSetupRedirect) {
     try {
@@ -102,7 +132,8 @@ onMounted(async () => {
 
 <template>
   <NavigationProgress />
-  <RouterView />
+  <RouterView v-if="!adminComplianceVisible" />
   <Toast />
   <AnnouncementPopup />
+  <AdminComplianceDialog :show="adminComplianceVisible" />
 </template>

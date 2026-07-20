@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/channelmonitor"
+	"anl-api/ent/channelmonitorhistory"
 	"fmt"
-	"ikik-api/ent/channelmonitor"
-	"ikik-api/ent/channelmonitorhistory"
 	"strings"
 	"time"
 

@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/announcement"
+	"anl-api/ent/announcementread"
+	"anl-api/internal/domain"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/announcement"
-	"ikik-api/ent/announcementread"
-	"ikik-api/internal/domain"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

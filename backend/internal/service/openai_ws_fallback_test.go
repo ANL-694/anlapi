@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 	coderws "github.com/coder/websocket"
 	"github.com/stretchr/testify/require"
 )

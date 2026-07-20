@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"anl-api/ent/subscriptionplan"
 	"fmt"
-	"ikik-api/ent/subscriptionplan"
 	"strings"
 	"time"
 

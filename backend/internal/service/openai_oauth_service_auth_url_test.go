@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"ikik-api/internal/pkg/openai"
+	"anl-api/internal/pkg/openai"
 	"github.com/stretchr/testify/require"
 )
 

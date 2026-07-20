@@ -1,6 +1,6 @@
 # 官方版本合并与自定义镜像部署流程
 
-本文用于维护当前二开版本：在后续官方 `wenyi401/ikik-api` 发布新版本时，合并官方更新，同时保留本项目的个人账号、公共账号共享、分成结算、收益管理增强、凭证导入限制等二开功能。
+本文用于维护当前 ANL API：后续以 `Wei-Shaw/sub2api` 为主上游，选择性合并官方更新，同时保留本项目的个人账号、公共账号共享、分成结算、收益管理增强、凭证导入限制等自定义功能。
 
 ## 当前基线
 
@@ -40,7 +40,7 @@ git push -u origin custom/main
 添加官方仓库为上游源：
 
 ```bash
-git remote add upstream https://github.com/wenyi401/ikik-api.git
+git remote add upstream https://github.com/Wei-Shaw/sub2api.git
 git fetch upstream --tags --prune
 ```
 
@@ -48,7 +48,7 @@ git fetch upstream --tags --prune
 
 ```bash
 git remote -v
-git remote set-url upstream https://github.com/wenyi401/ikik-api.git
+git remote set-url upstream https://github.com/Wei-Shaw/sub2api.git
 ```
 
 建议开启 Git 冲突复用记录，后续遇到重复冲突时可以减少手工处理：
@@ -239,7 +239,7 @@ git push
 
 ## 自定义镜像构建
 
-生产环境不要继续使用官方镜像 `ikik-api:latest`，否则会覆盖二开功能。必须构建并使用自己的镜像。
+生产环境不要继续使用官方镜像 `anl-api:latest`，否则会覆盖二开功能。必须构建并使用自己的镜像。
 
 根目录 `Dockerfile` 是推荐的生产镜像构建入口，会完成：
 
@@ -255,13 +255,13 @@ Linux/macOS：
 ```bash
 VERSION=v0.1.122-2dev.1
 COMMIT=$(git rev-parse --short HEAD)
-IMAGE=registry.example.com/ikik-api-custom:$VERSION
+IMAGE=registry.example.com/anl-api-custom:$VERSION
 
 docker build \
   --build-arg VERSION=$VERSION \
   --build-arg COMMIT=$COMMIT \
   -t $IMAGE \
-  -t registry.example.com/ikik-api-custom:latest \
+  -t registry.example.com/anl-api-custom:latest \
   .
 ```
 
@@ -270,13 +270,13 @@ Windows PowerShell：
 ```powershell
 $version = "v0.1.122-2dev.1"
 $commit = git rev-parse --short HEAD
-$image = "registry.example.com/ikik-api-custom:$version"
+$image = "registry.example.com/anl-api-custom:$version"
 
 docker build `
   --build-arg VERSION=$version `
   --build-arg COMMIT=$commit `
   -t $image `
-  -t registry.example.com/ikik-api-custom:latest `
+  -t registry.example.com/anl-api-custom:latest `
   .
 ```
 
@@ -287,15 +287,15 @@ docker build `
 ```bash
 VERSION=v0.1.122-2dev.1
 COMMIT=$(git rev-parse --short HEAD)
-IMAGE=registry.example.com/ikik-api-custom:$VERSION
+IMAGE=registry.example.com/anl-api-custom:$VERSION
 
-docker buildx create --use --name ikik-api-builder || true
+docker buildx create --use --name anlapi-builder || true
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   --build-arg VERSION=$VERSION \
   --build-arg COMMIT=$COMMIT \
   -t $IMAGE \
-  -t registry.example.com/ikik-api-custom:latest \
+  -t registry.example.com/anl-api-custom:latest \
   --push \
   .
 ```
@@ -304,8 +304,8 @@ docker buildx build \
 
 ```bash
 docker login registry.example.com
-docker push registry.example.com/ikik-api-custom:v0.1.122-2dev.1
-docker push registry.example.com/ikik-api-custom:latest
+docker push registry.example.com/anl-api-custom:v0.1.122-2dev.1
+docker push registry.example.com/anl-api-custom:latest
 ```
 
 镜像 tag 建议包含官方版本和二开构建序号，例如：
@@ -338,14 +338,14 @@ deploy/docker-compose.local.yml
 服务器目录示例：
 
 ```bash
-/opt/ikik-api
+/opt/anlapi
 ```
 
 准备部署文件：
 
 ```bash
-mkdir -p /opt/ikik-api
-cd /opt/ikik-api
+mkdir -p /opt/anlapi
+cd /opt/anlapi
 ```
 
 把仓库中的 `deploy/docker-compose.local.yml` 和 `deploy/.env.example` 上传到服务器。
@@ -375,8 +375,8 @@ openssl rand -hex 32
 
 ```yaml
 services:
-  ikik-api:
-    image: registry.example.com/ikik-api-custom:v0.1.122-2dev.1
+  anlapi:
+    image: registry.example.com/anl-api-custom:v0.1.122-2dev.1
 ```
 
 启动：
@@ -386,7 +386,7 @@ docker login registry.example.com
 docker compose -f docker-compose.local.yml -f docker-compose.override.yml pull
 docker compose -f docker-compose.local.yml -f docker-compose.override.yml up -d
 docker compose -f docker-compose.local.yml -f docker-compose.override.yml ps
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml logs -f ikik-api
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml logs -f anlapi
 ```
 
 健康检查：
@@ -406,14 +406,14 @@ curl -fsS http://127.0.0.1:8080/health
 进入服务器部署目录：
 
 ```bash
-cd /opt/ikik-api
+cd /opt/anlapi
 mkdir -p backups
 ```
 
 本地目录版备份：
 
 ```bash
-tar czf backups/ikik-api-files-$(date +%F-%H%M%S).tgz \
+tar czf backups/anl-api-files-$(date +%F-%H%M%S).tgz \
   .env docker-compose.local.yml docker-compose.override.yml data postgres_data redis_data
 ```
 
@@ -426,7 +426,7 @@ set +a
 
 docker compose -f docker-compose.local.yml -f docker-compose.override.yml exec -T postgres \
   pg_dump -U "${POSTGRES_USER:-ikik_api}" "${POSTGRES_DB:-ikik_api}" \
-  > backups/ikik-api-db-$(date +%F-%H%M%S).sql
+  > backups/anl-api-db-$(date +%F-%H%M%S).sql
 ```
 
 不要执行：
@@ -443,16 +443,16 @@ docker compose down -v
 
 ```yaml
 services:
-  ikik-api:
-    image: registry.example.com/ikik-api-custom:v0.1.122-2dev.1
+  anlapi:
+    image: registry.example.com/anl-api-custom:v0.1.122-2dev.1
 ```
 
 ### 3. 拉取并重建容器
 
 ```bash
 docker login registry.example.com
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml pull ikik-api
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml up -d ikik-api
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml pull anlapi
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml up -d anlapi
 ```
 
 只更新应用容器时，不需要重建 PostgreSQL 和 Redis。
@@ -461,7 +461,7 @@ docker compose -f docker-compose.local.yml -f docker-compose.override.yml up -d 
 
 ```bash
 docker compose -f docker-compose.local.yml -f docker-compose.override.yml ps
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml logs --tail=200 ikik-api
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml logs --tail=200 anlapi
 curl -fsS http://127.0.0.1:8080/health
 ```
 
@@ -477,23 +477,23 @@ curl -fsS http://127.0.0.1:8080/health
 回滚前先确认旧镜像 tag，例如：
 
 ```bash
-registry.example.com/ikik-api-custom:v0.1.121-2dev.1
+registry.example.com/anl-api-custom:v0.1.121-2dev.1
 ```
 
 修改 `docker-compose.override.yml`：
 
 ```yaml
 services:
-  ikik-api:
-    image: registry.example.com/ikik-api-custom:v0.1.121-2dev.1
+  anlapi:
+    image: registry.example.com/anl-api-custom:v0.1.121-2dev.1
 ```
 
 执行：
 
 ```bash
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml pull ikik-api
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml up -d ikik-api
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml logs --tail=200 ikik-api
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml pull anlapi
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml up -d anlapi
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml logs --tail=200 anlapi
 ```
 
 注意：如果新版本已经执行了不可逆数据库迁移，单纯回滚镜像可能不够。此时要结合升级前的数据库备份恢复。恢复生产数据库属于高风险操作，必须先确认影响范围和恢复点。
@@ -507,7 +507,7 @@ docker compose -f docker-compose.local.yml -f docker-compose.override.yml logs -
 ```bash
 cd deploy
 docker compose -f docker-compose.dev.yml up -d --build
-docker compose -f docker-compose.dev.yml logs -f ikik-api
+docker compose -f docker-compose.dev.yml logs -f anlapi
 ```
 
 这个方式适合测试，不建议作为正式生产部署方式。
@@ -519,20 +519,20 @@ docker compose -f docker-compose.dev.yml logs -f ikik-api
 如果 `docker-compose.local.yml` 或 `docker-compose.override.yml` 中仍是：
 
 ```yaml
-image: ikik-api:latest
+image: anl-api:latest
 ```
 
 说明正在使用官方镜像，不包含二开功能。改成自己的镜像：
 
 ```yaml
-image: registry.example.com/ikik-api-custom:v0.1.122-2dev.1
+image: registry.example.com/anl-api-custom:v0.1.122-2dev.1
 ```
 
 然后重新拉取并启动：
 
 ```bash
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml pull ikik-api
-docker compose -f docker-compose.local.yml -f docker-compose.override.yml up -d ikik-api
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml pull anlapi
+docker compose -f docker-compose.local.yml -f docker-compose.override.yml up -d anlapi
 ```
 
 ### 合并后如何确认二开差异还在
@@ -601,7 +601,7 @@ TOTP_ENCRYPTION_KEY
 
 - 镜像 tag 包含官方版本和二开构建号。
 - 镜像已推送到自己的镜像仓库。
-- 服务器 compose 使用自定义镜像，不使用 `ikik-api:latest`。
+- 服务器 compose 使用自定义镜像，不使用 `anl-api:latest`。
 
 部署阶段：
 

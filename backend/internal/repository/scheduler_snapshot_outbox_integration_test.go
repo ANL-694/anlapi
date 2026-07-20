@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

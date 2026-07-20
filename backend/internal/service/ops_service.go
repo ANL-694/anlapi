@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 var ErrOpsDisabled = infraerrors.NotFound("OPS_DISABLED", "Ops monitoring is disabled")

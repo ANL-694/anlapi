@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 type fakeModelAvailabilityDiagnoser struct {

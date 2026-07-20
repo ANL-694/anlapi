@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/service"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/service"
 	"github.com/imroc/req/v3"
 )
 

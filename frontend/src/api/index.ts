@@ -1,5 +1,5 @@
 /**
- * API Client for ikik-api Backend
+ * API Client for anl-api Backend
  * Central export point for all API modules
  */
 

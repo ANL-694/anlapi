@@ -5,8 +5,8 @@ package repository
 import (
 	"context"
 
-	"ikik-api/ent/authidentity"
-	"ikik-api/internal/service"
+	"anl-api/ent/authidentity"
+	"anl-api/internal/service"
 )
 
 func (s *UserRepoSuite) TestCreate_CreatesEmailAuthIdentityForNormalEmail() {

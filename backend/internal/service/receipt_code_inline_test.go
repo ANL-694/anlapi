@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 func TestReceiptCodeUploadFallsBackToInlineStorageWhenOSSNotConfigured(t *testing.T) {

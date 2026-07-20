@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

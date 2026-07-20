@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 type BatchImageWorkerRuntime struct {

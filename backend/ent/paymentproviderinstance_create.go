@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/paymentproviderinstance"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/paymentproviderinstance"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

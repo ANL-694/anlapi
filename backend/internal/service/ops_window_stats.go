@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 // GetWindowStats returns lightweight request/token counts for the provided window.

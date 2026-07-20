@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/tlsfingerprint"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/tlsfingerprint"
 )
 
 type modelSyncHTTPUpstream struct{}

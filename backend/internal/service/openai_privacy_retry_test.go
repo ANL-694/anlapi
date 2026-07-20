@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/require"
 )

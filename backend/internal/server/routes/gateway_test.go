@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"anl-api/internal/config"
+	"anl-api/internal/handler"
+	servermiddleware "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/handler"
-	servermiddleware "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
 )
 
 type gatewayRouteSettingRepo struct {

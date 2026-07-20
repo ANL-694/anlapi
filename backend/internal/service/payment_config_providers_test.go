@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/payment"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	"anl-api/internal/payment"
+	infraerrors "anl-api/internal/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -6,9 +6,9 @@ import (
 	"math"
 	"net/http"
 
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/util/logredact"
 	"github.com/gin-gonic/gin"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/util/logredact"
 )
 
 // Response 标准API响应格式

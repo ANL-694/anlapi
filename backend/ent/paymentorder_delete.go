@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/paymentorder"
+	"anl-api/ent/predicate"
 	"context"
-	"ikik-api/ent/paymentorder"
-	"ikik-api/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"

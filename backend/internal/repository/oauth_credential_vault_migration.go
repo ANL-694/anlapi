@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 type OAuthCredentialIsolationReport struct {

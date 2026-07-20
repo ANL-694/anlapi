@@ -3,13 +3,13 @@
 package ent
 
 import (
+	"anl-api/ent/identityadoptiondecision"
+	"anl-api/ent/pendingauthsession"
+	"anl-api/ent/predicate"
+	"anl-api/ent/user"
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"ikik-api/ent/identityadoptiondecision"
-	"ikik-api/ent/pendingauthsession"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/user"
 	"math"
 
 	"entgo.io/ent"

@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"anl-api/ent/securitysecret"
 	"fmt"
-	"ikik-api/ent/securitysecret"
 	"strings"
 	"time"
 

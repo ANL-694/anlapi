@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/timezone"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/timezone"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

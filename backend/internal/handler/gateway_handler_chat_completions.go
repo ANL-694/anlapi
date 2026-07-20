@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"time"
 
+	pkghttputil "anl-api/internal/pkg/httputil"
+	"anl-api/internal/pkg/ip"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"go.uber.org/zap"
-	pkghttputil "ikik-api/internal/pkg/httputil"
-	"ikik-api/internal/pkg/ip"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
 )
 
 // ChatCompletions handles OpenAI Chat Completions API endpoint for Anthropic platform groups.
@@ -173,6 +173,9 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 
 routeLoop:
 	for {
+		if failoverClientGone(c) {
+			return
+		}
 		routeCandidate, ok := routeCursor.current()
 		if !ok {
 			h.chatCompletionsErrorResponse(c, http.StatusServiceUnavailable, "api_error", "No available API key group routes")
@@ -213,6 +216,9 @@ routeLoop:
 		fs := NewFailoverState(h.maxAccountSwitches, false)
 
 		for {
+			if failoverClientGone(c) {
+				return
+			}
 			selection, err := h.gatewayService.SelectAccountWithLoadAwareness(routeCtx, currentAPIKey.GroupID, sessionHash, reqModel, fs.FailedAccountIDs, "", int64(0))
 			if err != nil {
 				if len(fs.FailedAccountIDs) == 0 {
@@ -305,6 +311,7 @@ routeLoop:
 						h.handleCCFailoverExhausted(c, fs.LastFailoverErr, streamStarted)
 						return
 					case FailoverCanceled:
+						failoverClientGone(c)
 						return
 					}
 				}

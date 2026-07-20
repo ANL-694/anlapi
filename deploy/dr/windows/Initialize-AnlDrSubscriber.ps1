@@ -6,7 +6,7 @@ param(
   [string]$ExpectedEd25519Fingerprint = 'SHA256:tB21a5escQPgvx4bwdMigwtgIbhGAE2wZxppCEzM3s4',
   [string]$ReplicationUser = 'anl_dr_replica',
   [securestring]$ReplicationPassword,
-  [string]$StandbyDatabase = 'anl_api_dr',
+  [string]$StandbyDatabase = 'anlapi_dr',
   [int]$TunnelPort = 55432,
   [switch]$Reinitialize,
   [int]$InitialCopyTimeoutMinutes = 180
@@ -154,7 +154,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Unable to drop the old standby database.' }
   }
   & $psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -v ON_ERROR_STOP=1 -c (
-    'CREATE DATABASE "' + $StandbyDatabase.Replace('"', '""') + '" OWNER anl_api'
+    'CREATE DATABASE "' + $StandbyDatabase.Replace('"', '""') + '" OWNER ikik_api'
   )
   if ($LASTEXITCODE -ne 0) { throw 'Unable to create the standby database.' }
 } finally {
@@ -171,7 +171,7 @@ try {
 
 $env:PGPASSWORD = $localPassword
 try {
-  & $pgRestore -h 127.0.0.1 -p 5432 -U anl_api -d $StandbyDatabase --no-owner --no-privileges $schemaDump
+  & $pgRestore -h 127.0.0.1 -p 5432 -U ikik_api -d $StandbyDatabase --no-owner --no-privileges $schemaDump
   if ($LASTEXITCODE -ne 0) { throw 'Unable to restore the standby schema.' }
 
   $connInfo = 'host=127.0.0.1 port=' + $TunnelPort + ' dbname=ikik_api user=' + $ReplicationUser + ' password=' + (Escape-ConnInfoValue $replicationPasswordText) + ' sslmode=disable'

@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"ikik-api/internal/handler"
-	"ikik-api/internal/handler/admin"
-	"ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/handler"
+	"anl-api/internal/handler/admin"
+	"anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

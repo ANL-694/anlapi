@@ -1,6 +1,6 @@
 package dto
 
-import "ikik-api/internal/service"
+import "anl-api/internal/service"
 
 // NotifyEmailEntry represents a notification email with enable/disable and verification state.
 // All emails are user-managed; maximum 3 entries per user.

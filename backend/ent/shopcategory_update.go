@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/shopcategory"
+	"anl-api/ent/shopproduct"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/shopcategory"
-	"ikik-api/ent/shopproduct"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

@@ -7,10 +7,10 @@ import (
 	"log"
 	"time"
 
-	_ "ikik-api/ent/runtime"
-	"ikik-api/internal/config"
-	"ikik-api/internal/repository"
-	"ikik-api/internal/service"
+	_ "anl-api/ent/runtime"
+	"anl-api/internal/config"
+	"anl-api/internal/repository"
+	"anl-api/internal/service"
 )
 
 func main() {

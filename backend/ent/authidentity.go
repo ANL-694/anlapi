@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/authidentity"
+	"anl-api/ent/user"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/user"
 	"strings"
 	"time"
 

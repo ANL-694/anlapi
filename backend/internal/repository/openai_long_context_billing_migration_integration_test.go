@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	dbmigrations "ikik-api/migrations"
+	dbmigrations "anl-api/migrations"
 	"github.com/stretchr/testify/require"
 )
 

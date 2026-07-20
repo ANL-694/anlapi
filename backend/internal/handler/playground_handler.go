@@ -11,13 +11,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/pkg/ip"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/response"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/pkg/ip"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/response"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

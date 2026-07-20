@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/idempotencyrecord"
+	"anl-api/ent/predicate"
 	"context"
 	"fmt"
-	"ikik-api/ent/idempotencyrecord"
-	"ikik-api/ent/predicate"
 	"math"
 
 	"entgo.io/ent"

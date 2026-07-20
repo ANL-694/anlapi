@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
 )
 
 type accountRepoStubForBulkUpdate struct {

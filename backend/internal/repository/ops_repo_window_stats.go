@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 func (r *opsRepository) GetWindowStats(ctx context.Context, filter *service.OpsDashboardFilter) (*service.OpsWindowStats, error) {

@@ -55,7 +55,7 @@ import { sanitizeUrl } from '@/utils/url'
 const { t } = useI18n()
 const appStore = useAppStore()
 
-const siteName = computed(() => appStore.siteName || 'ikik-api')
+const siteName = computed(() => appStore.siteName || 'anl-api')
 const siteLogo = computed(() => sanitizeUrl(appStore.siteLogo || '', { allowRelative: true, allowDataUrl: true }))
 const settingsLoaded = computed(() => appStore.publicSettingsLoaded)
 const currentYear = computed(() => new Date().getFullYear())

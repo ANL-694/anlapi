@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/logger"
 	"go.uber.org/zap"
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/logger"
 )
 
 const (

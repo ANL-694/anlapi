@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/apikey"
+	"anl-api/ent/apikeygrouproute"
+	"anl-api/ent/group"
 	"fmt"
-	"ikik-api/ent/apikey"
-	"ikik-api/ent/apikeygrouproute"
-	"ikik-api/ent/group"
 	"strings"
 	"time"
 

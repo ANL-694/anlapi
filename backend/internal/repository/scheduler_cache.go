@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"anl-api/internal/service"
 	"github.com/redis/go-redis/v9"
-	"ikik-api/internal/service"
 )
 
 const (

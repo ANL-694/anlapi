@@ -1,5 +1,5 @@
 # =============================================================================
-# ikik-api Docker Compose - Local Development Build
+# anl-api Docker Compose - Local Development Build
 # =============================================================================
 # Build from local source code for testing changes.
 #
@@ -9,11 +9,11 @@
 # =============================================================================
 
 services:
-  ikik-api:
+  anlapi:
     build:
       context: ..
       dockerfile: Dockerfile
-    container_name: ikik-api-dev
+    container_name: anlapi-dev
     restart: unless-stopped
     ports:
       - "${BIND_HOST:-127.0.0.1}:${SERVER_PORT:-8080}:8080"
@@ -36,7 +36,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ikik-api.local}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anl-api.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
       - JWT_SECRET=${JWT_SECRET:-}
@@ -48,7 +48,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - ikik-api-network
+      - anlapi-network
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 30s
@@ -58,7 +58,7 @@ services:
 
   postgres:
     image: postgres:18-alpine
-    container_name: ikik-api-postgres-dev
+    container_name: anlapi-postgres-dev
     restart: unless-stopped
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
@@ -69,7 +69,7 @@ services:
       - PGDATA=/var/lib/postgresql/data
       - TZ=${TZ:-Asia/Shanghai}
     networks:
-      - ikik-api-network
+      - anlapi-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ikik_api} -d ${POSTGRES_DB:-ikik_api}"]
       interval: 10s
@@ -79,7 +79,7 @@ services:
 
   redis:
     image: redis:8-alpine
-    container_name: ikik-api-redis-dev
+    container_name: anlapi-redis-dev
     restart: unless-stopped
     volumes:
       - ./redis_data:/data
@@ -94,7 +94,7 @@ services:
       - TZ=${TZ:-Asia/Shanghai}
       - REDISCLI_AUTH=${REDIS_PASSWORD:-}
     networks:
-      - ikik-api-network
+      - anlapi-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -103,5 +103,5 @@ services:
       start_period: 5s
 
 networks:
-  ikik-api-network:
+  anlapi-network:
     driver: bridge

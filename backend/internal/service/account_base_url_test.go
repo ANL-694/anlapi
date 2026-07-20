@@ -5,7 +5,7 @@ package service
 import (
 	"testing"
 
-	"ikik-api/internal/pkg/xai"
+	"anl-api/internal/pkg/xai"
 	"github.com/stretchr/testify/require"
 )
 

@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/util/httputil"
 	"github.com/tidwall/gjson"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/util/httputil"
 )
 
 // RateLimitService 处理限流和过载状态管理

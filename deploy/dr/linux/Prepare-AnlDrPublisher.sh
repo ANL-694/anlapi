@@ -5,7 +5,7 @@ mode="${1:-check}"
 database_name="${DR_DATABASE_NAME:-ikik_api}"
 replication_user="${DR_REPLICATION_USER:-anl_dr_replica}"
 database_owner="${DR_DATABASE_OWNER:-ikik_api}"
-app_service="${DR_APP_SERVICE:-ikik-api}"
+app_service="${DR_APP_SERVICE:-anlapi}"
 postgres_service="${DR_POSTGRES_SERVICE:-postgresql}"
 script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -64,7 +64,7 @@ configure_postgres() {
     exit 2
   fi
   local backup_dir
-  backup_dir="/opt/ikik-api/backups/dr-postgres-$(date -u +%Y%m%dT%H%M%SZ)"
+  backup_dir="/opt/anlapi/backups/dr-postgres-$(date -u +%Y%m%dT%H%M%SZ)"
   install -d -m 0700 "$backup_dir"
   sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d postgres -At <<'SQL' >"$backup_dir/before.txt"
 SELECT name || '=' || setting FROM pg_settings

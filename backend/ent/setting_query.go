@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/setting"
 	"context"
 	"fmt"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/setting"
 	"math"
 
 	"entgo.io/ent"

@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/userattributevalue"
 	"context"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/userattributevalue"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"

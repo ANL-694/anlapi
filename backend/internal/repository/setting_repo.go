@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"ikik-api/ent"
-	"ikik-api/ent/setting"
-	"ikik-api/internal/service"
+	"anl-api/ent"
+	"anl-api/ent/setting"
+	"anl-api/internal/service"
 )
 
 type settingRepository struct {

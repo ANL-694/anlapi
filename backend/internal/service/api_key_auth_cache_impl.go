@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/config"
 	"github.com/dgraph-io/ristretto"
-	"ikik-api/internal/config"
 )
 
 const apiKeyAuthSnapshotVersion = 16 // v16: include group peak, media, batch image, and web-search billing config

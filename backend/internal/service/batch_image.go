@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 const (

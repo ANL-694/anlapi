@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"ikik-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/apicompat"
 	"github.com/gin-gonic/gin"
 )
 

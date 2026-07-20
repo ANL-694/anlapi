@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
-	"ikik-api/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

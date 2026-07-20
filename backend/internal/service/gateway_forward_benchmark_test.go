@@ -15,8 +15,8 @@ import (
 	"strings"
 	"testing"
 
+	"anl-api/internal/config"
 	"github.com/gin-gonic/gin"
-	"ikik-api/internal/config"
 )
 
 func benchFwdRun(b *testing.B, header http.Header, upstreamBody string, reqBody string, stream bool) {

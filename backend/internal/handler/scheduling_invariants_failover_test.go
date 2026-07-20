@@ -29,11 +29,11 @@ import (
 	"sync"
 	"testing"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/pkg/tlsfingerprint"
-	middleware "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/pkg/tlsfingerprint"
+	middleware "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -569,7 +569,7 @@ func TestSchedulingInvariant_FailoverGemini_SwitchLimitLoopContract(t *testing.T
 	for i := 1; ; i++ {
 		require.LessOrEqual(t, i, 10, "防御：循环不应超过 10 次")
 		attempts++
-		action := fs.HandleFailoverError(context.Background(), mock, int64(i), service.PlatformGemini, newTestFailoverErr(500, false, false))
+		action := fs.HandleFailoverError(context.Background(), mock, int64(i), service.PlatformGemini, 0, newTestFailoverErr(500, false, false))
 		if action == FailoverExhausted {
 			break
 		}

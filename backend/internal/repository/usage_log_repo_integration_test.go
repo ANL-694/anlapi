@@ -11,11 +11,11 @@ import (
 
 	"github.com/google/uuid"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/timezone"
-	"ikik-api/internal/pkg/usagestats"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/timezone"
+	"anl-api/internal/pkg/usagestats"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

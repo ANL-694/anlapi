@@ -3,7 +3,7 @@ package service
 import (
 	"strings"
 
-	"ikik-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/apicompat"
 )
 
 func NormalizeOpenAICompatRequestedModel(model string) string {

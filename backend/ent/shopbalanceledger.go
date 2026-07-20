@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/shopbalanceledger"
+	"anl-api/ent/shopdrawcycle"
+	"anl-api/ent/shoporder"
+	"anl-api/ent/user"
 	"fmt"
-	"ikik-api/ent/shopbalanceledger"
-	"ikik-api/ent/shopdrawcycle"
-	"ikik-api/ent/shoporder"
-	"ikik-api/ent/user"
 	"strings"
 	"time"
 

@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/errorpassthroughrule"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/errorpassthroughrule"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

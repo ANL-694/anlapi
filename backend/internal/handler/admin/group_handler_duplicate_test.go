@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -58,7 +58,7 @@ func setupDuplicateGroupRouter(t *testing.T, svc service.AdminService) *gin.Engi
 		c.Set(string(middleware2.ContextKeyUser), middleware2.AuthSubject{UserID: 77})
 		c.Next()
 	})
-	handler := NewGroupHandler(svc, nil, nil)
+	handler := NewGroupHandler(svc, nil, nil, nil)
 	router.POST("/api/v1/admin/groups/:id/duplicate", handler.Duplicate)
 	return router
 }

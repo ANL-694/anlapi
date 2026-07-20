@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/pkg/xai"
+	"anl-api/internal/pkg/xai"
 )
 
 type grokOAuthClientStub struct {

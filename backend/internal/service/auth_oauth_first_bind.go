@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	entuser "ikik-api/ent/user"
+	dbent "anl-api/ent"
+	entuser "anl-api/ent/user"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

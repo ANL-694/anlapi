@@ -51,7 +51,7 @@ func RunCLI() error {
 
 	fmt.Println()
 	fmt.Println("╔═══════════════════════════════════════════╗")
-	fmt.Println("║       ikik-api Installation Wizard         ║")
+	fmt.Println("║       anl-api Installation Wizard         ║")
 	fmt.Println("╚═══════════════════════════════════════════╝")
 	fmt.Println()
 
@@ -231,7 +231,7 @@ func RunCLI() error {
 	fmt.Println("╚═══════════════════════════════════════════╝")
 	fmt.Println()
 	fmt.Println("Start the server with:")
-	fmt.Println("  ./ikik-api")
+	fmt.Println("  ./anlapi")
 	fmt.Println()
 	fmt.Printf("Admin panel: http://localhost:%d\n", cfg.Server.Port)
 	fmt.Println()

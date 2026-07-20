@@ -16,8 +16,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 // ─── Mocks ───

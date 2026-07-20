@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/util/logredact"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/util/logredact"
 )
 
 type OpsSystemLogSinkHealth struct {

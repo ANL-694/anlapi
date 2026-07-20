@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/plugin"
+	"anl-api/internal/plugin"
 )
 
 // stopTimeout 是 t.Cleanup 自动 Stop 的超时上限：模块 Stop 悬挂时，

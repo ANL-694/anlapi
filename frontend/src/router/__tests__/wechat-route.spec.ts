@@ -8,7 +8,7 @@ const authStore = vi.hoisted(() => ({
 }))
 
 const appStore = vi.hoisted(() => ({
-  siteName: 'ikik-api',
+  siteName: 'anl-api',
   backendModeEnabled: false,
   cachedPublicSettings: null as null | Record<string, unknown>,
 }))

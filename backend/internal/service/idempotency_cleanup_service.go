@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
 )
 
 // IdempotencyCleanupService 定期清理已过期的幂等记录，避免表无限增长。

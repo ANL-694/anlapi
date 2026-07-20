@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/enttest"
-	dbusagecleanuptask "ikik-api/ent/usagecleanuptask"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/enttest"
+	dbusagecleanuptask "anl-api/ent/usagecleanuptask"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

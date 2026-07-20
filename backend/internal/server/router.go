@@ -6,12 +6,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/handler"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/server/routes"
-	"ikik-api/internal/service"
-	"ikik-api/internal/web"
+	"anl-api/internal/config"
+	"anl-api/internal/handler"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/server/routes"
+	"anl-api/internal/service"
+	"anl-api/internal/web"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"

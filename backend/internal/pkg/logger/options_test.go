@@ -18,9 +18,9 @@ func TestResolveLogFilePath_Default(t *testing.T) {
 }
 
 func TestResolveLogFilePath_WithDataDir(t *testing.T) {
-	t.Setenv("DATA_DIR", "/tmp/ikik-api-data")
+	t.Setenv("DATA_DIR", "/tmp/anlapi-data")
 	got := resolveLogFilePath("")
-	want := filepath.Join("/tmp/ikik-api-data", "logs", "ikik-api.log")
+	want := filepath.Join("/tmp/anlapi-data", "logs", "anlapi.log")
 	if got != want {
 		t.Fatalf("resolveLogFilePath() = %q, want %q", got, want)
 	}
@@ -86,7 +86,7 @@ func TestBuildFileCore_InvalidPathFallback(t *testing.T) {
 	t.Setenv("DATA_DIR", "")
 	opts := bootstrapOptions()
 	opts.Output.ToFile = true
-	opts.Output.FilePath = filepath.Join(os.DevNull, "logs", "ikik-api.log")
+	opts.Output.FilePath = filepath.Join(os.DevNull, "logs", "anl-api.log")
 	encoderCfg := zapcore.EncoderConfig{
 		TimeKey:     "time",
 		LevelKey:    "level",

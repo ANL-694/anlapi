@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/ip"
+	"anl-api/internal/pkg/ip"
 )
 
 // API Key status constants

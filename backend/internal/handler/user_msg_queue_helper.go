@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

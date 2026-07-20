@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/service"
 	_ "github.com/lib/pq"
-	"ikik-api/internal/config"
-	"ikik-api/internal/service"
 )
 
 const oauthCredentialVaultSchema = `

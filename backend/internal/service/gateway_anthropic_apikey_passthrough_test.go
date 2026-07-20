@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/claude"
-	"ikik-api/internal/pkg/tlsfingerprint"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/claude"
+	"anl-api/internal/pkg/tlsfingerprint"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"

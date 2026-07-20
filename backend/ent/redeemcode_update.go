@@ -3,13 +3,13 @@
 package ent
 
 import (
+	"anl-api/ent/group"
+	"anl-api/ent/predicate"
+	"anl-api/ent/redeemcode"
+	"anl-api/ent/user"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/group"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/redeemcode"
-	"ikik-api/ent/user"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

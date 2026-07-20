@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/util/urlvalidator"
 	"go.uber.org/zap"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/util/urlvalidator"
 )
 
 var (

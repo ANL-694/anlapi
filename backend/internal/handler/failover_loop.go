@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/service"
 )
 
 // TempUnscheduler 用于 HandleFailoverError 中同账号重试耗尽后的临时封禁。

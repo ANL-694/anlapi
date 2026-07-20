@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ctxkey"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ctxkey"
 )
 
 func newGatewayRecordUsageServiceForTest(usageRepo UsageLogRepository, userRepo UserRepository, subRepo UserSubscriptionRepository) *GatewayService {

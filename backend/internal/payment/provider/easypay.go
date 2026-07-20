@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/payment"
+	"anl-api/internal/payment"
 )
 
 // EasyPay constants.

@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/pkg/pagination"
 	green20220302 "github.com/alibabacloud-go/green-20220302/v3/client"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/pkg/pagination"
 )
 
 type contentModerationTestSettingRepo struct {

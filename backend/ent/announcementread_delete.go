@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/announcementread"
+	"anl-api/ent/predicate"
 	"context"
-	"ikik-api/ent/announcementread"
-	"ikik-api/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"

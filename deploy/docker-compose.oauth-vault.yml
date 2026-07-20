@@ -1,12 +1,12 @@
 services:
-  ikik-api:
+  anlapi:
     depends_on:
       oauth-vault-postgres:
         condition: service_healthy
 
   oauth-vault-postgres:
     image: postgres:18-alpine
-    container_name: ikik-api-oauth-vault-postgres
+    container_name: anlapi-oauth-vault-postgres
     restart: unless-stopped
     environment:
       - PGDATA=/var/lib/postgresql/data
@@ -16,7 +16,7 @@ services:
     volumes:
       - oauth_vault_postgres_data:/var/lib/postgresql/data
     networks:
-      - ikik-api-network
+      - anlapi-network
     healthcheck:
       test:
         [

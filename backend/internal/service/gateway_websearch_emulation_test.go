@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/websearch"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/websearch"
 	"github.com/stretchr/testify/require"
 )
 

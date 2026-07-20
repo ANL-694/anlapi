@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"ikik-api/internal/pkg/oauth"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/pkg/xai"
+	"anl-api/internal/pkg/oauth"
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/pkg/xai"
 )
 
 // OpenAIOAuthClient interface for OpenAI OAuth operations

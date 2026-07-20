@@ -9,9 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/paymentorder"
-	"ikik-api/ent/paymentproviderinstance"
+	dbent "anl-api/ent"
+	"anl-api/ent/paymentorder"
+	"anl-api/ent/paymentproviderinstance"
 )
 
 // Strategy represents a load balancing strategy for provider instance selection.

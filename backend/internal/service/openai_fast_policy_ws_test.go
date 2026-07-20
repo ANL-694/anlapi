@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/apicompat"
-	"ikik-api/internal/pkg/claude"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/claude"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"

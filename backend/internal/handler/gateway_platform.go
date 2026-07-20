@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"ikik-api/internal/gatewayplatform"
-	"ikik-api/internal/service"
+	"anl-api/internal/gatewayplatform"
+	"anl-api/internal/service"
 )
 
 // ProvideGatewayPlatformRegistry 装配 /v1/messages 平台 Forward 分发注册表

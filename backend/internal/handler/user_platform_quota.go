@@ -3,9 +3,9 @@ package handler
 import (
 	"time"
 
-	"ikik-api/internal/handler/quotaview"
-	"ikik-api/internal/pkg/response"
-	middleware2 "ikik-api/internal/server/middleware"
+	"anl-api/internal/handler/quotaview"
+	"anl-api/internal/pkg/response"
+	middleware2 "anl-api/internal/server/middleware"
 
 	"github.com/gin-gonic/gin"
 )

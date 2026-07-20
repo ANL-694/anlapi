@@ -3,9 +3,9 @@ package admin
 import (
 	"strconv"
 
-	"ikik-api/internal/model"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
+	"anl-api/internal/model"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

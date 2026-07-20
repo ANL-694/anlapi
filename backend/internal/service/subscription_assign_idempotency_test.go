@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	dbent "anl-api/ent"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
 	"github.com/dgraph-io/ristretto"
 	"github.com/stretchr/testify/require"
-	dbent "ikik-api/ent"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
 )
 
 func TestWithSubscriptionUpdateTx_ReusesExistingTransaction(t *testing.T) {

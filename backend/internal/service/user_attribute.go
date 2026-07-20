@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 // Error definitions for user attribute operations

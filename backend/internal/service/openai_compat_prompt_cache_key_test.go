@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"ikik-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/apicompat"
 	"github.com/stretchr/testify/require"
 )
 

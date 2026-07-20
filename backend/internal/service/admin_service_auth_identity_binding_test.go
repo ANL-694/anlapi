@@ -7,11 +7,11 @@ import (
 	"database/sql"
 	"testing"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/authidentitychannel"
-	"ikik-api/ent/enttest"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	"anl-api/ent/authidentitychannel"
+	"anl-api/ent/enttest"
+	infraerrors "anl-api/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

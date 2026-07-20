@@ -11,7 +11,7 @@ import (
 	"time"
 	"unsafe"
 
-	"ikik-api/internal/pkg/servertiming"
+	"anl-api/internal/pkg/servertiming"
 	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/require"
 )

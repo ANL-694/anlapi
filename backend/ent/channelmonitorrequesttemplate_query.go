@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/channelmonitor"
+	"anl-api/ent/channelmonitorrequesttemplate"
+	"anl-api/ent/predicate"
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"ikik-api/ent/channelmonitor"
-	"ikik-api/ent/channelmonitorrequesttemplate"
-	"ikik-api/ent/predicate"
 	"math"
 
 	"entgo.io/ent"

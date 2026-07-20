@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/paymentauditlog"
+	"anl-api/ent/predicate"
 	"context"
 	"fmt"
-	"ikik-api/ent/paymentauditlog"
-	"ikik-api/ent/predicate"
 	"math"
 
 	"entgo.io/ent"

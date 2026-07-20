@@ -3,8 +3,8 @@ package handler
 import (
 	"strconv"
 
+	"anl-api/internal/service"
 	"go.uber.org/zap"
-	"ikik-api/internal/service"
 )
 
 const parseFailureSnippetLen = 256

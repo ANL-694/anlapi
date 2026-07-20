@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

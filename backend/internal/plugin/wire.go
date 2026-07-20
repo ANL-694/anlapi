@@ -4,9 +4,9 @@ import (
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 
-	ent "ikik-api/ent"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
+	ent "anl-api/ent"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
 )
 
 // ProviderSet 提供插件内核的依赖：modules: 配置子树、宿主能力面 Host

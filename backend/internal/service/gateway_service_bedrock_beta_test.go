@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 type betaPolicySettingRepoStub struct {

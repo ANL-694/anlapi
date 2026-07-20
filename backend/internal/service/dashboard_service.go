@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/usagestats"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/usagestats"
 )
 
 const (

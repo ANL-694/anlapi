@@ -3,7 +3,7 @@ package provider
 import (
 	"fmt"
 
-	"ikik-api/internal/payment"
+	"anl-api/internal/payment"
 )
 
 // ConstructorFunc builds a payment.Provider from an instance ID and decrypted config.

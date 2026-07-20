@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/service"
 )
 
 func setupAccountMixedChannelRouter(adminSvc *stubAdminService) *gin.Engine {

@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"ikik-api/internal/pkg/antigravity"
-	"ikik-api/internal/pkg/claude"
-	"ikik-api/internal/pkg/geminicli"
-	"ikik-api/internal/pkg/openai"
+	"anl-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/claude"
+	"anl-api/internal/pkg/geminicli"
+	"anl-api/internal/pkg/openai"
 )
 
 // TestDefaultModelIDsForPlatform 锁定四平台 + 未知平台兜底的 ID 来源

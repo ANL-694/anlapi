@@ -3,7 +3,7 @@
 package userallowedgroup
 
 import (
-	"ikik-api/ent/predicate"
+	"anl-api/ent/predicate"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

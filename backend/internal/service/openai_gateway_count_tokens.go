@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"ikik-api/internal/pkg/apicompat"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"

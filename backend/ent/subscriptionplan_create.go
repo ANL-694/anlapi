@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/subscriptionplan"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/subscriptionplan"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

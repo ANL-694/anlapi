@@ -11,8 +11,8 @@ describe('resolveDocumentTitle', () => {
   })
 
   it('站点名为空时，回退默认站点名', () => {
-    expect(resolveDocumentTitle('Dashboard', '')).toBe('Dashboard - ikik-api')
-    expect(resolveDocumentTitle(undefined, '   ')).toBe('ikik-api')
+    expect(resolveDocumentTitle('Dashboard', '')).toBe('Dashboard - anl-api')
+    expect(resolveDocumentTitle(undefined, '   ')).toBe('anl-api')
   })
 
   it('站点名变更时仅影响后续路由标题计算', () => {

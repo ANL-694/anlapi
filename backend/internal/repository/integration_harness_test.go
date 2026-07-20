@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
+	dbent "anl-api/ent"
+	_ "anl-api/ent/runtime"
+	"anl-api/internal/pkg/timezone"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	dbent "ikik-api/ent"
-	_ "ikik-api/ent/runtime"
-	"ikik-api/internal/pkg/timezone"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -64,7 +64,7 @@ func TestMain(m *testing.M) {
 	pgContainer, err := tcpostgres.Run(
 		ctx,
 		postgresImage,
-		tcpostgres.WithDatabase("ikik_api_test"),
+		tcpostgres.WithDatabase("anlapi_test"),
 		tcpostgres.WithUsername("postgres"),
 		tcpostgres.WithPassword("postgres"),
 		tcpostgres.BasicWaitStrategies(),

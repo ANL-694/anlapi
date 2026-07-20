@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 func TestBuildOpsSystemLogsWhere_WithClientRequestIDAndUserID(t *testing.T) {

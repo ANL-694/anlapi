@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/emailbroadcast"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/emailbroadcast"
 	"strings"
 	"time"
 

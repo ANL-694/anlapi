@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/openai"
+	"anl-api/internal/pkg/openai"
 
 	"github.com/google/uuid"
 )

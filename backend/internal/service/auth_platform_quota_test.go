@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/config"
+	dbent "anl-api/ent"
+	"anl-api/internal/config"
 
 	"github.com/stretchr/testify/require"
 )

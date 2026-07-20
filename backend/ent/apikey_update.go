@@ -3,15 +3,15 @@
 package ent
 
 import (
+	"anl-api/ent/apikey"
+	"anl-api/ent/apikeygrouproute"
+	"anl-api/ent/group"
+	"anl-api/ent/predicate"
+	"anl-api/ent/usagelog"
+	"anl-api/ent/user"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/apikey"
-	"ikik-api/ent/apikeygrouproute"
-	"ikik-api/ent/group"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/usagelog"
-	"ikik-api/ent/user"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

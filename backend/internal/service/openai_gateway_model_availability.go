@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 // DiagnoseModelAvailabilityForPlatform reports whether the requested model is

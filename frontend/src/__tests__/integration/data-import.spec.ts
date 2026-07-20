@@ -125,7 +125,7 @@ describe('ImportDataModal', () => {
     await checkboxes[1].setValue(true)
 
     const dataPayload = {
-      type: 'ikik-api-data',
+      type: 'anl-api-data',
       version: 1,
       proxies: [],
       accounts: [
@@ -187,9 +187,9 @@ describe('ImportDataModal', () => {
     await checkboxes[1].setValue(true)
 
     const input = wrapper.find('input[type="file"]')
-    const file = new File([JSON.stringify({ type: 'ikik-api-data', version: 1, proxies: [], accounts: [] })], 'data.json', { type: 'application/json' })
+    const file = new File([JSON.stringify({ type: 'anl-api-data', version: 1, proxies: [], accounts: [] })], 'data.json', { type: 'application/json' })
     Object.defineProperty(file, 'text', {
-      value: () => Promise.resolve(JSON.stringify({ type: 'ikik-api-data', version: 1, proxies: [], accounts: [] }))
+      value: () => Promise.resolve(JSON.stringify({ type: 'anl-api-data', version: 1, proxies: [], accounts: [] }))
     })
     Object.defineProperty(input.element, 'files', {
       value: [file]

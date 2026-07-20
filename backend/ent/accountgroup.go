@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/account"
+	"anl-api/ent/accountgroup"
+	"anl-api/ent/group"
 	"fmt"
-	"ikik-api/ent/account"
-	"ikik-api/ent/accountgroup"
-	"ikik-api/ent/group"
 	"strings"
 	"time"
 

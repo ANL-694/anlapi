@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 
-	"ikik-api/internal/plugin"
+	"anl-api/internal/plugin"
 )
 
 // Option 定制 NewHost 构造的 Host。Option 在 NewHost 内部被依次应用，

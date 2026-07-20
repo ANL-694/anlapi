@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 type withdrawalRepository struct {

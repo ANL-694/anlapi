@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/server/middleware"
 	"github.com/gin-gonic/gin"
-	"ikik-api/internal/server/middleware"
 )
 
 const (

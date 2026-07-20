@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 // TestPublicSettingsInjectionPayload_SchemaDoesNotDrift guarantees the SSR

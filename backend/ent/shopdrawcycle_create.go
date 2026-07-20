@@ -3,14 +3,14 @@
 package ent
 
 import (
+	"anl-api/ent/shopbalanceledger"
+	"anl-api/ent/shopdrawcycle"
+	"anl-api/ent/shoporder"
+	"anl-api/ent/shopproduct"
+	"anl-api/ent/user"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/shopbalanceledger"
-	"ikik-api/ent/shopdrawcycle"
-	"ikik-api/ent/shoporder"
-	"ikik-api/ent/shopproduct"
-	"ikik-api/ent/user"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

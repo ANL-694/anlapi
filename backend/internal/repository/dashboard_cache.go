@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -18,7 +18,7 @@ type dashboardCache struct {
 }
 
 func NewDashboardCache(rdb *redis.Client, cfg *config.Config) service.DashboardStatsCache {
-	prefix := "ikik-api:"
+	prefix := "anl-api:"
 	if cfg != nil {
 		prefix = strings.TrimSpace(cfg.Dashboard.KeyPrefix)
 	}

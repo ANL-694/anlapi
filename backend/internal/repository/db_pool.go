@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 type dbPoolSettings struct {

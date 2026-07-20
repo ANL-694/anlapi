@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/domain"
+	"anl-api/internal/domain"
 )
 
 var (

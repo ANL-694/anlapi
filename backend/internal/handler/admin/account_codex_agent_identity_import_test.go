@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

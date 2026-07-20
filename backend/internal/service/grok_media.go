@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"ikik-api/internal/util/responseheaders"
 )
 
 type GrokMediaEndpoint string

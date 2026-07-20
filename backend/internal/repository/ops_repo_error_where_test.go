@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 func TestBuildOpsErrorLogsWhere_QueryUsesQualifiedColumns(t *testing.T) {

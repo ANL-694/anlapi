@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/domain"
-	"ikik-api/internal/pkg/kiro"
-	"ikik-api/internal/pkg/openai_compat"
-	"ikik-api/internal/pkg/xai"
+	"anl-api/internal/config"
+	"anl-api/internal/domain"
+	"anl-api/internal/pkg/kiro"
+	"anl-api/internal/pkg/openai_compat"
+	"anl-api/internal/pkg/xai"
 )
 
 type Account struct {

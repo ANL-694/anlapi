@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/openai"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/openai"
 )
 
 // OpenAIOAuthService handles OpenAI OAuth authentication flows

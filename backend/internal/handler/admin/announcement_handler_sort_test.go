@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/logger"
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/logger"
 )
 
 // BindEmailIdentity verifies and binds a local email/password identity to the
@@ -124,7 +124,7 @@ func (s *AuthService) SendEmailIdentityBindCode(ctx context.Context, userID int6
 		return ErrServiceUnavailable
 	}
 
-	siteName := "ikik-api"
+	siteName := "anl-api"
 	if s.settingService != nil {
 		siteName = s.settingService.GetSiteName(ctx)
 	}

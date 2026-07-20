@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/service"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -104,4 +104,3 @@ func (s *receiptCodeOSSStore) PublicURL(key string) string {
 	}
 	return s.publicBaseURL + "/" + strings.TrimLeft(key, "/")
 }
-

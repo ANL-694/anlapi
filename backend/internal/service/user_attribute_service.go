@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 // UserAttributeService handles attribute management

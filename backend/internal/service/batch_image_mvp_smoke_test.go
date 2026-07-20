@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
 )
 
 func TestBatchImageMVPFlow(t *testing.T) {

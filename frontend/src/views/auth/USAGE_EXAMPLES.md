@@ -1,6 +1,6 @@
 # Authentication Views Usage Examples
 
-This document provides practical examples of how to use the authentication views in the ikik-api frontend.
+This document provides practical examples of how to use the authentication views in the anl-api frontend.
 
 ## Quick Start
 
@@ -61,7 +61,7 @@ This document provides practical examples of how to use the authentication views
 // - On success:
 //   - Token stored in localStorage
 //   - User data stored in state
-//   - Success toast: "Account created successfully! Welcome to ikik-api."
+//   - Success toast: "Account created successfully! Welcome to anl-api."
 //   - Redirect to /dashboard
 // - On error:
 //   - Error message displayed inline

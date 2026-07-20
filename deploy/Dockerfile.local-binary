@@ -3,7 +3,7 @@ FROM ${BASE_IMAGE}
 
 USER root
 
-COPY --chown=ikik-api:ikik-api backend/bin/ikik-api-linux-amd64 /app/ikik-api
-COPY --chown=ikik-api:ikik-api backend/resources /app/resources
+COPY --chown=anlapi:anlapi backend/bin/anlapi-linux-amd64 /app/anlapi
+COPY --chown=anlapi:anlapi backend/resources /app/resources
 
-RUN chmod 0755 /app/ikik-api
+RUN chmod 0755 /app/anlapi

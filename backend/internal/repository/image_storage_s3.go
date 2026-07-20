@@ -9,9 +9,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/servertiming"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/servertiming"
+	"anl-api/internal/service"
 )
 
 // S3ImageStorage 用 S3 兼容对象存储实现 service.ImageStorage。

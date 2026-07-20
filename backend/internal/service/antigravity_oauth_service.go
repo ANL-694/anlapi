@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/antigravity"
 )
 
 type AntigravityOAuthService struct {

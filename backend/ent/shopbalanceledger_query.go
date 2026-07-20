@@ -3,13 +3,13 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/shopbalanceledger"
+	"anl-api/ent/shopdrawcycle"
+	"anl-api/ent/shoporder"
+	"anl-api/ent/user"
 	"context"
 	"fmt"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/shopbalanceledger"
-	"ikik-api/ent/shopdrawcycle"
-	"ikik-api/ent/shoporder"
-	"ikik-api/ent/user"
 	"math"
 
 	"entgo.io/ent"

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
 )
 
 func TestRateLimitService_HandleUpstreamError_OpenAI403FirstHitTempUnschedulable(t *testing.T) {

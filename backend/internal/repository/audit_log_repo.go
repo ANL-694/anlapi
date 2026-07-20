@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 	"github.com/lib/pq"
 )
 

@@ -2180,7 +2180,7 @@ const executeCcsImport = (row: ApiKey, clientType: 'claude' | 'gemini') => {
       };
     }
   })`
-  const providerName = (publicSettings.value?.site_name || 'ikik-api').trim() || 'ikik-api'
+  const providerName = (publicSettings.value?.site_name || 'anl-api').trim() || 'anl-api'
 
   const deeplink = buildCcSwitchImportDeeplink({
     baseUrl,

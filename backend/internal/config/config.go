@@ -159,6 +159,9 @@ type UpdateConfig struct {
 	// 支持 http/https/socks5/socks5h 协议
 	// 例如: "http://127.0.0.1:7890", "socks5://127.0.0.1:1080"
 	ProxyURL string `mapstructure:"proxy_url"`
+	// GitHubToken 用于访问私有仓库的 Release；为空时保持匿名访问。
+	// 该字段只从配置/环境变量读取，不应写入日志或接口响应。
+	GitHubToken string `mapstructure:"github_token" json:"-"`
 }
 
 type ReceiptCodeStorageConfig struct {
@@ -984,6 +987,12 @@ type GatewayOpenAIWSConfig struct {
 	StoreDisabledForceNewConn bool `mapstructure:"store_disabled_force_new_conn"`
 	// PrewarmGenerateEnabled: 是否启用 WSv2 generate=false 预热（默认 false）
 	PrewarmGenerateEnabled bool `mapstructure:"prewarm_generate_enabled"`
+	// ClientReadLimitBytes: 入站客户端 WS 单帧读取上限。
+	ClientReadLimitBytes int64 `mapstructure:"client_read_limit_bytes"`
+	// HTTPBridgeEnabled: 首包过大时，保持客户端 WS，改用 HTTP Responses 上游。
+	HTTPBridgeEnabled bool `mapstructure:"http_bridge_enabled"`
+	// HTTPBridgeThresholdBytes: 触发 HTTP bridge 的入站 WS payload 阈值。
+	HTTPBridgeThresholdBytes int64 `mapstructure:"http_bridge_threshold_bytes"`
 
 	// Feature 开关：v2 优先于 v1
 	ResponsesWebsockets   bool `mapstructure:"responses_websockets"`
@@ -1525,7 +1534,12 @@ func load(allowMissingJWTSecret bool) (*Config, error) {
 	viper.AddConfigPath(".")
 	// 4. Config subdirectory
 	viper.AddConfigPath("./config")
-	// 5. System config directory
+	// 5. System config directory. Use an ASCII runtime slug without a hyphen;
+	// the branded project name remains anl-api in user-facing surfaces.
+	viper.AddConfigPath("/etc/anlapi")
+	// Compatibility paths for installations created before the runtime slug
+	// was normalized. Keep both below /etc/anlapi so new config wins.
+	viper.AddConfigPath("/etc/anl-api")
 	viper.AddConfigPath("/etc/ikik-api")
 
 	// 环境变量支持
@@ -1733,7 +1747,7 @@ func setDefaults() {
 	// Log
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.format", "console")
-	viper.SetDefault("log.service_name", "ikik-api")
+	viper.SetDefault("log.service_name", "anlapi")
 	viper.SetDefault("log.env", "production")
 	viper.SetDefault("log.caller", true)
 	viper.SetDefault("log.stacktrace_level", "error")
@@ -1857,6 +1871,7 @@ func setDefaults() {
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.user", "postgres")
 	viper.SetDefault("database.password", "postgres")
+	// Keep the production database identity until a coordinated database rename.
 	viper.SetDefault("database.dbname", "ikik_api")
 	viper.SetDefault("database.sslmode", "prefer")
 	viper.SetDefault("database.max_open_conns", 256)
@@ -1936,6 +1951,11 @@ func setDefaults() {
 	viper.SetDefault("pricing.update_interval_hours", 24)
 	viper.SetDefault("pricing.hash_check_interval_minutes", 10)
 
+	// Online update access. A token is required only when the release
+	// repository is private; keep the anonymous path working for public repos.
+	viper.SetDefault("update.proxy_url", "")
+	viper.SetDefault("update.github_token", "")
+
 	// Timezone (default to Asia/Shanghai for Chinese users)
 	viper.SetDefault("timezone", "Asia/Shanghai")
 
@@ -1954,7 +1974,7 @@ func setDefaults() {
 
 	// Dashboard cache
 	viper.SetDefault("dashboard_cache.enabled", true)
-	viper.SetDefault("dashboard_cache.key_prefix", "ikik-api:")
+	viper.SetDefault("dashboard_cache.key_prefix", "anlapi:")
 	viper.SetDefault("dashboard_cache.stats_fresh_ttl_seconds", 15)
 	viper.SetDefault("dashboard_cache.stats_ttl_seconds", 30)
 	viper.SetDefault("dashboard_cache.stats_refresh_timeout_seconds", 30)
@@ -2101,6 +2121,9 @@ func setDefaults() {
 	viper.SetDefault("gateway.openai_ws.store_disabled_conn_mode", "strict")
 	viper.SetDefault("gateway.openai_ws.store_disabled_force_new_conn", true)
 	viper.SetDefault("gateway.openai_ws.prewarm_generate_enabled", false)
+	viper.SetDefault("gateway.openai_ws.client_read_limit_bytes", 64*1024*1024)
+	viper.SetDefault("gateway.openai_ws.http_bridge_enabled", true)
+	viper.SetDefault("gateway.openai_ws.http_bridge_threshold_bytes", 15*1024*1024)
 	viper.SetDefault("gateway.openai_ws.responses_websockets", false)
 	viper.SetDefault("gateway.openai_ws.responses_websockets_v2", true)
 	viper.SetDefault("gateway.openai_ws.max_conns_per_account", 128)
@@ -2987,6 +3010,15 @@ func (c *Config) Validate() error {
 	if c.Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey < 0 {
 		return fmt.Errorf("gateway.openai_ws.max_ingress_connections_per_api_key must be non-negative")
 	}
+	if c.Gateway.OpenAIWS.ClientReadLimitBytes <= 0 {
+		return fmt.Errorf("gateway.openai_ws.client_read_limit_bytes must be positive")
+	}
+	if c.Gateway.OpenAIWS.HTTPBridgeThresholdBytes < 0 {
+		return fmt.Errorf("gateway.openai_ws.http_bridge_threshold_bytes must be non-negative")
+	}
+	if c.Gateway.OpenAIWS.HTTPBridgeEnabled && c.Gateway.OpenAIWS.HTTPBridgeThresholdBytes == 0 {
+		return fmt.Errorf("gateway.openai_ws.http_bridge_threshold_bytes must be positive when http_bridge_enabled is true")
+	}
 	if c.Gateway.OpenAIWS.MinIdlePerAccount < 0 {
 		return fmt.Errorf("gateway.openai_ws.min_idle_per_account must be non-negative")
 	}
@@ -3295,6 +3327,8 @@ func GetServerAddress() string {
 	v.SetConfigType("yaml")
 	v.AddConfigPath(".")
 	v.AddConfigPath("./config")
+	v.AddConfigPath("/etc/anlapi")
+	v.AddConfigPath("/etc/anl-api")
 	v.AddConfigPath("/etc/ikik-api")
 
 	// Support SERVER_HOST and SERVER_PORT environment variables

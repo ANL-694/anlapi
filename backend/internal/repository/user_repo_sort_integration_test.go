@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 )
 
 func (s *UserRepoSuite) mustInsertUsageLog(userID int64, createdAt time.Time) {

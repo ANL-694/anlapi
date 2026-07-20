@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	pkghttputil "ikik-api/internal/pkg/httputil"
-	"ikik-api/internal/pkg/logger"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	infraerrors "anl-api/internal/pkg/errors"
+	pkghttputil "anl-api/internal/pkg/httputil"
+	"anl-api/internal/pkg/logger"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

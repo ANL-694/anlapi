@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/timezone"
 	"golang.org/x/sync/singleflight"
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/timezone"
 )
 
 // 错误定义

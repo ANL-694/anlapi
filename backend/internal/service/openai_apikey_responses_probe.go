@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/pkg/openai_compat"
 	"github.com/tidwall/gjson"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/pkg/openai_compat"
 )
 
 const openaiResponsesProbeTimeout = 15 * time.Second

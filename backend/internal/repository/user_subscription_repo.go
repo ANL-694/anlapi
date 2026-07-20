@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/group"
-	"ikik-api/ent/schema/mixins"
-	"ikik-api/ent/usersubscription"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/group"
+	"anl-api/ent/schema/mixins"
+	"anl-api/ent/usersubscription"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 )
 
 type userSubscriptionRepository struct {

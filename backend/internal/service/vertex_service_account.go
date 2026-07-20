@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/pkg/proxyurl"
+	"anl-api/internal/pkg/proxyutil"
+	"anl-api/internal/pkg/servertiming"
 	"github.com/golang-jwt/jwt/v5"
-	"ikik-api/internal/pkg/proxyurl"
-	"ikik-api/internal/pkg/proxyutil"
-	"ikik-api/internal/pkg/servertiming"
 )
 
 const (

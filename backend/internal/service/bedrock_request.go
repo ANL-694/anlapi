@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"ikik-api/internal/domain"
+	"anl-api/internal/domain"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

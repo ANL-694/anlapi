@@ -22,7 +22,7 @@ const (
 	quotaDimWeekly = "weekly"
 	quotaDimTotal  = "total"
 
-	defaultSiteName = "ikik-api"
+	defaultSiteName = "anl-api"
 )
 
 // quotaDimLabels maps dimension names to display labels.

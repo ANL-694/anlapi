@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"anl-api/internal/pkg/kirocooldown"
+	"anl-api/internal/pkg/logger"
 	"go.uber.org/zap"
-	"ikik-api/internal/pkg/kirocooldown"
-	"ikik-api/internal/pkg/logger"
 )
 
 var errKiroCooldownStoreUnavailable = errors.New("kiro cooldown store unavailable")

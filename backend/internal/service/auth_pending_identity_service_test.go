@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/enttest"
-	"ikik-api/ent/identityadoptiondecision"
+	dbent "anl-api/ent"
+	"anl-api/ent/enttest"
+	"anl-api/ent/identityadoptiondecision"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/pkg/usagestats"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/pkg/usagestats"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/stretchr/testify/require"
 )

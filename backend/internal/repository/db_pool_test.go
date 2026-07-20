@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/lib/pq"

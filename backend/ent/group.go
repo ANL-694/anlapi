@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/group"
+	"anl-api/internal/domain"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/group"
-	"ikik-api/internal/domain"
 	"strings"
 	"time"
 

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/pagination"
 )
 
 type systemImageKeyRepoStub struct {

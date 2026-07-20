@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	dbent "anl-api/ent"
+	"anl-api/ent/channelmonitor"
+	"anl-api/ent/channelmonitorrequesttemplate"
+	"anl-api/internal/service"
 	"github.com/lib/pq"
-	dbent "ikik-api/ent"
-	"ikik-api/ent/channelmonitor"
-	"ikik-api/ent/channelmonitorrequesttemplate"
-	"ikik-api/internal/service"
 )
 
 // channelMonitorRequestTemplateRepository 实现 service.ChannelMonitorRequestTemplateRepository。

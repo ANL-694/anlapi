@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/httpclient"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/httpclient"
+	"anl-api/internal/service"
 )
 
 type pricingRemoteClient struct {

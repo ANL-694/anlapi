@@ -5,9 +5,9 @@ package repository
 import (
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/usagestats"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/usagestats"
+	"anl-api/internal/service"
 	"github.com/google/uuid"
 )
 

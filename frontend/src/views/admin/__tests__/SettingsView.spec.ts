@@ -308,7 +308,7 @@ const baseSettingsResponse = {
   default_balance: 0,
   default_concurrency: 1,
   default_subscriptions: [],
-  site_name: "ikik-api",
+  site_name: "anl-api",
   site_logo: "",
   site_subtitle: "",
   api_base_url: "",
@@ -569,10 +569,10 @@ describe("admin SettingsView payment visible method controls", () => {
 
     expect(paymentLinks).toHaveLength(2);
     expect(paymentLinks[0]?.attributes("href")).toBe(
-      "https://github.com/wenyi401/ikik-api/blob/main/docs/PAYMENT_CN.md",
+      "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT_CN.md",
     );
     expect(paymentLinks[1]?.attributes("href")).toBe(
-      "https://github.com/wenyi401/ikik-api/blob/main/docs/PAYMENT_CN.md#支持的支付方式",
+      "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT_CN.md#支持的支付方式",
     );
     for (const link of paymentLinks) {
       expect(link.attributes("href")).toContain("docs/PAYMENT");

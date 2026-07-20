@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"anl-api/internal/handler"
+	"anl-api/internal/securityaudit"
+	servermiddleware "anl-api/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/handler"
-	"ikik-api/internal/securityaudit"
-	servermiddleware "ikik-api/internal/server/middleware"
 )
 
 func TestEveryGatewayPOSTRouteIsClassifiedForPromptAuditCoverage(t *testing.T) {

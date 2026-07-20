@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/pkg/logger"
 	gocache "github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
 )

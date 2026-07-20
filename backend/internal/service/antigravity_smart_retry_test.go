@@ -3,10 +3,10 @@
 package service
 
 import (
+	"anl-api/internal/pkg/tlsfingerprint"
 	"bytes"
 	"context"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/pkg/tlsfingerprint"
 	"io"
 	"net/http"
 	"strings"

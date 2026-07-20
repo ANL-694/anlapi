@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/service"
 	"github.com/redis/go-redis/v9"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/service"
 )
 
 // 并发控制缓存常量定义

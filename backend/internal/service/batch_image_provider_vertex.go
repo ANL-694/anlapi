@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 const (

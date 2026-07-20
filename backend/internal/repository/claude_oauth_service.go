@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/oauth"
-	"ikik-api/internal/pkg/proxyurl"
-	"ikik-api/internal/service"
-	"ikik-api/internal/util/logredact"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/oauth"
+	"anl-api/internal/pkg/proxyurl"
+	"anl-api/internal/service"
+	"anl-api/internal/util/logredact"
 
 	"github.com/imroc/req/v3"
 )

@@ -1,6 +1,6 @@
 package service
 
-import "ikik-api/internal/domain"
+import "anl-api/internal/domain"
 
 // Status constants
 const (

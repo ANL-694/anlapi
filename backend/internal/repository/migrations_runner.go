@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/migrations"
+	"anl-api/migrations"
 )
 
 // schemaMigrationsTableDDL 定义迁移记录表的 DDL。

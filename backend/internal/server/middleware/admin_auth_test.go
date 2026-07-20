@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -96,7 +96,7 @@ func TestAdminAuthJWTValidatesTokenVersion(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/t", nil)
 		req.Header.Set("Upgrade", "websocket")
 		req.Header.Set("Connection", "Upgrade")
-		req.Header.Set("Sec-WebSocket-Protocol", "ikik-api-admin, jwt."+token)
+		req.Header.Set("Sec-WebSocket-Protocol", "anl-api-admin, jwt."+token)
 		router.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusUnauthorized, w.Code)
@@ -116,7 +116,7 @@ func TestAdminAuthJWTValidatesTokenVersion(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/t", nil)
 		req.Header.Set("Upgrade", "websocket")
 		req.Header.Set("Connection", "Upgrade")
-		req.Header.Set("Sec-WebSocket-Protocol", "ikik-api-admin, jwt."+token)
+		req.Header.Set("Sec-WebSocket-Protocol", "anl-api-admin, jwt."+token)
 		router.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusOK, w.Code)
@@ -136,6 +136,10 @@ func (s *stubUserRepo) GetByID(ctx context.Context, id int64) (*service.User, er
 		panic("GetByID not stubbed")
 	}
 	return s.getByID(ctx, id)
+}
+
+func (s *stubUserRepo) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	return s.GetByID(ctx, id)
 }
 
 func (s *stubUserRepo) GetByEmail(ctx context.Context, email string) (*service.User, error) {

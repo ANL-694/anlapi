@@ -11,7 +11,7 @@ Both LoginView and RegisterView use the AuthLayout component, which provides:
 │                                             │
 │  ┌─────────────────────────────────────┐   │
 │  │                                     │   │
-│  │         ikik-api Logo                │   │
+│  │         anl-api Logo                │   │
 │  │  "Subscription to API Conversion"   │   │
 │  │                                     │   │
 │  └─────────────────────────────────────┘   │
@@ -39,7 +39,7 @@ Centered: Both horizontally and vertically
 ```
 ┌─────────────────────────────────────────────┐
 │                                             │
-│         🔷 ikik-api                          │
+│         🔷 anl-api                          │
 │       AI API 接入与用量管理平台             │
 │                                             │
 │  ┌─────────────────────────────────────┐   │
@@ -133,13 +133,13 @@ Centered: Both horizontally and vertically
 ```
 ┌─────────────────────────────────────────────┐
 │                                             │
-│         🔷 ikik-api                          │
+│         🔷 anl-api                          │
 │       AI API 接入与用量管理平台             │
 │                                             │
 │  ┌─────────────────────────────────────┐   │
 │  │                                     │   │
 │  │        Create Account               │   │
-│  │     Sign up to start using ikik-api  │   │
+│  │     Sign up to start using anl-api  │   │
 │  │                                     │   │
 │  │  Username                           │   │
 │  │  ┌────────────────────────────────┐ │   │

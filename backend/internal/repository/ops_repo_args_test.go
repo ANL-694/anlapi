@@ -6,8 +6,8 @@ import (
 	"database/sql"
 	"testing"
 
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/service"
 )
 
 func TestOpsInsertErrorLogArgsPreservesExplicitZeroUpstreamStatus(t *testing.T) {

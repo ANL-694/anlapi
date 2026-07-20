@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 func (r *opsRepository) InsertSystemMetrics(ctx context.Context, input *service.OpsInsertSystemMetricsInput) error {

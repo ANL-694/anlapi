@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

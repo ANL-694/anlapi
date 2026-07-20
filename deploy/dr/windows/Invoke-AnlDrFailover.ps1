@@ -2,7 +2,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$PrimaryFenceConfirmation,
   [string]$AppRoot = 'D:\anl-api',
-  [string]$DatabaseName = 'anl_api_dr',
+  [string]$DatabaseName = 'anlapi_dr',
   [int]$MaximumReplicationAgeSeconds = 120,
   [switch]$AllowStaleReplica
 )
@@ -41,7 +41,7 @@ Stop-ScheduledTask -TaskName 'ANL-API' -ErrorAction SilentlyContinue
 $values = Read-EnvFile $envPath
 $env:PGPASSWORD = $values['DATABASE_PASSWORD']
 try {
-  $subscription = & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -At -F '|' -v ON_ERROR_STOP=1 -c (
+  $subscription = & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -At -F '|' -v ON_ERROR_STOP=1 -c (
     "SELECT CASE WHEN pid IS NULL THEN 'stopped' ELSE 'streaming' END, COALESCE(EXTRACT(EPOCH FROM (clock_timestamp() - last_msg_receipt_time))::bigint, -1), COALESCE(received_lsn::text, ''), COALESCE(latest_end_lsn::text, '') FROM pg_stat_subscription WHERE subname = 'anl_us_to_cn' AND relid IS NULL"
   )
   if ($LASTEXITCODE -ne 0) { throw 'Unable to read subscription state.' }
@@ -57,14 +57,14 @@ try {
   & $psql -h 127.0.0.1 -p 5432 -U postgres -d $DatabaseName -v ON_ERROR_STOP=1 -c 'ALTER SUBSCRIPTION anl_us_to_cn DISABLE'
   if ($LASTEXITCODE -ne 0) { throw 'Unable to disable the logical subscription.' }
   Start-Sleep -Seconds 3
-  & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -v ON_ERROR_STOP=1 -f $sequenceSql
+  & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -v ON_ERROR_STOP=1 -f $sequenceSql
   if ($LASTEXITCODE -ne 0) { throw 'Final sequence calibration failed.' }
 
-  $sensitiveRows = & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -c (
+  $sensitiveRows = & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -c (
     "SELECT count(*) FROM accounts WHERE deleted_at IS NULL AND type IN ('oauth','setup-token') AND (credentials ? 'access_token' OR credentials ? 'refresh_token' OR credentials ? 'id_token' OR credentials ? 'cookie')"
   )
   if ($LASTEXITCODE -ne 0 -or $sensitiveRows -ne '0') { throw 'OAuth secrets are present in the domestic core database.' }
-  $pendingPayments = & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM payment_orders WHERE status = 'pending'"
+  $pendingPayments = & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM payment_orders WHERE status = 'pending'"
 } finally {
   Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
 }

@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/util/logredact"
-	"ikik-api/internal/util/urlvalidator"
+	"anl-api/internal/util/logredact"
+	"anl-api/internal/util/urlvalidator"
 )
 
 const (

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/group"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/group"
+	"anl-api/internal/service"
 )
 
 func ensureSimpleModeDefaultGroups(ctx context.Context, client *dbent.Client) error {

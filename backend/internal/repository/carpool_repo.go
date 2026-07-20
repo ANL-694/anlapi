@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/internal/service"
 
 	"github.com/lib/pq"
 )

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"ikik-api/internal/pkg/ctxkey"
+	"anl-api/internal/pkg/ctxkey"
 )
 
 // ClaudeCodeValidator 验证请求是否来自 Claude Code 客户端

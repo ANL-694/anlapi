@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"anl-api/internal/plugin"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/plugin"
 )
 
 type moduleStatusSourceStub struct {

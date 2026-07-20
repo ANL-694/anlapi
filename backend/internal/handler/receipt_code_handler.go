@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"anl-api/internal/pkg/response"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
-	"ikik-api/internal/pkg/response"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
 )
 
 const receiptCodeMultipartField = "file"

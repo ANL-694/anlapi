@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"anl-api/internal/service"
 	"github.com/lib/pq"
-	"ikik-api/internal/service"
 )
 
 func (r *accountRepository) oauthVaultMode() service.OAuthCredentialVaultMode {

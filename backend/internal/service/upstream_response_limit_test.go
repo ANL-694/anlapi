@@ -6,7 +6,7 @@ import (
 	"testing"
 	"testing/iotest"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

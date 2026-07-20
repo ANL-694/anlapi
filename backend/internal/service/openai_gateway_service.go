@@ -20,20 +20,20 @@ import (
 	"sync/atomic"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/openai"
+	"anl-api/internal/pkg/timezone"
+	"anl-api/internal/pkg/xai"
+	"anl-api/internal/util/responseheaders"
+	"anl-api/internal/util/urlvalidator"
 	"github.com/cespare/xxhash/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"go.uber.org/zap"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/apicompat"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/openai"
-	"ikik-api/internal/pkg/timezone"
-	"ikik-api/internal/pkg/xai"
-	"ikik-api/internal/util/responseheaders"
-	"ikik-api/internal/util/urlvalidator"
 )
 
 const (
@@ -262,6 +262,9 @@ type OpenAIForwardResult struct {
 	VideoResolution       string
 	VideoDurationSeconds  int
 	WebSearchCalls        int
+
+	wsReplayInput       []json.RawMessage
+	wsReplayInputExists bool
 }
 
 // SucceededForScheduling reports whether this result is an upstream success
@@ -2601,6 +2604,19 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 	if normalized {
 		body = normalizedBody
 	}
+	if account.IsOpenAIOAuth() && isOpenAIResponsesLiteHeader(c.GetHeader(responsesLiteHeader)) {
+		liteBody, changed, liteErr := normalizeOpenAIResponsesLiteToolsPayload(body)
+		if liteErr != nil {
+			setOpsUpstreamError(c, http.StatusBadRequest, liteErr.Error(), "")
+			c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{
+				"type": "invalid_request_error", "message": liteErr.Error(), "param": "tools",
+			}})
+			return nil, liteErr
+		}
+		if changed {
+			body = liteBody
+		}
+	}
 	wsDecision := s.getOpenAIWSProtocolResolver().Resolve(account)
 	clientTransport := GetOpenAIClientTransport(c)
 	wsDecision = resolveOpenAIWSDecisionByClientTransport(wsDecision, clientTransport)
@@ -4427,7 +4443,7 @@ func (s *OpenAIGatewayService) handleNonStreamingResponsePassthrough(
 	}
 
 	// Detect SSE responses from upstream and convert to JSON.
-	// Some upstreams (e.g. other ikik-api instances) may return SSE even when
+	// Some upstreams (e.g. other anl-api instances) may return SSE even when
 	// stream=false was requested. Without this conversion the client would
 	// receive raw SSE text or a terminal event with empty output.
 	if isEventStreamResponse(resp.Header) {
@@ -5719,7 +5735,7 @@ func (s *OpenAIGatewayService) handleNonStreamingResponse(ctx context.Context, r
 	}
 
 	// Detect SSE responses for ALL account types via Content-Type header.
-	// Some OpenAI-compatible upstreams (including other ikik-api instances)
+	// Some OpenAI-compatible upstreams (including other anl-api instances)
 	// may return SSE even when stream=false was requested.
 	if isEventStreamResponse(resp.Header) {
 		usage, err := s.handleSSEToJSON(ctx, resp, c, account, body, originalModel, mappedModel)

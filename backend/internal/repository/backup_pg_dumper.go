@@ -6,8 +6,8 @@ import (
 	"io"
 	"os/exec"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/service"
 )
 
 // PgDumper implements service.DBDumper using pg_dump/psql

@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
-	"ikik-api/internal/payment"
-	"ikik-api/internal/service"
+	"anl-api/internal/payment"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

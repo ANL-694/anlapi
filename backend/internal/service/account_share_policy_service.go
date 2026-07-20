@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/pagination"
 )
 
 const (

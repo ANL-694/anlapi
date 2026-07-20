@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/util/logredact"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/util/logredact"
 )
 
 // ErrAuditLogNotFound 审计日志不存在。

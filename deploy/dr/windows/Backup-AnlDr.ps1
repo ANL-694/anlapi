@@ -1,6 +1,6 @@
 param(
   [string]$AppRoot = 'D:\anl-api',
-  [string]$DatabaseName = 'anl_api_dr',
+  [string]$DatabaseName = 'anlapi_dr',
   [string]$BackupRoot = 'D:\anl-api-dr-backups',
   [int]$MaximumReplicationAgeSeconds = 120,
   [int]$RetentionCount = 72,
@@ -37,7 +37,7 @@ $env:PGPASSWORD = $values['DATABASE_PASSWORD']
 if ([string]::IsNullOrWhiteSpace($env:PGPASSWORD)) { throw 'DATABASE_PASSWORD is missing.' }
 
 try {
-  $subscription = & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -At -F '|' -v ON_ERROR_STOP=1 -c (
+  $subscription = & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -At -F '|' -v ON_ERROR_STOP=1 -c (
     "SELECT CASE WHEN pid IS NULL THEN 'stopped' ELSE 'streaming' END, COALESCE(EXTRACT(EPOCH FROM (clock_timestamp() - last_msg_receipt_time))::bigint, -1) FROM pg_stat_subscription WHERE subname = 'anl_us_to_cn' AND relid IS NULL"
   )
   if ($LASTEXITCODE -ne 0) { throw 'Unable to read subscription health.' }
@@ -48,18 +48,18 @@ try {
     if ([int64]$parts[1] -lt 0 -or [int64]$parts[1] -gt $MaximumReplicationAgeSeconds) {
       throw ('Logical subscription message age is too high: ' + $parts[1] + ' seconds')
     }
-    $notReady = & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -c (
+    $notReady = & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -c (
       "SELECT count(*) FROM pg_subscription_rel WHERE srsubstate <> 'r'"
     )
     if ($LASTEXITCODE -ne 0 -or $notReady -ne '0') { throw ('Subscription tables not ready: ' + $notReady) }
   }
 
-  $audit = & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -f $auditSql
+  $audit = & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -At -v ON_ERROR_STOP=1 -f $auditSql
   if ($LASTEXITCODE -ne 0 -or $audit -notcontains 'oauth_sensitive_rows=0') {
     throw 'OAuth isolation audit failed; refusing to create a domestic backup.'
   }
 
-  & $psql -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName -v ON_ERROR_STOP=1 -f $sequenceSql
+  & $psql -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName -v ON_ERROR_STOP=1 -f $sequenceSql
   if ($LASTEXITCODE -ne 0) { throw 'Sequence calibration failed.' }
 
   New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
@@ -69,7 +69,7 @@ try {
   $manifestPath = $finalPath + '.json'
   $previousErrorActionPreference = $ErrorActionPreference
   $ErrorActionPreference = 'Continue'
-  & $pgDump -h 127.0.0.1 -p 5432 -U anl_api -d $DatabaseName --format=custom --no-owner --no-privileges --file=$partialPath 2>&1 | Out-Null
+  & $pgDump -h 127.0.0.1 -p 5432 -U ikik_api -d $DatabaseName --format=custom --no-owner --no-privileges --file=$partialPath 2>&1 | Out-Null
   $dumpExitCode = $LASTEXITCODE
   $ErrorActionPreference = $previousErrorActionPreference
   if ($dumpExitCode -ne 0) { throw 'Domestic pg_dump failed.' }

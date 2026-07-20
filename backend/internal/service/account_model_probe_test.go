@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 func modelProbeTestConfig() *config.Config {

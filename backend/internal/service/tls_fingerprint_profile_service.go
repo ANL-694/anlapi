@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/model"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/tlsfingerprint"
+	"anl-api/internal/model"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/tlsfingerprint"
 )
 
 // TLSFingerprintProfileRepository 定义 TLS 指纹模板的数据访问接口

@@ -99,7 +99,7 @@ const mockPublicSettings = {
   invitation_code_enabled: false,
   turnstile_enabled: false,
   turnstile_site_key: '',
-  site_name: 'ikik-api Local',
+  site_name: 'anl-api Local',
   site_logo: '',
   site_subtitle: 'Local mock preview',
   api_base_url: '',
@@ -713,7 +713,7 @@ function readBody(req: IncomingMessage): Promise<string> {
 
 function localMockApiPlugin(enabled: boolean): Plugin {
   return {
-    name: 'ikik-local-mock-api',
+    name: 'anl-local-mock-api',
     enforce: 'pre',
     apply: 'serve',
     configureServer(server) {
@@ -838,7 +838,7 @@ function localMockApiPlugin(enabled: boolean): Plugin {
             subscription_usd_to_cny_rate: 7.2,
             recharge_fee_rate: 0,
             load_balance_strategy: 'round_robin',
-            product_name_prefix: 'ikik-api',
+            product_name_prefix: 'anl-api',
             product_name_suffix: '',
             help_image_url: '',
             help_text: ''
@@ -1332,7 +1332,7 @@ function localMockApiPlugin(enabled: boolean): Plugin {
         if (path === '/api/v1/user/aff') {
           sendJson(res, 200, success({
             user_id: 1,
-            aff_code: 'IKIK2026',
+            aff_code: 'ANL2026',
             inviter_id: null,
             inviter_bound_at: null,
             invite_reward_expires_at: null,
@@ -1649,7 +1649,7 @@ function localMockApiPlugin(enabled: boolean): Plugin {
 
         if (path === '/api/v1/accounts/data') {
           sendJson(res, 200, success({
-            type: 'ikik-api-data',
+            type: 'anl-api-data',
             version: 1,
             accounts: mockAccounts,
             proxies: mockProxies
@@ -1953,7 +1953,7 @@ function localMockApiPlugin(enabled: boolean): Plugin {
           res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
           res.setHeader('Cache-Control', 'no-cache')
           res.write(`data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: '本地 mock 正在组织回答。' } }] })}\n\n`)
-          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '这是本地 mock 的流式回复。\\n\\n- 支持 **Markdown**\\n- 支持代码块\\n- 支持图片 Markdown 预览\\n\\n```ts\\nconsole.log(\"ikik playground\")\\n```' } }] })}\n\n`)
+          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '这是本地 mock 的流式回复。\\n\\n- 支持 **Markdown**\\n- 支持代码块\\n- 支持图片 Markdown 预览\\n\\n```ts\\nconsole.log(\"anl playground\")\\n```' } }] })}\n\n`)
           res.write(`data: ${JSON.stringify({ usage: { prompt_tokens: 32, completion_tokens: 58, total_tokens: 90, reasoning_tokens: 12 }, choices: [{ delta: {} }] })}\n\n`)
           res.write('data: [DONE]\n\n')
           res.end()

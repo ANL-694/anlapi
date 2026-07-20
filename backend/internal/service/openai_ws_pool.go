@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 	"golang.org/x/sync/errgroup"
 )
 

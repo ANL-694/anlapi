@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"io"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/service"
 )
 
 // AESEncryptor implements SecretEncryptor using AES-256-GCM

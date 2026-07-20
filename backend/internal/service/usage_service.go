@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/usagestats"
+	dbent "anl-api/ent"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/usagestats"
 )
 
 var (

@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/shopcategory"
 	"context"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/shopcategory"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"

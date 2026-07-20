@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/payment"
+	"anl-api/internal/payment"
 )
 
 func TestNormalizeEasyPayAPIBase(t *testing.T) {

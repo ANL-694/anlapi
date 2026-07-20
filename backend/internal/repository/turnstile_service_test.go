@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

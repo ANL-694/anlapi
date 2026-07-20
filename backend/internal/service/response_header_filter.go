@@ -1,8 +1,8 @@
 package service
 
 import (
-	"ikik-api/internal/config"
-	"ikik-api/internal/util/responseheaders"
+	"anl-api/internal/config"
+	"anl-api/internal/util/responseheaders"
 )
 
 func compileResponseHeaderFilter(cfg *config.Config) *responseheaders.CompiledHeaderFilter {

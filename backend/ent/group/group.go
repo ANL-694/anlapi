@@ -3,7 +3,7 @@
 package group
 
 import (
-	"ikik-api/internal/domain"
+	"anl-api/internal/domain"
 	"time"
 
 	"entgo.io/ent"
@@ -296,7 +296,7 @@ func ValidColumn(column string) bool {
 // package on the initialization of the application. Therefore,
 // it should be imported in the main as follows:
 //
-//	import _ "ikik-api/ent/runtime"
+//	import _ "anl-api/ent/runtime"
 var (
 	Hooks        [1]ent.Hook
 	Interceptors [1]ent.Interceptor

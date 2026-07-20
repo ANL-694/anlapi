@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/xai"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/xai"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

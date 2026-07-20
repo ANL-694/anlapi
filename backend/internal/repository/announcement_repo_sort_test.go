@@ -3,7 +3,7 @@ package repository
 import (
 	"testing"
 
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/pagination"
 )
 
 func TestAnnouncementListOrder(t *testing.T) {

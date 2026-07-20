@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/claude"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/claude"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 )

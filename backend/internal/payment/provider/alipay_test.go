@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/payment"
+	"anl-api/internal/payment"
 	"github.com/smartwalle/alipay/v3"
 )
 

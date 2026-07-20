@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 var (

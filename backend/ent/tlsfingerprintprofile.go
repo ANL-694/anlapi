@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/tlsfingerprintprofile"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/tlsfingerprintprofile"
 	"strings"
 	"time"
 

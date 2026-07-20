@@ -11,12 +11,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/openai"
+	openaiwsv2 "anl-api/internal/service/openai_ws_v2"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/openai"
-	openaiwsv2 "ikik-api/internal/service/openai_ws_v2"
 )
 
 type openAIWSClientFrameConn struct {

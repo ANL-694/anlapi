@@ -36,6 +36,15 @@ func TestLoadServerTimingConfig(t *testing.T) {
 	})
 }
 
+func TestLoadGitHubUpdateTokenFromEnv(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	t.Setenv("UPDATE_GITHUB_TOKEN", "github-token-for-test")
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.Equal(t, "github-token-for-test", cfg.Update.GitHubToken)
+}
+
 func TestLoadNormalizesOAuthVaultMode(t *testing.T) {
 	resetViperWithJWTSecret(t)
 	t.Setenv("OAUTH_VAULT_MODE", " EXTERNAL ")
@@ -612,8 +621,8 @@ func TestLoadDefaultDashboardCacheConfig(t *testing.T) {
 	if !cfg.Dashboard.Enabled {
 		t.Fatalf("Dashboard.Enabled = false, want true")
 	}
-	if cfg.Dashboard.KeyPrefix != "ikik-api:" {
-		t.Fatalf("Dashboard.KeyPrefix = %q, want %q", cfg.Dashboard.KeyPrefix, "ikik-api:")
+	if cfg.Dashboard.KeyPrefix != "anlapi:" {
+		t.Fatalf("Dashboard.KeyPrefix = %q, want %q", cfg.Dashboard.KeyPrefix, "anlapi:")
 	}
 	if cfg.Dashboard.StatsFreshTTLSeconds != 15 {
 		t.Fatalf("Dashboard.StatsFreshTTLSeconds = %d, want 15", cfg.Dashboard.StatsFreshTTLSeconds)
@@ -817,7 +826,7 @@ func TestConfigAddressHelpers(t *testing.T) {
 		Port:     5432,
 		User:     "postgres",
 		Password: "",
-		DBName:   "ikik-api",
+		DBName:   "anl-api",
 		SSLMode:  "disable",
 	}
 	if !strings.Contains(dbCfg.DSN(), "password=") {

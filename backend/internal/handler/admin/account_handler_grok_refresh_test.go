@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,4 +96,22 @@ func TestRefreshSingleAccountRoutesGrokThroughGrokOAuthService(t *testing.T) {
 	require.Equal(t, "SUPER_GROK", adminSvc.updatedCredentials["subscription_tier"])
 	require.Equal(t, "ACTIVE", adminSvc.updatedCredentials["entitlement_status"])
 	require.Equal(t, adminSvc.updatedCredentials, updated.Credentials)
+}
+
+func TestRefreshSingleAccountWithNilGrokOAuthServiceReturnsError(t *testing.T) {
+	t.Parallel()
+
+	adminSvc := &grokRefreshAdminService{stubAdminService: newStubAdminService()}
+	handler := NewAccountHandler(adminSvc)
+	account := &service.Account{
+		ID:       4228,
+		Platform: service.PlatformGrok,
+		Type:     service.AccountTypeOAuth,
+	}
+
+	updated, warning, err := handler.refreshSingleAccount(context.Background(), account)
+	require.EqualError(t, err, "grok oauth service is not configured")
+	require.Nil(t, updated)
+	require.Empty(t, warning)
+	require.Nil(t, adminSvc.updatedCredentials)
 }

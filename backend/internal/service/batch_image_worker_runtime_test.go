@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
 )
 
 func TestBatchImageWorkerRuntime_QueueDisabledDoesNotStart(t *testing.T) {

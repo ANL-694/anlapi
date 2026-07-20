@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/domain"
-	infraerrors "ikik-api/internal/pkg/errors"
+	"anl-api/internal/domain"
+	infraerrors "anl-api/internal/pkg/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 )

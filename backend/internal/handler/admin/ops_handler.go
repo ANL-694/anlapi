@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
 )
 
 type OpsHandler struct {

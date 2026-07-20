@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/server/middleware"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 )
 

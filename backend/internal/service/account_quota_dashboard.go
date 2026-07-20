@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/pagination"
 )
 
 const accountQuotaDashboardPageSize = 1000

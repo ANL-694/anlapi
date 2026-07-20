@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/userplatformquota"
-	"ikik-api/internal/pkg/timezone"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/userplatformquota"
+	"anl-api/internal/pkg/timezone"
+	"anl-api/internal/service"
 
 	"github.com/lib/pq"
 )

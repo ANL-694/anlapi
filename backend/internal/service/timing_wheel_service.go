@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/pkg/logger"
 	"github.com/zeromicro/go-zero/core/collection"
 )
 

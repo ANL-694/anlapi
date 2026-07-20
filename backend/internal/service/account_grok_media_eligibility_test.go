@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/xai"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/xai"
 	"github.com/stretchr/testify/require"
 )
 

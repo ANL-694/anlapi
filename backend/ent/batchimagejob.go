@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"anl-api/ent/batchimagejob"
 	"fmt"
-	"ikik-api/ent/batchimagejob"
 	"strings"
 	"time"
 

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/handler"
-	servermiddleware "ikik-api/internal/server/middleware"
+	"anl-api/internal/handler"
+	servermiddleware "anl-api/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"

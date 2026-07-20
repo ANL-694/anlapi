@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"ikik-api/internal/handler/admin"
-	"ikik-api/internal/securityaudit"
+	"anl-api/internal/handler/admin"
+	"anl-api/internal/securityaudit"
 )
 
 // AdminHandlers contains all admin-related HTTP handlers

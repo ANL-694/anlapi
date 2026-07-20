@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 // defaultAllowed 定义允许透传的响应头白名单

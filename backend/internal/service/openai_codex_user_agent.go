@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/pkg/openai"
+	"anl-api/internal/pkg/openai"
 )
 
 const DefaultOpenAICodexUserAgent = "codex-tui/0.144.1 (Ubuntu 22.4.0; x86_64) xterm-256color (codex-tui; 0.144.1)"

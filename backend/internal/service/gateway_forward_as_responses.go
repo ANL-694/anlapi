@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/claude"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"ikik-api/internal/pkg/apicompat"
-	"ikik-api/internal/pkg/claude"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/util/responseheaders"
 )
 
 // ForwardAsResponses accepts an OpenAI Responses API request body, converts it

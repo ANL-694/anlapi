@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/channelmonitor"
+	"anl-api/ent/channelmonitorrequesttemplate"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/channelmonitor"
-	"ikik-api/ent/channelmonitorrequesttemplate"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

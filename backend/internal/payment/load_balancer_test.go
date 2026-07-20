@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
+	dbent "anl-api/ent"
 )
 
 func TestInstanceSupportsType(t *testing.T) {

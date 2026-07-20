@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

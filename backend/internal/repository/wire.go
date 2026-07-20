@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 
+	"anl-api/ent"
+	"anl-api/internal/config"
+	"anl-api/internal/service"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
-	"ikik-api/ent"
-	"ikik-api/internal/config"
-	"ikik-api/internal/service"
 )
 
 // ProvideConcurrencyCache 创建并发控制缓存，从配置读取 TTL 参数
@@ -29,7 +29,7 @@ func ProvideConcurrencyCache(rdb *redis.Client, cfg *config.Config) service.Conc
 // ProvideGitHubReleaseClient 创建 GitHub Release 客户端
 // 从配置中读取代理设置，支持国内服务器通过代理访问 GitHub
 func ProvideGitHubReleaseClient(cfg *config.Config) service.GitHubReleaseClient {
-	return NewGitHubReleaseClient(cfg.Update.ProxyURL, cfg.Security.ProxyFallback.AllowDirectOnError)
+	return NewGitHubReleaseClient(cfg.Update.ProxyURL, cfg.Security.ProxyFallback.AllowDirectOnError, cfg.Update.GitHubToken)
 }
 
 // ProvidePricingRemoteClient 创建定价数据远程客户端

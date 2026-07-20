@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/paymentproviderinstance"
-	"ikik-api/internal/payment"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	"anl-api/ent/paymentproviderinstance"
+	"anl-api/internal/payment"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 func enabledVisibleMethodsForProvider(providerKey, supportedTypes string) []string {

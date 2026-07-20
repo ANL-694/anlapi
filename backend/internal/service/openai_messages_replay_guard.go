@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 
-	"ikik-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/apicompat"
 )
 
 const openAICompatAnthropicReplayMaxTailMessages = 12

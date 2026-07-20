@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/oauth"
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/oauth"
+	"anl-api/internal/pkg/pagination"
 )
 
 // --- mock: ClaudeOAuthClient ---

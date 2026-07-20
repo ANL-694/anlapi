@@ -66,7 +66,7 @@ describe("admin settings auth source defaults helpers", () => {
 
   it("appends auth source defaults back onto update payload", () => {
     const payload: UpdateSettingsRequest = {
-      site_name: "ikik-api",
+      site_name: "anl-api",
     };
 
     appendAuthSourceDefaultsToUpdateRequest(payload, {
@@ -115,7 +115,7 @@ describe("admin settings auth source defaults helpers", () => {
     });
 
     expect(payload).toMatchObject({
-      site_name: "ikik-api",
+      site_name: "anl-api",
       auth_source_default_email_balance: 1.25,
       auth_source_default_email_concurrency: 2,
       auth_source_default_email_subscriptions: [

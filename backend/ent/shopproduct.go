@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/shopcategory"
+	"anl-api/ent/shopproduct"
 	"fmt"
-	"ikik-api/ent/shopcategory"
-	"ikik-api/ent/shopproduct"
 	"strings"
 	"time"
 

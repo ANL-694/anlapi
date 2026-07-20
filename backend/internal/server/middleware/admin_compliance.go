@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

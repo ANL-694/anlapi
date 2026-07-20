@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	kiropkg "ikik-api/internal/pkg/kiro"
+	kiropkg "anl-api/internal/pkg/kiro"
 )
 
 const kiroMaxWebSearchIterations = 5

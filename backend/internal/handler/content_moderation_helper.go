@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strings"
 
+	"anl-api/internal/pkg/ctxkey"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"ikik-api/internal/pkg/ctxkey"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
 )
 
 func contentModerationStatus(decision *service.ContentModerationDecision) int {

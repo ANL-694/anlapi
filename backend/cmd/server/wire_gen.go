@@ -7,19 +7,19 @@
 package main
 
 import (
+	"anl-api/ent"
+	"anl-api/internal/config"
+	"anl-api/internal/handler"
+	"anl-api/internal/handler/admin"
+	"anl-api/internal/payment"
+	"anl-api/internal/plugin"
+	"anl-api/internal/repository"
+	"anl-api/internal/securityaudit"
+	"anl-api/internal/server"
+	"anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 	"context"
 	"github.com/redis/go-redis/v9"
-	"ikik-api/ent"
-	"ikik-api/internal/config"
-	"ikik-api/internal/handler"
-	"ikik-api/internal/handler/admin"
-	"ikik-api/internal/payment"
-	"ikik-api/internal/plugin"
-	"ikik-api/internal/repository"
-	"ikik-api/internal/securityaudit"
-	"ikik-api/internal/server"
-	"ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
 	"log"
 	"net/http"
 	"sync"
@@ -27,9 +27,9 @@ import (
 )
 
 import (
+	_ "anl-api/ent/runtime"
+	_ "anl-api/internal/modules/standard"
 	_ "embed"
-	_ "ikik-api/ent/runtime"
-	_ "ikik-api/internal/modules/standard"
 	_ "net/http/pprof"
 )
 

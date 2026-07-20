@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/apikey"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/apikey"
+	"anl-api/internal/service"
 )
 
 const systemAPIKeyBindingsTable = "system_api_key_bindings"

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/internal/service"
 	"github.com/lib/pq"
-	dbent "ikik-api/ent"
-	"ikik-api/internal/service"
 )
 
 const (

@@ -21,7 +21,7 @@ const anlZhOverrides = {
         models: '模型'
       },
       hero: {
-        eyebrow: 'ikik',
+        eyebrow: 'anl',
         title: '一个 Key 接入你的 AI 工具',
         lead: '注册后创建 API Key，充值后按实际用量消耗，消费记录后台可查。',
         proofAria: '平台能力',
@@ -335,8 +335,8 @@ const anlZhOverrides = {
 
   // Setup Wizard
   setup: {
-    title: 'ikik-api 安装向导',
-    description: '配置您的 ikik-api 实例',
+    title: 'anl-api 安装向导',
+    description: '配置您的 anl-api 实例',
     database: {
       title: '数据库配置',
       description: '连接到您的 PostgreSQL 数据库',
@@ -1010,7 +1010,7 @@ const anlZhOverrides = {
     selectedGroups: '已选 {count} 个分组',
     importTitle: '导入个人账号',
     importHint: '粘贴账号凭证或导入文件，个人导入只会创建官方 OAuth 账号。',
-    importWarning: '支持 ikik-api OAuth JSON、Codex-Manager ChatGPT Token JSON、OpenAI Refresh Token、Claude Session Key；API Key、URL、Upstream、Cookie 会被拒绝。',
+    importWarning: '支持 anl-api OAuth JSON、Codex-Manager ChatGPT Token JSON、OpenAI Refresh Token、Claude Session Key；API Key、URL、Upstream、Cookie 会被拒绝。',
     importKiroConfigMode: '按 Kiro 配置解析',
     importKiroConfigModeHint: '用于导入 Kiro JSON 配置文件',
     importTextMode: '批量文本',
@@ -1038,7 +1038,7 @@ const anlZhOverrides = {
     importResult: '导入结果',
     importResultSummary: '创建 {created}，跳过 {skipped}，失败 {failed}',
     importErrors: '导入明细',
-    importInvalidFile: '导入文件无效：需要账号数组或包含 accounts 的 ikik-api 导出文件。',
+    importInvalidFile: '导入文件无效：需要账号数组或包含 accounts 的 anl-api 导出文件。',
     importInvalidAccount: '账号条目无效',
     importMissingName: '账号名称不能为空',
     importOnlyOAuth: '已跳过：个人导入不接受该账号类型',
@@ -2006,7 +2006,7 @@ const anlZhOverrides = {
       description: '生成一张个人活动卡片，或者复制当前页面链接。',
       website: '分享网站',
       image: '分享图片',
-      websiteText: '查看 {name} 的 ikik 个人资料',
+      websiteText: '查看 {name} 的 anl 个人资料',
       linkCopied: '链接已复制',
       imageDownloaded: '分享图片已下载',
       failed: '分享失败，请稍后重试'
@@ -3052,7 +3052,7 @@ const anlZhOverrides = {
         step1: {
           title: '创建 R2 存储桶',
           line1: '登录 Cloudflare Dashboard (dash.cloudflare.com)，左侧菜单选择「R2 对象存储」',
-          line2: '点击「创建存储桶」，输入名称（如 ikik-api-backups），选择区域',
+          line2: '点击「创建存储桶」，输入名称（如 anl-api-backups），选择区域',
           line3: '点击创建完成'
         },
         step2: {
@@ -4493,7 +4493,7 @@ const anlZhOverrides = {
         expiresAt: '过期时间',
         actions: '操作'
       },
-      usageWindowsHint: '“5h / 7d”是上游账号（如 OpenAI ChatGPT、Claude）官方的滚动用量窗口限制，由上游对账号本身设定，并非 ikik-api 配置，也与你映射的模型无关。窗口滚动到期后用量会自动重置，无法在 ikik-api 端解除该限制。',
+      usageWindowsHint: '“5h / 7d”是上游账号（如 OpenAI ChatGPT、Claude）官方的滚动用量窗口限制，由上游对账号本身设定，并非 anl-api 配置，也与你映射的模型无关。窗口滚动到期后用量会自动重置，无法在 anl-api 端解除该限制。',
       allPrivacyModes: '全部Privacy状态',
       privacyUnset: '未设置',
       privacyTrainingOff: '已关闭训练数据共享',
@@ -5025,7 +5025,7 @@ const anlZhOverrides = {
       },
       poolMode: '池模式',
       poolModeHint: '上游为账号池时启用，错误不标记本地账号状态',
-      poolModeInfo: '启用后，上游 429/403/401 错误将自动重试而不标记账号限流或错误，适用于上游指向另一个 ikik-api 实例的场景。',
+      poolModeInfo: '启用后，上游 429/403/401 错误将自动重试而不标记账号限流或错误，适用于上游指向另一个 anl-api 实例的场景。',
       poolModeRetryCount: '同账号重试次数',
       poolModeRetryCountHint: '仅在池模式下生效。0 表示不原地重试；默认 {default}，最大 {max}。',
       poolModeRetryStatusCodes: '同账号重试状态码',
@@ -7420,7 +7420,7 @@ const anlZhOverrides = {
       },
       linuxdo: {
         title: 'LinuxDo Connect 登录',
-        description: '配置 LinuxDo Connect OAuth，用于 ikik-api 用户登录',
+        description: '配置 LinuxDo Connect OAuth，用于 anl-api 用户登录',
         enable: '启用 LinuxDo 登录',
         enableHint: '在登录/注册页面显示 LinuxDo 登录入口',
         clientId: 'Client ID',
@@ -7538,7 +7538,7 @@ const anlZhOverrides = {
         addRule: '添加 Auto 模型',
         removeRule: '删除 Auto 模型',
         virtualName: '虚拟模型名',
-        virtualNamePlaceholder: '例如 ikik-auto',
+        virtualNamePlaceholder: '例如 anl-auto',
         ruleEnabled: '启用',
         descriptionLabel: '描述',
         descriptionPlaceholder: '例如：小事走 mini，大任务走 GPT-5.5',
@@ -7639,7 +7639,7 @@ const anlZhOverrides = {
         backendModeDescription: '禁用用户注册、公开页面和自助服务功能。仅管理员可以登录和管理平台。',
         siteName: '站点名称',
         siteNameHint: '显示在邮件和页面标题中',
-        siteNamePlaceholder: 'ikik-api',
+        siteNamePlaceholder: 'anl-api',
         siteSubtitle: '站点副标题',
         siteSubtitleHint: '显示在登录和注册页面',
         siteSubtitlePlaceholder: '订阅转 API 转换平台',
@@ -7924,7 +7924,7 @@ const anlZhOverrides = {
         fromEmail: '发件人邮箱',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: '发件人名称',
-        fromNamePlaceholder: 'ikik-api',
+        fromNamePlaceholder: 'anl-api',
         useTls: '使用 TLS',
         useTlsHint: '为 SMTP 连接启用 TLS 加密'
       },
@@ -8573,14 +8573,14 @@ const anlZhOverrides = {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '欢迎使用 ikik-api',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">ikik-api 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li><b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li><b>账号池</b> - 连接多个上游 AI 服务商账号</li><li><b>密钥分发</b> - 为用户生成独立的 API Key</li><li><b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
+        title: '欢迎使用 anl-api',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">anl-api 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li><b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li><b>账号池</b> - 连接多个上游 AI 服务商账号</li><li><b>密钥分发</b> - 为用户生成独立的 API Key</li><li><b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
         nextBtn: '开始配置',
         prevBtn: '跳过'
       },
       groupManage: {
         title: '第一步：分组管理',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 ikik-api 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>每个分组可以包含多个上游账号</li><li>每个分组有独立的计费倍率</li><li>可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">点击左侧的"分组管理"开始</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 anl-api 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>每个分组可以包含多个上游账号</li><li>每个分组有独立的计费倍率</li><li>可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">点击左侧的"分组管理"开始</p></div>'
       },
       createGroup: {
         title: '创建新分组',
@@ -8673,8 +8673,8 @@ const anlZhOverrides = {
     // User tour steps
     user: {
       welcome: {
-        title: '欢迎使用 ikik-api',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 ikik-api AI 服务平台。</p><p style="margin-bottom: 12px;"><b>快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>创建 API 密钥</li><li>复制密钥到您的应用</li><li>开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
+        title: '欢迎使用 anl-api',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 anl-api AI 服务平台。</p><p style="margin-bottom: 12px;"><b>快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>创建 API 密钥</li><li>复制密钥到您的应用</li><li>开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
         nextBtn: '开始',
         prevBtn: '跳过'
       },

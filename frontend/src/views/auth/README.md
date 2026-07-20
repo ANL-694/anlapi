@@ -1,6 +1,6 @@
 # Authentication Views
 
-This directory contains Vue 3 authentication views for the ikik-api frontend application.
+This directory contains Vue 3 authentication views for the anl-api frontend application.
 
 ## Components
 

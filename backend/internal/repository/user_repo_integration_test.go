@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	"anl-api/ent/authidentitychannel"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/suite"
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/authidentitychannel"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
 )
 
 type UserRepoSuite struct {

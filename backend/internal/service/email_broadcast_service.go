@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/domain"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/domain"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/pagination"
 
 	"github.com/microcosm-cc/bluemonday"
 	"go.uber.org/zap"
@@ -495,7 +495,7 @@ func (s *EmailBroadcastService) PreviewHTML(ctx context.Context, subject, body, 
 // composeHTMLBody 根据 broadcast 的 body_format 生成最终的 HTML 邮件正文。
 // 纯文本会被 HTML-escape、保留段落与换行；HTML 会经过 bluemonday sanitize。
 // 两种格式最终都使用统一的卡片式邮件模板，附 senderName 头部和系统签名页脚，
-// 与 ikik-api 现有其他模板风格保持一致。
+// 与 anl-api 现有其他模板风格保持一致。
 func (s *EmailBroadcastService) composeHTMLBody(subject, body, format, senderName string) string {
 	var inner string
 	switch format {
@@ -514,14 +514,14 @@ func (s *EmailBroadcastService) composeHTMLBody(subject, body, format, senderNam
 //     发件人显示名一致(SendEmailWithConfig 在 From 头里就用这个字段),邮件正文头
 //     与签名也跟着保持一致。
 //  2. 回退到站点名(site_name)。
-//  3. 仍然为空时回退到 \"ikik-api\"。
+//  3. 仍然为空时回退到 \"anl-api\"。
 //
 // resolveSenderName chooses the display name used in the email header banner and
 // system footer. It prefers the SMTP From-Name (the same name the inbox shows as
-// the sender), falling back to site_name and finally to "ikik-api".
+// the sender), falling back to site_name and finally to "anl-api".
 func (s *EmailBroadcastService) resolveSenderName(ctx context.Context) string {
 	if s.settingRepo == nil {
-		return "ikik-api"
+		return "anl-api"
 	}
 	for _, key := range []string{SettingKeySMTPFromName, SettingKeySiteName} {
 		name, err := s.settingRepo.GetValue(ctx, key)
@@ -532,7 +532,7 @@ func (s *EmailBroadcastService) resolveSenderName(ctx context.Context) string {
 			return trimmed
 		}
 	}
-	return "ikik-api"
+	return "anl-api"
 }
 
 // renderPlainTextAsHTML 把纯文本转成对应的 HTML 片段:
@@ -606,7 +606,7 @@ func wrapBroadcastHTMLShell(subject, senderName, inner string) string {
 	}
 	escapedBrand := html.EscapeString(strings.TrimSpace(senderName))
 	if escapedBrand == "" {
-		escapedBrand = "ikik-api"
+		escapedBrand = "anl-api"
 	}
 	if strings.TrimSpace(inner) == "" {
 		inner = "<p style=\"margin:0;\"></p>"

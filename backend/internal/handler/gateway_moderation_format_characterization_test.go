@@ -29,10 +29,10 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ctxkey"
-	middleware "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ctxkey"
+	middleware "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"

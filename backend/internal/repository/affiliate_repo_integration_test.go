@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
-	dbent "ikik-api/ent"
-	"ikik-api/internal/service"
 )
 
 func querySingleFloat(t *testing.T, ctx context.Context, client *dbent.Client, query string, args ...any) float64 {

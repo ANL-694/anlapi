@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 // EmailBroadcast is the admin-facing JSON representation of a broadcast record.

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/redeemcode"
-	"ikik-api/ent/user"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/redeemcode"
+	"anl-api/ent/user"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

@@ -4,44 +4,44 @@
 
 ## 1. 关键约束
 
-- 主进程固定探测路径：`/tmp/ikik-api-datamanagement.sock`
+- 主进程固定探测路径：`/tmp/anlapi-datamanagement.sock`
 - 仅当该 Unix Socket 可连通且 `Health` 成功时，后台“数据管理”才会启用
 - `datamanagementd` 使用 SQLite 持久化元数据，不依赖主库
 
 ## 2. 宿主机构建与运行
 
 ```bash
-cd /opt/ikik-api-src/datamanagement
-go build -o /opt/ikik-api/datamanagementd ./cmd/datamanagementd
+cd /opt/anlapi-src/datamanagement
+go build -o /opt/anlapi/datamanagementd ./cmd/datamanagementd
 
-mkdir -p /var/lib/ikik-api/datamanagement
-chown -R ikik-api:ikik-api /var/lib/ikik-api/datamanagement
+mkdir -p /var/lib/anlapi/datamanagement
+chown -R anlapi:anlapi /var/lib/anlapi/datamanagement
 ```
 
 手动启动示例：
 
 ```bash
-/opt/ikik-api/datamanagementd \
-  -socket-path /tmp/ikik-api-datamanagement.sock \
-  -sqlite-path /var/lib/ikik-api/datamanagement/datamanagementd.db \
+/opt/anlapi/datamanagementd \
+  -socket-path /tmp/anlapi-datamanagement.sock \
+  -sqlite-path /var/lib/anlapi/datamanagement/datamanagementd.db \
   -version 1.0.0
 ```
 
 ## 3. systemd 托管（推荐）
 
-仓库已提供示例服务文件：`deploy/ikik-api-datamanagementd.service`
+仓库已提供示例服务文件：`deploy/anlapi-datamanagementd.service`
 
 ```bash
-sudo cp deploy/ikik-api-datamanagementd.service /etc/systemd/system/
+sudo cp deploy/anlapi-datamanagementd.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now ikik-api-datamanagementd
-sudo systemctl status ikik-api-datamanagementd
+sudo systemctl enable --now anlapi-datamanagementd
+sudo systemctl status anlapi-datamanagementd
 ```
 
 查看日志：
 
 ```bash
-sudo journalctl -u ikik-api-datamanagementd -f
+sudo journalctl -u anlapi-datamanagementd -f
 ```
 
 也可以使用一键安装脚本（自动安装二进制 + 注册 systemd）：
@@ -51,18 +51,18 @@ sudo journalctl -u ikik-api-datamanagementd -f
 sudo ./deploy/install-datamanagementd.sh --binary /path/to/datamanagementd
 
 # 方式二：从源码构建后安装
-sudo ./deploy/install-datamanagementd.sh --source /path/to/ikik-api
+sudo ./deploy/install-datamanagementd.sh --source /path/to/anl-api
 ```
 
 ## 4. Docker 部署联动
 
-若 `ikik-api` 运行在 Docker 容器中，需要将宿主机 Socket 挂载到容器同路径：
+若 `anl-api` 运行在 Docker 容器中，需要将宿主机 Socket 挂载到容器同路径：
 
 ```yaml
 services:
-  ikik-api:
+  anlapi:
     volumes:
-      - /tmp/ikik-api-datamanagement.sock:/tmp/ikik-api-datamanagement.sock
+      - /tmp/anlapi-datamanagement.sock:/tmp/anlapi-datamanagement.sock
 ```
 
 建议在 `docker-compose.override.yml` 中维护该挂载，避免覆盖主 compose 文件。

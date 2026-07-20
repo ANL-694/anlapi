@@ -4,7 +4,7 @@ package model
 import (
 	"time"
 
-	"ikik-api/internal/pkg/tlsfingerprint"
+	"anl-api/internal/pkg/tlsfingerprint"
 )
 
 // TLSFingerprintProfile TLS 指纹配置模板

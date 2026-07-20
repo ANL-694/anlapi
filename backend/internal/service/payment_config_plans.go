@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/group"
-	"ikik-api/ent/subscriptionplan"
-	"ikik-api/internal/payment"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	"anl-api/ent/group"
+	"anl-api/ent/subscriptionplan"
+	"anl-api/internal/payment"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 // normalizePlanCurrency validates and normalizes the display-only currency label.

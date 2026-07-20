@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/announcement"
+	"anl-api/ent/announcementread"
+	"anl-api/ent/user"
 	"fmt"
-	"ikik-api/ent/announcement"
-	"ikik-api/ent/announcementread"
-	"ikik-api/ent/user"
 	"strings"
 	"time"
 

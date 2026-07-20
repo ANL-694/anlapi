@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/identityadoptiondecision"
+	"anl-api/ent/pendingauthsession"
+	"anl-api/ent/user"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/identityadoptiondecision"
-	"ikik-api/ent/pendingauthsession"
-	"ikik-api/ent/user"
 	"strings"
 	"time"
 

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"anl-api/internal/domain"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
-	"ikik-api/internal/domain"
 )
 
 func TestParseGatewayRequest(t *testing.T) {

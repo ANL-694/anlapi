@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/promocode"
+	"anl-api/ent/promocodeusage"
+	"anl-api/ent/user"
 	"context"
 	"fmt"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/promocode"
-	"ikik-api/ent/promocodeusage"
-	"ikik-api/ent/user"
 	"math"
 
 	"entgo.io/ent"

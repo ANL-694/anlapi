@@ -1,6 +1,8 @@
 package service
 
 import (
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -8,8 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
 	"image"
 	"image/color"
 	stddraw "image/draw"
@@ -1206,7 +1206,7 @@ func saveNotifyVerifyCode(ctx context.Context, cache EmailCache, email, code str
 
 // sendNotifyVerifyEmail builds and sends the verification email.
 func (s *UserService) sendNotifyVerifyEmail(ctx context.Context, emailService *EmailService, email, code string) error {
-	siteName := "ikik-api"
+	siteName := "anl-api"
 	if s.settingRepo != nil {
 		if name, err := s.settingRepo.GetValue(ctx, SettingKeySiteName); err == nil && name != "" {
 			siteName = name

@@ -1,4 +1,4 @@
-module ikik-api
+module anl-api
 
 go 1.26.5
 

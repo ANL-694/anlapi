@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/apicompat"
+	"anl-api/internal/pkg/xai"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/apicompat"
-	"ikik-api/internal/pkg/xai"
 )
 
 const (

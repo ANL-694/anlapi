@@ -3,9 +3,9 @@ package handler
 import (
 	"github.com/gin-gonic/gin"
 
-	"ikik-api/internal/pkg/response"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/pkg/response"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 )
 
 // TotpHandler handles TOTP-related requests

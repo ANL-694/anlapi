@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/emailbroadcast"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/emailbroadcast"
+	"anl-api/internal/service"
 )
 
 type emailBroadcastRepository struct {

@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/account"
+	"anl-api/ent/proxy"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/account"
-	"ikik-api/ent/proxy"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

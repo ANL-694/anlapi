@@ -44,13 +44,13 @@ func (*updateSourceClientStub) FetchChecksumFile(context.Context, string) ([]byt
 	return nil, nil
 }
 
-func validIKIKRelease() *GitHubRelease {
+func validANLRelease() *GitHubRelease {
 	return &GitHubRelease{
 		TagName: "v1.0.4",
-		HTMLURL: "https://github.com/wenyi401/ikik-api/releases/tag/v1.0.4",
+		HTMLURL: "https://github.com/ANL-694/anl-api/releases/tag/v1.0.4",
 		Assets: []GitHubAsset{{
-			Name:               "ikik-api_1.0.4_linux_amd64.tar.gz",
-			BrowserDownloadURL: "https://github.com/wenyi401/ikik-api/releases/download/v1.0.4/ikik-api_1.0.4_linux_amd64.tar.gz",
+			Name:               "anl-api_1.0.4_linux_amd64.tar.gz",
+			BrowserDownloadURL: "https://github.com/ANL-694/anl-api/releases/download/v1.0.4/anl-api_1.0.4_linux_amd64.tar.gz",
 		}},
 	}
 }
@@ -58,10 +58,10 @@ func validIKIKRelease() *GitHubRelease {
 func TestFetchLatestReleaseRejectsDifferentRepository(t *testing.T) {
 	client := &updateSourceClientStub{release: &GitHubRelease{
 		TagName: "v0.1.146",
-		HTMLURL: "https://ikik-api/releases/tag/v0.1.146",
+		HTMLURL: "https://anl-api/releases/tag/v0.1.146",
 		Assets: []GitHubAsset{{
 			Name:               "sub2api_0.1.146_linux_amd64.tar.gz",
-			BrowserDownloadURL: "https://ikik-api/releases/download/v0.1.146/sub2api_0.1.146_linux_amd64.tar.gz",
+			BrowserDownloadURL: "https://anl-api/releases/download/v0.1.146/sub2api_0.1.146_linux_amd64.tar.gz",
 		}},
 	}}
 	svc := NewUpdateService(&updateSourceCacheStub{}, client, "1.0.3", "release")
@@ -79,10 +79,10 @@ func TestCheckUpdateIgnoresCachedReleaseFromDifferentRepository(t *testing.T) {
 	}{
 		Latest: "0.1.146",
 		ReleaseInfo: &ReleaseInfo{
-			HTMLURL: "https://ikik-api/releases/tag/v0.1.146",
+			HTMLURL: "https://anl-api/releases/tag/v0.1.146",
 			Assets: []Asset{{
 				Name:        "sub2api_0.1.146_linux_amd64.tar.gz",
-				DownloadURL: "https://ikik-api/releases/download/v0.1.146/sub2api_0.1.146_linux_amd64.tar.gz",
+				DownloadURL: "https://anl-api/releases/download/v0.1.146/sub2api_0.1.146_linux_amd64.tar.gz",
 			}},
 		},
 		Timestamp: time.Now().Unix(),
@@ -90,18 +90,27 @@ func TestCheckUpdateIgnoresCachedReleaseFromDifferentRepository(t *testing.T) {
 	require.NoError(t, err)
 
 	cache := &updateSourceCacheStub{data: string(maliciousCache)}
-	client := &updateSourceClientStub{release: validIKIKRelease()}
+	client := &updateSourceClientStub{release: validANLRelease()}
 	svc := NewUpdateService(cache, client, "1.0.3", "release")
 
 	info, err := svc.CheckUpdate(context.Background(), false)
 	require.NoError(t, err)
 	require.Equal(t, "1.0.4", info.LatestVersion)
 	require.Equal(t, githubRepo, client.requestedRepo)
-	require.Equal(t, validIKIKRelease().HTMLURL, info.ReleaseInfo.HTMLURL)
+	require.Equal(t, validANLRelease().HTMLURL, info.ReleaseInfo.HTMLURL)
 }
 
 func TestValidateUpdateRepositoryURL(t *testing.T) {
-	require.NoError(t, validateUpdateRepositoryURL("https://github.com/wenyi401/ikik-api/releases/download/v1.0.4/ikik-api_linux_amd64.tar.gz"))
-	require.Error(t, validateUpdateRepositoryURL("https://ikik-api/releases/download/v0.1.146/sub2api_linux_amd64.tar.gz"))
-	require.Error(t, validateUpdateRepositoryURL("https://example.com/wenyi401/ikik-api/releases/download/v1.0.4/file.tar.gz"))
+	require.NoError(t, validateUpdateRepositoryURL("https://github.com/ANL-694/anl-api/releases/download/v1.0.4/anl-api_linux_amd64.tar.gz"))
+	require.Error(t, validateUpdateRepositoryURL("https://anl-api/releases/download/v0.1.146/sub2api_linux_amd64.tar.gz"))
+	require.Error(t, validateUpdateRepositoryURL("https://example.com/ANL-694/anl-api/releases/download/v1.0.4/file.tar.gz"))
+}
+
+func TestIsSupportedUpdateBinaryName(t *testing.T) {
+	for _, name := range []string{"anlapi", "anlapi.exe", "ANLAPI", "anl-api", "anl-api.exe"} {
+		require.True(t, isSupportedUpdateBinaryName(name), name)
+	}
+	for _, name := range []string{"ikik-api", "sub2api", "", "anlapi.tar"} {
+		require.False(t, isSupportedUpdateBinaryName(name), name)
+	}
 }

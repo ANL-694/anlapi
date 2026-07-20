@@ -1,6 +1,6 @@
-# ikik-api Deployment Files
+# anl-api Deployment Files
 
-This directory contains files for deploying ikik-api on Linux servers.
+This directory contains files for deploying anl-api on Linux servers.
 
 ## Deployment Methods
 
@@ -23,8 +23,8 @@ This directory contains files for deploying ikik-api on Linux servers.
 | `DOCKER.md` | Docker Hub documentation |
 | `install.sh` | One-click binary installation script |
 | `install-datamanagementd.sh` | datamanagementd 一键安装脚本 |
-| `ikik-api.service` | Systemd service unit file |
-| `ikik-api-datamanagementd.service` | datamanagementd systemd service unit file |
+| `anlapi.service` | Systemd service unit file |
+| `anlapi-datamanagementd.service` | datamanagementd systemd service unit file |
 | `DATAMANAGEMENTD_CN.md` | datamanagementd 部署与联动说明（中文） |
 | `config.example.yaml` | Example configuration file |
 
@@ -55,10 +55,10 @@ Use the automated preparation script for the easiest setup:
 
 ```bash
 # Download and run the preparation script
-curl -sSL https://raw.githubusercontent.com/wenyi401/ikik-api/main/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/ANL-694/anl-api/main/deploy/docker-deploy.sh | bash
 
 # Or download first, then run
-curl -sSL https://raw.githubusercontent.com/wenyi401/ikik-api/main/deploy/docker-deploy.sh -o docker-deploy.sh
+curl -sSL https://raw.githubusercontent.com/ANL-694/anl-api/main/deploy/docker-deploy.sh -o docker-deploy.sh
 chmod +x docker-deploy.sh
 ./docker-deploy.sh
 ```
@@ -76,10 +76,10 @@ chmod +x docker-deploy.sh
 docker compose -f docker-compose.local.yml up -d
 
 # View logs
-docker compose -f docker-compose.local.yml logs -f ikik-api
+docker compose -f docker-compose.local.yml logs -f anlapi
 
 # If admin password was auto-generated, find it in logs:
-docker compose -f docker-compose.local.yml logs ikik-api | grep "admin password"
+docker compose -f docker-compose.local.yml logs anlapi | grep "admin password"
 
 # Access Web UI
 # http://localhost:8080
@@ -91,8 +91,8 @@ If you prefer manual control:
 
 ```bash
 # Clone repository
-git clone https://github.com/wenyi401/ikik-api.git
-cd ikik-api/deploy
+git clone https://github.com/ANL-694/anl-api.git
+cd anl-api/deploy
 
 # Configure environment
 cp .env.example .env
@@ -112,7 +112,7 @@ mkdir -p data postgres_data redis_data
 docker compose -f docker-compose.local.yml up -d
 
 # View logs (check for auto-generated admin password)
-docker compose -f docker-compose.local.yml logs -f ikik-api
+docker compose -f docker-compose.local.yml logs -f anlapi
 
 # Access Web UI
 # http://localhost:8080
@@ -142,7 +142,7 @@ When using Docker Compose with `AUTO_SETUP=true`:
 
 3. If `ADMIN_PASSWORD` is not set, check logs for the generated password:
    ```bash
-   docker compose logs ikik-api | grep "admin password"
+   docker compose logs anlapi | grep "admin password"
    ```
 
 ### Database Migration Notes (PostgreSQL)
@@ -173,7 +173,7 @@ SELECT
 
 如需启用管理后台“数据管理”功能，请额外部署宿主机 `datamanagementd`：
 
-- 主进程固定探测 `/tmp/ikik-api-datamanagement.sock`
+- 主进程固定探测 `/tmp/anlapi-datamanagement.sock`
 - Docker 场景下需把宿主机 Socket 挂载到容器内同路径
 - 详细步骤见：`deploy/DATAMANAGEMENTD_CN.md`
 
@@ -190,10 +190,10 @@ docker compose -f docker-compose.local.yml up -d
 docker compose -f docker-compose.local.yml down
 
 # View logs
-docker compose -f docker-compose.local.yml logs -f ikik-api
+docker compose -f docker-compose.local.yml logs -f anlapi
 
-# Restart ikik-api only
-docker compose -f docker-compose.local.yml restart ikik-api
+# Restart anl-api only
+docker compose -f docker-compose.local.yml restart anlapi
 
 # Update to latest version
 docker compose -f docker-compose.local.yml pull
@@ -214,10 +214,10 @@ docker compose up -d
 docker compose down
 
 # View logs
-docker compose logs -f ikik-api
+docker compose logs -f anlapi
 
-# Restart ikik-api only
-docker compose restart ikik-api
+# Restart anl-api only
+docker compose restart anlapi
 
 # Update to latest version
 docker compose pull
@@ -235,7 +235,7 @@ docker compose down -v
 | `JWT_SECRET` | **Recommended** | *(auto-generated)* | JWT secret (fixed for persistent sessions) |
 | `TOTP_ENCRYPTION_KEY` | **Recommended** | *(auto-generated)* | TOTP encryption key (fixed for persistent 2FA) |
 | `SERVER_PORT` | No | `8080` | Server port |
-| `ADMIN_EMAIL` | No | `admin@ikik-api.local` | Admin email |
+| `ADMIN_EMAIL` | No | `admin@anl-api.local` | Admin email |
 | `ADMIN_PASSWORD` | No | *(auto-generated)* | Admin password |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
@@ -256,13 +256,13 @@ When using `docker-compose.local.yml`, all data is stored in local directories, 
 cd /path/to/deployment
 docker compose -f docker-compose.local.yml down
 cd ..
-tar czf ikik-api-complete.tar.gz deployment/
+tar czf anl-api-complete.tar.gz deployment/
 
 # Transfer to new server
-scp ikik-api-complete.tar.gz user@new-server:/path/to/destination/
+scp anl-api-complete.tar.gz user@new-server:/path/to/destination/
 
 # On new server: Extract and start
-tar xzf ikik-api-complete.tar.gz
+tar xzf anl-api-complete.tar.gz
 cd deployment/
 docker compose -f docker-compose.local.yml up -d
 ```
@@ -273,7 +273,7 @@ Your entire deployment (configuration + data) is migrated!
 
 ## Gemini OAuth Configuration
 
-ikik-api supports three methods to connect to Gemini:
+anl-api supports three methods to connect to Gemini:
 
 ### Method 1: Code Assist OAuth (Recommended for GCP Users)
 
@@ -318,7 +318,7 @@ Requires your own OAuth client credentials.
    - Go to "APIs & Services" 鈫?"Credentials"
    - Click "Create Credentials" 鈫?"OAuth client ID"
    - Application type: **Web application** (or **Desktop app**)
-   - Name: e.g., "ikik-api Gemini"
+   - Name: e.g., "anl-api Gemini"
    - Authorized redirect URIs: Add `http://localhost:1455/auth/callback`
 6. Copy the **Client ID** and **Client Secret**
 7. **鈿狅笍 Publish to Production (IMPORTANT):**
@@ -375,19 +375,19 @@ For production servers using systemd.
 ### One-Line Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/wenyi401/ikik-api/main/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/ANL-694/anl-api/main/deploy/install.sh | sudo bash
 ```
 
 ### Manual Installation
 
-1. Download the latest release from [GitHub Releases](https://github.com/wenyi401/ikik-api/releases)
-2. Extract and copy the binary to `/opt/ikik-api/`
-3. Copy `ikik-api.service` to `/etc/systemd/system/`
+1. Download the latest release from [GitHub Releases](https://github.com/ANL-694/anl-api/releases)
+2. Extract and copy the binary to `/opt/anlapi/`
+3. Copy `anlapi.service` to `/etc/systemd/system/`
 4. Run:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl enable ikik-api
-   sudo systemctl start ikik-api
+   sudo systemctl enable anlapi
+   sudo systemctl start anlapi
    ```
 5. Open the Setup Wizard in your browser to complete configuration
 
@@ -408,22 +408,22 @@ sudo ./install.sh uninstall
 
 ```bash
 # Start the service
-sudo systemctl start ikik-api
+sudo systemctl start anlapi
 
 # Stop the service
-sudo systemctl stop ikik-api
+sudo systemctl stop anlapi
 
 # Restart the service
-sudo systemctl restart ikik-api
+sudo systemctl restart anlapi
 
 # Check status
-sudo systemctl status ikik-api
+sudo systemctl status anlapi
 
 # View logs
-sudo journalctl -u ikik-api -f
+sudo journalctl -u anlapi -f
 
 # Enable auto-start on boot
-sudo systemctl enable ikik-api
+sudo systemctl enable anlapi
 ```
 
 ### Configuration
@@ -436,7 +436,7 @@ To change after installation:
 
 1. Edit the systemd service:
    ```bash
-   sudo systemctl edit ikik-api
+   sudo systemctl edit anlapi
    ```
 
 2. Add or modify:
@@ -449,7 +449,7 @@ To change after installation:
 3. Reload and restart:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl restart ikik-api
+   sudo systemctl restart anlapi
    ```
 
 #### Gemini OAuth Configuration
@@ -458,7 +458,7 @@ If you need to use AI Studio OAuth for Gemini accounts, add the OAuth client cre
 
 1. Edit the service file:
    ```bash
-   sudo nano /etc/systemd/system/ikik-api.service
+   sudo nano /etc/systemd/system/anlapi.service
    ```
 
 2. Add your OAuth credentials in the `[Service]` section (after the existing `Environment=` lines):
@@ -475,7 +475,7 @@ If you need to use AI Studio OAuth for Gemini accounts, add the OAuth client cre
 3. Reload and restart:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl restart ikik-api
+   sudo systemctl restart anlapi
    ```
 
 > **Note:** Code Assist OAuth does not require any configuration - it uses the built-in Gemini CLI client.
@@ -483,7 +483,16 @@ If you need to use AI Studio OAuth for Gemini accounts, add the OAuth client cre
 
 #### Application Configuration
 
-The main config file is at `/etc/ikik-api/config.yaml` (created by Setup Wizard).
+The main config file is at `/etc/anlapi/config.yaml` (created by Setup Wizard).
+
+#### Private GitHub Release updates
+
+The updater follows releases from `ANL-694/anl-api`. For a private repository,
+set `update.github_token` in `/etc/anlapi/config.yaml` or provide
+`UPDATE_GITHUB_TOKEN` in the service environment. Use a fine-grained token
+scoped only to this repository with `Contents: Read-only`; never commit the
+token to the repository or paste it into logs. Leave it empty when the release
+repository is public.
 
 ### Prerequisites
 
@@ -495,13 +504,13 @@ The main config file is at `/etc/ikik-api/config.yaml` (created by Setup Wizard)
 ### Directory Structure
 
 ```
-/opt/ikik-api/
-鈹溾攢鈹€ ikik-api              # Main binary
-鈹溾攢鈹€ ikik-api.backup       # Backup (after upgrade)
-鈹斺攢鈹€ data/                # Runtime data
+/opt/anlapi/
+|-- anlapi              # Main binary
+|-- anlapi.backup       # Backup (after upgrade)
+`-- data/               # Runtime data
 
-/etc/ikik-api/
-鈹斺攢鈹€ config.yaml          # Configuration file
+/etc/anlapi/
+`-- config.yaml         # Configuration file
 ```
 
 ---
@@ -517,7 +526,7 @@ For **local directory version**:
 docker compose -f docker-compose.local.yml ps
 
 # View detailed logs
-docker compose -f docker-compose.local.yml logs --tail=100 ikik-api
+docker compose -f docker-compose.local.yml logs --tail=100 anlapi
 
 # Check database connection
 docker compose -f docker-compose.local.yml exec postgres pg_isready
@@ -539,7 +548,7 @@ For **named volumes version**:
 docker compose ps
 
 # View detailed logs
-docker compose logs --tail=100 ikik-api
+docker compose logs --tail=100 anlapi
 
 # Check database connection
 docker compose exec postgres pg_isready
@@ -555,13 +564,13 @@ docker compose restart
 
 ```bash
 # Check service status
-sudo systemctl status ikik-api
+sudo systemctl status anlapi
 
 # View recent logs
-sudo journalctl -u ikik-api -n 50
+sudo journalctl -u anlapi -n 50
 
 # Check config file
-sudo cat /etc/ikik-api/config.yaml
+sudo cat /etc/anlapi/config.yaml
 
 # Check PostgreSQL
 sudo systemctl status postgresql
@@ -581,9 +590,9 @@ sudo systemctl status redis
 
 ## TLS Fingerprint Configuration
 
-ikik-api supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
+anl-api supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
 
-> **馃挕 Tip:** Visit **[tls.ikik-api.example](https://tls.ikik-api.example/)** to get TLS fingerprint information for different devices and browsers.
+> **Tip:** Visit **[tls.anl-api.example](https://tls.anl-api.example/)** to get TLS fingerprint information for different devices and browsers.
 
 ### Default Behavior
 

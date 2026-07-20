@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/batchimageevent"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/batchimageevent"
 	"strings"
 	"time"
 

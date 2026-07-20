@@ -3,7 +3,7 @@ package payment
 import (
 	"sync"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 // Registry is a thread-safe registry mapping PaymentType to Provider.

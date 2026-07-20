@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 

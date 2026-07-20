@@ -21,7 +21,7 @@ import (
 
 const (
 	updateCacheTTL = 1200 // 20 minutes
-	githubRepo     = "wenyi401/ikik-api"
+	githubRepo     = "ANL-694/anl-api"
 
 	// Security: allowed download domains for updates
 	allowedDownloadHost = "github.com"
@@ -190,7 +190,7 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 
 	// Create temp directory in the SAME directory as executable
 	// This ensures os.Rename is atomic (same filesystem)
-	tempDir, err := os.MkdirTemp(exeDir, ".ikik-api-update-*")
+	tempDir, err := os.MkdirTemp(exeDir, ".anlapi-update-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
@@ -210,7 +210,7 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 	}
 
 	// Extract binary from archive
-	newBinaryPath := filepath.Join(tempDir, "ikik-api")
+	newBinaryPath := filepath.Join(tempDir, "anlapi")
 	if err := s.extractBinary(archivePath, newBinaryPath); err != nil {
 		return fmt.Errorf("extraction failed: %w", err)
 	}
@@ -457,8 +457,10 @@ func (s *UpdateService) extractBinary(archivePath, destPath string) error {
 				continue // Skip directories and special files
 			}
 
-			// Only extract the specific binary we need
-			if baseName == "ikik-api" || baseName == "ikik-api.exe" {
+			// Only extract the application binary. Keep the hyphenated name as a
+			// transition compatibility path for archives created before the
+			// runtime slug was normalized to anlapi.
+			if isSupportedUpdateBinaryName(baseName) {
 				// Additional security: limit file size (max 500MB)
 				const maxBinarySize = 500 * 1024 * 1024
 				if hdr.Size > maxBinarySize {
@@ -498,6 +500,15 @@ func (s *UpdateService) extractBinary(archivePath, destPath string) error {
 		return err
 	}
 	return out.Close()
+}
+
+func isSupportedUpdateBinaryName(name string) bool {
+	switch strings.ToLower(filepath.Base(strings.TrimSpace(name))) {
+	case "anlapi", "anlapi.exe", "anl-api", "anl-api.exe":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *UpdateService) getFromCache(ctx context.Context) (*UpdateInfo, error) {

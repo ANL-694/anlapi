@@ -3,10 +3,10 @@ package routes
 import (
 	"time"
 
-	"ikik-api/internal/handler"
-	"ikik-api/internal/middleware"
-	servermiddleware "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/handler"
+	"anl-api/internal/middleware"
+	servermiddleware "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"

@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/paymentorder"
-	"ikik-api/ent/paymentproviderinstance"
-	"ikik-api/internal/payment"
-	"ikik-api/internal/payment/provider"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	"anl-api/ent/paymentorder"
+	"anl-api/ent/paymentproviderinstance"
+	"anl-api/internal/payment"
+	"anl-api/internal/payment/provider"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 // validateProviderConfig runs the provider's constructor to surface config-level

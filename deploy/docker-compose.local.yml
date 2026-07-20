@@ -1,5 +1,5 @@
 # =============================================================================
-# ikik-api Docker Compose - Local Directory Version
+# anl-api Docker Compose - Local Directory Version
 # =============================================================================
 # This configuration uses local directories for data storage instead of named
 # volumes, making it easy to migrate the entire deployment by simply copying
@@ -9,23 +9,23 @@
 #   1. Copy .env.example to .env and configure
 #   2. mkdir -p data postgres_data redis_data
 #   3. docker-compose -f docker-compose.local.yml up -d
-#   4. Check logs: docker-compose -f docker-compose.local.yml logs -f ikik-api
+#   4. Check logs: docker-compose -f docker-compose.local.yml logs -f anlapi
 #   5. Access: http://localhost:8080
 #
 # Migration to New Server:
 #   1. docker-compose -f docker-compose.local.yml down
-#   2. tar czf ikik-api-deploy.tar.gz deploy/
+#   2. tar czf anl-api-deploy.tar.gz deploy/
 #   3. Transfer to new server and extract
 #   4. docker-compose -f docker-compose.local.yml up -d
 # =============================================================================
 
 services:
   # ===========================================================================
-  # ikik-api Application
+  # anl-api Application
   # ===========================================================================
-  ikik-api:
-    image: ikik-api:latest
-    container_name: ikik-api
+  anlapi:
+    image: anl-api:latest
+    container_name: anlapi
     restart: unless-stopped
     ulimits:
       nofile:
@@ -82,7 +82,7 @@ services:
       # =======================================================================
       # Admin Account (auto-created on first run)
       # =======================================================================
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ikik-api.local}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anl-api.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
 
@@ -154,7 +154,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - ikik-api-network
+      - anlapi-network
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 30s
@@ -167,7 +167,7 @@ services:
   # ===========================================================================
   postgres:
     image: postgres:18-alpine
-    container_name: ikik-api-postgres
+    container_name: anlapi-postgres
     restart: unless-stopped
     ulimits:
       nofile:
@@ -183,7 +183,7 @@ services:
       - PGDATA=/var/lib/postgresql/data
       - TZ=${TZ:-Asia/Shanghai}
     networks:
-      - ikik-api-network
+      - anlapi-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ikik_api} -d ${POSTGRES_DB:-ikik_api}"]
       interval: 10s
@@ -198,7 +198,7 @@ services:
   # ===========================================================================
   redis:
     image: redis:8-alpine
-    container_name: ikik-api-redis
+    container_name: anlapi-redis
     restart: unless-stopped
     ulimits:
       nofile:
@@ -219,7 +219,7 @@ services:
       # REDISCLI_AUTH is used by redis-cli for authentication (safer than -a flag)
       - REDISCLI_AUTH=${REDIS_PASSWORD:-}
     networks:
-      - ikik-api-network
+      - anlapi-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -231,5 +231,5 @@ services:
 # Networks
 # =============================================================================
 networks:
-  ikik-api-network:
+  anlapi-network:
     driver: bridge

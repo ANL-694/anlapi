@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/apikey"
+	"anl-api/ent/group"
+	"anl-api/ent/user"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/apikey"
-	"ikik-api/ent/group"
-	"ikik-api/ent/user"
 	"strings"
 	"time"
 

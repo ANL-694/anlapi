@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/usagecleanuptask"
 	"context"
 	"fmt"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/usagecleanuptask"
 	"math"
 
 	"entgo.io/ent"

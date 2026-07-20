@@ -3,7 +3,7 @@ package service
 import (
 	"net/http"
 
-	"ikik-api/internal/pkg/tlsfingerprint"
+	"anl-api/internal/pkg/tlsfingerprint"
 )
 
 // HTTPUpstream 上游 HTTP 请求接口

@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/ent/accountgroup"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/suite"
-	dbent "ikik-api/ent"
-	"ikik-api/ent/accountgroup"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/service"
 )
 
 type AccountRepoSuite struct {

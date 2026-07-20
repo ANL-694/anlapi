@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"ikik-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/antigravity"
 )
 
 func TestShortHash(t *testing.T) {

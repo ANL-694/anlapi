@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"ikik-api/internal/plugin"
-	"ikik-api/internal/plugin/plugintest"
+	"anl-api/internal/plugin"
+	"anl-api/internal/plugin/plugintest"
 )
 
 // TestModuleRegisteredInDefaultRegistry 验证 init() 已向包级默认注册表

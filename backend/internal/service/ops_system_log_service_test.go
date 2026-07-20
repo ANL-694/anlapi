@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 func TestOpsServiceListSystemLogs_DefaultClampAndSuccess(t *testing.T) {

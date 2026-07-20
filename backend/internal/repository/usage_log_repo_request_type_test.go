@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/usagestats"
+	"anl-api/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/usagestats"
-	"ikik-api/internal/service"
 )
 
 func TestUsageLogRepositoryCreateSyncRequestTypeAndLegacyFields(t *testing.T) {

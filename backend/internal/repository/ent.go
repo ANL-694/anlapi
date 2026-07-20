@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"ikik-api/ent"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/timezone"
-	"ikik-api/migrations"
+	"anl-api/ent"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/timezone"
+	"anl-api/migrations"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

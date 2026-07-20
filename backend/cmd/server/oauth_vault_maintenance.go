@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/repository"
 	_ "github.com/lib/pq"
-	"ikik-api/internal/config"
-	"ikik-api/internal/repository"
 )
 
 func runOAuthVaultMaintenance(apply bool) error {

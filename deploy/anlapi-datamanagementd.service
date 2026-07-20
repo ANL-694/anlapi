@@ -1,0 +1,22 @@
+[Unit]
+Description=anl-api Data Management Daemon
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=anlapi
+Group=anlapi
+WorkingDirectory=/opt/anlapi
+ExecStart=/opt/anlapi/datamanagementd \
+  -socket-path /tmp/anlapi-datamanagement.sock \
+  -sqlite-path /var/lib/anlapi/datamanagement/datamanagementd.db \
+  -version 1.0.0
+Restart=always
+RestartSec=5s
+LimitNOFILE=100000
+NoNewPrivileges=true
+PrivateTmp=false
+
+[Install]
+WantedBy=multi-user.target

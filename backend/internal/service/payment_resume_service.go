@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/payment"
-	infraerrors "ikik-api/internal/pkg/errors"
+	"anl-api/internal/payment"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 const paymentResultReturnPath = "/payment/result"

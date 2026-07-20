@@ -16,9 +16,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"anl-api/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
 )
 
 // passCharAntigravityService 构造最小可运行的 AntigravityGatewayService。

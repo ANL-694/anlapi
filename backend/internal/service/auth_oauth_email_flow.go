@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/redeemcode"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	"anl-api/ent/redeemcode"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 func normalizeOAuthSignupSource(signupSource string) string {
@@ -42,7 +42,7 @@ func (s *AuthService) SendPendingOAuthVerifyCode(ctx context.Context, email stri
 		return nil, ErrServiceUnavailable
 	}
 
-	siteName := "ikik-api"
+	siteName := "anl-api"
 	if s.settingService != nil {
 		siteName = s.settingService.GetSiteName(ctx)
 	}

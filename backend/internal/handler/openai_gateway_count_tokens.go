@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"ikik-api/internal/domain"
-	pkghttputil "ikik-api/internal/pkg/httputil"
-	middleware2 "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
+	"anl-api/internal/domain"
+	pkghttputil "anl-api/internal/pkg/httputil"
+	middleware2 "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

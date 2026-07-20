@@ -3,10 +3,10 @@ package repository
 import (
 	"context"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/userattributedefinition"
-	"ikik-api/ent/userattributevalue"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/userattributedefinition"
+	"anl-api/ent/userattributevalue"
+	"anl-api/internal/service"
 )
 
 // UserAttributeDefinitionRepository implementation

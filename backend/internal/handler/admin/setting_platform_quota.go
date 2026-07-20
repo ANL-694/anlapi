@@ -1,6 +1,6 @@
 package admin
 
-import "ikik-api/internal/service"
+import "anl-api/internal/service"
 
 func equalDefaultPlatformQuotas(a, b map[string]*service.DefaultPlatformQuotaSetting) bool {
 	if len(a) != len(b) {

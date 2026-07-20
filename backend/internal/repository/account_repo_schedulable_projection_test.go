@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	dbent "anl-api/ent"
+	_ "anl-api/ent/runtime"
 	"github.com/DATA-DOG/go-sqlmock"
-	dbent "ikik-api/ent"
-	_ "ikik-api/ent/runtime"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

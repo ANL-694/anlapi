@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"anl-api/internal/handler/dto"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/pkg/xai"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
-	"ikik-api/internal/handler/dto"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/pkg/xai"
-	"ikik-api/internal/service"
 )
 
 const grokSSOImportConcurrency = 3

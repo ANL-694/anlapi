@@ -3,8 +3,8 @@ package service
 import (
 	"strings"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/payment"
+	dbent "anl-api/ent"
+	"anl-api/internal/payment"
 )
 
 func paymentProviderConfigCurrency(providerKey string, cfg map[string]string) string {

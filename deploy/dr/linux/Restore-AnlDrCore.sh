@@ -6,10 +6,10 @@ mode="${1:-prepare}"
 : "${DR_EXPECTED_SHA256:?DR_EXPECTED_SHA256 is required}"
 
 database_name="${DR_DATABASE_NAME:-ikik_api}"
-candidate_name="${DR_CANDIDATE_DATABASE:-ikik_api_dr_candidate}"
+candidate_name="${DR_CANDIDATE_DATABASE:-anlapi_dr_candidate}"
 database_owner="${DR_DATABASE_OWNER:-ikik_api}"
-app_binary="${DR_APP_BINARY:-/opt/ikik-api/ikik-api}"
-app_service="${DR_APP_SERVICE:-ikik-api}"
+app_binary="${DR_APP_BINARY:-/opt/anlapi/anlapi}"
+app_service="${DR_APP_SERVICE:-anlapi}"
 
 actual_hash="$(sha256sum "$DR_DUMP_FILE" | awk '{print $1}')"
 if [[ "$actual_hash" != "${DR_EXPECTED_SHA256,,}" ]]; then

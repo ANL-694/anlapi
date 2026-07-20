@@ -19,12 +19,12 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
 	"github.com/imroc/req/v3"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/util/responseheaders"
 )
 
 const (

@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/user"
+	"anl-api/ent/userattributedefinition"
+	"anl-api/ent/userattributevalue"
 	"fmt"
-	"ikik-api/ent/user"
-	"ikik-api/ent/userattributedefinition"
-	"ikik-api/ent/userattributevalue"
 	"strings"
 	"time"
 

@@ -13,10 +13,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/pkg/pagination"
 )
 
 const (
@@ -635,10 +635,13 @@ func (s *UsageCleanupService) effectiveAutoRetentionConfig(ctx context.Context) 
 	dbCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	raw, err := s.settingRepo.GetValue(dbCtx, settingKeyUsageRetention)
-	if err != nil || strings.TrimSpace(raw) == "" {
-		if err != nil {
+	if err != nil {
+		if !errors.Is(err, ErrSettingNotFound) {
 			logger.LegacyPrintf("service.usage_cleanup", "[UsageCleanup] load dynamic auto retention config failed, using config file defaults: %v", err)
 		}
+		return cfg
+	}
+	if strings.TrimSpace(raw) == "" {
 		return cfg
 	}
 	var stored UsageRetentionConfig

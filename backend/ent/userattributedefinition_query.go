@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/predicate"
+	"anl-api/ent/userattributedefinition"
+	"anl-api/ent/userattributevalue"
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"ikik-api/ent/predicate"
-	"ikik-api/ent/userattributedefinition"
-	"ikik-api/ent/userattributevalue"
 	"math"
 
 	"entgo.io/ent"

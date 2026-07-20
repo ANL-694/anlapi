@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/account"
+	"anl-api/ent/proxy"
+	"anl-api/ent/user"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/account"
-	"ikik-api/ent/proxy"
-	"ikik-api/ent/user"
 	"strings"
 	"time"
 

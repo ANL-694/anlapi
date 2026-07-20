@@ -243,7 +243,7 @@ describe('ProfileIdentityBindingsSection', () => {
       invitation_code_enabled: false,
       turnstile_enabled: false,
       turnstile_site_key: '',
-      site_name: 'ikik-api',
+      site_name: 'anl-api',
       site_logo: '',
       site_subtitle: '',
       api_base_url: '',

@@ -3,10 +3,10 @@
 package ent
 
 import (
+	"anl-api/ent/channelmonitor"
+	"anl-api/ent/channelmonitorrequesttemplate"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/channelmonitor"
-	"ikik-api/ent/channelmonitorrequesttemplate"
 	"strings"
 	"time"
 

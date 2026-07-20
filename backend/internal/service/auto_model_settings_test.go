@@ -14,7 +14,7 @@ func TestNormalizeAutoModelSettings(t *testing.T) {
 		Enabled: true,
 		Models: []AutoModelRule{
 			{
-				Name:              " ikik-auto ",
+				Name:              " anl-auto ",
 				Enabled:           true,
 				AllowedGroupIDs:   []int64{3, 2, 3, -1, 0},
 				RoutingMode:       "openrouter",
@@ -27,7 +27,7 @@ func TestNormalizeAutoModelSettings(t *testing.T) {
 				CostQuality:       99,
 			},
 			{
-				Name:       "IKIK-AUTO",
+				Name:       "ANL-AUTO",
 				Enabled:    true,
 				SmallModel: "duplicate",
 			},
@@ -45,7 +45,7 @@ func TestNormalizeAutoModelSettings(t *testing.T) {
 		t.Fatalf("expected one normalized model, got %d", len(cfg.Models))
 	}
 	rule := cfg.Models[0]
-	if rule.Name != "ikik-auto" {
+	if rule.Name != "anl-auto" {
 		t.Fatalf("unexpected name: %q", rule.Name)
 	}
 	if rule.SmallModel != "gpt-5.4-mini" || rule.BalancedModel != "gpt-5.5" || rule.LargeModel != "gpt-5.5" {
@@ -76,7 +76,7 @@ func TestFindAutoModelRuleRespectsAllowedGroups(t *testing.T) {
 		Enabled: true,
 		Models: []AutoModelRule{
 			{
-				Name:            "ikik-auto",
+				Name:            "anl-auto",
 				Enabled:         true,
 				SmallModel:      "mini",
 				AllowedGroupIDs: []int64{10, 20},
@@ -86,19 +86,19 @@ func TestFindAutoModelRuleRespectsAllowedGroups(t *testing.T) {
 	allowedGroupID := int64(20)
 	deniedGroupID := int64(30)
 
-	if _, ok := findAutoModelRule(cfg, "ikik-auto", &allowedGroupID); !ok {
+	if _, ok := findAutoModelRule(cfg, "anl-auto", &allowedGroupID); !ok {
 		t.Fatal("expected allowed group to match auto model")
 	}
-	if _, ok := findAutoModelRule(cfg, "ikik-auto", &deniedGroupID); ok {
+	if _, ok := findAutoModelRule(cfg, "anl-auto", &deniedGroupID); ok {
 		t.Fatal("denied group should not match auto model")
 	}
-	if _, ok := findAutoModelRule(cfg, "ikik-auto", nil); ok {
+	if _, ok := findAutoModelRule(cfg, "anl-auto", nil); ok {
 		t.Fatal("nil group should not match restricted auto model")
 	}
 }
 
 func TestEstimateAutoModelScore(t *testing.T) {
-	body := []byte(`{"model":"ikik-auto","reasoning":{"effort":"high"},"tools":[{"name":"read"}],"messages":[{"role":"user","content":"debug this large codebase"}]}`)
+	body := []byte(`{"model":"anl-auto","reasoning":{"effort":"high"},"tools":[{"name":"read"}],"messages":[{"role":"user","content":"debug this large codebase"}]}`)
 
 	score, reason := estimateAutoModelScore(body, AutoModelProtocolOpenAIChat)
 	if score < autoModelDefaultLargeThreshold {
@@ -131,7 +131,7 @@ func TestChooseAutoModelTarget(t *testing.T) {
 
 func TestChooseAutoRouterTarget(t *testing.T) {
 	rule := AutoModelRule{
-		Name:          "ikik-auto",
+		Name:          "anl-auto",
 		RoutingMode:   AutoModelRoutingModeRouter,
 		AllowedModels: []string{"gpt-5.4-mini", "gpt-5.5"},
 		CostQuality:   8,
@@ -167,7 +167,7 @@ func TestExtractAutoRouterRequestOverride(t *testing.T) {
 }
 
 func TestStripAutoRouterPluginFromBody(t *testing.T) {
-	body := []byte(`{"model":"ikik-auto","plugins":[{"id":"auto-router","allowed_models":["gpt-5.5"]},{"id":"other","foo":true}],"messages":[{"role":"user","content":"hi"}]}`)
+	body := []byte(`{"model":"anl-auto","plugins":[{"id":"auto-router","allowed_models":["gpt-5.5"]},{"id":"other","foo":true}],"messages":[{"role":"user","content":"hi"}]}`)
 	out := StripAutoRouterPluginFromBody(body)
 	text := string(out)
 	if strings.Contains(text, "auto-router") {
@@ -177,7 +177,7 @@ func TestStripAutoRouterPluginFromBody(t *testing.T) {
 		t.Fatalf("non-router plugin should be preserved: %s", text)
 	}
 
-	body = []byte(`{"model":"ikik-auto","plugins":[{"id":"auto-router"}],"messages":[]}`)
+	body = []byte(`{"model":"anl-auto","plugins":[{"id":"auto-router"}],"messages":[]}`)
 	out = StripAutoRouterPluginFromBody(body)
 	if strings.Contains(string(out), "plugins") {
 		t.Fatalf("empty plugins array should be removed: %s", string(out))
@@ -220,7 +220,7 @@ func TestChooseAIAutoRouterTarget(t *testing.T) {
 	defer server.Close()
 
 	rule := AutoModelRule{
-		Name:               "ikik-auto",
+		Name:               "anl-auto",
 		AIRouterEnabled:    true,
 		RouterModel:        "gpt-5.4-mini",
 		RouterBaseURL:      server.URL + "/v1",
@@ -253,7 +253,7 @@ func TestBuildAutoModelUsageFields(t *testing.T) {
 	fields := BuildAutoModelUsageFields(
 		AutoModelDecision{
 			Matched:        true,
-			RequestedModel: "ikik-auto",
+			RequestedModel: "anl-auto",
 			ResolvedModel:  "gpt-5.5",
 		},
 		ChannelMappingResult{
@@ -268,7 +268,7 @@ func TestBuildAutoModelUsageFields(t *testing.T) {
 	if fields.ChannelID != 42 {
 		t.Fatalf("unexpected channel id: %d", fields.ChannelID)
 	}
-	if fields.OriginalModel != "ikik-auto" {
+	if fields.OriginalModel != "anl-auto" {
 		t.Fatalf("unexpected original model: %s", fields.OriginalModel)
 	}
 	if fields.ChannelMappedModel != "upstream-gpt" {
@@ -277,7 +277,7 @@ func TestBuildAutoModelUsageFields(t *testing.T) {
 	if fields.BillingModelSource != BillingModelSourceChannelMapped {
 		t.Fatalf("auto model should bill by real mapped model, got %s", fields.BillingModelSource)
 	}
-	if fields.ModelMappingChain != "ikik-auto→gpt-5.5→upstream-gpt→upstream-final" {
+	if fields.ModelMappingChain != "anl-auto→gpt-5.5→upstream-gpt→upstream-final" {
 		t.Fatalf("unexpected mapping chain: %s", fields.ModelMappingChain)
 	}
 }

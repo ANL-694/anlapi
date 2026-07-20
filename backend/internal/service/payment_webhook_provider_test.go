@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/payment"
+	dbent "anl-api/ent"
+	"anl-api/internal/payment"
 	"github.com/stretchr/testify/require"
 )
 

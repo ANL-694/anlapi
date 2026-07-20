@@ -3,7 +3,7 @@ package repository
 import (
 	"testing"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 	"github.com/stretchr/testify/require"
 )
 

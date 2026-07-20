@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"ikik-api/internal/pkg/httpclient"
+	"anl-api/internal/pkg/httpclient"
 )
 
 const userPrivateProxyBaseProbeTimeout = 10 * time.Second

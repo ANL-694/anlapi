@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 func (s *OpsService) ListAlertRules(ctx context.Context) ([]*OpsAlertRule, error) {

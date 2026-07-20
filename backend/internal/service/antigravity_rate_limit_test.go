@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/tlsfingerprint"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/pkg/antigravity"
-	"ikik-api/internal/pkg/tlsfingerprint"
 )
 
 // 编译期接口断言

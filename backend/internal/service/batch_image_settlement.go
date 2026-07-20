@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
 	"go.uber.org/zap"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
 )
 
 const (

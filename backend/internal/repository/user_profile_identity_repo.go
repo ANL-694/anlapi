@@ -12,15 +12,15 @@ import (
 	"time"
 	"unsafe"
 
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	"anl-api/ent/authidentitychannel"
+	"anl-api/ent/identityadoptiondecision"
+	dbpredicate "anl-api/ent/predicate"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/service"
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/authidentitychannel"
-	"ikik-api/ent/identityadoptiondecision"
-	dbpredicate "ikik-api/ent/predicate"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/service"
 )
 
 var (

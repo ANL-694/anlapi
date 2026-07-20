@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/authidentitychannel"
-	"ikik-api/internal/payment"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/oauth"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	"anl-api/ent/authidentitychannel"
+	"anl-api/internal/payment"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/oauth"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

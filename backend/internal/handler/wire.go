@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"ikik-api/internal/config"
-	"ikik-api/internal/handler/admin"
-	"ikik-api/internal/securityaudit"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/handler/admin"
+	"anl-api/internal/securityaudit"
+	"anl-api/internal/service"
 
 	"github.com/google/wire"
 )

@@ -3,11 +3,11 @@
 package ent
 
 import (
+	"anl-api/ent/batchimageevent"
+	"anl-api/ent/predicate"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/batchimageevent"
-	"ikik-api/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"

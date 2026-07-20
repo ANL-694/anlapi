@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/handler"
-	servermiddleware "ikik-api/internal/server/middleware"
-	"ikik-api/internal/service"
-	"ikik-api/internal/web"
+	"anl-api/internal/config"
+	"anl-api/internal/handler"
+	servermiddleware "anl-api/internal/server/middleware"
+	"anl-api/internal/service"
+	"anl-api/internal/web"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

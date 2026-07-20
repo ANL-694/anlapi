@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ctxkey"
+	"anl-api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ctxkey"
-	"ikik-api/internal/pkg/pagination"
 )
 
 // testConfig 返回一个用于测试的默认配置

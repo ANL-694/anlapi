@@ -24,13 +24,13 @@ import (
 	"golang.org/x/mod/semver"
 	"golang.org/x/net/http2"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/proxyurl"
-	"ikik-api/internal/pkg/proxyutil"
-	"ikik-api/internal/pkg/servertiming"
-	"ikik-api/internal/pkg/tlsfingerprint"
-	"ikik-api/internal/service"
-	"ikik-api/internal/util/urlvalidator"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/proxyurl"
+	"anl-api/internal/pkg/proxyutil"
+	"anl-api/internal/pkg/servertiming"
+	"anl-api/internal/pkg/tlsfingerprint"
+	"anl-api/internal/service"
+	"anl-api/internal/util/urlvalidator"
 )
 
 const (

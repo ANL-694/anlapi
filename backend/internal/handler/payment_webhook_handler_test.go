@@ -11,8 +11,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"ikik-api/internal/payment"
-	"ikik-api/internal/service"
+	"anl-api/internal/payment"
+	"anl-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -220,7 +220,7 @@ type webhookHandlerProviderStub struct {
 	verifyErr    error
 }
 
-func (p webhookHandlerProviderStub) Name() string { return p.key }
+func (p webhookHandlerProviderStub) Name() string        { return p.key }
 func (p webhookHandlerProviderStub) ProviderKey() string { return p.key }
 func (p webhookHandlerProviderStub) SupportedTypes() []payment.PaymentType {
 	return []payment.PaymentType{payment.PaymentType(p.key)}

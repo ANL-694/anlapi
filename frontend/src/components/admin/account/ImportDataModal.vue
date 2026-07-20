@@ -839,7 +839,7 @@ const importLocalFile = async (
   }
 
   if (dataPayload && !validateSelectedTargetGroups(dataPayload)) {
-    throw new Error('__IKIK_IMPORT_VALIDATION_STOP__')
+    throw new Error('__ANL_IMPORT_VALIDATION_STOP__')
   }
 
   if (
@@ -914,7 +914,7 @@ const handleImport = async () => {
       emit('imported')
     }
   } catch (error: any) {
-    if (error?.message === '__IKIK_IMPORT_VALIDATION_STOP__') {
+    if (error?.message === '__ANL_IMPORT_VALIDATION_STOP__') {
       return
     }
     if (error instanceof SyntaxError) {

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/util/logredact"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/util/logredact"
 )
 
 const (

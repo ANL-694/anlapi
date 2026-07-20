@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
+	"anl-api/internal/pkg/ctxkey"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"ikik-api/internal/pkg/ctxkey"
 )
 
 // responsesFailedError 对齐 OpenAI Responses 协议 error 子对象。

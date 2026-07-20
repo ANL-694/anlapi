@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"anl-api/internal/pkg/servertiming"
 	"github.com/tidwall/gjson"
-	"ikik-api/internal/pkg/servertiming"
 )
 
 // monitorHTTPClient 共享一个 http.Client，避免每次检测重建 transport。

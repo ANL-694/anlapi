@@ -3,10 +3,10 @@ package admin
 import (
 	"strconv"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/payment"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/internal/payment"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

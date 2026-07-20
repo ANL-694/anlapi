@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/servertiming"
+	"anl-api/internal/pkg/servertiming"
 )
 
 const fakeDriverDelay = 2 * time.Millisecond

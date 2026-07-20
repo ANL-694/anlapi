@@ -3,9 +3,9 @@ package middleware
 import (
 	"strings"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ip"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ip"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

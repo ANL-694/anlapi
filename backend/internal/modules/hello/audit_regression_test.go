@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"ikik-api/internal/plugin/plugintest"
+	"anl-api/internal/plugin/plugintest"
 )
 
 func TestStopWithPreCancelledContextAfterWorkerExit(t *testing.T) {

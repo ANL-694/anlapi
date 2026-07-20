@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strings"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/googleapi"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/googleapi"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

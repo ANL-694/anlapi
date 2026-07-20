@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/model"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/model"
+	"anl-api/internal/pkg/logger"
 )
 
 // ErrorPassthroughRepository 定义错误透传规则的数据访问接口

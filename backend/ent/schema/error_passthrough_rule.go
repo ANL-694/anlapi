@@ -2,7 +2,7 @@
 package schema
 
 import (
-	"ikik-api/ent/schema/mixins"
+	"anl-api/ent/schema/mixins"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"

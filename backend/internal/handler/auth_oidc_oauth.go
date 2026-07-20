@@ -19,12 +19,12 @@ import (
 	"strings"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/oauth"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/oauth"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

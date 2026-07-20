@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
+	dbent "anl-api/ent"
+	"anl-api/internal/config"
+	infraerrors "anl-api/internal/pkg/errors"
+	"anl-api/internal/pkg/pagination"
 	"github.com/dgraph-io/ristretto"
 	"golang.org/x/sync/singleflight"
-	dbent "ikik-api/ent"
-	"ikik-api/internal/config"
-	infraerrors "ikik-api/internal/pkg/errors"
-	"ikik-api/internal/pkg/pagination"
 )
 
 // MaxExpiresAt is the maximum allowed expiration date (year 2099)

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
-	"ikik-api/internal/service"
 )
 
 type concurrencyCacheMock struct {

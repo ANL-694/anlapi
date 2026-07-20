@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/pkg/sysutil"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/pkg/sysutil"
 
 	"github.com/gin-gonic/gin"
 )

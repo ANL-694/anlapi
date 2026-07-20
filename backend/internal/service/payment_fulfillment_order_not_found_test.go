@@ -12,9 +12,9 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 	_ "modernc.org/sqlite"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/enttest"
-	"ikik-api/internal/payment"
+	dbent "anl-api/ent"
+	"anl-api/ent/enttest"
+	"anl-api/internal/payment"
 	"github.com/stretchr/testify/require"
 )
 

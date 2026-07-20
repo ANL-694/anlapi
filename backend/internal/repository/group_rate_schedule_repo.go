@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"ikik-api/internal/service"
+	"anl-api/internal/service"
 )
 
 const groupRateScheduleMultiplierEpsilon = 0.0000001

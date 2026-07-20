@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 // APIKeyRateLimitCacheData holds rate limit usage data cached in Redis.

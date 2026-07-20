@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/handler/dto"
-	"ikik-api/internal/pkg/pagination"
-	"ikik-api/internal/pkg/response"
-	"ikik-api/internal/service"
+	"anl-api/internal/handler/dto"
+	"anl-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/response"
+	"anl-api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

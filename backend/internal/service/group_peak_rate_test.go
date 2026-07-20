@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"ikik-api/internal/pkg/timezone"
+	"anl-api/internal/pkg/timezone"
 )
 
 func TestPeakMultiplierAtBoundaries(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/pkg/logger"
 )
 
 // Task type constants

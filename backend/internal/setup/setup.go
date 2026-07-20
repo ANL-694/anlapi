@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
-	"ikik-api/internal/repository"
-	"ikik-api/internal/service"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
+	"anl-api/internal/repository"
+	"anl-api/internal/service"
 
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
@@ -590,7 +590,7 @@ func AutoSetupFromEnv() error {
 			EnableTLS: getEnvOrDefault("REDIS_ENABLE_TLS", "false") == "true",
 		},
 		Admin: AdminConfig{
-			Email:    getEnvOrDefault("ADMIN_EMAIL", "admin@ikik-api.local"),
+			Email:    getEnvOrDefault("ADMIN_EMAIL", "admin@anl-api.local"),
 			Password: getEnvOrDefault("ADMIN_PASSWORD", ""),
 		},
 		Server: ServerConfig{

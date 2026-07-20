@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	"ikik-api/internal/pkg/servertiming"
+	"anl-api/internal/pkg/servertiming"
 )
 
 type serverTimingConnector struct {

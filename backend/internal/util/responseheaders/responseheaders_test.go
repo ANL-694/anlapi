@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"ikik-api/internal/config"
+	"anl-api/internal/config"
 )
 
 func TestFilterHeadersDisabledUsesDefaultAllowlist(t *testing.T) {

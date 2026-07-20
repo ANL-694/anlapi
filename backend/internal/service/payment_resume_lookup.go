@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	dbent "ikik-api/ent"
-	infraerrors "ikik-api/internal/pkg/errors"
+	dbent "anl-api/ent"
+	infraerrors "anl-api/internal/pkg/errors"
 )
 
 func (s *PaymentService) GetPublicOrderByResumeToken(ctx context.Context, token string) (*dbent.PaymentOrder, error) {

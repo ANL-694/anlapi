@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/ctxkey"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/ctxkey"
 	"github.com/stretchr/testify/require"
 )
 

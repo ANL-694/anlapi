@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/logger"
 	"go.uber.org/zap"
 )
 

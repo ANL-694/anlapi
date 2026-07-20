@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"ikik-api/internal/config"
-	"ikik-api/internal/pkg/geminicli"
-	"ikik-api/internal/pkg/httpclient"
-	"ikik-api/internal/pkg/logger"
+	"anl-api/internal/config"
+	"anl-api/internal/pkg/geminicli"
+	"anl-api/internal/pkg/httpclient"
+	"anl-api/internal/pkg/logger"
 )
 
 const (
-	// Canonical tier IDs used by ikik-api (2026-aligned).
+	// Canonical tier IDs used by anl-api (2026-aligned).
 	GeminiTierGoogleOneFree    = "google_one_free"
 	GeminiTierGoogleAIPro      = "google_ai_pro"
 	GeminiTierGoogleAIUltra    = "google_ai_ultra"

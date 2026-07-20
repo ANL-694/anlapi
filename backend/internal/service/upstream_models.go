@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"ikik-api/internal/pkg/antigravity"
-	"ikik-api/internal/pkg/claude"
-	"ikik-api/internal/pkg/geminicli"
+	"anl-api/internal/pkg/antigravity"
+	"anl-api/internal/pkg/claude"
+	"anl-api/internal/pkg/geminicli"
 )
 
 const upstreamModelsBodyLimit int64 = 8 << 20

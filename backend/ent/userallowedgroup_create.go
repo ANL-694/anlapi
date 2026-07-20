@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/group"
+	"anl-api/ent/user"
+	"anl-api/ent/userallowedgroup"
 	"context"
 	"errors"
 	"fmt"
-	"ikik-api/ent/group"
-	"ikik-api/ent/user"
-	"ikik-api/ent/userallowedgroup"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

@@ -512,7 +512,7 @@ export async function getRealtimeTrafficSummary(
  *
  * Note: browsers cannot set Authorization headers for WebSockets.
  * We authenticate via Sec-WebSocket-Protocol using a prefixed token item:
- *   ["ikik-api-admin", "jwt.<token>"]
+ *   ["anl-api-admin", "jwt.<token>"]
  */
 export interface SubscribeQPSOptions {
   token?: string | null
@@ -558,7 +558,7 @@ export const OPS_WS_CLOSE_CODES = {
   REALTIME_DISABLED: 4001
 } as const
 
-const OPS_WS_BASE_PROTOCOL = 'ikik-api-admin'
+const OPS_WS_BASE_PROTOCOL = 'anl-api-admin'
 
 export function subscribeQPS(onMessage: (data: any) => void, options: SubscribeQPSOptions = {}): () => void {
   let ws: WebSocket | null = null
@@ -656,7 +656,7 @@ export function subscribeQPS(onMessage: (data: any) => void, options: SubscribeQ
 
     // Do NOT put admin JWT in the URL query string (it can leak via access logs, proxies, etc).
     // Browsers cannot set Authorization headers for WebSockets, so we pass the token via
-    // Sec-WebSocket-Protocol (subprotocol list): ["ikik-api-admin", "jwt.<token>"].
+    // Sec-WebSocket-Protocol (subprotocol list): ["anl-api-admin", "jwt.<token>"].
     const rawToken = String(options.token ?? localStorage.getItem('auth_token') ?? '').trim()
     const protocols: string[] = [OPS_WS_BASE_PROTOCOL]
     if (rawToken) protocols.push(`jwt.${rawToken}`)

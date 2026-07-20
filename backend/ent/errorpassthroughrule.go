@@ -3,9 +3,9 @@
 package ent
 
 import (
+	"anl-api/ent/errorpassthroughrule"
 	"encoding/json"
 	"fmt"
-	"ikik-api/ent/errorpassthroughrule"
 	"strings"
 	"time"
 

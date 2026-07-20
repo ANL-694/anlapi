@@ -3,12 +3,12 @@
 package ent
 
 import (
+	"anl-api/ent/apikey"
+	"anl-api/ent/apikeygrouproute"
+	"anl-api/ent/group"
+	"anl-api/ent/predicate"
 	"context"
 	"fmt"
-	"ikik-api/ent/apikey"
-	"ikik-api/ent/apikeygrouproute"
-	"ikik-api/ent/group"
-	"ikik-api/ent/predicate"
 	"math"
 
 	"entgo.io/ent"

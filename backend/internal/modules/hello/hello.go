@@ -14,7 +14,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"ikik-api/internal/plugin"
+	"anl-api/internal/plugin"
 )
 
 // ID 是 hello 模块的模块 ID。

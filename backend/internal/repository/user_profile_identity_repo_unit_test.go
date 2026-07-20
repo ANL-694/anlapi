@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	dbent "ikik-api/ent"
-	"ikik-api/ent/authidentity"
-	"ikik-api/ent/authidentitychannel"
-	"ikik-api/ent/identityadoptiondecision"
-	"ikik-api/internal/service"
+	dbent "anl-api/ent"
+	"anl-api/ent/authidentity"
+	"anl-api/ent/authidentitychannel"
+	"anl-api/ent/identityadoptiondecision"
+	"anl-api/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

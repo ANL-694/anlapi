@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"anl-api/ent/setting"
 	"fmt"
-	"ikik-api/ent/setting"
 	"strings"
 	"time"
 

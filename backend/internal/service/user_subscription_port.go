@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"ikik-api/internal/pkg/pagination"
+	"anl-api/internal/pkg/pagination"
 )
 
 type UserSubscriptionRepository interface {

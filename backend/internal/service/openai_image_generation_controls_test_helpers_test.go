@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"anl-api/internal/config"
 	"github.com/gin-gonic/gin"
-	"ikik-api/internal/config"
 )
 
 func newOpenAIImageGenerationControlTestService(upstream *httpUpstreamRecorder) *OpenAIGatewayService {

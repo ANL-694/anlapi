@@ -1887,7 +1887,7 @@ const handleExportData = async () => {
           }
     ))
     const timestamp = formatExportTimestamp()
-    const filename = `ikik-api-account-${timestamp}.json`
+    const filename = `anl-api-account-${timestamp}.json`
     const blob = new Blob([JSON.stringify(dataPayload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')

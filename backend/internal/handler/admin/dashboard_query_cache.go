@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"ikik-api/internal/pkg/usagestats"
+	"anl-api/internal/pkg/usagestats"
 )
 
 var (
