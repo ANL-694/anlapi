@@ -58,6 +58,15 @@
           <span v-if="isAuthenticated" class="user-dot">{{ userInitial }}</span>
           <span>{{ isAuthenticated ? t('home.dashboard') : t('home.login') }}</span>
         </router-link>
+        <router-link
+          :to="isAuthenticated ? dashboardPath : '/login'"
+          class="icon-action mobile-account-action"
+          :aria-label="isAuthenticated ? t('home.dashboard') : t('home.login')"
+          :title="isAuthenticated ? t('home.dashboard') : t('home.login')"
+        >
+          <Icon v-if="isAuthenticated" name="user" size="md" />
+          <Icon v-else name="login" size="md" />
+        </router-link>
       </div>
     </header>
 
@@ -85,7 +94,7 @@
           </div>
         </div>
 
-        <div class="hero-product" aria-hidden="true">
+        <div class="hero-product">
           <div class="device-frame">
             <div class="device-topbar">
               <span></span>
@@ -124,11 +133,14 @@
                   <b>{{ t('home.redesign.product.compatible') }}</b>
                 </div>
                 <div class="api-rows">
-                  <span v-for="row in endpointRows" :key="row.path" class="api-row">
-                    <b>{{ row.method }}</b>
+                  <router-link v-for="row in endpointRows" :key="row.path" :to="row.to" class="api-row">
+                    <b>
+                      <span>{{ row.method }}</span>
+                      <span class="api-row-mobile-label">{{ row.label }}</span>
+                    </b>
                     <code>{{ row.path }}</code>
                     <em>{{ row.label }}</em>
-                  </span>
+                  </router-link>
                 </div>
               </div>
             </div>
@@ -237,10 +249,20 @@ const metricItems = computed(() => [
 ])
 
 const endpointRows = computed(() => [
-  { method: '1', path: '/register', label: '注册' },
-  { method: '2', path: '/purchase', label: '充值' },
-  { method: '3', path: '/keys', label: '创建 Key' },
-  { method: '4', path: '/key-usage', label: '查用量' }
+  {
+    method: '1',
+    path: isAuthenticated.value ? '/dashboard' : '/register',
+    label: isAuthenticated.value ? t('home.dashboard') : t('home.getStarted'),
+    to: isAuthenticated.value ? '/dashboard' : '/register'
+  },
+  { method: '2', path: '/purchase', label: t('home.nav.purchase'), to: '/purchase' },
+  { method: '3', path: '/keys', label: t('home.nav.keys'), to: '/keys' },
+  {
+    method: '4',
+    path: isAuthenticated.value ? '/usage' : '/key-usage',
+    label: isAuthenticated.value ? t('dashboard.viewUsage') : t('home.hero.viewUsage'),
+    to: isAuthenticated.value ? '/usage' : '/key-usage'
+  }
 ])
 
 const currentYear = computed(() => new Date().getFullYear())
@@ -511,6 +533,10 @@ onMounted(() => {
   transform: translateY(-1px);
   background: var(--paper);
   color: var(--text);
+}
+
+.mobile-account-action {
+  display: none;
 }
 
 .home-locale {
@@ -870,6 +896,22 @@ onMounted(() => {
   padding: 10px 11px;
   color: var(--muted);
   font-size: 0.78rem;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.api-row:hover {
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  transform: translateY(-1px);
+}
+
+.api-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .api-row b {
@@ -881,6 +923,10 @@ onMounted(() => {
   text-align: center;
   font-size: 0.68rem;
   font-weight: 820;
+}
+
+.api-row-mobile-label {
+  display: none;
 }
 
 .api-row code {
@@ -1095,6 +1141,10 @@ onMounted(() => {
     display: none;
   }
 
+  .mobile-account-action {
+    display: inline-flex;
+  }
+
   .hero-section {
     gap: 24px;
     padding: 16px 0 48px;
@@ -1248,6 +1298,15 @@ onMounted(() => {
 
   .api-row em {
     display: none;
+  }
+
+  .api-row b {
+    min-width: 0;
+  }
+
+  .api-row-mobile-label {
+    display: inline;
+    margin-left: 0.25rem;
   }
 
   .code-tabs {

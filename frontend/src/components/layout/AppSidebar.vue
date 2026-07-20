@@ -1053,13 +1053,21 @@ function toggleGroup(item: NavItem) {
 
 /**
  * Click handler for collapsible parent items.
- * - When sidebar is collapsed: do nothing (children are not visible).
+ * - When sidebar is collapsed: expand it and reveal the selected group.
  * - When `expandOnly` is true: only toggle expand state.
  * - Otherwise (default, e.g. /admin/orders): navigate to the parent path
  *   (router-link semantics) and ensure the group is expanded.
  */
 function handleGroupClick(item: NavItem) {
-  if (sidebarCollapsed.value) return
+  if (sidebarCollapsed.value) {
+    appStore.setSidebarCollapsed(false)
+    collapsedGroups.value.delete(item.path)
+    expandedGroups.value.add(item.path)
+    if (!item.expandOnly && route.path !== item.path) {
+      void router.push(item.path)
+    }
+    return
+  }
   if (item.expandOnly) {
     toggleGroup(item)
     return

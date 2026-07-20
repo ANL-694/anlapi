@@ -20,7 +20,20 @@
       <div class="app-header-actions">
         <LocaleSwitcher class="app-header-action-item shrink-0" />
         <SubscriptionProgressMini v-if="user" class="app-header-action-item" />
-        <AnnouncementBell v-if="user" class="app-header-action-item" />
+        <AnnouncementBell v-if="user" class="app-header-action-item app-header-announcement" />
+        <router-link
+          v-if="user"
+          to="/purchase"
+          class="app-header-balance"
+          :aria-label="t('common.balance')"
+          :title="t('common.balance')"
+        >
+          <Icon name="dollar" size="sm" class="text-[var(--app-primary)]" />
+          <span class="app-header-balance-label">{{ t('common.balance') }}</span>
+          <span class="app-header-balance-value">
+            ${{ formattedBalance }}
+          </span>
+        </router-link>
 
         <div v-if="user" class="relative" ref="dropdownRef">
           <button
@@ -58,7 +71,7 @@
                     {{ t('common.balance') }}
                   </span>
                   <span class="text-sm font-semibold text-[var(--app-text)]">
-                    ${{ user.balance?.toFixed(2) || '0.00' }}
+                    ${{ formattedBalance }}
                   </span>
                 </div>
               </div>
@@ -150,6 +163,10 @@ const adminSettingsStore = useAdminSettingsStore()
 const onboardingStore = useOnboardingStore()
 
 const user = computed(() => authStore.user)
+const formattedBalance = computed(() => {
+  const balance = user.value?.balance
+  return typeof balance === 'number' && Number.isFinite(balance) ? balance.toFixed(2) : '0.00'
+})
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const contactInfo = computed(() => appStore.contactInfo)

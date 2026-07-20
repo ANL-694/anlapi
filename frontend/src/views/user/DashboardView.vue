@@ -6,6 +6,7 @@
       </div>
       <template v-else-if="stats">
         <UserDashboardStats :stats="stats" :user="user" :is-simple="authStore.isSimpleMode" />
+        <UserDashboardQuickActions />
         <UserDashboardCharts
           v-model:startDate="startDate"
           v-model:endDate="endDate"
@@ -44,6 +45,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { UiPage } from '@/ui'
 import UserDashboardStats from '@/components/user/dashboard/UserDashboardStats.vue'
+import UserDashboardQuickActions from '@/components/user/dashboard/UserDashboardQuickActions.vue'
 import UserDashboardPlatformUsage from '@/components/user/dashboard/UserDashboardPlatformUsage.vue'
 import UserDashboardPlatformQuotas from '@/components/user/dashboard/UserDashboardPlatformQuotas.vue'
 import UserDashboardCharts from '@/components/user/dashboard/UserDashboardCharts.vue'

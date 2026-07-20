@@ -30,3 +30,10 @@ describe('AppSidebar header styles', () => {
     expect(sidebarBrandBlockMatch?.[0]).not.toContain('overflow: hidden;')
   })
 })
+
+describe('AppSidebar collapsed groups', () => {
+  it('expands the sidebar instead of ignoring a grouped navigation click', () => {
+    expect(componentSource).toContain('appStore.setSidebarCollapsed(false)')
+    expect(componentSource).toContain('expandedGroups.value.add(item.path)')
+  })
+})
