@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"io"
 
-	"anl-api/internal/config"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/service"
 )
 
 // AESEncryptor implements SecretEncryptor using AES-256-GCM

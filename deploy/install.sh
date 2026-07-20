@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# anl-api Installation Script
-# anl-api 安装脚本
-# Usage: curl -sSL https://raw.githubusercontent.com/ANL-694/anl-api/main/deploy/install.sh | bash
+# anlapi Installation Script
+# anlapi 安装脚本
+# Usage: curl -sSL https://raw.githubusercontent.com/ANL-694/anlapi/main/deploy/install.sh | bash
 #
 
 set -e
@@ -16,7 +16,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-GITHUB_REPO="ANL-694/anl-api"
+GITHUB_REPO="ANL-694/anlapi"
 INSTALL_DIR="/opt/anlapi"
 SERVICE_NAME="anlapi"
 SERVICE_USER="anlapi"
@@ -49,7 +49,7 @@ declare -A MSG_ZH=(
     ["enter_choice"]="请输入选择 (默认: 1)"
 
     # Installation
-    ["install_title"]="anl-api 安装脚本"
+    ["install_title"]="anlapi 安装脚本"
     ["run_as_root"]="请使用 root 权限运行 (使用 sudo)"
     ["detected_platform"]="检测到平台"
     ["unsupported_arch"]="不支持的架构"
@@ -77,11 +77,11 @@ declare -A MSG_ZH=(
     ["ready_for_setup"]="准备就绪，可以启动设置向导"
 
     # Completion
-    ["install_complete"]="anl-api 安装完成！"
+    ["install_complete"]="anlapi 安装完成！"
     ["install_dir"]="安装目录"
     ["next_steps"]="后续步骤"
     ["step1_check_services"]="确保 PostgreSQL 和 Redis 正在运行："
-    ["step2_start_service"]="启动 anl-api 服务："
+    ["step2_start_service"]="启动 anlapi 服务："
     ["step3_enable_autostart"]="设置开机自启："
     ["step4_open_wizard"]="在浏览器中打开设置向导："
     ["wizard_guide"]="设置向导将引导您完成："
@@ -95,7 +95,7 @@ declare -A MSG_ZH=(
     ["cmd_stop"]="停止服务"
 
     # Upgrade
-    ["upgrading"]="正在升级 anl-api..."
+    ["upgrading"]="正在升级 anlapi..."
     ["current_version"]="当前版本"
     ["stopping_service"]="正在停止服务..."
     ["backup_created"]="备份已创建"
@@ -111,11 +111,11 @@ declare -A MSG_ZH=(
     ["validating_version"]="正在验证版本..."
     ["available_versions"]="可用版本列表"
     ["fetching_versions"]="正在获取可用版本..."
-    ["not_installed"]="anl-api 尚未安装，请先执行全新安装"
+    ["not_installed"]="anlapi 尚未安装，请先执行全新安装"
     ["fresh_install_hint"]="用法"
 
     # Uninstall
-    ["uninstall_confirm"]="这将从系统中移除 anl-api。"
+    ["uninstall_confirm"]="这将从系统中移除 anlapi。"
     ["are_you_sure"]="确定要继续吗？(y/N)"
     ["uninstall_cancelled"]="卸载已取消"
     ["removing_files"]="正在移除文件..."
@@ -127,21 +127,21 @@ declare -A MSG_ZH=(
     ["install_lock_removed"]="安装锁文件已移除，重新安装时将进入设置向导"
     ["purge_prompt"]="是否同时删除配置目录？这将清除所有配置和数据 [y/N]: "
     ["removing_config_dir"]="正在移除配置目录..."
-    ["uninstall_complete"]="anl-api 已卸载"
+    ["uninstall_complete"]="anlapi 已卸载"
 
     # Help
     ["usage"]="用法"
     ["cmd_none"]="(无参数)"
-    ["cmd_install"]="安装 anl-api"
+    ["cmd_install"]="安装 anlapi"
     ["cmd_upgrade"]="升级到最新版本"
-    ["cmd_uninstall"]="卸载 anl-api"
+    ["cmd_uninstall"]="卸载 anlapi"
     ["cmd_install_version"]="安装/回退到指定版本"
     ["cmd_list_versions"]="列出可用版本"
     ["opt_version"]="指定要安装的版本号 (例如: v1.0.0)"
 
     # Server configuration
     ["server_config_title"]="服务器配置"
-    ["server_config_desc"]="配置 anl-api 服务监听地址"
+    ["server_config_desc"]="配置 anlapi 服务监听地址"
     ["server_host_prompt"]="服务器监听地址"
     ["server_host_hint"]="0.0.0.0 表示监听所有网卡，127.0.0.1 仅本地访问"
     ["server_port_prompt"]="服务器端口"
@@ -174,7 +174,7 @@ declare -A MSG_EN=(
     ["enter_choice"]="Enter your choice (default: 1)"
 
     # Installation
-    ["install_title"]="anl-api Installation Script"
+    ["install_title"]="anlapi Installation Script"
     ["run_as_root"]="Please run as root (use sudo)"
     ["detected_platform"]="Detected platform"
     ["unsupported_arch"]="Unsupported architecture"
@@ -202,11 +202,11 @@ declare -A MSG_EN=(
     ["ready_for_setup"]="Ready for Setup Wizard"
 
     # Completion
-    ["install_complete"]="anl-api installation completed!"
+    ["install_complete"]="anlapi installation completed!"
     ["install_dir"]="Installation directory"
     ["next_steps"]="NEXT STEPS"
     ["step1_check_services"]="Make sure PostgreSQL and Redis are running:"
-    ["step2_start_service"]="Start anl-api service:"
+    ["step2_start_service"]="Start anlapi service:"
     ["step3_enable_autostart"]="Enable auto-start on boot:"
     ["step4_open_wizard"]="Open the Setup Wizard in your browser:"
     ["wizard_guide"]="The Setup Wizard will guide you through:"
@@ -220,7 +220,7 @@ declare -A MSG_EN=(
     ["cmd_stop"]="Stop"
 
     # Upgrade
-    ["upgrading"]="Upgrading anl-api..."
+    ["upgrading"]="Upgrading anlapi..."
     ["current_version"]="Current version"
     ["stopping_service"]="Stopping service..."
     ["backup_created"]="Backup created"
@@ -236,11 +236,11 @@ declare -A MSG_EN=(
     ["validating_version"]="Validating version..."
     ["available_versions"]="Available versions"
     ["fetching_versions"]="Fetching available versions..."
-    ["not_installed"]="anl-api is not installed. Please run a fresh install first"
+    ["not_installed"]="anlapi is not installed. Please run a fresh install first"
     ["fresh_install_hint"]="Usage"
 
     # Uninstall
-    ["uninstall_confirm"]="This will remove anl-api from your system."
+    ["uninstall_confirm"]="This will remove anlapi from your system."
     ["are_you_sure"]="Are you sure? (y/N)"
     ["uninstall_cancelled"]="Uninstall cancelled"
     ["removing_files"]="Removing files..."
@@ -252,21 +252,21 @@ declare -A MSG_EN=(
     ["install_lock_removed"]="Install lock removed. Setup wizard will appear on next install."
     ["purge_prompt"]="Also remove config directory? This will delete all config and data [y/N]: "
     ["removing_config_dir"]="Removing config directory..."
-    ["uninstall_complete"]="anl-api has been uninstalled"
+    ["uninstall_complete"]="anlapi has been uninstalled"
 
     # Help
     ["usage"]="Usage"
     ["cmd_none"]="(none)"
-    ["cmd_install"]="Install anl-api"
+    ["cmd_install"]="Install anlapi"
     ["cmd_upgrade"]="Upgrade to the latest version"
-    ["cmd_uninstall"]="Remove anl-api"
+    ["cmd_uninstall"]="Remove anlapi"
     ["cmd_install_version"]="Install/rollback to a specific version"
     ["cmd_list_versions"]="List available versions"
     ["opt_version"]="Specify version to install (e.g., v1.0.0)"
 
     # Server configuration
     ["server_config_title"]="Server Configuration"
-    ["server_config_desc"]="Configure anl-api server listen address"
+    ["server_config_desc"]="Configure anlapi server listen address"
     ["server_host_prompt"]="Server listen address"
     ["server_host_hint"]="0.0.0.0 listens on all interfaces, 127.0.0.1 for local only"
     ["server_port_prompt"]="Server port"
@@ -554,7 +554,7 @@ get_current_version() {
 # Download and extract
 download_and_extract() {
     local version_num=${LATEST_VERSION#v}
-    local archive_name="anl-api_${version_num}_${OS}_${ARCH}.tar.gz"
+    local archive_name="anlapi_${version_num}_${OS}_${ARCH}.tar.gz"
     local download_url="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/${archive_name}"
     local checksum_url="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/checksums.txt"
 
@@ -655,7 +655,7 @@ install_service() {
     # Create service file with configured host and port
     cat > "/etc/systemd/system/${SERVICE_NAME}.service" << EOF
 [Unit]
-Description=anl-api - AI API Gateway Platform
+Description=anlapi - AI API Gateway Platform
 Documentation=https://github.com/${GITHUB_REPO}
 After=network.target postgresql.service redis.service
 Wants=postgresql.service redis.service
@@ -791,7 +791,7 @@ print_completion() {
 
 # Upgrade function
 upgrade() {
-    # Check if anl-api is installed
+    # Check if anlapi is installed
     if [ ! -f "$INSTALL_DIR/$BINARY_NAME" ]; then
         print_error "$(msg 'not_installed')"
         print_info "$(msg 'fresh_install_hint'): $0 install"

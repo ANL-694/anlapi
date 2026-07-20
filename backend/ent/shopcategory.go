@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/shopcategory"
+	"anlapi/ent/shopcategory"
 	"fmt"
 	"strings"
 	"time"

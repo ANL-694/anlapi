@@ -20,8 +20,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/pkg/antigravity"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/antigravity"
+	"anlapi/internal/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

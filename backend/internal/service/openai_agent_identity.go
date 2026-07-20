@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/httpclient"
+	"anlapi/internal/pkg/httpclient"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/nacl/box"
 )

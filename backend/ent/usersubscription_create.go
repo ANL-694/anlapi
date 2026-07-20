@@ -3,10 +3,10 @@
 package ent
 
 import (
-	"anl-api/ent/group"
-	"anl-api/ent/usagelog"
-	"anl-api/ent/user"
-	"anl-api/ent/usersubscription"
+	"anlapi/ent/group"
+	"anlapi/ent/usagelog"
+	"anlapi/ent/user"
+	"anlapi/ent/usersubscription"
 	"context"
 	"errors"
 	"fmt"

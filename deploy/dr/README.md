@@ -41,7 +41,7 @@
 4. 运行 `Prepare-AnlDrPublisher.sh configure`，允许一次 PostgreSQL 重启。
 5. 运行 `Prepare-AnlDrPublisher.sh publication`。
 6. 在国内运行 `Initialize-AnlDrSubscriber.ps1`，完成初始复制并注册每小时备份任务，应用保持停止。
-7. 持续检查复制延迟和 `ANL-API-DR-Backup` 最近一次执行结果。
+7. 持续检查复制延迟和 `ANLAPI-DR-Backup` 最近一次执行结果。
 8. 按维护手册做一次不对公网的接管演练。
 
 以后升级 ANL API 时，若数据库迁移包含任何 DDL，国内应用必须继续保持停止。美国升级和

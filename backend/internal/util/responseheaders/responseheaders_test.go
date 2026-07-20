@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 func TestFilterHeadersDisabledUsesDefaultAllowlist(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/proxyurl"
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/proxyurl"
+	"anlapi/internal/pkg/servertiming"
 
 	"github.com/imroc/req/v3"
 )

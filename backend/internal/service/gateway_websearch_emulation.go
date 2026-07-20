@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/pkg/websearch"
+	"anlapi/internal/pkg/websearch"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"

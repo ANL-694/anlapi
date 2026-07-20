@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/openai"
-	"anl-api/internal/util/urlvalidator"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/openai"
+	"anlapi/internal/util/urlvalidator"
 	"go.uber.org/zap"
 )
 

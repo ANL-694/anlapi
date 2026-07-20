@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

@@ -3,7 +3,7 @@ package provider
 import (
 	"fmt"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 )
 
 // CreateProvider creates a Provider from a provider key, instance ID and decrypted config.

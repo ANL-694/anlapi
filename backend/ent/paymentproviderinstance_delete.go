@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/paymentproviderinstance"
-	"anl-api/ent/predicate"
+	"anlapi/ent/paymentproviderinstance"
+	"anlapi/ent/predicate"
 	"context"
 
 	"entgo.io/ent/dialect/sql"

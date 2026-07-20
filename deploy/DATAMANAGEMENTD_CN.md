@@ -51,12 +51,12 @@ sudo journalctl -u anlapi-datamanagementd -f
 sudo ./deploy/install-datamanagementd.sh --binary /path/to/datamanagementd
 
 # 方式二：从源码构建后安装
-sudo ./deploy/install-datamanagementd.sh --source /path/to/anl-api
+sudo ./deploy/install-datamanagementd.sh --source /path/to/anlapi
 ```
 
 ## 4. Docker 部署联动
 
-若 `anl-api` 运行在 Docker 容器中，需要将宿主机 Socket 挂载到容器同路径：
+若 `anlapi` 运行在 Docker 容器中，需要将宿主机 Socket 挂载到容器同路径：
 
 ```yaml
 services:

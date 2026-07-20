@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"anl-api/internal/pkg/xai"
+	"anlapi/internal/pkg/xai"
 	"github.com/stretchr/testify/require"
 )
 

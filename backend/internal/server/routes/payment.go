@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"anl-api/internal/handler"
-	"anl-api/internal/handler/admin"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/handler"
+	"anlapi/internal/handler/admin"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

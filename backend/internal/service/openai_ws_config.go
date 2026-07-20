@@ -3,7 +3,7 @@ package service
 import (
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 func ResolveOpenAIWSClientFirstMessageTimeout(cfg *config.Config) time.Duration {

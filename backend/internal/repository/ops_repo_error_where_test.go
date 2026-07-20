@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func TestBuildOpsErrorLogsWhere_QueryUsesQualifiedColumns(t *testing.T) {

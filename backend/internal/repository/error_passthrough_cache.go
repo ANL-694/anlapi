@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/model"
-	"anl-api/internal/service"
+	"anlapi/internal/model"
+	"anlapi/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 

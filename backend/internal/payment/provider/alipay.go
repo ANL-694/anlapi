@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 	"github.com/smartwalle/alipay/v3"
 )
 

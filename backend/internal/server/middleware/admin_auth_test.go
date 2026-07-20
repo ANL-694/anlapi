@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -96,7 +96,7 @@ func TestAdminAuthJWTValidatesTokenVersion(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/t", nil)
 		req.Header.Set("Upgrade", "websocket")
 		req.Header.Set("Connection", "Upgrade")
-		req.Header.Set("Sec-WebSocket-Protocol", "anl-api-admin, jwt."+token)
+		req.Header.Set("Sec-WebSocket-Protocol", "anlapi-admin, jwt."+token)
 		router.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusUnauthorized, w.Code)
@@ -116,7 +116,7 @@ func TestAdminAuthJWTValidatesTokenVersion(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/t", nil)
 		req.Header.Set("Upgrade", "websocket")
 		req.Header.Set("Connection", "Upgrade")
-		req.Header.Set("Sec-WebSocket-Protocol", "anl-api-admin, jwt."+token)
+		req.Header.Set("Sec-WebSocket-Protocol", "anlapi-admin, jwt."+token)
 		router.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusOK, w.Code)

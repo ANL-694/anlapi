@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/usagecleanuptask"
+	"anlapi/ent/usagecleanuptask"
 	"encoding/json"
 	"fmt"
 	"strings"

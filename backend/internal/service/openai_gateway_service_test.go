@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/openai"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/openai"
 	"github.com/cespare/xxhash/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"

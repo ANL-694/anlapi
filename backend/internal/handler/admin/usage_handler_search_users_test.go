@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"

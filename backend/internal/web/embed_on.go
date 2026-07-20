@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/server/middleware"
+	"anlapi/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 )
 

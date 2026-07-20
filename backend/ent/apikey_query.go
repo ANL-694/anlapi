@@ -3,12 +3,12 @@
 package ent
 
 import (
-	"anl-api/ent/apikey"
-	"anl-api/ent/apikeygrouproute"
-	"anl-api/ent/group"
-	"anl-api/ent/predicate"
-	"anl-api/ent/usagelog"
-	"anl-api/ent/user"
+	"anlapi/ent/apikey"
+	"anlapi/ent/apikeygrouproute"
+	"anlapi/ent/group"
+	"anlapi/ent/predicate"
+	"anlapi/ent/usagelog"
+	"anlapi/ent/user"
 	"context"
 	"database/sql/driver"
 	"fmt"

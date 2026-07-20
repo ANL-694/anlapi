@@ -3,8 +3,8 @@ package admin
 import (
 	"strconv"
 
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

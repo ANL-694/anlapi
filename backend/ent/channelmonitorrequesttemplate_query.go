@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/channelmonitorrequesttemplate"
-	"anl-api/ent/predicate"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/channelmonitorrequesttemplate"
+	"anlapi/ent/predicate"
 	"context"
 	"database/sql/driver"
 	"fmt"

@@ -757,7 +757,7 @@ async function handleExportData(): Promise<void> {
         : { filters: buildAccountQueryFilters() }
     )
     const timestamp = formatExportTimestamp()
-    const filename = `anl-api-user-account-${timestamp}.json`
+    const filename = `anlapi-user-account-${timestamp}.json`
     const blob = new Blob([JSON.stringify(dataPayload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')

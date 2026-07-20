@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/predicate"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/predicate"
 	"context"
 
 	"entgo.io/ent/dialect/sql"

@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/util/httputil"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/util/httputil"
 	"github.com/tidwall/gjson"
 )
 

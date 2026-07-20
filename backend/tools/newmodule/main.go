@@ -26,11 +26,11 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"anl-api/internal/plugin"
+	"anlapi/internal/plugin"
 )
 
 // modulePath 是本仓库的 Go module 路径，用于生成插装 import 行。
-const modulePath = "anl-api"
+const modulePath = "anlapi"
 
 // authorGuidePath 是模块作者指南的仓库相对路径（next steps 提示用）。
 const authorGuidePath = "docs/plugin-architecture/MODULE-AUTHOR-GUIDE.md"

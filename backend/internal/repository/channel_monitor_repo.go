@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/channelmonitorhistory"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/channelmonitorhistory"
+	"anlapi/internal/service"
 	"github.com/lib/pq"
 
 	entsql "entgo.io/ent/dialect/sql"

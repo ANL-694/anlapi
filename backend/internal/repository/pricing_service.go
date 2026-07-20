@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/httpclient"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/httpclient"
+	"anlapi/internal/service"
 )
 
 type pricingRemoteClient struct {

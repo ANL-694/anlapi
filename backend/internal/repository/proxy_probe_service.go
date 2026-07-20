@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/httpclient"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/httpclient"
+	"anlapi/internal/service"
 )
 
 func NewProxyExitInfoProber(cfg *config.Config) service.ProxyExitInfoProber {

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"anl-api/internal/pkg/geminicli"
+	"anlapi/internal/pkg/geminicli"
 )
 
 // GeminiCliCodeAssistClient calls GeminiCli internal Code Assist endpoints.

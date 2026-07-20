@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/redeemcode"
-	"anl-api/ent/user"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/redeemcode"
+	"anlapi/ent/user"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"anl-api/internal/pkg/websearch"
+	"anlapi/internal/pkg/websearch"
 	"github.com/stretchr/testify/require"
 )
 

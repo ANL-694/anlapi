@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"anl-api/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/ctxkey"
 )
 
 func AuthenticatedUserIDFromContext(ctx context.Context) int64 {

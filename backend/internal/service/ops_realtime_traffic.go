@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // GetRealtimeTrafficSummary returns QPS/TPS current/peak/avg for the provided window.

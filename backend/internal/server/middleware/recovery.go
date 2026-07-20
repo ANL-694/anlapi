@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/response"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 

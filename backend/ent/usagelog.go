@@ -3,12 +3,12 @@
 package ent
 
 import (
-	"anl-api/ent/account"
-	"anl-api/ent/apikey"
-	"anl-api/ent/group"
-	"anl-api/ent/usagelog"
-	"anl-api/ent/user"
-	"anl-api/ent/usersubscription"
+	"anlapi/ent/account"
+	"anlapi/ent/apikey"
+	"anlapi/ent/group"
+	"anlapi/ent/usagelog"
+	"anlapi/ent/user"
+	"anlapi/ent/usersubscription"
 	"encoding/json"
 	"fmt"
 	"strings"

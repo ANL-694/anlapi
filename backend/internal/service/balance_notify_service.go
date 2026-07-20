@@ -22,7 +22,7 @@ const (
 	quotaDimWeekly = "weekly"
 	quotaDimTotal  = "total"
 
-	defaultSiteName = "anl-api"
+	defaultSiteName = "anlapi"
 )
 
 // quotaDimLabels maps dimension names to display labels.

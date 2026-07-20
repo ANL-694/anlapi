@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 )
 
 func TestNormalizeEasyPayAPIBase(t *testing.T) {

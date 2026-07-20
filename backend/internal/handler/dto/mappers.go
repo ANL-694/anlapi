@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func UserFromServiceShallow(u *service.User) *User {

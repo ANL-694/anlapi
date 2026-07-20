@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/idempotencyrecord"
+	"anlapi/ent/idempotencyrecord"
 	"fmt"
 	"strings"
 	"time"

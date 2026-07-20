@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/userplatformquota"
+	"anlapi/ent/predicate"
+	"anlapi/ent/userplatformquota"
 	"context"
 
 	"entgo.io/ent/dialect/sql"

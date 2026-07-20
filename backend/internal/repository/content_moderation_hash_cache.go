@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 

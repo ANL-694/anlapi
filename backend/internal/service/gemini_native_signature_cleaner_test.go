@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"anl-api/internal/pkg/antigravity"
+	"anlapi/internal/pkg/antigravity"
 	"github.com/stretchr/testify/require"
 )
 

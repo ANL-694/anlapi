@@ -1534,11 +1534,9 @@ func load(allowMissingJWTSecret bool) (*Config, error) {
 	viper.AddConfigPath(".")
 	// 4. Config subdirectory
 	viper.AddConfigPath("./config")
-	// 5. System config directory. Use an ASCII runtime slug without a hyphen;
-	// the branded project name remains anl-api in user-facing surfaces.
+	// 5. System config directory. Prefer the current runtime slug.
 	viper.AddConfigPath("/etc/anlapi")
-	// Compatibility paths for installations created before the runtime slug
-	// was normalized. Keep both below /etc/anlapi so new config wins.
+	// Compatibility paths for installations created under previous names.
 	viper.AddConfigPath("/etc/anl-api")
 	viper.AddConfigPath("/etc/ikik-api")
 

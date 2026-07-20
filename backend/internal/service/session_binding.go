@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // ErrSessionBindingMismatch 会话绑定的 IP/UA 发生变化，会话已失效。

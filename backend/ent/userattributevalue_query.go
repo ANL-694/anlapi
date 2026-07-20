@@ -3,10 +3,10 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/user"
-	"anl-api/ent/userattributedefinition"
-	"anl-api/ent/userattributevalue"
+	"anlapi/ent/predicate"
+	"anlapi/ent/user"
+	"anlapi/ent/userattributedefinition"
+	"anlapi/ent/userattributevalue"
 	"context"
 	"fmt"
 	"math"

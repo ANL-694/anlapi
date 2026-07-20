@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/apicompat"
+	"anlapi/internal/pkg/apicompat"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 )

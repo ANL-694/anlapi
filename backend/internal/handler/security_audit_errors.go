@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/googleapi"
-	"anl-api/internal/securityaudit"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/googleapi"
+	"anlapi/internal/securityaudit"
+	"anlapi/internal/service"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 // DiagnoseModelAvailabilityForPlatform reports whether the requested model is

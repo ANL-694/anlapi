@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/oauth"
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/oauth"
+	"anlapi/internal/pkg/pagination"
 )
 
 // --- mock: ClaudeOAuthClient ---

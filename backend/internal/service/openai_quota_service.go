@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/imroc/req/v3"
 )
 

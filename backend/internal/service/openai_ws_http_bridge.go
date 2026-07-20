@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 )

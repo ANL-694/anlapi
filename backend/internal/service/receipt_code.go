@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/google/uuid"
 	"golang.org/x/image/webp"
 )

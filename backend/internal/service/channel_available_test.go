@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
 )
 

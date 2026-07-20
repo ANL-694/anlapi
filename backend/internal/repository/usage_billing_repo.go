@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/service"
 	"github.com/shopspring/decimal"
 )
 

@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	dbpredicate "anl-api/ent/predicate"
-	"anl-api/ent/proxy"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	dbpredicate "anlapi/ent/predicate"
+	"anlapi/ent/proxy"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/service"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"

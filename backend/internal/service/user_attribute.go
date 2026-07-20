@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // Error definitions for user attribute operations

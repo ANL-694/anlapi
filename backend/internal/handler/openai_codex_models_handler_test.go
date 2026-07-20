@@ -12,9 +12,9 @@ import (
 	"sync"
 	"testing"
 
-	"anl-api/internal/config"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

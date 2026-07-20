@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	errors2 "anl-api/internal/pkg/errors"
+	errors2 "anlapi/internal/pkg/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

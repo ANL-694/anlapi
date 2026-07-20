@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"golang.org/x/sync/errgroup"
 )
 

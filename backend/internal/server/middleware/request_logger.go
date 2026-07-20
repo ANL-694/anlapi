@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

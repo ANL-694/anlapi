@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 var ErrSubscriptionRepositoryUnavailable = infraerrors.InternalServer(

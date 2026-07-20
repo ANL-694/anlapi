@@ -10,8 +10,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"anl-api/internal/pkg/servertiming"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/servertiming"
+	"anlapi/internal/service"
 )
 
 // S3BackupStore implements service.BackupObjectStore using AWS S3 compatible storage

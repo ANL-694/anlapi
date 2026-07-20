@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 

@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 )
 
 func TestEasyPaySignConsistentOutput(t *testing.T) {

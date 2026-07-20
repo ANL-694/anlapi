@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/userplatformquota"
-	"anl-api/internal/pkg/timezone"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/userplatformquota"
+	"anlapi/internal/pkg/timezone"
+	"anlapi/internal/service"
 
 	"github.com/lib/pq"
 )

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/dgraph-io/ristretto"
 )
 

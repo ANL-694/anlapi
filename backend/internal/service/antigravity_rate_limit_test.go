@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/antigravity"
-	"anl-api/internal/pkg/tlsfingerprint"
+	"anlapi/internal/pkg/antigravity"
+	"anlapi/internal/pkg/tlsfingerprint"
 	"github.com/stretchr/testify/require"
 )
 

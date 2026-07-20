@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/announcement"
-	"anl-api/ent/announcementread"
-	"anl-api/internal/domain"
+	"anlapi/ent/announcement"
+	"anlapi/ent/announcementread"
+	"anlapi/internal/domain"
 	"context"
 	"errors"
 	"fmt"

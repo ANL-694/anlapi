@@ -3,7 +3,7 @@ package service
 import (
 	"strings"
 
-	"anl-api/internal/pkg/antigravity"
+	"anlapi/internal/pkg/antigravity"
 )
 
 const antigravitySubscriptionAbnormal = "abnormal"

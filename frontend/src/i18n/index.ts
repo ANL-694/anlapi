@@ -4,7 +4,7 @@ type LocaleCode = 'en' | 'zh'
 
 type LocaleMessages = Record<string, any>
 
-const LOCALE_KEY = 'anl-api_locale'
+const LOCALE_KEY = 'anlapi_locale'
 const DEFAULT_LOCALE: LocaleCode = 'en'
 
 const localeLoaders: Record<LocaleCode, () => Promise<{ default: LocaleMessages }>> = {

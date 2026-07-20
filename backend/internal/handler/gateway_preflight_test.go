@@ -14,10 +14,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/gatewayhook"
-	"anl-api/internal/pkg/ctxkey"
-	middleware "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/gatewayhook"
+	"anlapi/internal/pkg/ctxkey"
+	middleware "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"

@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/authidentity"
-	"anl-api/ent/identityadoptiondecision"
-	"anl-api/ent/pendingauthsession"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/identityadoptiondecision"
+	"anlapi/ent/pendingauthsession"
 	"context"
 	"errors"
 	"fmt"

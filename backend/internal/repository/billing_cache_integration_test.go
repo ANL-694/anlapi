@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

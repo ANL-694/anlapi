@@ -1,6 +1,6 @@
 package dto
 
-import "anl-api/internal/service"
+import "anlapi/internal/service"
 
 // NotifyEmailEntry represents a notification email with enable/disable and verification state.
 // All emails are user-managed; maximum 3 entries per user.

@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"strings"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentorder"
-	"anl-api/ent/paymentproviderinstance"
-	"anl-api/internal/payment"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentorder"
+	"anlapi/ent/paymentproviderinstance"
+	"anlapi/internal/payment"
 )
 
 // GetWebhookProvider returns the provider instance that should verify a webhook.

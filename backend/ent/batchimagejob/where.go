@@ -3,7 +3,7 @@
 package batchimagejob
 
 import (
-	"anl-api/ent/predicate"
+	"anlapi/ent/predicate"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/authidentity"
-	"anl-api/ent/authidentitychannel"
-	"anl-api/ent/identityadoptiondecision"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/authidentitychannel"
+	"anlapi/ent/identityadoptiondecision"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

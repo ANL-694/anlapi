@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/httpclient"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/httpclient"
 )
 
 const openAICodexPATWhoamiURLDefault = "https://auth.openai.com/api/accounts/v1/user-auth-credential/whoami"

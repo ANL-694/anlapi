@@ -11,11 +11,11 @@ import (
 	"regexp"
 	"strings"
 
-	"anl-api/internal/config"
-	"anl-api/internal/handler/dto"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/handler/dto"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

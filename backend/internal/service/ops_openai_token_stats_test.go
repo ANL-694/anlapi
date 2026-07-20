@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 

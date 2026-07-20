@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/authidentity"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
+	dbent "anlapi/ent"
+	"anlapi/ent/authidentity"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
 )
 
 // BindEmailIdentity verifies and binds a local email/password identity to the
@@ -124,7 +124,7 @@ func (s *AuthService) SendEmailIdentityBindCode(ctx context.Context, userID int6
 		return ErrServiceUnavailable
 	}
 
-	siteName := "anl-api"
+	siteName := "anlapi"
 	if s.settingService != nil {
 		siteName = s.settingService.GetSiteName(ctx)
 	}

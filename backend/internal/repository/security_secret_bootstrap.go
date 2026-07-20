@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/ent"
-	"anl-api/ent/securitysecret"
-	"anl-api/internal/config"
+	"anlapi/ent"
+	"anlapi/ent/securitysecret"
+	"anlapi/internal/config"
 )
 
 const (

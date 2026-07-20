@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/openai"
-	"anl-api/internal/pkg/openai_compat"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/openai"
+	"anlapi/internal/pkg/openai_compat"
 	"github.com/tidwall/gjson"
 )
 

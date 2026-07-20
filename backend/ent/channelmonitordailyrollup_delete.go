@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/channelmonitordailyrollup"
-	"anl-api/ent/predicate"
+	"anlapi/ent/channelmonitordailyrollup"
+	"anlapi/ent/predicate"
 	"context"
 
 	"entgo.io/ent/dialect/sql"

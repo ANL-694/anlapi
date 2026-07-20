@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/pkg/antigravity"
+	"anlapi/internal/pkg/antigravity"
 )
 
 // ---------------------------------------------------------------------------

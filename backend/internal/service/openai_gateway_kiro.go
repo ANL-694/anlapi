@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/apicompat"
-	"anl-api/internal/pkg/kiro"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/util/responseheaders"
+	"anlapi/internal/pkg/apicompat"
+	"anlapi/internal/pkg/kiro"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

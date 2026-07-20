@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func (r *opsRepository) GetRealtimeTrafficSummary(ctx context.Context, filter *service.OpsDashboardFilter) (*service.OpsRealtimeTrafficSummary, error) {

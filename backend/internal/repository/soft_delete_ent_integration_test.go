@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/apikey"
-	"anl-api/ent/schema/mixins"
-	"anl-api/ent/usersubscription"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/apikey"
+	"anlapi/ent/schema/mixins"
+	"anlapi/ent/usersubscription"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

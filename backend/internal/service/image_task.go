@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )

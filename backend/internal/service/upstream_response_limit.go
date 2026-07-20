@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/gin-gonic/gin"
 )
 

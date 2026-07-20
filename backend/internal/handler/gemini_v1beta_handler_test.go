@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

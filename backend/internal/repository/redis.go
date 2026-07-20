@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 
 	"github.com/redis/go-redis/v9"
 )

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
+	dbent "anlapi/ent"
 )
 
 func TestInstanceSupportsType(t *testing.T) {

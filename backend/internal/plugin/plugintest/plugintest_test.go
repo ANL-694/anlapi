@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/plugin"
-	"anl-api/internal/plugin/plugintest"
+	"anlapi/internal/plugin"
+	"anlapi/internal/plugin/plugintest"
 )
 
 // fixtureConfig 是 fakeModule 的私有配置，用于验证 raw 配置经 host.ConfigOf 抵达模块。

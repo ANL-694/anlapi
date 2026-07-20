@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/tlsfingerprintprofile"
+	"anlapi/ent/predicate"
+	"anlapi/ent/tlsfingerprintprofile"
 	"context"
 
 	"entgo.io/ent/dialect/sql"

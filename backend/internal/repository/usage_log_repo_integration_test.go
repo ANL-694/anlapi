@@ -11,11 +11,11 @@ import (
 
 	"github.com/google/uuid"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/pkg/timezone"
-	"anl-api/internal/pkg/usagestats"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/pkg/timezone"
+	"anlapi/internal/pkg/usagestats"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

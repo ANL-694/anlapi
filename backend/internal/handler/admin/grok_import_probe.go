@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/service"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/service"
 )
 
 const (

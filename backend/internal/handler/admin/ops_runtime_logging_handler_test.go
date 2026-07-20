@@ -8,10 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -88,7 +88,7 @@ func newRuntimeOpsService(t *testing.T) *service.OpsService {
 	if err := logger.Init(logger.InitOptions{
 		Level:       "info",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: false,

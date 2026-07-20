@@ -86,7 +86,7 @@ func TestBuildFileCore_InvalidPathFallback(t *testing.T) {
 	t.Setenv("DATA_DIR", "")
 	opts := bootstrapOptions()
 	opts.Output.ToFile = true
-	opts.Output.FilePath = filepath.Join(os.DevNull, "logs", "anl-api.log")
+	opts.Output.FilePath = filepath.Join(os.DevNull, "logs", "anlapi.log")
 	encoderCfg := zapcore.EncoderConfig{
 		TimeKey:     "time",
 		LevelKey:    "level",

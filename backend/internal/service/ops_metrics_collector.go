@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/shirou/gopsutil/v4/cpu"

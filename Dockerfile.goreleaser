@@ -1,5 +1,5 @@
 # =============================================================================
-# anl-api Dockerfile for GoReleaser
+# anlapi Dockerfile for GoReleaser
 # =============================================================================
 # This Dockerfile is used by GoReleaser to build Docker images.
 # It only packages the pre-built binary, no compilation needed.
@@ -12,9 +12,9 @@ FROM ${POSTGRES_IMAGE} AS pg-client
 
 FROM ${ALPINE_IMAGE}
 
-LABEL maintainer="anl-api maintainers"
-LABEL description="anl-api - AI API Gateway Platform"
-LABEL org.opencontainers.image.source="https://github.com/ANL-694/anl-api"
+LABEL maintainer="anlapi maintainers"
+LABEL description="anlapi - AI API Gateway Platform"
+LABEL org.opencontainers.image.source="https://github.com/ANL-694/anlapi"
 
 # Install runtime dependencies
 RUN apk add --no-cache \

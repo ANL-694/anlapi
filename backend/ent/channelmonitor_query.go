@@ -3,11 +3,11 @@
 package ent
 
 import (
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/channelmonitordailyrollup"
-	"anl-api/ent/channelmonitorhistory"
-	"anl-api/ent/channelmonitorrequesttemplate"
-	"anl-api/ent/predicate"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/channelmonitordailyrollup"
+	"anlapi/ent/channelmonitorhistory"
+	"anlapi/ent/channelmonitorrequesttemplate"
+	"anlapi/ent/predicate"
 	"context"
 	"database/sql/driver"
 	"fmt"

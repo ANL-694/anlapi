@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 	"go.uber.org/zap"
 )
 

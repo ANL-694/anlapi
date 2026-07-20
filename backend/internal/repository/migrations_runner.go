@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/migrations"
+	"anlapi/migrations"
 )
 
 // schemaMigrationsTableDDL 定义迁移记录表的 DDL。

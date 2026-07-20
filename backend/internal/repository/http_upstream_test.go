@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/tlsfingerprint"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/tlsfingerprint"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

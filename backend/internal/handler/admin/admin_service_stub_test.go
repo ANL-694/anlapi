@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type stubAdminService struct {

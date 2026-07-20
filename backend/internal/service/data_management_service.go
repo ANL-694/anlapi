@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 const (
 	DefaultDataManagementAgentSocketPath = "/tmp/anlapi-datamanagement.sock"
-	LegacyBackupAgentSocketPath          = "/tmp/anl-api-backup.sock"
+	LegacyBackupAgentSocketPath          = "/tmp/anlapi-backup.sock"
 
 	DataManagementDeprecatedReason         = "DATA_MANAGEMENT_DEPRECATED"
 	DataManagementAgentSocketMissingReason = "DATA_MANAGEMENT_AGENT_SOCKET_MISSING"

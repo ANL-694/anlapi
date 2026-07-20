@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/apikey"
-	"anl-api/ent/apikeygrouproute"
-	"anl-api/ent/group"
-	"anl-api/ent/schema/mixins"
-	"anl-api/ent/user"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/apikey"
+	"anlapi/ent/apikeygrouproute"
+	"anlapi/ent/group"
+	"anlapi/ent/schema/mixins"
+	"anlapi/ent/user"
+	"anlapi/internal/service"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

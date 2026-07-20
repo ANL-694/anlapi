@@ -3,10 +3,10 @@
 package ent
 
 import (
-	"anl-api/ent/announcement"
-	"anl-api/ent/announcementread"
-	"anl-api/ent/predicate"
-	"anl-api/internal/domain"
+	"anlapi/ent/announcement"
+	"anlapi/ent/announcementread"
+	"anlapi/ent/predicate"
+	"anlapi/internal/domain"
 	"context"
 	"errors"
 	"fmt"

@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentorder"
-	"anl-api/internal/payment"
-	"anl-api/internal/payment/provider"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/servertiming"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentorder"
+	"anlapi/internal/payment"
+	"anlapi/internal/payment/provider"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/servertiming"
 )
 
 // --- Order Creation ---

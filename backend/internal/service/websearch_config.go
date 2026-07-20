@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/websearch"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/websearch"
 	"golang.org/x/sync/singleflight"
 )
 

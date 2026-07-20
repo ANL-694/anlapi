@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 // TestPublicSettingsInjectionPayload_SchemaDoesNotDrift guarantees the SSR

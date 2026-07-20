@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/gin-gonic/gin"
 )
 

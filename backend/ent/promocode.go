@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/promocode"
+	"anlapi/ent/promocode"
 	"fmt"
 	"strings"
 	"time"

@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/pkg/antigravity"
-	"anl-api/internal/pkg/claude"
-	"anl-api/internal/pkg/geminicli"
-	"anl-api/internal/pkg/openai"
+	"anlapi/internal/pkg/antigravity"
+	"anlapi/internal/pkg/claude"
+	"anlapi/internal/pkg/geminicli"
+	"anlapi/internal/pkg/openai"
 )
 
 // TestDefaultModelIDsForPlatform 锁定四平台 + 未知平台兜底的 ID 来源

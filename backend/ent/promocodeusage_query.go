@@ -3,10 +3,10 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/promocode"
-	"anl-api/ent/promocodeusage"
-	"anl-api/ent/user"
+	"anlapi/ent/predicate"
+	"anlapi/ent/promocode"
+	"anlapi/ent/promocodeusage"
+	"anlapi/ent/user"
 	"context"
 	"fmt"
 	"math"

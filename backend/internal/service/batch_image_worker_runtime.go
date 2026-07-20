@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 type BatchImageWorkerRuntime struct {

@@ -3,7 +3,7 @@ package securityaudit
 import (
 	"context"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type LegacyModerationAdapter struct {

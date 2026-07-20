@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 // ============================================================

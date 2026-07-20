@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/announcement"
-	"anl-api/ent/announcementread"
-	"anl-api/ent/user"
+	"anlapi/ent/announcement"
+	"anlapi/ent/announcementread"
+	"anlapi/ent/user"
 	"fmt"
 	"strings"
 	"time"

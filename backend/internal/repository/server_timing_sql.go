@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/servertiming"
 )
 
 type serverTimingConnector struct {

@@ -1,6 +1,6 @@
-# anl-api Individual Contributor License Agreement (v1.0)
+# anlapi Individual Contributor License Agreement (v1.0)
 
-Thank you for your interest in contributing to anl-api ("the Project"). This Contributor License Agreement ("Agreement") documents the rights granted by contributors to the Project.
+Thank you for your interest in contributing to anlapi ("the Project"). This Contributor License Agreement ("Agreement") documents the rights granted by contributors to the Project.
 
 By signing this Agreement, you accept and agree to the following terms and conditions for your present and future contributions submitted to the Project.
 

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/antigravity"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/antigravity"
+	"anlapi/internal/pkg/logger"
 )
 
 const (

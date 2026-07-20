@@ -3,7 +3,7 @@ package service
 import (
 	"maps"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 func updatesUpstreamBillingProbeIdentity(credentials map[string]any) bool {

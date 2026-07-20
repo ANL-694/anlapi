@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func (r *opsRepository) ListAlertRules(ctx context.Context) ([]*service.OpsAlertRule, error) {

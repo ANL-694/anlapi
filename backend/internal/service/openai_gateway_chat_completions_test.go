@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/apicompat"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/apicompat"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"

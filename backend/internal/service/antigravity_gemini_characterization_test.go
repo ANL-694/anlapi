@@ -16,7 +16,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

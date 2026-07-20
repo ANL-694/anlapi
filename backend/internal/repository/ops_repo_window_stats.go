@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func (r *opsRepository) GetWindowStats(ctx context.Context, filter *service.OpsDashboardFilter) (*service.OpsWindowStats, error) {

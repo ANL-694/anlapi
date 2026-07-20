@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	infraerrors "anlapi/internal/pkg/errors"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 )
 
 // CodexModels serves the Codex models manifest for Codex clients.

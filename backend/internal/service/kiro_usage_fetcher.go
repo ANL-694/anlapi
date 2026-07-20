@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/httpclient"
-	kiropkg "anl-api/internal/pkg/kiro"
+	"anlapi/internal/pkg/httpclient"
+	kiropkg "anlapi/internal/pkg/kiro"
 	"github.com/google/uuid"
 )
 

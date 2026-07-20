@@ -1,5 +1,5 @@
 # =============================================================================
-# anl-api Docker Compose - Local Development Build
+# anlapi Docker Compose - Local Development Build
 # =============================================================================
 # Build from local source code for testing changes.
 #
@@ -36,7 +36,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anl-api.local}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anlapi.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
       - JWT_SECRET=${JWT_SECRET:-}

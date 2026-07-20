@@ -1,6 +1,6 @@
 package logger
 
-import "anl-api/internal/config"
+import "anlapi/internal/config"
 
 func OptionsFromConfig(cfg config.LogConfig) InitOptions {
 	return InitOptions{

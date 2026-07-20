@@ -1,8 +1,8 @@
 package service
 
 import (
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/pagination"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/pagination"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -1206,7 +1206,7 @@ func saveNotifyVerifyCode(ctx context.Context, cache EmailCache, email, code str
 
 // sendNotifyVerifyEmail builds and sends the verification email.
 func (s *UserService) sendNotifyVerifyEmail(ctx context.Context, emailService *EmailService, email, code string) error {
-	siteName := "anl-api"
+	siteName := "anlapi"
 	if s.settingRepo != nil {
 		if name, err := s.settingRepo.GetValue(ctx, SettingKeySiteName); err == nil && name != "" {
 			siteName = name

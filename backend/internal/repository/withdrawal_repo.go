@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type withdrawalRepository struct {

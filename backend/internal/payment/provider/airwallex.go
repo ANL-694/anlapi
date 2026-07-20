@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )

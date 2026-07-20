@@ -11,8 +11,8 @@ import (
 	"strings"
 	"unsafe"
 
-	"anl-api/internal/domain"
-	"anl-api/internal/pkg/antigravity"
+	"anlapi/internal/domain"
+	"anlapi/internal/pkg/antigravity"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

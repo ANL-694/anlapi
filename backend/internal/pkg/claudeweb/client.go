@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"anl-api/internal/pkg/proxyurl"
+	"anlapi/internal/pkg/proxyurl"
 
 	fhttp "github.com/bogdanfinn/fhttp"
 )

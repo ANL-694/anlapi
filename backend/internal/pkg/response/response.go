@@ -6,8 +6,8 @@ import (
 	"math"
 	"net/http"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/util/logredact"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/util/logredact"
 	"github.com/gin-gonic/gin"
 )
 

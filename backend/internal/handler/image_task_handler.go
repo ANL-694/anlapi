@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	pkghttputil "anl-api/internal/pkg/httputil"
-	"anl-api/internal/pkg/logger"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	infraerrors "anlapi/internal/pkg/errors"
+	pkghttputil "anlapi/internal/pkg/httputil"
+	"anlapi/internal/pkg/logger"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

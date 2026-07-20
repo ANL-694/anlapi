@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/servertiming"
 	"github.com/gin-gonic/gin"
 )
 

@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/apicompat"
-	"anl-api/internal/pkg/claude"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/apicompat"
+	"anlapi/internal/pkg/claude"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"

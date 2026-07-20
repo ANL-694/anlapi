@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/errorpassthroughrule"
+	"anlapi/ent/errorpassthroughrule"
 	"encoding/json"
 	"fmt"
 	"strings"

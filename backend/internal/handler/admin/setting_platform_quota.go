@@ -1,6 +1,6 @@
 package admin
 
-import "anl-api/internal/service"
+import "anlapi/internal/service"
 
 func equalDefaultPlatformQuotas(a, b map[string]*service.DefaultPlatformQuotaSetting) bool {
 	if len(a) != len(b) {

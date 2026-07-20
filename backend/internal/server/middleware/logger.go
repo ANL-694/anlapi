@@ -3,8 +3,8 @@ package middleware
 import (
 	"time"
 
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

@@ -1,5 +1,5 @@
 /**
- * Vue Router configuration for anl-api frontend
+ * Vue Router configuration for anlapi frontend
  * Defines all application routes with lazy loading and navigation guards
  */
 
@@ -878,7 +878,7 @@ router.beforeEach(async (to, _from, next) => {
     const menuItem = publicItems.find((item) => item.id === id)
       ?? (authStore.isAdmin ? adminSettingsStore.customMenuItems.find((item) => item.id === id) : undefined)
     if (menuItem?.label) {
-      const siteName = appStore.siteName || 'anl-api'
+      const siteName = appStore.siteName || 'anlapi'
       document.title = `${menuItem.label} - ${siteName}`
     } else {
       document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)

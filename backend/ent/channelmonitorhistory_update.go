@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/channelmonitorhistory"
-	"anl-api/ent/predicate"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/channelmonitorhistory"
+	"anlapi/ent/predicate"
 	"context"
 	"errors"
 	"fmt"

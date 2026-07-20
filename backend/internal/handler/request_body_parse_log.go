@@ -3,7 +3,7 @@ package handler
 import (
 	"strconv"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"go.uber.org/zap"
 )
 

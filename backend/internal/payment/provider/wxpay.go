@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/verifiers"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/notify"

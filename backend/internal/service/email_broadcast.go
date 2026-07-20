@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"anl-api/internal/domain"
+	"anlapi/internal/domain"
 )
 
 // Re-exported domain constants for service-layer consumers.

@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/announcement"
-	"anl-api/ent/announcementread"
-	"anl-api/ent/predicate"
+	"anlapi/ent/announcement"
+	"anlapi/ent/announcementread"
+	"anlapi/ent/predicate"
 	"context"
 	"database/sql/driver"
 	"fmt"

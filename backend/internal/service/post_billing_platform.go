@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/logger"
 )
 
 var (

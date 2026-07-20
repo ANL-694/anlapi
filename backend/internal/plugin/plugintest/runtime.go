@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/plugin"
+	"anlapi/internal/plugin"
 )
 
 // stopTimeout 是 t.Cleanup 自动 Stop 的超时上限：模块 Stop 悬挂时，

@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/user"
-	"anl-api/ent/userplatformquota"
+	"anlapi/ent/user"
+	"anlapi/ent/userplatformquota"
 	"context"
 	"errors"
 	"fmt"

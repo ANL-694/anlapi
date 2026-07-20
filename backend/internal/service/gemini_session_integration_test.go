@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"anl-api/internal/pkg/antigravity"
+	"anlapi/internal/pkg/antigravity"
 )
 
 // TestGeminiSessionContinuousConversation 测试连续会话的摘要链匹配

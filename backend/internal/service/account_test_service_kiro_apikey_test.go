@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 func TestAccountTestService_KiroAPIKeyUsesChatCompletionsPath(t *testing.T) {

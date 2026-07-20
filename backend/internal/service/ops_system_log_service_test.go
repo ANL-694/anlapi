@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 func TestOpsServiceListSystemLogs_DefaultClampAndSuccess(t *testing.T) {

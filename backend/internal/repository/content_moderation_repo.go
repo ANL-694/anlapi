@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 )
 
 type contentModerationRepository struct {

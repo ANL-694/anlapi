@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/servertiming"
 )
 
 const fakeDriverDelay = 2 * time.Millisecond

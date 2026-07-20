@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

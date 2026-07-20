@@ -3,7 +3,7 @@ package service
 import (
 	"strings"
 
-	"anl-api/internal/pkg/apicompat"
+	"anlapi/internal/pkg/apicompat"
 )
 
 func NormalizeOpenAICompatRequestedModel(model string) string {

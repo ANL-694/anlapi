@@ -3,10 +3,10 @@ package repository
 import (
 	"context"
 
-	"anl-api/ent"
-	"anl-api/ent/errorpassthroughrule"
-	"anl-api/internal/model"
-	"anl-api/internal/service"
+	"anlapi/ent"
+	"anlapi/ent/errorpassthroughrule"
+	"anlapi/internal/model"
+	"anlapi/internal/service"
 )
 
 type errorPassthroughRepository struct {

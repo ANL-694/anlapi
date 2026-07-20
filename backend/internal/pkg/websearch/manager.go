@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/proxyutil"
+	"anlapi/internal/pkg/proxyutil"
 	"github.com/redis/go-redis/v9"
 )
 

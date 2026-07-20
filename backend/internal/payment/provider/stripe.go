@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 	stripe "github.com/stripe/stripe-go/v85"
 	"github.com/stripe/stripe-go/v85/webhook"
 )

@@ -8,16 +8,16 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/domain"
-	"anl-api/internal/pkg/antigravity"
-	"anl-api/internal/pkg/claude"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/geminicli"
-	"anl-api/internal/pkg/kiro"
-	"anl-api/internal/pkg/openai"
-	"anl-api/internal/pkg/openai_compat"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/pkg/xai"
+	"anlapi/internal/domain"
+	"anlapi/internal/pkg/antigravity"
+	"anlapi/internal/pkg/claude"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/geminicli"
+	"anlapi/internal/pkg/kiro"
+	"anlapi/internal/pkg/openai"
+	"anlapi/internal/pkg/openai_compat"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/pkg/xai"
 )
 
 var (

@@ -3,11 +3,11 @@
 package ent
 
 import (
-	"anl-api/ent/apikey"
-	"anl-api/ent/apikeygrouproute"
-	"anl-api/ent/group"
-	"anl-api/ent/usagelog"
-	"anl-api/ent/user"
+	"anlapi/ent/apikey"
+	"anlapi/ent/apikeygrouproute"
+	"anlapi/ent/group"
+	"anlapi/ent/usagelog"
+	"anlapi/ent/user"
 	"context"
 	"errors"
 	"fmt"

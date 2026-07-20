@@ -1,7 +1,7 @@
 param(
   [Parameter(Mandatory = $true)]
   [string]$PrimaryFenceConfirmation,
-  [string]$AppRoot = 'D:\anl-api',
+  [string]$AppRoot = 'D:\anlapi',
   [string]$DatabaseName = 'anlapi_dr',
   [int]$MaximumReplicationAgeSeconds = 120,
   [switch]$AllowStaleReplica
@@ -37,7 +37,9 @@ function Read-EnvFile([string]$Path) {
 foreach ($required in @($envPath, $psql, $redisCli, $redisServer, $redisConfig, $backupScript, $sequenceSql)) {
   if (-not (Test-Path -LiteralPath $required)) { throw ('Required path is missing: ' + $required) }
 }
-Stop-ScheduledTask -TaskName 'ANL-API' -ErrorAction SilentlyContinue
+foreach ($appTaskName in @('ANLAPI', 'ANL-API')) {
+  Stop-ScheduledTask -TaskName $appTaskName -ErrorAction SilentlyContinue
+}
 $values = Read-EnvFile $envPath
 $env:PGPASSWORD = $values['DATABASE_PASSWORD']
 try {
@@ -86,7 +88,7 @@ try {
   Remove-Item Env:REDISCLI_AUTH -ErrorAction SilentlyContinue
 }
 
-Start-ScheduledTask -TaskName 'ANL-API'
+Start-ScheduledTask -TaskName 'ANLAPI'
 $healthDeadline = (Get-Date).AddSeconds(90)
 do {
   try {
@@ -98,7 +100,7 @@ do {
   if (-not $healthy) { Start-Sleep -Seconds 3 }
 } until ($healthy -or (Get-Date) -ge $healthDeadline)
 if (-not $healthy) {
-  Stop-ScheduledTask -TaskName 'ANL-API' -ErrorAction SilentlyContinue
+  Stop-ScheduledTask -TaskName 'ANLAPI' -ErrorAction SilentlyContinue
   throw 'Domestic ANL API did not become healthy; it has been stopped again.'
 }
 

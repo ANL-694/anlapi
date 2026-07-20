@@ -239,7 +239,7 @@ git push
 
 ## 自定义镜像构建
 
-生产环境不要继续使用官方镜像 `anl-api:latest`，否则会覆盖二开功能。必须构建并使用自己的镜像。
+生产环境不要继续使用官方镜像 `anlapi:latest`，否则会覆盖二开功能。必须构建并使用自己的镜像。
 
 根目录 `Dockerfile` 是推荐的生产镜像构建入口，会完成：
 
@@ -255,13 +255,13 @@ Linux/macOS：
 ```bash
 VERSION=v0.1.122-2dev.1
 COMMIT=$(git rev-parse --short HEAD)
-IMAGE=registry.example.com/anl-api-custom:$VERSION
+IMAGE=registry.example.com/anlapi-custom:$VERSION
 
 docker build \
   --build-arg VERSION=$VERSION \
   --build-arg COMMIT=$COMMIT \
   -t $IMAGE \
-  -t registry.example.com/anl-api-custom:latest \
+  -t registry.example.com/anlapi-custom:latest \
   .
 ```
 
@@ -270,13 +270,13 @@ Windows PowerShell：
 ```powershell
 $version = "v0.1.122-2dev.1"
 $commit = git rev-parse --short HEAD
-$image = "registry.example.com/anl-api-custom:$version"
+$image = "registry.example.com/anlapi-custom:$version"
 
 docker build `
   --build-arg VERSION=$version `
   --build-arg COMMIT=$commit `
   -t $image `
-  -t registry.example.com/anl-api-custom:latest `
+  -t registry.example.com/anlapi-custom:latest `
   .
 ```
 
@@ -287,7 +287,7 @@ docker build `
 ```bash
 VERSION=v0.1.122-2dev.1
 COMMIT=$(git rev-parse --short HEAD)
-IMAGE=registry.example.com/anl-api-custom:$VERSION
+IMAGE=registry.example.com/anlapi-custom:$VERSION
 
 docker buildx create --use --name anlapi-builder || true
 docker buildx build \
@@ -295,7 +295,7 @@ docker buildx build \
   --build-arg VERSION=$VERSION \
   --build-arg COMMIT=$COMMIT \
   -t $IMAGE \
-  -t registry.example.com/anl-api-custom:latest \
+  -t registry.example.com/anlapi-custom:latest \
   --push \
   .
 ```
@@ -304,8 +304,8 @@ docker buildx build \
 
 ```bash
 docker login registry.example.com
-docker push registry.example.com/anl-api-custom:v0.1.122-2dev.1
-docker push registry.example.com/anl-api-custom:latest
+docker push registry.example.com/anlapi-custom:v0.1.122-2dev.1
+docker push registry.example.com/anlapi-custom:latest
 ```
 
 镜像 tag 建议包含官方版本和二开构建序号，例如：
@@ -376,7 +376,7 @@ openssl rand -hex 32
 ```yaml
 services:
   anlapi:
-    image: registry.example.com/anl-api-custom:v0.1.122-2dev.1
+    image: registry.example.com/anlapi-custom:v0.1.122-2dev.1
 ```
 
 启动：
@@ -413,7 +413,7 @@ mkdir -p backups
 本地目录版备份：
 
 ```bash
-tar czf backups/anl-api-files-$(date +%F-%H%M%S).tgz \
+tar czf backups/anlapi-files-$(date +%F-%H%M%S).tgz \
   .env docker-compose.local.yml docker-compose.override.yml data postgres_data redis_data
 ```
 
@@ -426,7 +426,7 @@ set +a
 
 docker compose -f docker-compose.local.yml -f docker-compose.override.yml exec -T postgres \
   pg_dump -U "${POSTGRES_USER:-ikik_api}" "${POSTGRES_DB:-ikik_api}" \
-  > backups/anl-api-db-$(date +%F-%H%M%S).sql
+  > backups/anlapi-db-$(date +%F-%H%M%S).sql
 ```
 
 不要执行：
@@ -444,7 +444,7 @@ docker compose down -v
 ```yaml
 services:
   anlapi:
-    image: registry.example.com/anl-api-custom:v0.1.122-2dev.1
+    image: registry.example.com/anlapi-custom:v0.1.122-2dev.1
 ```
 
 ### 3. 拉取并重建容器
@@ -477,7 +477,7 @@ curl -fsS http://127.0.0.1:8080/health
 回滚前先确认旧镜像 tag，例如：
 
 ```bash
-registry.example.com/anl-api-custom:v0.1.121-2dev.1
+registry.example.com/anlapi-custom:v0.1.121-2dev.1
 ```
 
 修改 `docker-compose.override.yml`：
@@ -485,7 +485,7 @@ registry.example.com/anl-api-custom:v0.1.121-2dev.1
 ```yaml
 services:
   anlapi:
-    image: registry.example.com/anl-api-custom:v0.1.121-2dev.1
+    image: registry.example.com/anlapi-custom:v0.1.121-2dev.1
 ```
 
 执行：
@@ -519,13 +519,13 @@ docker compose -f docker-compose.dev.yml logs -f anlapi
 如果 `docker-compose.local.yml` 或 `docker-compose.override.yml` 中仍是：
 
 ```yaml
-image: anl-api:latest
+image: anlapi:latest
 ```
 
 说明正在使用官方镜像，不包含二开功能。改成自己的镜像：
 
 ```yaml
-image: registry.example.com/anl-api-custom:v0.1.122-2dev.1
+image: registry.example.com/anlapi-custom:v0.1.122-2dev.1
 ```
 
 然后重新拉取并启动：
@@ -601,7 +601,7 @@ TOTP_ENCRYPTION_KEY
 
 - 镜像 tag 包含官方版本和二开构建号。
 - 镜像已推送到自己的镜像仓库。
-- 服务器 compose 使用自定义镜像，不使用 `anl-api:latest`。
+- 服务器 compose 使用自定义镜像，不使用 `anlapi:latest`。
 
 部署阶段：
 

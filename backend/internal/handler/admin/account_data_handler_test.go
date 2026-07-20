@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -528,4 +528,27 @@ func TestImportDataRejectsAccountPlatformMismatchBeforeWriting(t *testing.T) {
 	require.Equal(t, "acc-mismatch-1", examples[0].Name)
 	require.Equal(t, service.PlatformAnthropic, examples[0].Platform)
 	require.Equal(t, "acc-mismatch-5", examples[4].Name)
+}
+
+func TestValidateDataHeaderAcceptsCurrentAndLegacyTypes(t *testing.T) {
+	types := []string{
+		dataType,
+		legacyBundleDataType,
+		legacyANLDataType,
+		legacyANLBundleDataType,
+		legacyIKDataType,
+		legacyIKBundleType,
+	}
+
+	for _, payloadType := range types {
+		t.Run(payloadType, func(t *testing.T) {
+			err := validateDataHeader(DataPayload{
+				Type:     payloadType,
+				Version:  dataVersion,
+				Proxies:  []DataProxy{},
+				Accounts: []DataAccount{},
+			})
+			require.NoError(t, err)
+		})
+	}
 }

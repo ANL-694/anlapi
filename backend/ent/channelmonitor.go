@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/channelmonitorrequesttemplate"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/channelmonitorrequesttemplate"
 	"encoding/json"
 	"fmt"
 	"strings"

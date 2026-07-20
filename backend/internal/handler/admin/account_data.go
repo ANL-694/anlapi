@@ -11,20 +11,22 @@ import (
 
 	"log/slog"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/openai"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/service"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/openai"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	dataType           = "anl-api-data"
-	legacyDataType     = "anl-api-bundle"
-	legacyIKDataType   = "ikik-api-data"
-	legacyIKBundleType = "ikik-api-bundle"
-	dataVersion        = 1
-	dataPageCap        = 1000
+	dataType                = "anlapi-data"
+	legacyBundleDataType    = "anlapi-bundle"
+	legacyANLDataType       = "anl-api-data"
+	legacyANLBundleDataType = "anl-api-bundle"
+	legacyIKDataType        = "ikik-api-data"
+	legacyIKBundleType      = "ikik-api-bundle"
+	dataVersion             = 1
+	dataPageCap             = 1000
 )
 
 type DataPayload = service.AccountDataPayload
@@ -803,7 +805,8 @@ func parseIncludeProxies(c *gin.Context) (bool, error) {
 }
 
 func validateDataHeader(payload DataPayload) error {
-	if payload.Type != "" && payload.Type != dataType && payload.Type != legacyDataType &&
+	if payload.Type != "" && payload.Type != dataType && payload.Type != legacyBundleDataType &&
+		payload.Type != legacyANLDataType && payload.Type != legacyANLBundleDataType &&
 		payload.Type != legacyIKDataType && payload.Type != legacyIKBundleType {
 		return fmt.Errorf("unsupported data type: %s", payload.Type)
 	}

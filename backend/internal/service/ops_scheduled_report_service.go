@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/robfig/cron/v3"

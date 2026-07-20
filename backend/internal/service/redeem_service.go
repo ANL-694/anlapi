@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/pagination"
+	dbent "anlapi/ent"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/pagination"
 	"entgo.io/ent/dialect"
 	"github.com/shopspring/decimal"
 )

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/repository"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/repository"
+	"anlapi/internal/service"
 
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
@@ -590,7 +590,7 @@ func AutoSetupFromEnv() error {
 			EnableTLS: getEnvOrDefault("REDIS_ENABLE_TLS", "false") == "true",
 		},
 		Admin: AdminConfig{
-			Email:    getEnvOrDefault("ADMIN_EMAIL", "admin@anl-api.local"),
+			Email:    getEnvOrDefault("ADMIN_EMAIL", "admin@anlapi.local"),
 			Password: getEnvOrDefault("ADMIN_PASSWORD", ""),
 		},
 		Server: ServerConfig{

@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/openai"
-	"anl-api/internal/util/responseheaders"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/openai"
+	"anlapi/internal/util/responseheaders"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"

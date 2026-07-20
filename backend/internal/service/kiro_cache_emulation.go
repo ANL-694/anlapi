@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/anthropictokenizer"
-	kiropkg "anl-api/internal/pkg/kiro"
+	"anlapi/internal/pkg/anthropictokenizer"
+	kiropkg "anlapi/internal/pkg/kiro"
 )
 
 const (

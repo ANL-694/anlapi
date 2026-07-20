@@ -11,13 +11,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/ip"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/pkg/response"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/ip"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/pkg/response"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

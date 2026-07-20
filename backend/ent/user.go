@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/user"
+	"anlapi/ent/user"
 	"fmt"
 	"strings"
 	"time"

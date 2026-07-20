@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/emailbroadcast"
+	"anlapi/ent/emailbroadcast"
 	"context"
 	"errors"
 	"fmt"

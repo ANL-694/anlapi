@@ -20,14 +20,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/apicompat"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/openai"
-	"anl-api/internal/pkg/timezone"
-	"anl-api/internal/pkg/xai"
-	"anl-api/internal/util/responseheaders"
-	"anl-api/internal/util/urlvalidator"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/apicompat"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/openai"
+	"anlapi/internal/pkg/timezone"
+	"anlapi/internal/pkg/xai"
+	"anlapi/internal/util/responseheaders"
+	"anlapi/internal/util/urlvalidator"
 	"github.com/cespare/xxhash/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -4443,7 +4443,7 @@ func (s *OpenAIGatewayService) handleNonStreamingResponsePassthrough(
 	}
 
 	// Detect SSE responses from upstream and convert to JSON.
-	// Some upstreams (e.g. other anl-api instances) may return SSE even when
+	// Some upstreams (e.g. other anlapi instances) may return SSE even when
 	// stream=false was requested. Without this conversion the client would
 	// receive raw SSE text or a terminal event with empty output.
 	if isEventStreamResponse(resp.Header) {
@@ -5735,7 +5735,7 @@ func (s *OpenAIGatewayService) handleNonStreamingResponse(ctx context.Context, r
 	}
 
 	// Detect SSE responses for ALL account types via Content-Type header.
-	// Some OpenAI-compatible upstreams (including other anl-api instances)
+	// Some OpenAI-compatible upstreams (including other anlapi instances)
 	// may return SSE even when stream=false was requested.
 	if isEventStreamResponse(resp.Header) {
 		usage, err := s.handleSSEToJSON(ctx, resp, c, account, body, originalModel, mappedModel)

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/servertiming"
 	"github.com/redis/go-redis/v9"
 )
 

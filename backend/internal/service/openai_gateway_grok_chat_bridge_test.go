@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/xai"
+	"anlapi/internal/pkg/xai"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"

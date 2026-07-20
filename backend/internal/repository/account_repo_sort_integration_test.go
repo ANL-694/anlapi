@@ -3,8 +3,8 @@
 package repository
 
 import (
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 )
 
 func (s *AccountRepoSuite) TestList_DefaultSortByNameAsc() {

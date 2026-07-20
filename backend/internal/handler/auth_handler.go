@@ -5,13 +5,13 @@ import (
 	"log/slog"
 	"strings"
 
-	"anl-api/internal/config"
-	"anl-api/internal/handler/dto"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/ip"
-	"anl-api/internal/pkg/response"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/handler/dto"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/ip"
+	"anlapi/internal/pkg/response"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

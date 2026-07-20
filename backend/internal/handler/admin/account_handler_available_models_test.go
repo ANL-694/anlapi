@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type availableModelsAdminService struct {

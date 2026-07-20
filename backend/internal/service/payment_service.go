@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentproviderinstance"
-	"anl-api/internal/payment"
-	"anl-api/internal/payment/provider"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentproviderinstance"
+	"anlapi/internal/payment"
+	"anlapi/internal/payment/provider"
 )
 
 // --- Order Status Constants ---

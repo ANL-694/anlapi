@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentproviderinstance"
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentproviderinstance"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // GetAvailableMethodLimits collects all payment types from enabled provider

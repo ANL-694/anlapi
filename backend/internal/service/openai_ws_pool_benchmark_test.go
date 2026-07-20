@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 func BenchmarkOpenAIWSPoolAcquire(b *testing.B) {

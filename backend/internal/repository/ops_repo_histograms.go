@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func (r *opsRepository) GetLatencyHistogram(ctx context.Context, filter *service.OpsDashboardFilter) (*service.OpsLatencyHistogramResponse, error) {

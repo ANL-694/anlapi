@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/openai"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/openai"
 )
 
 // OpenAIOAuthService handles OpenAI OAuth authentication flows

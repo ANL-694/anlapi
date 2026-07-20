@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/shopcategory"
-	"anl-api/ent/shopproduct"
+	"anlapi/ent/predicate"
+	"anlapi/ent/shopcategory"
+	"anlapi/ent/shopproduct"
 	"context"
 	"database/sql/driver"
 	"fmt"

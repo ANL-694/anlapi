@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/anthropictokenizer"
-	"anl-api/internal/pkg/apicompat"
-	"anl-api/internal/pkg/claudeweb"
-	"anl-api/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/anthropictokenizer"
+	"anlapi/internal/pkg/apicompat"
+	"anlapi/internal/pkg/claudeweb"
+	"anlapi/internal/pkg/ctxkey"
 
 	"github.com/gin-gonic/gin"
 )

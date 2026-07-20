@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"anl-api/ent"
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/timezone"
-	"anl-api/migrations"
+	"anlapi/ent"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/timezone"
+	"anlapi/migrations"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/openai"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/openai"
 	"github.com/gin-gonic/gin"
 )
 

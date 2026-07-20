@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"anl-api/internal/pkg/apicompat"
+	"anlapi/internal/pkg/apicompat"
 )
 
 const compatPromptCacheKeyPrefix = "compat_cc_"

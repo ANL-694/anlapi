@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

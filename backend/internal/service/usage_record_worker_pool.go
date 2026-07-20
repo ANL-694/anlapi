@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
 	"github.com/alitto/pond/v2"
 	"go.uber.org/zap"
 )

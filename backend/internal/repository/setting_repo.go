@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"anl-api/ent"
-	"anl-api/ent/setting"
-	"anl-api/internal/service"
+	"anlapi/ent"
+	"anlapi/ent/setting"
+	"anlapi/internal/service"
 )
 
 type settingRepository struct {

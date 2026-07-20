@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/model"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/tlsfingerprint"
+	"anlapi/internal/model"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/tlsfingerprint"
 )
 
 // TLSFingerprintProfileRepository 定义 TLS 指纹模板的数据访问接口

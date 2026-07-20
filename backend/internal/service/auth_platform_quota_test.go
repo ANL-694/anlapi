@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/config"
+	dbent "anlapi/ent"
+	"anlapi/internal/config"
 
 	"github.com/stretchr/testify/require"
 )

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"anl-api/internal/pkg/kirocooldown"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/kirocooldown"
+	"anlapi/internal/pkg/logger"
 	"go.uber.org/zap"
 )
 

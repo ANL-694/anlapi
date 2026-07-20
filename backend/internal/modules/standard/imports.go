@@ -8,5 +8,5 @@ package standard
 
 import (
 	// job.hello：示例模块（默认 disabled），验证插件链路连通性。
-	_ "anl-api/internal/modules/hello"
+	_ "anlapi/internal/modules/hello"
 )

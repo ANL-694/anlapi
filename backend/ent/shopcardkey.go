@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/shopcardkey"
-	"anl-api/ent/shoporder"
-	"anl-api/ent/shopproduct"
+	"anlapi/ent/shopcardkey"
+	"anlapi/ent/shoporder"
+	"anlapi/ent/shopproduct"
 	"fmt"
 	"strings"
 	"time"

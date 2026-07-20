@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/geminicli"
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/geminicli"
+	"anlapi/internal/pkg/pagination"
 )
 
 // =====================

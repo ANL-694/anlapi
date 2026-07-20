@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 // APIKeyRateLimitCacheData holds rate limit usage data cached in Redis.

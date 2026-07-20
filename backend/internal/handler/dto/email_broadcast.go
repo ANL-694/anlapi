@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 // EmailBroadcast is the admin-facing JSON representation of a broadcast record.

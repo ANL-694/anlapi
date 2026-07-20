@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 
-	"anl-api/internal/pkg/apicompat"
+	"anlapi/internal/pkg/apicompat"
 )
 
 const openAICompatAnthropicReplayMaxTailMessages = 12

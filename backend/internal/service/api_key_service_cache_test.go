@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/pagination"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 )

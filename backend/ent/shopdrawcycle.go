@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/shopdrawcycle"
-	"anl-api/ent/shopproduct"
-	"anl-api/ent/user"
+	"anlapi/ent/shopdrawcycle"
+	"anlapi/ent/shopproduct"
+	"anlapi/ent/user"
 	"encoding/json"
 	"fmt"
 	"strings"

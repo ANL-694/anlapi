@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"anl-api/internal/config"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"

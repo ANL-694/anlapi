@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/securitysecret"
+	"anlapi/ent/securitysecret"
 	"fmt"
 	"strings"
 	"time"

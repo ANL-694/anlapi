@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/util/logredact"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/util/logredact"
 )
 
 type OpsSystemLogSinkHealth struct {

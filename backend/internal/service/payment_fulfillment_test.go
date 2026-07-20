@@ -8,8 +8,8 @@ import (
 	"math"
 	"testing"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/payment"
+	dbent "anlapi/ent"
+	"anlapi/internal/payment"
 	"github.com/stretchr/testify/assert"
 )
 

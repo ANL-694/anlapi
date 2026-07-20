@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/idempotencyrecord"
-	"anl-api/ent/predicate"
+	"anlapi/ent/idempotencyrecord"
+	"anlapi/ent/predicate"
 	"context"
 	"errors"
 	"fmt"

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/util/logredact"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/util/logredact"
 )
 
 // ErrAuditLogNotFound 审计日志不存在。

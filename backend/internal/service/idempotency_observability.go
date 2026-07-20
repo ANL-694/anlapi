@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 )
 
 // IdempotencyMetricsSnapshot 提供幂等核心指标快照（进程内累计）。

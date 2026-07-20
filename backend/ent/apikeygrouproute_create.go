@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/apikey"
-	"anl-api/ent/apikeygrouproute"
-	"anl-api/ent/group"
+	"anlapi/ent/apikey"
+	"anlapi/ent/apikeygrouproute"
+	"anlapi/ent/group"
 	"context"
 	"errors"
 	"fmt"

@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/enttest"
-	dbusagecleanuptask "anl-api/ent/usagecleanuptask"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/enttest"
+	dbusagecleanuptask "anlapi/ent/usagecleanuptask"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

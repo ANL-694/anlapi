@@ -3,8 +3,8 @@ package service
 import (
 	"strings"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/payment"
+	dbent "anlapi/ent"
+	"anlapi/internal/payment"
 )
 
 func paymentProviderConfigCurrency(providerKey string, cfg map[string]string) string {

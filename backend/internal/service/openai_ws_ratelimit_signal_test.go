@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"

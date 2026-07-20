@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 )

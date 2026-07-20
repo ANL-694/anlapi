@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/emailbroadcast"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/emailbroadcast"
+	"anlapi/internal/service"
 )
 
 type emailBroadcastRepository struct {

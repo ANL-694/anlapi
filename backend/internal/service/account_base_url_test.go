@@ -5,7 +5,7 @@ package service
 import (
 	"testing"
 
-	"anl-api/internal/pkg/xai"
+	"anlapi/internal/pkg/xai"
 	"github.com/stretchr/testify/require"
 )
 

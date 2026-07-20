@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 
-const updateCacheKey = "anl-api:update:latest:v1"
+const updateCacheKey = "anlapi:update:latest:v1"
 
 type updateCache struct {
 	rdb *redis.Client

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type batchImageSQLExecutor interface {

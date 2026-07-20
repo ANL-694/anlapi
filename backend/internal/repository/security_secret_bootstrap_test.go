@@ -10,10 +10,10 @@ import (
 	"sync"
 	"testing"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/enttest"
-	"anl-api/ent/securitysecret"
-	"anl-api/internal/config"
+	dbent "anlapi/ent"
+	"anlapi/ent/enttest"
+	"anlapi/ent/securitysecret"
+	"anlapi/internal/config"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

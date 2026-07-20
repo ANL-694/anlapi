@@ -3,7 +3,7 @@
 package service
 
 import (
-	"anl-api/internal/pkg/tlsfingerprint"
+	"anlapi/internal/pkg/tlsfingerprint"
 	"bytes"
 	"context"
 	"github.com/stretchr/testify/require"

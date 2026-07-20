@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/pagination"
+	dbent "anlapi/ent"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/pagination"
 	"github.com/dgraph-io/ristretto"
 	"github.com/stretchr/testify/require"
 )

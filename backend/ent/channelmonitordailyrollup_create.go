@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/channelmonitordailyrollup"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/channelmonitordailyrollup"
 	"context"
 	"errors"
 	"fmt"

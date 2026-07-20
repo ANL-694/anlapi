@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 	"github.com/zeromicro/go-zero/core/collection"
 )
 

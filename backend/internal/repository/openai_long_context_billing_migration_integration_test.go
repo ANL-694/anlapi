@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	dbmigrations "anl-api/migrations"
+	dbmigrations "anlapi/migrations"
 	"github.com/stretchr/testify/require"
 )
 

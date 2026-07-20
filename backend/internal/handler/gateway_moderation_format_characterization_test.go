@@ -29,10 +29,10 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/ctxkey"
-	middleware "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/ctxkey"
+	middleware "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func (r *opsRepository) GetThroughputTrend(ctx context.Context, filter *service.OpsDashboardFilter, bucketSeconds int) (*service.OpsThroughputTrendResponse, error) {

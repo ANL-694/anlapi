@@ -373,10 +373,10 @@ const appStore = useAppStore()
 
 // ==================== Site Settings (same as HomeView) ====================
 
-const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'anl-api')
+const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'anlapi')
 const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
 const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
-const githubUrl = 'https://github.com/ANL-694/anl-api'
+const githubUrl = 'https://github.com/ANL-694/anlapi'
 
 // ==================== Theme (same as HomeView) ====================
 

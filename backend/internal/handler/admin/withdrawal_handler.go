@@ -3,9 +3,9 @@ package admin
 import (
 	"strconv"
 
-	"anl-api/internal/pkg/response"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/response"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

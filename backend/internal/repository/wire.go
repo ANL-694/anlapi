@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"anl-api/ent"
-	"anl-api/internal/config"
-	"anl-api/internal/service"
+	"anlapi/ent"
+	"anlapi/internal/config"
+	"anlapi/internal/service"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"

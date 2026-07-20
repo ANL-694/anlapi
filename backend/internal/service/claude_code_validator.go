@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"anl-api/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/ctxkey"
 )
 
 // ClaudeCodeValidator 验证请求是否来自 Claude Code 客户端

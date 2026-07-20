@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 type dbPoolSettings struct {

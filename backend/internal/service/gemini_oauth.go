@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"anl-api/internal/pkg/geminicli"
+	"anlapi/internal/pkg/geminicli"
 )
 
 // GeminiOAuthClient performs Google OAuth token exchange/refresh for Gemini integration.

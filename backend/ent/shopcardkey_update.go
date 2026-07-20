@@ -3,10 +3,10 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/shopcardkey"
-	"anl-api/ent/shoporder"
-	"anl-api/ent/shopproduct"
+	"anlapi/ent/predicate"
+	"anlapi/ent/shopcardkey"
+	"anlapi/ent/shoporder"
+	"anlapi/ent/shopproduct"
 	"context"
 	"errors"
 	"fmt"

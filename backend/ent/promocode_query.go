@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/promocode"
-	"anl-api/ent/promocodeusage"
+	"anlapi/ent/predicate"
+	"anlapi/ent/promocode"
+	"anlapi/ent/promocodeusage"
 	"context"
 	"database/sql/driver"
 	"fmt"

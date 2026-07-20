@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/domain"
+	"anlapi/internal/domain"
 )
 
 var (

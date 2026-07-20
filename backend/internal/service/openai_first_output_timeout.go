@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 

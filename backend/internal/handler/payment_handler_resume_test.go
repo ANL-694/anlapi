@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/enttest"
-	"anl-api/internal/payment"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/enttest"
+	"anlapi/internal/payment"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 

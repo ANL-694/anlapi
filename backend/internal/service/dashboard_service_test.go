@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/usagestats"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/usagestats"
 	"github.com/stretchr/testify/require"
 )
 

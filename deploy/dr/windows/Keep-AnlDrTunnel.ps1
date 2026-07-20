@@ -3,9 +3,9 @@ param(
   [int]$PrimaryPort = 22,
   [string]$TunnelUser = 'anl-dr-tunnel',
   [int]$LocalPort = 55432,
-  [string]$IdentityFile = 'D:\anl-api\dr\keys\anl-dr-tunnel-ed25519',
-  [string]$KnownHostsFile = 'D:\anl-api\dr\keys\known_hosts',
-  [string]$LogFile = 'D:\anl-api\dr\logs\ssh-tunnel.log'
+  [string]$IdentityFile = 'D:\anlapi\dr\keys\anl-dr-tunnel-ed25519',
+  [string]$KnownHostsFile = 'D:\anlapi\dr\keys\known_hosts',
+  [string]$LogFile = 'D:\anlapi\dr\logs\ssh-tunnel.log'
 )
 
 $ErrorActionPreference = 'Stop'

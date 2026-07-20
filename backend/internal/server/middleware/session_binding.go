@@ -3,9 +3,9 @@ package middleware
 import (
 	"strings"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/ip"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/ip"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

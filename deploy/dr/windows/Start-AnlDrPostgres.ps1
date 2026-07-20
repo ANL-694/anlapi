@@ -1,5 +1,5 @@
 param(
-  [string]$AppRoot = 'D:\anl-api',
+  [string]$AppRoot = 'D:\anlapi',
   [int]$Port = 5432
 )
 

@@ -13,11 +13,11 @@ import (
 
 	"entgo.io/ent/dialect"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentauditlog"
-	"anl-api/ent/paymentorder"
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentauditlog"
+	"anlapi/ent/paymentorder"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // ErrOrderNotFound is returned by HandlePaymentNotification when the webhook

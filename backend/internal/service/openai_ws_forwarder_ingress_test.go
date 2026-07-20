@@ -8,7 +8,7 @@ import (
 	"net"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	coderws "github.com/coder/websocket"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"

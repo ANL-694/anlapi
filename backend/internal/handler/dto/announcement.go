@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type Announcement struct {

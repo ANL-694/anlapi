@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/proxyurl"
+	"anlapi/internal/pkg/proxyurl"
 	"github.com/google/uuid"
 )
 

@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/authidentity"
-	"anl-api/ent/authidentitychannel"
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/oauth"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/authidentitychannel"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/oauth"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

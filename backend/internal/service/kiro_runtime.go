@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	kiropkg "anl-api/internal/pkg/kiro"
-	"anl-api/internal/pkg/logger"
+	kiropkg "anlapi/internal/pkg/kiro"
+	"anlapi/internal/pkg/logger"
 	"github.com/cespare/xxhash/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"

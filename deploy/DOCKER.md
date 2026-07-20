@@ -1,6 +1,6 @@
-# anl-api Docker Image
+# anlapi Docker Image
 
-`anl-api` is the project/repository name. `anlapi` is the runtime name used by
+`anlapi` is the project/repository name. `anlapi` is the runtime name used by
 the binary, container, service, and Linux user because some environments do
 not accept hyphens. Existing deployments may continue using the compatible
 PostgreSQL database name `ikik_api`; renaming that database is not required.
@@ -18,7 +18,7 @@ docker run -d \
   -e DATABASE_DBNAME=ikik_api \
   -e REDIS_HOST=host.docker.internal \
   -e REDIS_PORT=6379 \
-  anl-api:latest
+  anlapi:latest
 ```
 
 ## Docker Compose
@@ -28,7 +28,7 @@ version: '3.8'
 
 services:
   anlapi:
-    image: anl-api:latest
+    image: anlapi:latest
     ports:
       - "8080:8080"
     environment:
@@ -92,5 +92,5 @@ volumes:
 
 ## Links
 
-- [GitHub Repository](https://github.com/ANL-694/anl-api)
-- [Documentation](https://github.com/ANL-694/anl-api#readme)
+- [GitHub Repository](https://github.com/ANL-694/anlapi)
+- [Documentation](https://github.com/ANL-694/anlapi#readme)

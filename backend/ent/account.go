@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/account"
-	"anl-api/ent/proxy"
-	"anl-api/ent/user"
+	"anlapi/ent/account"
+	"anlapi/ent/proxy"
+	"anlapi/ent/user"
 	"encoding/json"
 	"fmt"
 	"strings"

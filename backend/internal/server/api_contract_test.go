@@ -15,13 +15,13 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/handler"
-	adminhandler "anl-api/internal/handler/admin"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/pkg/usagestats"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/handler"
+	adminhandler "anlapi/internal/handler/admin"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/pkg/usagestats"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -588,7 +588,7 @@ func TestAPIContracts(t *testing.T) {
 					service.SettingKeySMTPUsername: "user",
 					service.SettingKeySMTPPassword: "secret",
 					service.SettingKeySMTPFrom:     "no-reply@example.com",
-					service.SettingKeySMTPFromName: "anl-api",
+					service.SettingKeySMTPFromName: "anlapi",
 					service.SettingKeySMTPUseTLS:   "true",
 
 					service.SettingKeyTurnstileEnabled:   "true",
@@ -617,7 +617,7 @@ func TestAPIContracts(t *testing.T) {
 					service.SettingKeyOIDCConnectUserInfoIDPath:       "",
 					service.SettingKeyOIDCConnectUserInfoUsernamePath: "",
 
-					service.SettingKeySiteName:     "anl-api",
+					service.SettingKeySiteName:     "anlapi",
 					service.SettingKeySiteLogo:     "",
 					service.SettingKeySiteSubtitle: "Subtitle",
 					service.SettingKeyAPIBaseURL:   "https://api.example.com",
@@ -664,7 +664,7 @@ func TestAPIContracts(t *testing.T) {
 					"smtp_username": "user",
 					"smtp_password_configured": true,
 					"smtp_from_email": "no-reply@example.com",
-					"smtp_from_name": "anl-api",
+					"smtp_from_name": "anlapi",
 					"smtp_use_tls": true,
 					"turnstile_enabled": true,
 					"turnstile_site_key": "site-key",
@@ -699,7 +699,7 @@ func TestAPIContracts(t *testing.T) {
 						"ops_realtime_monitoring_enabled": true,
 						"ops_query_mode_default": "auto",
 						"ops_metrics_interval_seconds": 60,
-						"site_name": "anl-api",
+						"site_name": "anlapi",
 						"site_logo": "",
 						"site_subtitle": "Subtitle",
 						"api_base_url": "https://api.example.com",
@@ -954,7 +954,7 @@ func TestAPIContracts(t *testing.T) {
 					"oidc_connect_userinfo_email_path": "",
 					"oidc_connect_userinfo_id_path": "",
 					"oidc_connect_userinfo_username_path": "",
-					"site_name": "anl-api",
+					"site_name": "anlapi",
 					"site_logo": "",
 					"site_subtitle": "AI API 接入与用量管理平台",
 					"api_base_url": "",

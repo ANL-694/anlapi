@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/service"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -3,10 +3,10 @@ package repository
 import (
 	"context"
 
-	"anl-api/ent"
-	"anl-api/ent/tlsfingerprintprofile"
-	"anl-api/internal/model"
-	"anl-api/internal/service"
+	"anlapi/ent"
+	"anlapi/ent/tlsfingerprintprofile"
+	"anlapi/internal/model"
+	"anlapi/internal/service"
 )
 
 type tlsFingerprintProfileRepository struct {

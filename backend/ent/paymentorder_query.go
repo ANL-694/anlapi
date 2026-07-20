@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/paymentorder"
-	"anl-api/ent/predicate"
-	"anl-api/ent/user"
+	"anlapi/ent/paymentorder"
+	"anlapi/ent/predicate"
+	"anlapi/ent/user"
 	"context"
 	"fmt"
 	"math"

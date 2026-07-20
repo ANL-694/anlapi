@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"anl-api/internal/domain"
+	"anlapi/internal/domain"
 )
 
 type User struct {

@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"anl-api/internal/pkg/anthropictokenizer"
+	"anlapi/internal/pkg/anthropictokenizer"
 
 	"github.com/google/uuid"
 )

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 )
 
 // sessionWindowMockRepo is a minimal AccountRepository mock that records calls

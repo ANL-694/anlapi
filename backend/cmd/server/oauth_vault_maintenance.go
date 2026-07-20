@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/repository"
+	"anlapi/internal/config"
+	"anlapi/internal/repository"
 	_ "github.com/lib/pq"
 )
 

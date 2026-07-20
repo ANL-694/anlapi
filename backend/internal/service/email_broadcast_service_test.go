@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/domain"
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/domain"
+	"anlapi/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
 )
 
@@ -394,8 +394,8 @@ func TestPreviewHTML_UsesSiteNameWhenAvailable(t *testing.T) {
 	svc, _ := newTestEmailBroadcastService()
 	got := svc.PreviewHTML(context.Background(), "subj", "hi", EmailBroadcastBodyFormatText)
 	require.Contains(t, got, "subj")
-	// Stub settingRepo returns empty values → fallback to "anl-api".
-	require.Contains(t, got, "anl-api")
+	// Stub settingRepo returns empty values → fallback to "anlapi".
+	require.Contains(t, got, "anlapi")
 }
 
 // settingRepoStubWithValues lets a test pre-seed setting values.
@@ -433,7 +433,7 @@ func TestResolveSenderName_PrefersSMTPFromName(t *testing.T) {
 	repo := &settingRepoStubWithValues{
 		values: map[string]string{
 			SettingKeySMTPFromName: "TurboAPI",
-			SettingKeySiteName:     "anl-api instance",
+			SettingKeySiteName:     "anlapi instance",
 		},
 	}
 	emailSvc := NewEmailService(repo, nil)

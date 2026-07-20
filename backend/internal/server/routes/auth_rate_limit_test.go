@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/handler"
-	servermiddleware "anl-api/internal/server/middleware"
+	"anlapi/internal/handler"
+	servermiddleware "anlapi/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"

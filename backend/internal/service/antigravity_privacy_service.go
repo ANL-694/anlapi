@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/antigravity"
+	"anlapi/internal/pkg/antigravity"
 )
 
 const (

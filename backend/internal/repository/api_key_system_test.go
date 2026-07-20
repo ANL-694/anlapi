@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"testing"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/enttest"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/enttest"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

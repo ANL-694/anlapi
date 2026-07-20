@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 

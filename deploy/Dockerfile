@@ -1,5 +1,5 @@
 # =============================================================================
-# anl-api Multi-Stage Dockerfile
+# anlapi Multi-Stage Dockerfile
 # =============================================================================
 # Stage 1: Build frontend
 # Stage 2: Build Go backend with embedded frontend
@@ -74,9 +74,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 FROM ${ALPINE_IMAGE}
 
 # Labels
-LABEL maintainer="anl-api maintainers"
-LABEL description="anl-api - AI API Gateway Platform"
-LABEL org.opencontainers.image.source="https://github.com/ANL-694/anl-api"
+LABEL maintainer="anlapi maintainers"
+LABEL description="anlapi - AI API Gateway Platform"
+LABEL org.opencontainers.image.source="https://github.com/ANL-694/anlapi"
 
 # Install runtime dependencies
 RUN apk add --no-cache \

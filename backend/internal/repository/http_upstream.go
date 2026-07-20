@@ -24,13 +24,13 @@ import (
 	"golang.org/x/mod/semver"
 	"golang.org/x/net/http2"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/proxyurl"
-	"anl-api/internal/pkg/proxyutil"
-	"anl-api/internal/pkg/servertiming"
-	"anl-api/internal/pkg/tlsfingerprint"
-	"anl-api/internal/service"
-	"anl-api/internal/util/urlvalidator"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/proxyurl"
+	"anlapi/internal/pkg/proxyutil"
+	"anlapi/internal/pkg/servertiming"
+	"anlapi/internal/pkg/tlsfingerprint"
+	"anlapi/internal/service"
+	"anlapi/internal/util/urlvalidator"
 )
 
 const (

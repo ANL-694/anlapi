@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"strings"
 
-	"anl-api/internal/handler/dto"
-	"anl-api/internal/pkg/response"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/handler/dto"
+	"anlapi/internal/pkg/response"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

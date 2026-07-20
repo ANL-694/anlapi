@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/subscriptionplan"
+	"anlapi/ent/predicate"
+	"anlapi/ent/subscriptionplan"
 	"context"
 	"fmt"
 	"math"

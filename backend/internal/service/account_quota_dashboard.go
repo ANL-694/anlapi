@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 )
 
 const accountQuotaDashboardPageSize = 1000

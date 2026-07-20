@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/util/logredact"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/util/logredact"
 )
 
 // tokenRefreshTempUnschedDuration token 刷新重试耗尽后临时不可调度的持续时间

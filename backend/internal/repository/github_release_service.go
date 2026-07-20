@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/httpclient"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/httpclient"
+	"anlapi/internal/service"
 )
 
 type githubReleaseClient struct {
@@ -86,7 +86,7 @@ func (c *githubReleaseClient) FetchLatestRelease(ctx context.Context, repo strin
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", "anl-api-Updater")
+	req.Header.Set("User-Agent", "anlapi-Updater")
 	c.setGitHubAuthorization(req)
 
 	resp, err := c.httpClient.Do(req)

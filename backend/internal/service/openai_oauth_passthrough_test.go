@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/apicompat"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/tlsfingerprint"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/apicompat"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/tlsfingerprint"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
@@ -179,7 +179,7 @@ func captureStructuredLog(t *testing.T) (*inMemoryLogSink, func()) {
 	err := logger.Init(logger.InitOptions{
 		Level:       "debug",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: true,

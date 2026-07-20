@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/enttest"
-	"anl-api/internal/payment"
-	"anl-api/internal/pkg/pagination"
+	dbent "anlapi/ent"
+	"anlapi/ent/enttest"
+	"anlapi/internal/payment"
+	"anlapi/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

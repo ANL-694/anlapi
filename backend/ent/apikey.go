@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/apikey"
-	"anl-api/ent/group"
-	"anl-api/ent/user"
+	"anlapi/ent/apikey"
+	"anlapi/ent/group"
+	"anlapi/ent/user"
 	"encoding/json"
 	"fmt"
 	"strings"

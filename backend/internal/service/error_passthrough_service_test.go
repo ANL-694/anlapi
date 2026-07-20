@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/model"
+	"anlapi/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/emailbroadcast"
-	"anl-api/ent/predicate"
+	"anlapi/ent/emailbroadcast"
+	"anlapi/ent/predicate"
 	"context"
 	"fmt"
 	"math"

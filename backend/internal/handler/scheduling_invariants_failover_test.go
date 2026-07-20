@@ -29,11 +29,11 @@ import (
 	"sync"
 	"testing"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/tlsfingerprint"
-	middleware "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/tlsfingerprint"
+	middleware "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"

@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/securitysecret"
+	"anlapi/ent/predicate"
+	"anlapi/ent/securitysecret"
 	"context"
 	"errors"
 	"fmt"

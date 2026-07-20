@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	dbent "anl-api/ent"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 func (s *PaymentService) GetPublicOrderByResumeToken(ctx context.Context, token string) (*dbent.PaymentOrder, error) {

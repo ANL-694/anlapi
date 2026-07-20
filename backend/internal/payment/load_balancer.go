@@ -9,9 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentorder"
-	"anl-api/ent/paymentproviderinstance"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentorder"
+	"anlapi/ent/paymentproviderinstance"
 )
 
 // Strategy represents a load balancing strategy for provider instance selection.

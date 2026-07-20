@@ -1,5 +1,5 @@
 /**
- * Core Type Definitions for anl-api Frontend
+ * Core Type Definitions for anlapi Frontend
  */
 
 // ==================== Common Types ====================

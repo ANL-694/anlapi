@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/httpclient"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/httpclient"
 	"golang.org/x/net/http2"
 	"golang.org/x/sync/singleflight"
 )

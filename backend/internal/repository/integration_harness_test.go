@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	_ "anl-api/ent/runtime"
-	"anl-api/internal/pkg/timezone"
+	dbent "anlapi/ent"
+	_ "anlapi/ent/runtime"
+	"anlapi/internal/pkg/timezone"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 

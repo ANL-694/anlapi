@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/stretchr/testify/require"
 )
 

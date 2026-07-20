@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/group"
-	"anl-api/ent/subscriptionplan"
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/ent/group"
+	"anlapi/ent/subscriptionplan"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // normalizePlanCurrency validates and normalizes the display-only currency label.

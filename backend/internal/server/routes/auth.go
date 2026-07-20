@@ -3,10 +3,10 @@ package routes
 import (
 	"time"
 
-	"anl-api/internal/handler"
-	"anl-api/internal/middleware"
-	servermiddleware "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/handler"
+	"anlapi/internal/middleware"
+	servermiddleware "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"

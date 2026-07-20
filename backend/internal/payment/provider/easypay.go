@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 )
 
 // EasyPay constants.

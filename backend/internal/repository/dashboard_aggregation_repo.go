@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/timezone"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/timezone"
+	"anlapi/internal/service"
 	"github.com/lib/pq"
 )
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"anl-api/internal/pkg/httpclient"
+	"anlapi/internal/pkg/httpclient"
 )
 
 const userPrivateProxyBaseProbeTimeout = 10 * time.Second

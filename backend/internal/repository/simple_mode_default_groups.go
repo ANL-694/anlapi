@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/group"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/group"
+	"anlapi/internal/service"
 )
 
 func ensureSimpleModeDefaultGroups(ctx context.Context, client *dbent.Client) error {

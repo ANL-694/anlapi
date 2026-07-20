@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/pkg/sysutil"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/pkg/sysutil"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

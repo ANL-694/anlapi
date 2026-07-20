@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/websearch"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/websearch"
 	"github.com/stretchr/testify/require"
 )
 

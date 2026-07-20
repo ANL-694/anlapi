@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"anl-api/internal/pkg/usagestats"
+	"anlapi/internal/pkg/usagestats"
 )
 
 var (

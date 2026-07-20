@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	coderws "github.com/coder/websocket"
 	"github.com/stretchr/testify/require"
 )

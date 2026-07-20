@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/plugin/plugintest"
+	"anlapi/internal/plugin/plugintest"
 )
 
 func TestStopWithPreCancelledContextAfterWorkerExit(t *testing.T) {

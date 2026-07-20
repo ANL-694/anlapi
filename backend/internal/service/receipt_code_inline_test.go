@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 func TestReceiptCodeUploadFallsBackToInlineStorageWhenOSSNotConfigured(t *testing.T) {

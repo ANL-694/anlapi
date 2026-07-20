@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/promocode"
-	"anl-api/ent/promocodeusage"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/promocode"
+	"anlapi/ent/promocodeusage"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

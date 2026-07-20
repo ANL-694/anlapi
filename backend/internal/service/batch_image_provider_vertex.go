@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 const (

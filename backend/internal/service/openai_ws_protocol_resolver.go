@@ -1,6 +1,6 @@
 package service
 
-import "anl-api/internal/config"
+import "anlapi/internal/config"
 
 // OpenAIUpstreamTransport 表示 OpenAI 上游传输协议。
 type OpenAIUpstreamTransport string

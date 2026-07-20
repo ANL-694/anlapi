@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"anl-api/internal/pkg/claudeweb"
-	"anl-api/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/claudeweb"
+	"anlapi/internal/pkg/ctxkey"
 
 	"github.com/stretchr/testify/require"
 )

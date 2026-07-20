@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
-	"anl-api/internal/payment"
-	"anl-api/internal/service"
+	"anlapi/internal/payment"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

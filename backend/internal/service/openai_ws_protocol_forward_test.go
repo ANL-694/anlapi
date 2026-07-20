@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/tlsfingerprint"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/tlsfingerprint"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"

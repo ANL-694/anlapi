@@ -3,10 +3,10 @@ package repository
 import (
 	"context"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/userattributedefinition"
-	"anl-api/ent/userattributevalue"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/userattributedefinition"
+	"anlapi/ent/userattributevalue"
+	"anlapi/internal/service"
 )
 
 // UserAttributeDefinitionRepository implementation

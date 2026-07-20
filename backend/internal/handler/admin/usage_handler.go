@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/handler/dto"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/pkg/timezone"
-	"anl-api/internal/pkg/usagestats"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/handler/dto"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/pkg/timezone"
+	"anlapi/internal/pkg/usagestats"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

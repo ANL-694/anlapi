@@ -16,9 +16,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
 )
 
 const (

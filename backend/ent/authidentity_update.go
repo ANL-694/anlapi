@@ -3,11 +3,11 @@
 package ent
 
 import (
-	"anl-api/ent/authidentity"
-	"anl-api/ent/authidentitychannel"
-	"anl-api/ent/identityadoptiondecision"
-	"anl-api/ent/predicate"
-	"anl-api/ent/user"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/authidentitychannel"
+	"anlapi/ent/identityadoptiondecision"
+	"anlapi/ent/predicate"
+	"anlapi/ent/user"
 	"context"
 	"errors"
 	"fmt"

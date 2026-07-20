@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"anl-api/internal/config"
-	"anl-api/internal/handler/admin"
-	"anl-api/internal/securityaudit"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/handler/admin"
+	"anlapi/internal/securityaudit"
+	"anlapi/internal/service"
 
 	"github.com/google/wire"
 )

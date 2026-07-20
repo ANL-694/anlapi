@@ -7,10 +7,10 @@ import (
 	"log"
 	"time"
 
-	_ "anl-api/ent/runtime"
-	"anl-api/internal/config"
-	"anl-api/internal/repository"
-	"anl-api/internal/service"
+	_ "anlapi/ent/runtime"
+	"anlapi/internal/config"
+	"anlapi/internal/repository"
+	"anlapi/internal/service"
 )
 
 func main() {

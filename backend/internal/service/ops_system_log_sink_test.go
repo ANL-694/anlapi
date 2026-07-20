@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 )
 
 func TestOpsSystemLogSink_ShouldIndex(t *testing.T) {

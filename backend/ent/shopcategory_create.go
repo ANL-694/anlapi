@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/shopcategory"
-	"anl-api/ent/shopproduct"
+	"anlapi/ent/shopcategory"
+	"anlapi/ent/shopproduct"
 	"context"
 	"errors"
 	"fmt"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 var (

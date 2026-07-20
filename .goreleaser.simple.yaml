@@ -1,7 +1,7 @@
 # 简化版 GoReleaser 配置 - 仅发布 x86_64 GHCR 镜像
 version: 2
 
-project_name: anl-api
+project_name: anlapi
 
 before:
   hooks:
@@ -42,7 +42,7 @@ dockers_v2:
     ids:
       - anlapi
     images:
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/anl-api"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/anlapi"
     tags:
       - "{{ .Version }}"
       - latest
@@ -62,7 +62,7 @@ release:
     name: "{{ .Env.GITHUB_REPO_NAME }}"
   draft: false
   prerelease: auto
-  name_template: "anl-api {{.Version}} (Simple)"
+  name_template: "anlapi {{.Version}} (Simple)"
   # 跳过上传二进制包
   skip_upload: true
   header: |
@@ -78,7 +78,7 @@ release:
 
     **Docker (x86_64 only):**
     ```bash
-    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/anl-api:{{ .Version }}
+    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/anlapi:{{ .Version }}
     ```
 
     ## 📚 Documentation

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/ent/group"
-	"anl-api/internal/service"
+	"anlapi/ent/group"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

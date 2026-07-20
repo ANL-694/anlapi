@@ -1,7 +1,7 @@
 param(
-  [string]$AppRoot = 'D:\anl-api',
+  [string]$AppRoot = 'D:\anlapi',
   [string]$DatabaseName = 'anlapi_dr',
-  [string]$BackupRoot = 'D:\anl-api-dr-backups',
+  [string]$BackupRoot = 'D:\anlapi-dr-backups',
   [int]$MaximumReplicationAgeSeconds = 120,
   [int]$RetentionCount = 72,
   [switch]$AllowDisabledSubscription

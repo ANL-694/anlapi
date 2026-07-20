@@ -6,8 +6,8 @@ import (
 	"io"
 	"os/exec"
 
-	"anl-api/internal/config"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/service"
 )
 
 // PgDumper implements service.DBDumper using pg_dump/psql

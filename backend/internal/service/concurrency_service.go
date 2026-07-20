@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )

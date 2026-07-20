@@ -1,9 +1,9 @@
 param(
   [Parameter(Mandatory = $true)]
   [string]$DomesticFenceConfirmation,
-  [string]$AppRoot = 'D:\anl-api',
+  [string]$AppRoot = 'D:\anlapi',
   [string]$DatabaseName = 'anlapi_dr',
-  [string]$ExportRoot = 'D:\anl-api-dr-failback'
+  [string]$ExportRoot = 'D:\anlapi-dr-failback'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,7 +28,9 @@ function Read-EnvFile([string]$Path) {
   return $values
 }
 
-Stop-ScheduledTask -TaskName 'ANL-API' -ErrorAction SilentlyContinue
+foreach ($appTaskName in @('ANLAPI', 'ANL-API')) {
+  Stop-ScheduledTask -TaskName $appTaskName -ErrorAction SilentlyContinue
+}
 Start-Sleep -Seconds 10
 $values = Read-EnvFile $envPath
 $env:PGPASSWORD = $values['DATABASE_PASSWORD']

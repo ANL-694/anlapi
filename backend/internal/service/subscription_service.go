@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/pagination"
+	dbent "anlapi/ent"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/pagination"
 	"github.com/dgraph-io/ristretto"
 	"golang.org/x/sync/singleflight"
 )

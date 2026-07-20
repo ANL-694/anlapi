@@ -7,11 +7,11 @@ import (
 	"database/sql"
 	"testing"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/authidentity"
-	"anl-api/ent/authidentitychannel"
-	"anl-api/ent/enttest"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/authidentitychannel"
+	"anlapi/ent/enttest"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"

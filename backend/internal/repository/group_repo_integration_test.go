@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/suite"
 )
 

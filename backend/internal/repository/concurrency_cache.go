@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 

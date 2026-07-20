@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 func TestNormalizeVisibleMethods(t *testing.T) {
@@ -801,7 +801,7 @@ func mustCreateFallbackSignedToken(t *testing.T, claims any) string {
 		t.Fatalf("marshal claims: %v", err)
 	}
 	encodedPayload := base64.RawURLEncoding.EncodeToString(payload)
-	mac := hmac.New(sha256.New, []byte("anl-api-payment-resume"))
+	mac := hmac.New(sha256.New, []byte("anlapi-payment-resume"))
 	_, _ = mac.Write([]byte(encodedPayload))
 	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 	return encodedPayload + "." + signature

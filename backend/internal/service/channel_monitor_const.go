@@ -3,7 +3,7 @@ package service
 import (
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // ChannelMonitor 全局常量。

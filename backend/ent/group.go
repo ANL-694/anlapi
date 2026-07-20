@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/group"
-	"anl-api/internal/domain"
+	"anlapi/ent/group"
+	"anlapi/internal/domain"
 	"encoding/json"
 	"fmt"
 	"strings"

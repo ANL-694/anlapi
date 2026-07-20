@@ -1,7 +1,7 @@
 # =============================================================================
-# anl-api Docker Compose - Standalone Configuration
+# anlapi Docker Compose - Standalone Configuration
 # =============================================================================
-# This configuration runs only the anl-api application.
+# This configuration runs only the anlapi application.
 # PostgreSQL and Redis must be provided externally.
 #
 # Usage:
@@ -12,7 +12,7 @@
 
 services:
   anlapi:
-    image: anl-api:latest
+    image: anlapi:latest
     container_name: anlapi
     restart: unless-stopped
     ulimits:
@@ -68,7 +68,7 @@ services:
       # =======================================================================
       # Admin Account (auto-created on first run)
       # =======================================================================
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anl-api.local}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anlapi.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
 

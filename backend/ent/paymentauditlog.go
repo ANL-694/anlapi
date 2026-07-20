@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/paymentauditlog"
+	"anlapi/ent/paymentauditlog"
 	"fmt"
 	"strings"
 	"time"

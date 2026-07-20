@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/server/middleware"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 )
 

@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/config"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/authidentity"
-	"anl-api/ent/authidentitychannel"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/authidentitychannel"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/suite"
 )
 

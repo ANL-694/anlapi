@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/claude"
-	"anl-api/internal/pkg/geminicli"
-	"anl-api/internal/util/logredact"
+	"anlapi/internal/pkg/claude"
+	"anlapi/internal/pkg/geminicli"
+	"anlapi/internal/util/logredact"
 )
 
 const (

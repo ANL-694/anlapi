@@ -99,7 +99,7 @@ const mockPublicSettings = {
   invitation_code_enabled: false,
   turnstile_enabled: false,
   turnstile_site_key: '',
-  site_name: 'anl-api Local',
+  site_name: 'anlapi Local',
   site_logo: '',
   site_subtitle: 'Local mock preview',
   api_base_url: '',
@@ -838,7 +838,7 @@ function localMockApiPlugin(enabled: boolean): Plugin {
             subscription_usd_to_cny_rate: 7.2,
             recharge_fee_rate: 0,
             load_balance_strategy: 'round_robin',
-            product_name_prefix: 'anl-api',
+            product_name_prefix: 'anlapi',
             product_name_suffix: '',
             help_image_url: '',
             help_text: ''
@@ -1649,7 +1649,7 @@ function localMockApiPlugin(enabled: boolean): Plugin {
 
         if (path === '/api/v1/accounts/data') {
           sendJson(res, 200, success({
-            type: 'anl-api-data',
+            type: 'anlapi-data',
             version: 1,
             accounts: mockAccounts,
             proxies: mockProxies

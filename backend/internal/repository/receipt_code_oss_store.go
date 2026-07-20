@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/service"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"

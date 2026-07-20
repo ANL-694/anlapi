@@ -3,10 +3,10 @@
 package ent
 
 import (
-	"anl-api/ent/account"
-	"anl-api/ent/accountgroup"
-	"anl-api/ent/group"
-	"anl-api/ent/predicate"
+	"anlapi/ent/account"
+	"anlapi/ent/accountgroup"
+	"anlapi/ent/group"
+	"anlapi/ent/predicate"
 	"context"
 	"errors"
 	"fmt"

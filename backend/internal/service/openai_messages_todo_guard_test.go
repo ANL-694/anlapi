@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"anl-api/internal/pkg/apicompat"
+	"anlapi/internal/pkg/apicompat"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 )
@@ -26,7 +26,7 @@ func TestAppendOpenAICompatClaudeCodeTodoGuard(t *testing.T) {
 func TestAppendOpenAICompatClaudeCodeTodoGuardSkipsExistingMarker(t *testing.T) {
 	t.Parallel()
 
-	input := json.RawMessage(`[{"type":"message","role":"developer","content":[{"type":"input_text","text":"<anl-api-claude-code-todo-guard>"}]},{"type":"message","role":"user","content":[{"type":"input_text","text":"hello"}]}]`)
+	input := json.RawMessage(`[{"type":"message","role":"developer","content":[{"type":"input_text","text":"<anlapi-claude-code-todo-guard>"}]},{"type":"message","role":"user","content":[{"type":"input_text","text":"hello"}]}]`)
 	req := &apicompat.ResponsesRequest{Input: input}
 
 	appended := appendOpenAICompatClaudeCodeTodoGuard(req)

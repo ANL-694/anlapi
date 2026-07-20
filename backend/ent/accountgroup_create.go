@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/account"
-	"anl-api/ent/accountgroup"
-	"anl-api/ent/group"
+	"anlapi/ent/account"
+	"anlapi/ent/accountgroup"
+	"anlapi/ent/group"
 	"context"
 	"errors"
 	"fmt"

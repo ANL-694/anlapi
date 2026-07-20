@@ -17,7 +17,7 @@ func TestInit_DualOutput(t *testing.T) {
 		t.Fatalf("create temp dir: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
-	logPath := filepath.Join(tmpDir, "logs", "anl-api.log")
+	logPath := filepath.Join(tmpDir, "logs", "anlapi.log")
 
 	origStdout := os.Stdout
 	origStderr := os.Stderr
@@ -43,7 +43,7 @@ func TestInit_DualOutput(t *testing.T) {
 	err = Init(InitOptions{
 		Level:       "debug",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Output: OutputOptions{
 			ToStdout: true,
@@ -118,7 +118,7 @@ func TestInit_FileOutputFailureDowngrade(t *testing.T) {
 		Output: OutputOptions{
 			ToStdout: true,
 			ToFile:   true,
-			FilePath: filepath.Join(os.DevNull, "logs", "anl-api.log"),
+			FilePath: filepath.Join(os.DevNull, "logs", "anlapi.log"),
 		},
 		Rotation: RotationOptions{
 			MaxSizeMB:  10,
@@ -161,7 +161,7 @@ func TestInit_CallerShouldPointToCallsite(t *testing.T) {
 	if err := Init(InitOptions{
 		Level:       "info",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Caller:      true,
 		Output: OutputOptions{

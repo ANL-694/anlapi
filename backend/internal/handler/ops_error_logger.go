@@ -18,10 +18,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/ip"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/ip"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

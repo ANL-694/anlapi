@@ -5,7 +5,7 @@ set -euo pipefail
 # 用法：
 #   sudo ./install-datamanagementd.sh --binary /path/to/datamanagementd
 # 或：
-#   sudo ./install-datamanagementd.sh --source /path/to/anl-api/repo
+#   sudo ./install-datamanagementd.sh --source /path/to/anlapi/repo
 
 BIN_PATH=""
 SOURCE_PATH=""
@@ -23,7 +23,7 @@ function print_help() {
 
 参数:
   --binary  指定已构建的 datamanagementd 二进制路径
-  --source  指定 anl-api 仓库路径（脚本会执行 go build）
+  --source  指定 anlapi 仓库路径（脚本会执行 go build）
   -h, --help 显示帮助
 
 示例:
@@ -119,7 +119,7 @@ cat <<'EOF'
 
 下一步建议：
 1. 查看日志：sudo journalctl -u $SERVICE_NAME -f
-2. 在 anl-api（容器部署时）挂载 socket:
+2. 在 anlapi（容器部署时）挂载 socket:
    $SOCKET_PATH:$SOCKET_PATH
 3. 进入管理后台“数据管理”页面确认 agent=enabled
 

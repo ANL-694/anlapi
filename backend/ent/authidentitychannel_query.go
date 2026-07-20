@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/authidentity"
-	"anl-api/ent/authidentitychannel"
-	"anl-api/ent/predicate"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/authidentitychannel"
+	"anlapi/ent/predicate"
 	"context"
 	"fmt"
 	"math"

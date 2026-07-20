@@ -1,6 +1,6 @@
 package repository
 
-import "anl-api/internal/pkg/pagination"
+import "anlapi/internal/pkg/pagination"
 
 func paginationResultFromTotal(total int64, params pagination.PaginationParams) *pagination.PaginationResult {
 	pages := int(total) / params.Limit()

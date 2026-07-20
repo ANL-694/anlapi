@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type OAuthCredentialIsolationReport struct {

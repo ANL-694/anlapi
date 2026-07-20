@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/authidentity"
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
+	dbent "anlapi/ent"
+	"anlapi/ent/authidentity"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -327,7 +327,7 @@ func (s *AuthService) SendVerifyCode(ctx context.Context, email string) error {
 	}
 
 	// 获取网站名称
-	siteName := "anl-api"
+	siteName := "anlapi"
 	if s.settingService != nil {
 		siteName = s.settingService.GetSiteName(ctx)
 	}
@@ -370,7 +370,7 @@ func (s *AuthService) SendVerifyCodeAsync(ctx context.Context, email string) (*S
 	}
 
 	// 获取网站名称
-	siteName := "anl-api"
+	siteName := "anlapi"
 	if s.settingService != nil {
 		siteName = s.settingService.GetSiteName(ctx)
 	}
@@ -1335,7 +1335,7 @@ func (s *AuthService) preparePasswordReset(ctx context.Context, email, frontendB
 	}
 
 	// Get site name
-	siteName := "anl-api"
+	siteName := "anlapi"
 	if s.settingService != nil {
 		siteName = s.settingService.GetSiteName(ctx)
 	}

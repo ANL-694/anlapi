@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type noAccountErrorClassification struct {

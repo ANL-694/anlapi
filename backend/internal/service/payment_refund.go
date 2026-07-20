@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentauditlog"
-	"anl-api/ent/paymentorder"
-	"anl-api/ent/paymentproviderinstance"
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/servertiming"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentauditlog"
+	"anlapi/ent/paymentorder"
+	"anlapi/ent/paymentproviderinstance"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/servertiming"
 	"entgo.io/ent/dialect/sql"
 )
 

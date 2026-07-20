@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
 )
 
 // IdempotencyCleanupService 定期清理已过期的幂等记录，避免表无限增长。

@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/announcementread"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/announcementread"
+	"anlapi/internal/service"
 )
 
 type announcementReadRepository struct {

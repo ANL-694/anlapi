@@ -335,8 +335,8 @@ const anlEnOverrides = {
 
   // Setup Wizard
   setup: {
-    title: 'anl-api Setup',
-    description: 'Configure your anl-api instance',
+    title: 'anlapi Setup',
+    description: 'Configure your anlapi instance',
     database: {
       title: 'Database Configuration',
       description: 'Connect to your PostgreSQL database',
@@ -1010,7 +1010,7 @@ const anlEnOverrides = {
     selectedGroups: '{count} groups selected',
     importTitle: 'Import Personal Accounts',
     importHint: 'Paste account credentials or import files. Personal import only creates official OAuth accounts.',
-    importWarning: 'Supported: anl-api OAuth JSON, Codex-Manager ChatGPT token JSON, OpenAI Refresh Token, and Claude Session Key. API keys, URLs, upstream endpoints and cookies are rejected.',
+    importWarning: 'Supported: anlapi OAuth JSON, Codex-Manager ChatGPT token JSON, OpenAI Refresh Token, and Claude Session Key. API keys, URLs, upstream endpoints and cookies are rejected.',
     importKiroConfigMode: 'Parse as Kiro config',
     importKiroConfigModeHint: 'Use for Kiro JSON config files',
     importTextMode: 'Bulk Text',
@@ -1038,7 +1038,7 @@ const anlEnOverrides = {
     importResult: 'Import Result',
     importResultSummary: 'Created {created}, skipped {skipped}, failed {failed}',
     importErrors: 'Import Details',
-    importInvalidFile: 'Invalid import file: expected an account array or a anl-api export with accounts.',
+    importInvalidFile: 'Invalid import file: expected an account array or a anlapi export with accounts.',
     importInvalidAccount: 'Invalid account item',
     importMissingName: 'Account name is required',
     importOnlyOAuth: 'Skipped: personal import does not accept this account type',
@@ -3035,7 +3035,7 @@ const anlEnOverrides = {
         step1: {
           title: 'Create an R2 Bucket',
           line1: 'Log in to the Cloudflare Dashboard (dash.cloudflare.com), select "R2 Object Storage" from the sidebar',
-          line2: 'Click "Create bucket", enter a name (e.g. anl-api-backups), choose a region',
+          line2: 'Click "Create bucket", enter a name (e.g. anlapi-backups), choose a region',
           line3: 'Click create to finish'
         },
         step2: {
@@ -4462,7 +4462,7 @@ const anlEnOverrides = {
         expiresAt: 'Expires At',
         actions: 'Actions'
       },
-      usageWindowsHint: '"5h / 7d" are the upstream account\'s official rolling usage windows, such as OpenAI ChatGPT or Claude limits. They are imposed by the upstream provider on the account itself, not configured by anl-api, and unrelated to model mappings. Usage resets automatically when each window rolls over, and this limit cannot be lifted from within anl-api.',
+      usageWindowsHint: '"5h / 7d" are the upstream account\'s official rolling usage windows, such as OpenAI ChatGPT or Claude limits. They are imposed by the upstream provider on the account itself, not configured by anlapi, and unrelated to model mappings. Usage resets automatically when each window rolls over, and this limit cannot be lifted from within anlapi.',
       allPrivacyModes: 'All Privacy States',
       privacyUnset: 'Unset',
       privacyTrainingOff: 'Training data sharing disabled',
@@ -4853,7 +4853,7 @@ const anlEnOverrides = {
       },
       poolMode: 'Pool Mode',
       poolModeHint: "Enable when upstream is an account pool; errors won't mark local account status",
-      poolModeInfo: 'When enabled, upstream 429/403/401 errors will auto-retry without marking the account as rate-limited or errored. Suitable for upstream pointing to another anl-api instance.',
+      poolModeInfo: 'When enabled, upstream 429/403/401 errors will auto-retry without marking the account as rate-limited or errored. Suitable for upstream pointing to another anlapi instance.',
       poolModeRetryCount: 'Same-Account Retries',
       poolModeRetryCountHint: 'Only applies in pool mode. Use 0 to disable in-place retry. Default {default}, maximum {max}.',
       poolModeRetryStatusCodes: 'Retry Status Codes',
@@ -7233,7 +7233,7 @@ const anlEnOverrides = {
       },
       linuxdo: {
         title: 'LinuxDo Connect Login',
-        description: 'Configure LinuxDo Connect OAuth for anl-api end-user login',
+        description: 'Configure LinuxDo Connect OAuth for anlapi end-user login',
         enable: 'Enable LinuxDo Login',
         enableHint: 'Show LinuxDo login on the login/register pages',
         clientId: 'Client ID',
@@ -7451,7 +7451,7 @@ const anlEnOverrides = {
         backendMode: 'Backend Mode',
         backendModeDescription: 'Disables user registration, public site, and self-service features. Only admin can log in and manage the platform.',
         siteName: 'Site Name',
-        siteNamePlaceholder: 'anl-api',
+        siteNamePlaceholder: 'anlapi',
         siteNameHint: 'Displayed in emails and page titles',
         siteSubtitle: 'Site Subtitle',
         siteSubtitlePlaceholder: 'AI API access and usage management platform',
@@ -7737,7 +7737,7 @@ const anlEnOverrides = {
         fromEmail: 'From Email',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: 'From Name',
-        fromNamePlaceholder: 'anl-api',
+        fromNamePlaceholder: 'anlapi',
         useTls: 'Use TLS',
         useTlsHint: 'Enable TLS encryption for SMTP connection'
       },
@@ -8386,14 +8386,14 @@ const anlEnOverrides = {
     // Admin tour steps
     admin: {
       welcome: {
-        title: 'Welcome to anl-api',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">anl-api is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li><b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li><b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li><b>Key Distribution</b> - Generate independent API Keys for users</li><li><b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
+        title: 'Welcome to anlapi',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">anlapi is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li><b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li><b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li><b>Key Distribution</b> - Generate independent API Keys for users</li><li><b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
         nextBtn: 'Start Setup',
         prevBtn: 'Skip'
       },
       groupManage: {
         title: 'Step 1: Group Management',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of anl-api, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>Each group can contain multiple upstream accounts</li><li>Each group has independent billing multiplier</li><li>Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">Click "Group Management" on the left sidebar</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of anlapi, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>Each group can contain multiple upstream accounts</li><li>Each group has independent billing multiplier</li><li>Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">Click "Group Management" on the left sidebar</p></div>'
       },
       createGroup: {
         title: 'Create New Group',
@@ -8486,8 +8486,8 @@ const anlEnOverrides = {
     // User tour steps
     user: {
       welcome: {
-        title: 'Welcome to anl-api',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the anl-api AI service platform.</p><p style="margin-bottom: 12px;"><b>Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>Create API Key</li><li>Copy key to your application</li><li>Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
+        title: 'Welcome to anlapi',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the anlapi AI service platform.</p><p style="margin-bottom: 12px;"><b>Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>Create API Key</li><li>Copy key to your application</li><li>Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
         nextBtn: 'Start',
         prevBtn: 'Skip'
       },

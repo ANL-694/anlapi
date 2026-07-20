@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/enttest"
-	"anl-api/internal/payment"
+	dbent "anlapi/ent"
+	"anlapi/ent/enttest"
+	"anlapi/internal/payment"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -475,7 +475,7 @@ func TestPaymentConfigReceiptCodeOSS(t *testing.T) {
 		ReceiptCodeOSSEnabled:              &enabled,
 		ReceiptCodeOSSEndpoint:             paymentConfigStrPtr("https://oss-cn-hangzhou.aliyuncs.com"),
 		ReceiptCodeOSSRegion:               paymentConfigStrPtr("oss-cn-hangzhou"),
-		ReceiptCodeOSSBucket:               paymentConfigStrPtr("anl-api"),
+		ReceiptCodeOSSBucket:               paymentConfigStrPtr("anlapi"),
 		ReceiptCodeOSSAccessKeyID:          paymentConfigStrPtr("ak"),
 		ReceiptCodeOSSSecretAccessKey:      paymentConfigStrPtr("secret"),
 		ReceiptCodeOSSPrefix:               paymentConfigStrPtr("receipt-codes"),
@@ -522,7 +522,7 @@ func TestPaymentConfigReceiptCodeOSSKeepsExistingSecretOnBlankUpdate(t *testing.
 	err := svc.UpdatePaymentConfig(context.Background(), UpdatePaymentConfigRequest{
 		ReceiptCodeOSSEnabled:         &enabled,
 		ReceiptCodeOSSEndpoint:        paymentConfigStrPtr("https://oss-cn-hangzhou.aliyuncs.com"),
-		ReceiptCodeOSSBucket:          paymentConfigStrPtr("anl-api"),
+		ReceiptCodeOSSBucket:          paymentConfigStrPtr("anlapi"),
 		ReceiptCodeOSSAccessKeyID:     paymentConfigStrPtr("ak"),
 		ReceiptCodeOSSSecretAccessKey: paymentConfigStrPtr("secret"),
 	})

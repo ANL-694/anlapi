@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"anl-api/internal/handler/admin"
-	"anl-api/internal/securityaudit"
+	"anlapi/internal/handler/admin"
+	"anlapi/internal/securityaudit"
 )
 
 // AdminHandlers contains all admin-related HTTP handlers

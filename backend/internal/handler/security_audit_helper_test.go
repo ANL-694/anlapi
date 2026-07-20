@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"anl-api/internal/securityaudit"
-	middleware2 "anl-api/internal/server/middleware"
+	"anlapi/internal/securityaudit"
+	middleware2 "anlapi/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

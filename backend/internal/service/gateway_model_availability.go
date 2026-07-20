@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 // ModelAvailabilityDiagnosis describes whether the requested model can be

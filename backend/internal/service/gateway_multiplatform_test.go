@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
 )
 

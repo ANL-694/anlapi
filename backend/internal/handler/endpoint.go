@@ -3,7 +3,7 @@ package handler
 import (
 	"strings"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,4 +1,4 @@
-module anl-api
+module anlapi
 
 go 1.26.5
 

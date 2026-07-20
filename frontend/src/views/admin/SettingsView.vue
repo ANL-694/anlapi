@@ -6480,7 +6480,7 @@
                       v-model="form.payment_product_name_prefix"
                       type="text"
                       class="input"
-                      placeholder="anl-api"
+                      placeholder="anlapi"
                     />
                   </div>
                   <div>
@@ -6502,7 +6502,7 @@
                       class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300"
                     >
                       {{
-                        (form.payment_product_name_prefix || "anl-api") +
+                        (form.payment_product_name_prefix || "anlapi") +
                         " 100 " +
                         (form.payment_product_name_suffix || "CNY")
                       }}
@@ -7473,14 +7473,14 @@ function localText(zh: string, en: string): string {
 
 const paymentGuideHref = computed(() =>
   locale.value.startsWith("zh")
-    ? "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT_CN.md"
-    : "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT.md",
+    ? "https://github.com/ANL-694/anlapi/blob/main/docs/PAYMENT_CN.md"
+    : "https://github.com/ANL-694/anlapi/blob/main/docs/PAYMENT.md",
 );
 
 const paymentMethodsHref = computed(() =>
   locale.value.startsWith("zh")
-    ? "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT_CN.md#支持的支付方式"
-    : "https://github.com/ANL-694/anl-api/blob/main/docs/PAYMENT.md#supported-payment-methods",
+    ? "https://github.com/ANL-694/anlapi/blob/main/docs/PAYMENT_CN.md#支持的支付方式"
+    : "https://github.com/ANL-694/anlapi/blob/main/docs/PAYMENT.md#supported-payment-methods",
 );
 
 type SettingsTab =
@@ -7769,7 +7769,7 @@ const form = reactive<SettingsForm>({
   user_private_group_rate_multiplier: 1,
   user_private_group_commission_rate: 0,
   user_private_group_rpm_limit: 0,
-  site_name: "anl-api",
+  site_name: "anlapi",
   site_logo: "",
   site_subtitle: "AI API 接入与用量管理平台",
   api_base_url: "",

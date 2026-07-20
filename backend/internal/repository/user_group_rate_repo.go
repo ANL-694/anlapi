@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/lib/pq"
 )
 

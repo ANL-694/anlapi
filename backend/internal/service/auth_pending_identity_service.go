@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/identityadoptiondecision"
-	"anl-api/ent/pendingauthsession"
-	dbpredicate "anl-api/ent/predicate"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/ent/identityadoptiondecision"
+	"anlapi/ent/pendingauthsession"
+	dbpredicate "anlapi/ent/predicate"
+	infraerrors "anlapi/internal/pkg/errors"
 	"entgo.io/ent/dialect"
 
 	entsql "entgo.io/ent/dialect/sql"

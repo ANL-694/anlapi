@@ -1,5 +1,5 @@
 param(
-  [string]$AppRoot = 'D:\anl-api',
+  [string]$AppRoot = 'D:\anlapi',
   [string]$PrimaryHost = '23.149.60.41',
   [int]$PrimarySshPort = 22,
   [string]$TunnelUser = 'anl-dr-tunnel',
@@ -120,8 +120,10 @@ $taskAction = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument (
 )
 $taskTrigger = New-ScheduledTaskTrigger -AtStartup
 $taskSettings = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero)
-Register-ScheduledTask -TaskName 'ANL-API-DR-Tunnel' -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -User 'SYSTEM' -RunLevel Highest -Force | Out-Null
-Start-ScheduledTask -TaskName 'ANL-API-DR-Tunnel'
+Stop-ScheduledTask -TaskName 'ANL-API-DR-Tunnel' -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName 'ANL-API-DR-Tunnel' -Confirm:$false -ErrorAction SilentlyContinue
+Register-ScheduledTask -TaskName 'ANLAPI-DR-Tunnel' -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -User 'SYSTEM' -RunLevel Highest -Force | Out-Null
+Start-ScheduledTask -TaskName 'ANLAPI-DR-Tunnel'
 
 $deadline = (Get-Date).AddSeconds(60)
 do {
@@ -194,7 +196,9 @@ try {
   $replicationPasswordText = $null
 }
 
-Stop-ScheduledTask -TaskName 'ANL-API' -ErrorAction SilentlyContinue
+foreach ($appTaskName in @('ANLAPI', 'ANL-API')) {
+  Stop-ScheduledTask -TaskName $appTaskName -ErrorAction SilentlyContinue
+}
 $envBackup = Set-EnvValues $envPath @{
   DATABASE_DBNAME = $StandbyDatabase
   OAUTH_VAULT_MODE = 'disabled'

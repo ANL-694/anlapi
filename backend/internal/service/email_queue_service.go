@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 )
 
 // Task type constants

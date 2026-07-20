@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/usagestats"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/usagestats"
 )
 
 const (

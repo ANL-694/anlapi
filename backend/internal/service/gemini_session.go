@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"anl-api/internal/pkg/antigravity"
+	"anlapi/internal/pkg/antigravity"
 	"github.com/cespare/xxhash/v2"
 )
 

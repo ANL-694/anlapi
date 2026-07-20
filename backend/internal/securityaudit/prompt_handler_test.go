@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	servermiddleware "anl-api/internal/server/middleware"
+	infraerrors "anlapi/internal/pkg/errors"
+	servermiddleware "anlapi/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

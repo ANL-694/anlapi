@@ -1,5 +1,5 @@
 # =============================================================================
-# anl-api Docker Compose - Local Directory Version
+# anlapi Docker Compose - Local Directory Version
 # =============================================================================
 # This configuration uses local directories for data storage instead of named
 # volumes, making it easy to migrate the entire deployment by simply copying
@@ -14,17 +14,17 @@
 #
 # Migration to New Server:
 #   1. docker-compose -f docker-compose.local.yml down
-#   2. tar czf anl-api-deploy.tar.gz deploy/
+#   2. tar czf anlapi-deploy.tar.gz deploy/
 #   3. Transfer to new server and extract
 #   4. docker-compose -f docker-compose.local.yml up -d
 # =============================================================================
 
 services:
   # ===========================================================================
-  # anl-api Application
+  # anlapi Application
   # ===========================================================================
   anlapi:
-    image: anl-api:latest
+    image: anlapi:latest
     container_name: anlapi
     restart: unless-stopped
     ulimits:
@@ -82,7 +82,7 @@ services:
       # =======================================================================
       # Admin Account (auto-created on first run)
       # =======================================================================
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anl-api.local}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anlapi.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
 

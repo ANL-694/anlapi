@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/response"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

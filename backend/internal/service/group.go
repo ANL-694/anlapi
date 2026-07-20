@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/domain"
-	"anl-api/internal/pkg/timezone"
+	"anlapi/internal/domain"
+	"anlapi/internal/pkg/timezone"
 )
 
 type OpenAIMessagesDispatchModelConfig = domain.OpenAIMessagesDispatchModelConfig

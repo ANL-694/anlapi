@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/group"
-	"anl-api/ent/schema/mixins"
-	"anl-api/ent/usersubscription"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/group"
+	"anlapi/ent/schema/mixins"
+	"anlapi/ent/usersubscription"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 )
 
 type userSubscriptionRepository struct {

@@ -1,5 +1,5 @@
 [Unit]
-Description=anl-api Data Management Daemon
+Description=anlapi Data Management Daemon
 After=network.target
 Wants=network.target
 

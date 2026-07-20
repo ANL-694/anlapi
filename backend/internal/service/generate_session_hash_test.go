@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"anl-api/internal/domain"
+	"anlapi/internal/domain"
 	"github.com/stretchr/testify/require"
 )
 

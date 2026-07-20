@@ -14,7 +14,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"anl-api/internal/plugin"
+	"anlapi/internal/plugin"
 )
 
 // ID 是 hello 模块的模块 ID。

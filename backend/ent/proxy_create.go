@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/account"
-	"anl-api/ent/proxy"
+	"anlapi/ent/account"
+	"anlapi/ent/proxy"
 	"context"
 	"errors"
 	"fmt"

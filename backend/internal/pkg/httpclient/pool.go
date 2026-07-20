@@ -23,10 +23,10 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/pkg/proxyurl"
-	"anl-api/internal/pkg/proxyutil"
-	"anl-api/internal/pkg/servertiming"
-	"anl-api/internal/util/urlvalidator"
+	"anlapi/internal/pkg/proxyurl"
+	"anlapi/internal/pkg/proxyutil"
+	"anlapi/internal/pkg/servertiming"
+	"anlapi/internal/util/urlvalidator"
 )
 
 // Transport 连接池默认配置

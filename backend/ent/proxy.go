@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/proxy"
+	"anlapi/ent/proxy"
 	"fmt"
 	"strings"
 	"time"

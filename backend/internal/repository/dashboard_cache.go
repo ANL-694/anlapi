@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -18,7 +18,7 @@ type dashboardCache struct {
 }
 
 func NewDashboardCache(rdb *redis.Client, cfg *config.Config) service.DashboardStatsCache {
-	prefix := "anl-api:"
+	prefix := "anlapi:"
 	if cfg != nil {
 		prefix = strings.TrimSpace(cfg.Dashboard.KeyPrefix)
 	}

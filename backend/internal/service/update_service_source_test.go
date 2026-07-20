@@ -47,10 +47,10 @@ func (*updateSourceClientStub) FetchChecksumFile(context.Context, string) ([]byt
 func validANLRelease() *GitHubRelease {
 	return &GitHubRelease{
 		TagName: "v1.0.4",
-		HTMLURL: "https://github.com/ANL-694/anl-api/releases/tag/v1.0.4",
+		HTMLURL: "https://github.com/ANL-694/anlapi/releases/tag/v1.0.4",
 		Assets: []GitHubAsset{{
-			Name:               "anl-api_1.0.4_linux_amd64.tar.gz",
-			BrowserDownloadURL: "https://github.com/ANL-694/anl-api/releases/download/v1.0.4/anl-api_1.0.4_linux_amd64.tar.gz",
+			Name:               "anlapi_1.0.4_linux_amd64.tar.gz",
+			BrowserDownloadURL: "https://github.com/ANL-694/anlapi/releases/download/v1.0.4/anlapi_1.0.4_linux_amd64.tar.gz",
 		}},
 	}
 }
@@ -58,10 +58,10 @@ func validANLRelease() *GitHubRelease {
 func TestFetchLatestReleaseRejectsDifferentRepository(t *testing.T) {
 	client := &updateSourceClientStub{release: &GitHubRelease{
 		TagName: "v0.1.146",
-		HTMLURL: "https://anl-api/releases/tag/v0.1.146",
+		HTMLURL: "https://anlapi/releases/tag/v0.1.146",
 		Assets: []GitHubAsset{{
 			Name:               "sub2api_0.1.146_linux_amd64.tar.gz",
-			BrowserDownloadURL: "https://anl-api/releases/download/v0.1.146/sub2api_0.1.146_linux_amd64.tar.gz",
+			BrowserDownloadURL: "https://anlapi/releases/download/v0.1.146/sub2api_0.1.146_linux_amd64.tar.gz",
 		}},
 	}}
 	svc := NewUpdateService(&updateSourceCacheStub{}, client, "1.0.3", "release")
@@ -79,10 +79,10 @@ func TestCheckUpdateIgnoresCachedReleaseFromDifferentRepository(t *testing.T) {
 	}{
 		Latest: "0.1.146",
 		ReleaseInfo: &ReleaseInfo{
-			HTMLURL: "https://anl-api/releases/tag/v0.1.146",
+			HTMLURL: "https://anlapi/releases/tag/v0.1.146",
 			Assets: []Asset{{
 				Name:        "sub2api_0.1.146_linux_amd64.tar.gz",
-				DownloadURL: "https://anl-api/releases/download/v0.1.146/sub2api_0.1.146_linux_amd64.tar.gz",
+				DownloadURL: "https://anlapi/releases/download/v0.1.146/sub2api_0.1.146_linux_amd64.tar.gz",
 			}},
 		},
 		Timestamp: time.Now().Unix(),
@@ -101,9 +101,9 @@ func TestCheckUpdateIgnoresCachedReleaseFromDifferentRepository(t *testing.T) {
 }
 
 func TestValidateUpdateRepositoryURL(t *testing.T) {
-	require.NoError(t, validateUpdateRepositoryURL("https://github.com/ANL-694/anl-api/releases/download/v1.0.4/anl-api_linux_amd64.tar.gz"))
-	require.Error(t, validateUpdateRepositoryURL("https://anl-api/releases/download/v0.1.146/sub2api_linux_amd64.tar.gz"))
-	require.Error(t, validateUpdateRepositoryURL("https://example.com/ANL-694/anl-api/releases/download/v1.0.4/file.tar.gz"))
+	require.NoError(t, validateUpdateRepositoryURL("https://github.com/ANL-694/anlapi/releases/download/v1.0.4/anlapi_linux_amd64.tar.gz"))
+	require.Error(t, validateUpdateRepositoryURL("https://anlapi/releases/download/v0.1.146/sub2api_linux_amd64.tar.gz"))
+	require.Error(t, validateUpdateRepositoryURL("https://example.com/ANL-694/anlapi/releases/download/v1.0.4/file.tar.gz"))
 }
 
 func TestIsSupportedUpdateBinaryName(t *testing.T) {

@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentorder"
-	"anl-api/ent/paymentproviderinstance"
-	"anl-api/internal/payment"
-	"anl-api/internal/payment/provider"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentorder"
+	"anlapi/ent/paymentproviderinstance"
+	"anlapi/internal/payment"
+	"anlapi/internal/payment/provider"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // validateProviderConfig runs the provider's constructor to surface config-level

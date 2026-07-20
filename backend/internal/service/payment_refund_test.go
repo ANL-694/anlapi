@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentauditlog"
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentauditlog"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 

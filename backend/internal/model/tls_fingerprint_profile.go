@@ -4,7 +4,7 @@ package model
 import (
 	"time"
 
-	"anl-api/internal/pkg/tlsfingerprint"
+	"anlapi/internal/pkg/tlsfingerprint"
 )
 
 // TLSFingerprintProfile TLS 指纹配置模板

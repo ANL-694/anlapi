@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"anl-api/internal/handler/quotaview"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/service"
+	"anlapi/internal/handler/quotaview"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

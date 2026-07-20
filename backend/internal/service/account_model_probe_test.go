@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 func modelProbeTestConfig() *config.Config {

@@ -15,7 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 // failingAdminService 嵌入 stubAdminService，可配置 UpdateAccount 在指定 ID 时失败。

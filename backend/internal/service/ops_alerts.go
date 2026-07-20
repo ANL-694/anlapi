@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 func (s *OpsService) ListAlertRules(ctx context.Context) ([]*OpsAlertRule, error) {

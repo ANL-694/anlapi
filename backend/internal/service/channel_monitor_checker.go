@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/servertiming"
 	"github.com/tidwall/gjson"
 )
 

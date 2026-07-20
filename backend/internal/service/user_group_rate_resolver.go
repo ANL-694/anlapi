@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 	gocache "github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
 )

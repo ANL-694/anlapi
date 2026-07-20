@@ -3,7 +3,7 @@ package schema
 import (
 	"time"
 
-	"anl-api/ent/schema/mixins"
+	"anlapi/ent/schema/mixins"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"

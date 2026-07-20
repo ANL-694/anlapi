@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/proxyurl"
-	"anl-api/internal/pkg/proxyutil"
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/proxyurl"
+	"anlapi/internal/pkg/proxyutil"
+	"anlapi/internal/pkg/servertiming"
 	"github.com/golang-jwt/jwt/v5"
 )
 

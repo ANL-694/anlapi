@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/response"
-	tzpkg "anl-api/internal/pkg/timezone"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/response"
+	tzpkg "anlapi/internal/pkg/timezone"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -21,7 +21,7 @@ import (
 
 const (
 	updateCacheTTL = 1200 // 20 minutes
-	githubRepo     = "ANL-694/anl-api"
+	githubRepo     = "ANL-694/anlapi"
 
 	// Security: allowed download domains for updates
 	allowedDownloadHost = "github.com"

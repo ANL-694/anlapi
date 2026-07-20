@@ -1,6 +1,6 @@
 package service
 
-import "anl-api/internal/domain"
+import "anlapi/internal/domain"
 
 // Status constants
 const (

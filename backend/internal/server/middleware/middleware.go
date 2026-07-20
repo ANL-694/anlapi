@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/googleapi"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/googleapi"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

@@ -51,7 +51,7 @@ func RunCLI() error {
 
 	fmt.Println()
 	fmt.Println("╔═══════════════════════════════════════════╗")
-	fmt.Println("║       anl-api Installation Wizard         ║")
+	fmt.Println("║       anlapi Installation Wizard         ║")
 	fmt.Println("╚═══════════════════════════════════════════╝")
 	fmt.Println()
 

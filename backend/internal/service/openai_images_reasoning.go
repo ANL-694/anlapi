@@ -1,6 +1,6 @@
 package service
 
-import "anl-api/internal/config"
+import "anlapi/internal/config"
 
 const (
 	OpenAIImagesResponsesReasoningEffortLow     = config.OpenAIImagesResponsesReasoningEffortLow

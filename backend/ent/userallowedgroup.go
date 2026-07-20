@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/group"
-	"anl-api/ent/user"
-	"anl-api/ent/userallowedgroup"
+	"anlapi/ent/group"
+	"anlapi/ent/user"
+	"anlapi/ent/userallowedgroup"
 	"fmt"
 	"strings"
 	"time"

@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	"anl-api/ent/intercept"
+	"anlapi/ent/intercept"
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"

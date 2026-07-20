@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func TestUsageBillingRepositoryApply_DeduplicatesBalanceBilling(t *testing.T) {

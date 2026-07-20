@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"

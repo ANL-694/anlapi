@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/shopbalanceledger"
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	dbent "anlapi/ent"
+	"anlapi/ent/shopbalanceledger"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/stretchr/testify/require"
 )

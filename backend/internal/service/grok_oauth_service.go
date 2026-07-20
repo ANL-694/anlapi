@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/xai"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/xai"
 )
 
 const grokDefaultAccessTokenTTL = 6 * time.Hour

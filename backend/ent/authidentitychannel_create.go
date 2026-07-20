@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/authidentity"
-	"anl-api/ent/authidentitychannel"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/authidentitychannel"
 	"context"
 	"errors"
 	"fmt"

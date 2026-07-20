@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/gin-gonic/gin"
 )
 

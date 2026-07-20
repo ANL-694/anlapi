@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/userattributedefinition"
+	"anlapi/ent/userattributedefinition"
 	"encoding/json"
 	"fmt"
 	"strings"

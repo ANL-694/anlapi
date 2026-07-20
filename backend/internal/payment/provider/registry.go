@@ -3,7 +3,7 @@ package provider
 import (
 	"fmt"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 )
 
 // ConstructorFunc builds a payment.Provider from an instance ID and decrypted config.

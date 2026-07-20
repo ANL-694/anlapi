@@ -3,11 +3,11 @@
 package ent
 
 import (
-	"anl-api/ent/account"
-	"anl-api/ent/group"
-	"anl-api/ent/proxy"
-	"anl-api/ent/usagelog"
-	"anl-api/ent/user"
+	"anlapi/ent/account"
+	"anlapi/ent/group"
+	"anlapi/ent/proxy"
+	"anlapi/ent/usagelog"
+	"anlapi/ent/user"
 	"context"
 	"errors"
 	"fmt"

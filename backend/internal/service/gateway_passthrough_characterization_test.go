@@ -18,8 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/config"
-	"anl-api/internal/model"
+	"anlapi/internal/config"
+	"anlapi/internal/model"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

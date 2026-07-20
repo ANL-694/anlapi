@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"strings"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/config"
+	dbent "anlapi/ent"
+	"anlapi/internal/config"
 	"github.com/google/wire"
 )
 

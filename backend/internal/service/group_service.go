@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/pagination"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/pagination"
 )
 
 var (

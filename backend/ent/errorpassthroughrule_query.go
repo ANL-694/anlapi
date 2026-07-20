@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/errorpassthroughrule"
-	"anl-api/ent/predicate"
+	"anlapi/ent/errorpassthroughrule"
+	"anlapi/ent/predicate"
 	"context"
 	"fmt"
 	"math"

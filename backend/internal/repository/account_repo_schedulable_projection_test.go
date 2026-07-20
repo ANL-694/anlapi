@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	dbent "anl-api/ent"
-	_ "anl-api/ent/runtime"
+	dbent "anlapi/ent"
+	_ "anlapi/ent/runtime"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 

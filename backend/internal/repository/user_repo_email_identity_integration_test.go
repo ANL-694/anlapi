@@ -5,8 +5,8 @@ package repository
 import (
 	"context"
 
-	"anl-api/ent/authidentity"
-	"anl-api/internal/service"
+	"anlapi/ent/authidentity"
+	"anlapi/internal/service"
 )
 
 func (s *UserRepoSuite) TestCreate_CreatesEmailAuthIdentityForNormalEmail() {

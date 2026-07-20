@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/domain"
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/domain"
+	"anlapi/internal/pkg/pagination"
 )
 
 type AnnouncementService struct {

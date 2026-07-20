@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/setting"
-	dbuser "anl-api/ent/user"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/setting"
+	dbuser "anlapi/ent/user"
+	"anlapi/internal/service"
 )
 
 const (

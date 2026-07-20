@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 func TestBatchRefreshUnauthorizedErrorMarksAccountError(t *testing.T) {

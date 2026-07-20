@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	dbusagecleanuptask "anl-api/ent/usagecleanuptask"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	dbusagecleanuptask "anlapi/ent/usagecleanuptask"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/service"
 )
 
 const usageSnapshotBusinessTimezone = "Asia/Shanghai"

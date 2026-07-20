@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/pkg/usagestats"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/pkg/usagestats"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

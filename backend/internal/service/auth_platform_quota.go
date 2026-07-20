@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 )
 
 // snapshotPlatformQuotaDefaults 把注册时解析出的模板复制到用户独立配额记录。

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 // ---------------------------------------------------------------------------

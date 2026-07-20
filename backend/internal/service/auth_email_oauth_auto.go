@@ -7,10 +7,10 @@ import (
 	"net/mail"
 	"strings"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/authidentity"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
+	dbent "anlapi/ent"
+	"anlapi/ent/authidentity"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
 )
 
 type EmailOAuthIdentityInput struct {

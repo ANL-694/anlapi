@@ -6,7 +6,7 @@ import (
 	"testing"
 	"testing/iotest"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

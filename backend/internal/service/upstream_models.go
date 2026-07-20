@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"anl-api/internal/pkg/antigravity"
-	"anl-api/internal/pkg/claude"
-	"anl-api/internal/pkg/geminicli"
+	"anlapi/internal/pkg/antigravity"
+	"anlapi/internal/pkg/claude"
+	"anlapi/internal/pkg/geminicli"
 )
 
 const upstreamModelsBodyLimit int64 = 8 << 20

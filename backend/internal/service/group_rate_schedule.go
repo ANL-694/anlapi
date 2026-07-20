@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/timezone"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/timezone"
 )
 
 const (

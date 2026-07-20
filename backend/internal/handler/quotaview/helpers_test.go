@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/timezone"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/timezone"
+	"anlapi/internal/service"
 )
 
 // TestNextMonthlyResetTimeFrom_FromStart 验证：start 已知时返回 start+30d，不随 now 漂移。

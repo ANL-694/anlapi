@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/usagestats"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/usagestats"
 )
 
 type geminiModelClass string

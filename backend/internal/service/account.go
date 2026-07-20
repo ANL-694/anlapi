@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/domain"
-	"anl-api/internal/pkg/kiro"
-	"anl-api/internal/pkg/openai_compat"
-	"anl-api/internal/pkg/xai"
+	"anlapi/internal/config"
+	"anlapi/internal/domain"
+	"anlapi/internal/pkg/kiro"
+	"anlapi/internal/pkg/openai_compat"
+	"anlapi/internal/pkg/xai"
 )
 
 type Account struct {

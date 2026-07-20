@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 // CustomMenuItem represents a user-configured custom menu entry.

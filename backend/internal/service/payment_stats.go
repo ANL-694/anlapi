@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/paymentauditlog"
-	"anl-api/ent/paymentorder"
+	dbent "anlapi/ent"
+	"anlapi/ent/paymentauditlog"
+	"anlapi/ent/paymentorder"
 
 	"entgo.io/ent/dialect"
 )

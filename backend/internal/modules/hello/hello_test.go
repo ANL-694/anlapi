@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/plugin"
-	"anl-api/internal/plugin/plugintest"
+	"anlapi/internal/plugin"
+	"anlapi/internal/plugin/plugintest"
 )
 
 // TestModuleRegisteredInDefaultRegistry 验证 init() 已向包级默认注册表

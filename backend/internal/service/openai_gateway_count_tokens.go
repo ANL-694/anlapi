@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"anl-api/internal/pkg/apicompat"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/apicompat"
+	"anlapi/internal/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"

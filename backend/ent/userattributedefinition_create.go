@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/userattributedefinition"
-	"anl-api/ent/userattributevalue"
+	"anlapi/ent/userattributedefinition"
+	"anlapi/ent/userattributevalue"
 	"context"
 	"errors"
 	"fmt"

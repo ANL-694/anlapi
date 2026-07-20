@@ -8,10 +8,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/timezone"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/timezone"
 	"golang.org/x/sync/singleflight"
 )
 

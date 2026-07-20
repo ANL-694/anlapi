@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/tlsfingerprintprofile"
+	"anlapi/ent/tlsfingerprintprofile"
 	"context"
 	"errors"
 	"fmt"

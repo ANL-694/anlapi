@@ -1,10 +1,10 @@
-# anl-api Configuration File
-# anl-api 配置文件
+# anlapi Configuration File
+# anlapi 配置文件
 #
 # Copy this file to /etc/anlapi/config.yaml and modify as needed
 # 复制此文件到 /etc/anlapi/config.yaml 并根据需要修改
 #
-# Documentation / 文档: https://github.com/ANL-694/anl-api
+# Documentation / 文档: https://github.com/ANL-694/anlapi
 
 # =============================================================================
 # Server Configuration
@@ -906,7 +906,7 @@ totp:
 
 # =============================================================================
 # LinuxDo Connect OAuth Login (SSO)
-# LinuxDo Connect OAuth 登录（用于 anl-api 用户登录）
+# LinuxDo Connect OAuth 登录（用于 anlapi 用户登录）
 # =============================================================================
 linuxdo_connect:
   enabled: false
@@ -931,7 +931,7 @@ linuxdo_connect:
 
 # =============================================================================
 # Generic OIDC OAuth Login (SSO)
-# 通用 OIDC OAuth 登录（用于 anl-api 用户登录）
+# 通用 OIDC OAuth 登录（用于 anlapi 用户登录）
 # =============================================================================
 oidc_connect:
   enabled: false
@@ -1067,8 +1067,8 @@ turnstile:
 # Gemini OAuth (Required for Gemini accounts)
 # Gemini OAuth 配置（Gemini 账户必需）
 # =============================================================================
-# anl-api supports TWO Gemini OAuth modes:
-# anl-api 支持两种 Gemini OAuth 模式：
+# anlapi supports TWO Gemini OAuth modes:
+# anlapi 支持两种 Gemini OAuth 模式：
 #
 # 1. Code Assist OAuth (requires GCP project_id)
 # 1. Code Assist OAuth（需要 GCP project_id）

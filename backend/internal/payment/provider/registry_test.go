@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // TestCreateProviderUnknownKeyMessage 锁定 unknown-key 错误文案（等价性硬约束 B2）：

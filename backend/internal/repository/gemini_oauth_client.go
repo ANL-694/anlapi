@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/geminicli"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/geminicli"
+	"anlapi/internal/service"
 
 	"github.com/imroc/req/v3"
 )

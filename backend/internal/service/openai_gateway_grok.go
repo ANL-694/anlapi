@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/apicompat"
-	"anl-api/internal/pkg/xai"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/apicompat"
+	"anlapi/internal/pkg/xai"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"

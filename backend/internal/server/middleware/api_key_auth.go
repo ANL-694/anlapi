@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/pkg/ip"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/pkg/ip"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

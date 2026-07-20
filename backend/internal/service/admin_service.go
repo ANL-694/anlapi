@@ -15,14 +15,14 @@ import (
 	"sync"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/authidentity"
-	"anl-api/ent/authidentitychannel"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/httpclient"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/pagination"
-	"anl-api/internal/util/httputil"
+	dbent "anlapi/ent"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/authidentitychannel"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/httpclient"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/pagination"
+	"anlapi/internal/util/httputil"
 	"entgo.io/ent/dialect"
 )
 

@@ -2,4 +2,4 @@
 
 package ent
 
-// The schema-stitching logic is generated in anl-api/ent/runtime/runtime.go
+// The schema-stitching logic is generated in anlapi/ent/runtime/runtime.go

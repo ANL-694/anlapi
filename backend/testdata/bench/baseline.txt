@@ -1,6 +1,6 @@
 goos: linux
 goarch: amd64
-pkg: anl-api/internal/service
+pkg: anlapi/internal/service
 cpu: 13th Gen Intel(R) Core(TM) i5-13600KF
 BenchmarkGatewayService_ParseSSEUsage_MessageStart-20               	  467865	      2403 ns/op	    2224 B/op	      40 allocs/op
 BenchmarkGatewayService_ParseSSEUsage_MessageStart-20               	  463100	      2455 ns/op	    2224 B/op	      40 allocs/op
@@ -57,4 +57,4 @@ BenchmarkGatewayForward_AnthropicStreamPassthrough-20               	   42230	  
 BenchmarkGatewayForward_AnthropicStreamPassthrough-20               	   43098	     27915 ns/op	   19186 B/op	     134 allocs/op
 BenchmarkGatewayForward_AnthropicStreamPassthrough-20               	   42762	     27136 ns/op	   19161 B/op	     134 allocs/op
 PASS
-ok  	anl-api/internal/service	85.616s
+ok  	anlapi/internal/service	85.616s

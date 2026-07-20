@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 func TestGatewayForwardContext_PreservesRouteMetadataAndAddsSwitchCount(t *testing.T) {

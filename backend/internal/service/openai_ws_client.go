@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	openaiwsv2 "anl-api/internal/service/openai_ws_v2"
+	openaiwsv2 "anlapi/internal/service/openai_ws_v2"
 	coderws "github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )

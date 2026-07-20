@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"anl-api/internal/pkg/claude"
+	"anlapi/internal/pkg/claude"
 
 	"github.com/stretchr/testify/require"
 )

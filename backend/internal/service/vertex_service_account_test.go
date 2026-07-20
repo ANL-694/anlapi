@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/servertiming"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 )

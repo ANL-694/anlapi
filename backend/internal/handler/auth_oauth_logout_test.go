@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/ent/pendingauthsession"
+	"anlapi/ent/pendingauthsession"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

@@ -3,7 +3,7 @@ package schema
 import (
 	"time"
 
-	"anl-api/internal/domain"
+	"anlapi/internal/domain"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"

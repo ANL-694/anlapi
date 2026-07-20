@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/util/responseheaders"
+	"anlapi/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"

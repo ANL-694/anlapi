@@ -7,17 +7,17 @@
 package main
 
 import (
-	"anl-api/ent"
-	"anl-api/internal/config"
-	"anl-api/internal/handler"
-	"anl-api/internal/handler/admin"
-	"anl-api/internal/payment"
-	"anl-api/internal/plugin"
-	"anl-api/internal/repository"
-	"anl-api/internal/securityaudit"
-	"anl-api/internal/server"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/ent"
+	"anlapi/internal/config"
+	"anlapi/internal/handler"
+	"anlapi/internal/handler/admin"
+	"anlapi/internal/payment"
+	"anlapi/internal/plugin"
+	"anlapi/internal/repository"
+	"anlapi/internal/securityaudit"
+	"anlapi/internal/server"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 	"context"
 	"github.com/redis/go-redis/v9"
 	"log"
@@ -27,8 +27,8 @@ import (
 )
 
 import (
-	_ "anl-api/ent/runtime"
-	_ "anl-api/internal/modules/standard"
+	_ "anlapi/ent/runtime"
+	_ "anlapi/internal/modules/standard"
 	_ "embed"
 	_ "net/http/pprof"
 )

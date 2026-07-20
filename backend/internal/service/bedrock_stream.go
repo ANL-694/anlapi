@@ -16,7 +16,7 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 )
 
 // handleBedrockStreamingResponse 处理 Bedrock InvokeModelWithResponseStream 的 EventStream 响应

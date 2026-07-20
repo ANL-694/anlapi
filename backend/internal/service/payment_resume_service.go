@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/payment"
-	infraerrors "anl-api/internal/pkg/errors"
+	"anlapi/internal/payment"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 const paymentResultReturnPath = "/payment/result"

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/pkg/oauth"
+	"anlapi/internal/pkg/oauth"
 	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/config"
-	"anl-api/internal/payment"
-	"anl-api/internal/pkg/kirocooldown"
-	"anl-api/internal/pkg/logger"
+	dbent "anlapi/ent"
+	"anlapi/internal/config"
+	"anlapi/internal/payment"
+	"anlapi/internal/pkg/kirocooldown"
+	"anlapi/internal/pkg/logger"
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 )

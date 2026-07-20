@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/announcement"
-	"anl-api/internal/domain"
+	"anlapi/ent/announcement"
+	"anlapi/internal/domain"
 	"encoding/json"
 	"fmt"
 	"strings"

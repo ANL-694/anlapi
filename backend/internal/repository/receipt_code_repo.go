@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type receiptCodeRepository struct {

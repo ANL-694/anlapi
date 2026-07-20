@@ -16,7 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/pkg/tlsfingerprint"
+	"anlapi/internal/pkg/tlsfingerprint"
 )
 
 // --- shared test helpers ---

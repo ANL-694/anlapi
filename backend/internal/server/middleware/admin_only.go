@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

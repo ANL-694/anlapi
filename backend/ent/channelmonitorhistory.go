@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/channelmonitorhistory"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/channelmonitorhistory"
 	"fmt"
 	"strings"
 	"time"

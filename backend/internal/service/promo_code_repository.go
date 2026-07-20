@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 )
 
 // PromoCodeRepository 优惠码仓储接口

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 )
 
 type fakeModelAvailabilityDiagnoser struct {

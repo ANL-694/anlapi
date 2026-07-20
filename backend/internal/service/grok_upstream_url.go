@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/xai"
-	"anl-api/internal/util/urlvalidator"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/xai"
+	"anlapi/internal/util/urlvalidator"
 )
 
 func grokBaseURLValidator(account *Account, cfg *config.Config) (xai.BaseURLValidator, error) {

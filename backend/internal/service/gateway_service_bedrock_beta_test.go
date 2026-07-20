@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 )
 
 type betaPolicySettingRepoStub struct {

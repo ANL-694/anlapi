@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/batchimageitem"
-	"anl-api/ent/predicate"
+	"anlapi/ent/batchimageitem"
+	"anlapi/ent/predicate"
 	"context"
 	"errors"
 	"fmt"

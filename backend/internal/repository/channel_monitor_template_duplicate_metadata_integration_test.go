@@ -6,10 +6,10 @@ import (
 	"context"
 	"testing"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/channelmonitor"
-	"anl-api/ent/channelmonitorrequesttemplate"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/channelmonitor"
+	"anlapi/ent/channelmonitorrequesttemplate"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

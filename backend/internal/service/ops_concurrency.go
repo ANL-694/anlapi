@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 )
 
 const (

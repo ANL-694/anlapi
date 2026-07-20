@@ -17,8 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/config"
-	infraerrors "anl-api/internal/pkg/errors"
+	"anlapi/internal/config"
+	infraerrors "anlapi/internal/pkg/errors"
 	"github.com/imroc/req/v3"
 	"golang.org/x/sync/singleflight"
 )
@@ -724,7 +724,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		LoginAgreementDocuments:          loginAgreementDocuments,
 		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
-		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "anl-api"),
+		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "anlapi"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "AI API 接入与用量管理平台"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
@@ -2292,7 +2292,7 @@ func (s *SettingService) IsTotpEncryptionKeyConfigured() bool {
 func (s *SettingService) GetSiteName(ctx context.Context) string {
 	value, err := s.settingRepo.GetValue(ctx, SettingKeySiteName)
 	if err != nil || value == "" {
-		return "anl-api"
+		return "anlapi"
 	}
 	return value
 }
@@ -2518,7 +2518,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyPromoCodeEnabled:                         "true", // 默认启用优惠码功能
 		SettingKeySessionBindingEnabled:                    "false",
 		SettingKeyStepUpEnabled:                            "false",
-		SettingKeySiteName:                                 "anl-api",
+		SettingKeySiteName:                                 "anlapi",
 		SettingKeyLoginAgreementEnabled:                    "false",
 		SettingKeyLoginAgreementMode:                       defaultLoginAgreementMode,
 		SettingKeyLoginAgreementUpdatedAt:                  defaultLoginAgreementDate,
@@ -2744,7 +2744,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
 		APIKeyACLTrustForwardedIP:        apiKeyACLTrustForwardedIP,
-		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "anl-api"),
+		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "anlapi"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "AI API 接入与用量管理平台"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],

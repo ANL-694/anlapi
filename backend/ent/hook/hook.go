@@ -3,7 +3,7 @@
 package hook
 
 import (
-	"anl-api/ent"
+	"anlapi/ent"
 	"context"
 	"fmt"
 )

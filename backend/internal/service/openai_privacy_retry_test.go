@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"anl-api/internal/config"
+	"anlapi/internal/config"
 	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/require"
 )

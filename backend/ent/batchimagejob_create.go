@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/batchimagejob"
+	"anlapi/ent/batchimagejob"
 	"context"
 	"errors"
 	"fmt"

@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	dbent "anl-api/ent"
-	dbaccount "anl-api/ent/account"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	dbaccount "anlapi/ent/account"
+	"anlapi/internal/service"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 

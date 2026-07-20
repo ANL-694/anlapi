@@ -3,7 +3,7 @@ package schema
 import (
 	"fmt"
 
-	"anl-api/ent/schema/mixins"
+	"anlapi/ent/schema/mixins"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"

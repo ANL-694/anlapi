@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/pkg/logger"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

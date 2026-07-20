@@ -3,7 +3,7 @@ package repository
 import (
 	"testing"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 )
 
 func TestAnnouncementListOrder(t *testing.T) {

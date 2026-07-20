@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/openai"
-	"anl-api/internal/service"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/openai"
+	"anlapi/internal/service"
 	"github.com/imroc/req/v3"
 )
 

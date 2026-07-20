@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/claude"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/claude"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 )

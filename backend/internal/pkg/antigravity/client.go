@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/proxyurl"
-	"anl-api/internal/pkg/proxyutil"
-	"anl-api/internal/pkg/servertiming"
+	"anlapi/internal/pkg/proxyurl"
+	"anlapi/internal/pkg/proxyutil"
+	"anlapi/internal/pkg/servertiming"
 )
 
 // ForbiddenError 表示上游返回 403 Forbidden

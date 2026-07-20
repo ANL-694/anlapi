@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	entuser "anl-api/ent/user"
+	dbent "anlapi/ent"
+	entuser "anlapi/ent/user"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

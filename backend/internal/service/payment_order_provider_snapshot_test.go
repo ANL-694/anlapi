@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"anl-api/internal/payment"
+	"anlapi/internal/payment"
 	"github.com/stretchr/testify/require"
 )
 

@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/plugin"
+	"anlapi/internal/plugin"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

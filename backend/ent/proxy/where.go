@@ -3,7 +3,7 @@
 package proxy
 
 import (
-	"anl-api/ent/predicate"
+	"anlapi/ent/predicate"
 	"time"
 
 	"entgo.io/ent/dialect/sql"

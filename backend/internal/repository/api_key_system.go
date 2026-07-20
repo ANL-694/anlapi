@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	dbent "anl-api/ent"
-	"anl-api/ent/apikey"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/ent/apikey"
+	"anlapi/internal/service"
 )
 
 const systemAPIKeyBindingsTable = "system_api_key_bindings"

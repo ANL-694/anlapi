@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/pkg/ip"
+	"anlapi/internal/pkg/ip"
 )
 
 // API Key status constants

@@ -1,6 +1,6 @@
-# anl-api Deployment Files
+# anlapi Deployment Files
 
-This directory contains files for deploying anl-api on Linux servers.
+This directory contains files for deploying anlapi on Linux servers.
 
 ## Deployment Methods
 
@@ -55,10 +55,10 @@ Use the automated preparation script for the easiest setup:
 
 ```bash
 # Download and run the preparation script
-curl -sSL https://raw.githubusercontent.com/ANL-694/anl-api/main/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/ANL-694/anlapi/main/deploy/docker-deploy.sh | bash
 
 # Or download first, then run
-curl -sSL https://raw.githubusercontent.com/ANL-694/anl-api/main/deploy/docker-deploy.sh -o docker-deploy.sh
+curl -sSL https://raw.githubusercontent.com/ANL-694/anlapi/main/deploy/docker-deploy.sh -o docker-deploy.sh
 chmod +x docker-deploy.sh
 ./docker-deploy.sh
 ```
@@ -91,8 +91,8 @@ If you prefer manual control:
 
 ```bash
 # Clone repository
-git clone https://github.com/ANL-694/anl-api.git
-cd anl-api/deploy
+git clone https://github.com/ANL-694/anlapi.git
+cd anlapi/deploy
 
 # Configure environment
 cp .env.example .env
@@ -192,7 +192,7 @@ docker compose -f docker-compose.local.yml down
 # View logs
 docker compose -f docker-compose.local.yml logs -f anlapi
 
-# Restart anl-api only
+# Restart anlapi only
 docker compose -f docker-compose.local.yml restart anlapi
 
 # Update to latest version
@@ -216,7 +216,7 @@ docker compose down
 # View logs
 docker compose logs -f anlapi
 
-# Restart anl-api only
+# Restart anlapi only
 docker compose restart anlapi
 
 # Update to latest version
@@ -235,7 +235,7 @@ docker compose down -v
 | `JWT_SECRET` | **Recommended** | *(auto-generated)* | JWT secret (fixed for persistent sessions) |
 | `TOTP_ENCRYPTION_KEY` | **Recommended** | *(auto-generated)* | TOTP encryption key (fixed for persistent 2FA) |
 | `SERVER_PORT` | No | `8080` | Server port |
-| `ADMIN_EMAIL` | No | `admin@anl-api.local` | Admin email |
+| `ADMIN_EMAIL` | No | `admin@anlapi.local` | Admin email |
 | `ADMIN_PASSWORD` | No | *(auto-generated)* | Admin password |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
@@ -256,13 +256,13 @@ When using `docker-compose.local.yml`, all data is stored in local directories, 
 cd /path/to/deployment
 docker compose -f docker-compose.local.yml down
 cd ..
-tar czf anl-api-complete.tar.gz deployment/
+tar czf anlapi-complete.tar.gz deployment/
 
 # Transfer to new server
-scp anl-api-complete.tar.gz user@new-server:/path/to/destination/
+scp anlapi-complete.tar.gz user@new-server:/path/to/destination/
 
 # On new server: Extract and start
-tar xzf anl-api-complete.tar.gz
+tar xzf anlapi-complete.tar.gz
 cd deployment/
 docker compose -f docker-compose.local.yml up -d
 ```
@@ -273,7 +273,7 @@ Your entire deployment (configuration + data) is migrated!
 
 ## Gemini OAuth Configuration
 
-anl-api supports three methods to connect to Gemini:
+anlapi supports three methods to connect to Gemini:
 
 ### Method 1: Code Assist OAuth (Recommended for GCP Users)
 
@@ -318,7 +318,7 @@ Requires your own OAuth client credentials.
    - Go to "APIs & Services" 鈫?"Credentials"
    - Click "Create Credentials" 鈫?"OAuth client ID"
    - Application type: **Web application** (or **Desktop app**)
-   - Name: e.g., "anl-api Gemini"
+   - Name: e.g., "anlapi Gemini"
    - Authorized redirect URIs: Add `http://localhost:1455/auth/callback`
 6. Copy the **Client ID** and **Client Secret**
 7. **鈿狅笍 Publish to Production (IMPORTANT):**
@@ -375,12 +375,12 @@ For production servers using systemd.
 ### One-Line Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/ANL-694/anl-api/main/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/ANL-694/anlapi/main/deploy/install.sh | sudo bash
 ```
 
 ### Manual Installation
 
-1. Download the latest release from [GitHub Releases](https://github.com/ANL-694/anl-api/releases)
+1. Download the latest release from [GitHub Releases](https://github.com/ANL-694/anlapi/releases)
 2. Extract and copy the binary to `/opt/anlapi/`
 3. Copy `anlapi.service` to `/etc/systemd/system/`
 4. Run:
@@ -487,7 +487,7 @@ The main config file is at `/etc/anlapi/config.yaml` (created by Setup Wizard).
 
 #### Private GitHub Release updates
 
-The updater follows releases from `ANL-694/anl-api`. For a private repository,
+The updater follows releases from `ANL-694/anlapi`. For a private repository,
 set `update.github_token` in `/etc/anlapi/config.yaml` or provide
 `UPDATE_GITHUB_TOKEN` in the service environment. Use a fine-grained token
 scoped only to this repository with `Contents: Read-only`; never commit the
@@ -590,9 +590,9 @@ sudo systemctl status redis
 
 ## TLS Fingerprint Configuration
 
-anl-api supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
+anlapi supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
 
-> **Tip:** Visit **[tls.anl-api.example](https://tls.anl-api.example/)** to get TLS fingerprint information for different devices and browsers.
+> **Tip:** Visit **[tls.anlapi.example](https://tls.anlapi.example/)** to get TLS fingerprint information for different devices and browsers.
 
 ### Default Behavior
 

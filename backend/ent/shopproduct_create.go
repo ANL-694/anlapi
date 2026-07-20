@@ -3,11 +3,11 @@
 package ent
 
 import (
-	"anl-api/ent/shopcardkey"
-	"anl-api/ent/shopcategory"
-	"anl-api/ent/shopdrawcycle"
-	"anl-api/ent/shoporder"
-	"anl-api/ent/shopproduct"
+	"anlapi/ent/shopcardkey"
+	"anlapi/ent/shopcategory"
+	"anlapi/ent/shopdrawcycle"
+	"anlapi/ent/shoporder"
+	"anlapi/ent/shopproduct"
 	"context"
 	"errors"
 	"fmt"

@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/util/logredact"
-	"anl-api/internal/util/urlvalidator"
+	"anlapi/internal/util/logredact"
+	"anlapi/internal/util/urlvalidator"
 )
 
 const (

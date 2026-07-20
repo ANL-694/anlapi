@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
 	"go.uber.org/zap"
 )
 

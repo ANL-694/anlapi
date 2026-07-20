@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/domain"
+	"anlapi/internal/domain"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 )

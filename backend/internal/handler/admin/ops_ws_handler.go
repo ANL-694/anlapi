@@ -15,9 +15,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/pkg/logger"
-	servermiddleware "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/logger"
+	servermiddleware "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -48,9 +48,9 @@ var upgrader = websocket.Upgrader{
 		return isAllowedOpsWSOrigin(r)
 	},
 	// Subprotocol negotiation:
-	// - The frontend passes ["anl-api-admin", "jwt.<token>"].
-	// - We always select "anl-api-admin" so the token is never echoed back in the handshake response.
-	Subprotocols: []string{"anl-api-admin"},
+	// - The frontend passes ["anlapi-admin", "jwt.<token>"].
+	// - We always select "anlapi-admin" so the token is never echoed back in the handshake response.
+	Subprotocols: []string{"anlapi-admin"},
 }
 
 const (

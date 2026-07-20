@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/authidentity"
-	"anl-api/ent/user"
+	"anlapi/ent/authidentity"
+	"anlapi/ent/user"
 	"encoding/json"
 	"fmt"
 	"strings"

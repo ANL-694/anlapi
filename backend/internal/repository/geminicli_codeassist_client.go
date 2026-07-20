@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"anl-api/internal/pkg/geminicli"
-	"anl-api/internal/pkg/googleapi"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/geminicli"
+	"anlapi/internal/pkg/googleapi"
+	"anlapi/internal/service"
 
 	"github.com/imroc/req/v3"
 )

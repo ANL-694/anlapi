@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"anl-api/internal/handler"
-	"anl-api/internal/securityaudit"
-	servermiddleware "anl-api/internal/server/middleware"
+	"anlapi/internal/handler"
+	"anlapi/internal/securityaudit"
+	servermiddleware "anlapi/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 

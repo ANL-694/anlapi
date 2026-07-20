@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	sharedhttp "anl-api/internal/pkg/httpclient"
-	"anl-api/internal/pkg/xai"
-	"anl-api/internal/service"
-	"anl-api/internal/util/logredact"
+	infraerrors "anlapi/internal/pkg/errors"
+	sharedhttp "anlapi/internal/pkg/httpclient"
+	"anlapi/internal/pkg/xai"
+	"anlapi/internal/service"
+	"anlapi/internal/util/logredact"
 	"github.com/imroc/req/v3"
 )
 

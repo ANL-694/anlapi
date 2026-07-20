@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/promocode"
-	"anl-api/ent/promocodeusage"
-	"anl-api/ent/user"
+	"anlapi/ent/promocode"
+	"anlapi/ent/promocodeusage"
+	"anlapi/ent/user"
 	"context"
 	"errors"
 	"fmt"

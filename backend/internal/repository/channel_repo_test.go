@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"anl-api/internal/pkg/pagination"
+	"anlapi/internal/pkg/pagination"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 )

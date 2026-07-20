@@ -17,9 +17,9 @@ import (
 	"sync"
 	"time"
 
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/pkg/tlsfingerprint"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/pkg/tlsfingerprint"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"

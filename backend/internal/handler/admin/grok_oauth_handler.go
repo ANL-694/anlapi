@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"anl-api/internal/handler/dto"
-	infraerrors "anl-api/internal/pkg/errors"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/pkg/xai"
-	"anl-api/internal/service"
+	"anlapi/internal/handler/dto"
+	infraerrors "anlapi/internal/pkg/errors"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/pkg/xai"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

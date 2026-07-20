@@ -6,12 +6,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/handler"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/server/routes"
-	"anl-api/internal/service"
-	"anl-api/internal/web"
+	"anlapi/internal/config"
+	"anlapi/internal/handler"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/server/routes"
+	"anlapi/internal/service"
+	"anlapi/internal/web"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"

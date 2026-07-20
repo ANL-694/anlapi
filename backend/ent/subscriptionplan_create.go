@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/subscriptionplan"
+	"anlapi/ent/subscriptionplan"
 	"context"
 	"errors"
 	"fmt"

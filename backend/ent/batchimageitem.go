@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"anl-api/ent/batchimageitem"
+	"anlapi/ent/batchimageitem"
 	"fmt"
 	"strings"
 	"time"

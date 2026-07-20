@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"anl-api/internal/domain"
-	pkghttputil "anl-api/internal/pkg/httputil"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/domain"
+	pkghttputil "anlapi/internal/pkg/httputil"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

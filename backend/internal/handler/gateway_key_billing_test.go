@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/pkg/timezone"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/pkg/timezone"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

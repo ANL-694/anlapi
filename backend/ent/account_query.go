@@ -3,13 +3,13 @@
 package ent
 
 import (
-	"anl-api/ent/account"
-	"anl-api/ent/accountgroup"
-	"anl-api/ent/group"
-	"anl-api/ent/predicate"
-	"anl-api/ent/proxy"
-	"anl-api/ent/usagelog"
-	"anl-api/ent/user"
+	"anlapi/ent/account"
+	"anlapi/ent/accountgroup"
+	"anlapi/ent/group"
+	"anlapi/ent/predicate"
+	"anlapi/ent/proxy"
+	"anlapi/ent/usagelog"
+	"anlapi/ent/user"
 	"context"
 	"database/sql/driver"
 	"fmt"

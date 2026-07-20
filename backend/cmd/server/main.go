@@ -18,14 +18,14 @@ import (
 	"syscall"
 	"time"
 
-	_ "anl-api/ent/runtime"
-	"anl-api/internal/config"
-	"anl-api/internal/handler"
-	_ "anl-api/internal/modules/standard"
-	"anl-api/internal/pkg/logger"
-	"anl-api/internal/server/middleware"
-	"anl-api/internal/setup"
-	"anl-api/internal/web"
+	_ "anlapi/ent/runtime"
+	"anlapi/internal/config"
+	"anlapi/internal/handler"
+	_ "anlapi/internal/modules/standard"
+	"anlapi/internal/pkg/logger"
+	"anlapi/internal/server/middleware"
+	"anlapi/internal/setup"
+	"anlapi/internal/web"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/net/http2"
@@ -70,7 +70,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		log.Printf("anl-api %s (commit: %s, built: %s)\n", Version, Commit, Date)
+		log.Printf("anlapi %s (commit: %s, built: %s)\n", Version, Commit, Date)
 		return
 	}
 	if *auditOAuthVault || *migrateOAuthVault {
@@ -129,7 +129,7 @@ func runSetupServer() {
 	// This allows users to run setup on a different address if needed
 	addr := config.GetServerAddress()
 	log.Printf("Setup wizard available at http://%s", addr)
-	log.Println("Complete the setup wizard to configure anl-api")
+	log.Println("Complete the setup wizard to configure anlapi")
 
 	server := &http.Server{
 		Addr:              addr,

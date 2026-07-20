@@ -11,7 +11,7 @@ import (
 
 	"github.com/pquerna/otp/totp"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 var (
@@ -93,7 +93,7 @@ const (
 	totpLoginTTL    = 5 * time.Minute
 	totpAttemptsTTL = 15 * time.Minute
 	maxTotpAttempts = 5
-	totpIssuer      = "anl-api"
+	totpIssuer      = "anlapi"
 )
 
 // TotpService handles TOTP operations

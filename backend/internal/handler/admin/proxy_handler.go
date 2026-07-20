@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/handler/dto"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/service"
+	"anlapi/internal/handler/dto"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

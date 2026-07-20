@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"anl-api/internal/pkg/httpclient"
+	"anlapi/internal/pkg/httpclient"
 )
 
 // DriveStorageInfo represents Google Drive storage quota information

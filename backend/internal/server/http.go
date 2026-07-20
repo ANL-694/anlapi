@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/handler"
-	"anl-api/internal/pkg/websearch"
-	middleware2 "anl-api/internal/server/middleware"
-	"anl-api/internal/service"
+	"anlapi/internal/config"
+	"anlapi/internal/handler"
+	"anlapi/internal/pkg/websearch"
+	middleware2 "anlapi/internal/server/middleware"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"

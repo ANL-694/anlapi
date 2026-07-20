@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
 )
 
 // quotaDirtyCache 是 flusher 依赖的窄接口（来自 BillingCache）。

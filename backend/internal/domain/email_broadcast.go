@@ -1,7 +1,7 @@
 package domain
 
 import (
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // Email broadcast body formats.

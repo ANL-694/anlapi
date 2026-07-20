@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"math"
 
-	infraerrors "anl-api/internal/pkg/errors"
+	infraerrors "anlapi/internal/pkg/errors"
 )
 
 // DefaultPlatformQuotaSetting 是新用户注册时复制的平台配额模板。

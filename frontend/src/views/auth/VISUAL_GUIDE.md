@@ -11,7 +11,7 @@ Both LoginView and RegisterView use the AuthLayout component, which provides:
 │                                             │
 │  ┌─────────────────────────────────────┐   │
 │  │                                     │   │
-│  │         anl-api Logo                │   │
+│  │         anlapi Logo                │   │
 │  │  "Subscription to API Conversion"   │   │
 │  │                                     │   │
 │  └─────────────────────────────────────┘   │
@@ -39,7 +39,7 @@ Centered: Both horizontally and vertically
 ```
 ┌─────────────────────────────────────────────┐
 │                                             │
-│         🔷 anl-api                          │
+│         🔷 anlapi                          │
 │       AI API 接入与用量管理平台             │
 │                                             │
 │  ┌─────────────────────────────────────┐   │
@@ -133,13 +133,13 @@ Centered: Both horizontally and vertically
 ```
 ┌─────────────────────────────────────────────┐
 │                                             │
-│         🔷 anl-api                          │
+│         🔷 anlapi                          │
 │       AI API 接入与用量管理平台             │
 │                                             │
 │  ┌─────────────────────────────────────┐   │
 │  │                                     │   │
 │  │        Create Account               │   │
-│  │     Sign up to start using anl-api  │   │
+│  │     Sign up to start using anlapi  │   │
 │  │                                     │   │
 │  │  Username                           │   │
 │  │  ┌────────────────────────────────┐ │   │

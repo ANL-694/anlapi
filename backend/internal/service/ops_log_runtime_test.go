@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/logger"
 )
 
 type runtimeSettingRepoStub struct {
@@ -116,7 +116,7 @@ func TestUpdateRuntimeLogConfig_InvalidConfigShouldNotApply(t *testing.T) {
 	if err := logger.Init(logger.InitOptions{
 		Level:       "info",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: true,
@@ -186,7 +186,7 @@ func TestResetRuntimeLogConfig_ShouldFallbackToBaseline(t *testing.T) {
 	if err := logger.Init(logger.InitOptions{
 		Level:       "debug",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: true,
@@ -296,7 +296,7 @@ func TestUpdateRuntimeLogConfig_PersistFailureRollback(t *testing.T) {
 	if err := logger.Init(logger.InitOptions{
 		Level:       "info",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: true,
@@ -348,7 +348,7 @@ func TestApplyRuntimeLogConfigOnStartup(t *testing.T) {
 	if err := logger.Init(logger.InitOptions{
 		Level:       "info",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: true,
@@ -504,7 +504,7 @@ func TestUpdateRuntimeLogConfig_Success(t *testing.T) {
 	if err := logger.Init(logger.InitOptions{
 		Level:       "info",
 		Format:      "json",
-		ServiceName: "anl-api",
+		ServiceName: "anlapi",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: true,

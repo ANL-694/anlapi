@@ -1,5 +1,5 @@
 /**
- * API Client for anl-api Backend
+ * API Client for anlapi Backend
  * Central export point for all API modules
  */
 

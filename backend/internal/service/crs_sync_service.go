@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/httpclient"
-	"anl-api/internal/util/urlvalidator"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/httpclient"
+	"anlapi/internal/util/urlvalidator"
 )
 
 type CRSSyncService struct {
@@ -257,7 +257,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		proxies, _ = s.proxyRepo.ListActive(ctx)
 	}
 
-	// Claude OAuth / Setup Token -> anl-api anthropic oauth/setup-token
+	// Claude OAuth / Setup Token -> anlapi anthropic oauth/setup-token
 	for _, src := range exported.Data.ClaudeAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,
@@ -417,7 +417,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		result.Items = append(result.Items, item)
 	}
 
-	// Claude Console API Key -> anl-api anthropic apikey
+	// Claude Console API Key -> anlapi anthropic apikey
 	for _, src := range exported.Data.ClaudeConsoleAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,
@@ -530,7 +530,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		result.Items = append(result.Items, item)
 	}
 
-	// OpenAI OAuth -> anl-api openai oauth
+	// OpenAI OAuth -> anlapi openai oauth
 	for _, src := range exported.Data.OpenAIOAuthAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,
@@ -685,7 +685,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		result.Items = append(result.Items, item)
 	}
 
-	// OpenAI Responses API Key -> anl-api openai apikey
+	// OpenAI Responses API Key -> anlapi openai apikey
 	for _, src := range exported.Data.OpenAIResponsesAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,
@@ -820,7 +820,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		result.Items = append(result.Items, item)
 	}
 
-	// Gemini OAuth -> anl-api gemini oauth
+	// Gemini OAuth -> anlapi gemini oauth
 	for _, src := range exported.Data.GeminiOAuthAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,
@@ -947,7 +947,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		result.Items = append(result.Items, item)
 	}
 
-	// Gemini API Key -> anl-api gemini apikey
+	// Gemini API Key -> anlapi gemini apikey
 	for _, src := range exported.Data.GeminiAPIKeyAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,

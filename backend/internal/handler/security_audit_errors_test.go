@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"anl-api/internal/pkg/ctxkey"
-	"anl-api/internal/securityaudit"
+	"anlapi/internal/pkg/ctxkey"
+	"anlapi/internal/securityaudit"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

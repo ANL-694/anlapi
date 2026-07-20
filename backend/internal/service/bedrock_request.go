@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"anl-api/internal/domain"
+	"anlapi/internal/domain"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

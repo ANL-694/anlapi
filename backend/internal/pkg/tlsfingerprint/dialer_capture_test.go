@@ -38,7 +38,7 @@ type CapturedFingerprint struct {
 // TestDialerAgainstCaptureServer connects to the tls-fingerprint-web capture server
 // and verifies that the dialer's TLS fingerprint matches the configured Profile.
 //
-// Default capture server: https://tls.anl-api.example:8090
+// Default capture server: https://tls.anlapi.example:8090
 // Override with env: TLSFINGERPRINT_CAPTURE_URL=https://localhost:8443
 //
 // Run: go test -v -run TestDialerAgainstCaptureServer ./internal/pkg/tlsfingerprint/...

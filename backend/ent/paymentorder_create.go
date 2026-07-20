@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"anl-api/ent/paymentorder"
-	"anl-api/ent/user"
+	"anlapi/ent/paymentorder"
+	"anlapi/ent/user"
 	"context"
 	"errors"
 	"fmt"

@@ -3,10 +3,10 @@ package admin
 import (
 	"strconv"
 
-	dbent "anl-api/ent"
-	"anl-api/internal/payment"
-	"anl-api/internal/pkg/response"
-	"anl-api/internal/service"
+	dbent "anlapi/ent"
+	"anlapi/internal/payment"
+	"anlapi/internal/pkg/response"
+	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

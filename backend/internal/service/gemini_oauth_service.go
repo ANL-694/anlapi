@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"anl-api/internal/config"
-	"anl-api/internal/pkg/geminicli"
-	"anl-api/internal/pkg/httpclient"
-	"anl-api/internal/pkg/logger"
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/geminicli"
+	"anlapi/internal/pkg/httpclient"
+	"anlapi/internal/pkg/logger"
 )
 
 const (
-	// Canonical tier IDs used by anl-api (2026-aligned).
+	// Canonical tier IDs used by anlapi (2026-aligned).
 	GeminiTierGoogleOneFree    = "google_one_free"
 	GeminiTierGoogleAIPro      = "google_ai_pro"
 	GeminiTierGoogleAIUltra    = "google_ai_ultra"

@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/group"
-	"anl-api/ent/redeemcode"
-	"anl-api/ent/user"
+	"anlapi/ent/group"
+	"anlapi/ent/redeemcode"
+	"anlapi/ent/user"
 	"context"
 	"errors"
 	"fmt"

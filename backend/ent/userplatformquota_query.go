@@ -3,9 +3,9 @@
 package ent
 
 import (
-	"anl-api/ent/predicate"
-	"anl-api/ent/user"
-	"anl-api/ent/userplatformquota"
+	"anlapi/ent/predicate"
+	"anlapi/ent/user"
+	"anlapi/ent/userplatformquota"
 	"context"
 	"fmt"
 	"math"

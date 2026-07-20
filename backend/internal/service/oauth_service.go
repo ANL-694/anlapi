@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"anl-api/internal/pkg/oauth"
-	"anl-api/internal/pkg/openai"
-	"anl-api/internal/pkg/xai"
+	"anlapi/internal/pkg/oauth"
+	"anlapi/internal/pkg/openai"
+	"anlapi/internal/pkg/xai"
 )
 
 // OpenAIOAuthClient interface for OpenAI OAuth operations

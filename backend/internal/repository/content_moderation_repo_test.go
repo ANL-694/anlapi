@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"anl-api/internal/service"
+	"anlapi/internal/service"
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 )
