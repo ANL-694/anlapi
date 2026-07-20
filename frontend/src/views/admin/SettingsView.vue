@@ -5097,6 +5097,32 @@
                 </p>
               </div>
 
+              <div>
+                <label
+                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {{ t("admin.settings.site.systemImageGenerationGroup") }}
+                </label>
+                <select
+                  v-model.number="form.system_image_generation_group_id"
+                  class="input"
+                >
+                  <option :value="0">
+                    {{ t("admin.settings.site.systemImageGenerationGroupNone") }}
+                  </option>
+                  <option
+                    v-for="group in systemImageGenerationGroups"
+                    :key="group.id"
+                    :value="group.id"
+                  >
+                    {{ group.name }} · {{ group.platform }}
+                  </option>
+                </select>
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t("admin.settings.site.systemImageGenerationGroupHint") }}
+                </p>
+              </div>
+
               <!-- Hide CCS Import Button -->
               <div
                 class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
@@ -7582,6 +7608,7 @@ const subscriptionGroups = ref<AdminGroup[]>([]);
 const autoModelGroups = ref<AdminGroup[]>([]);
 const affiliateGrantGroups = ref<AdminGroup[]>([]);
 const homeStatsGroups = ref<AdminGroup[]>([]);
+const systemImageGenerationGroups = ref<AdminGroup[]>([]);
 
 // Overload Cooldown (529) 状态
 const overloadCooldownLoading = ref(true);
@@ -7777,6 +7804,7 @@ const form = reactive<SettingsForm>({
   doc_url: "",
   home_content: "",
   home_stats_group_id: 0,
+  system_image_generation_group_id: 0,
   backend_mode_enabled: false,
   hide_ccs_import_button: false,
   purchase_subscription_enabled: false,
@@ -9093,6 +9121,13 @@ async function loadSubscriptionGroups() {
       .catch(() => groups);
     autoModelGroups.value = groups.filter((group) => group.status === "active");
     homeStatsGroups.value = allGroups.filter(isAdministratorPublicGroup);
+    systemImageGenerationGroups.value = groups.filter(
+      (group) =>
+        isAdministratorPublicGroup(group) &&
+        group.status === "active" &&
+        group.platform === "openai" &&
+        group.allow_image_generation,
+    );
     subscriptionGroups.value = groups.filter(
       (group) =>
         group.subscription_type === "subscription" && group.status === "active",
@@ -9106,6 +9141,7 @@ async function loadSubscriptionGroups() {
     subscriptionGroups.value = [];
     affiliateGrantGroups.value = [];
     homeStatsGroups.value = [];
+    systemImageGenerationGroups.value = [];
   }
 }
 
@@ -9383,6 +9419,10 @@ async function saveSettings() {
       home_stats_group_id: Math.max(
         0,
         Math.floor(Number(form.home_stats_group_id) || 0),
+      ),
+      system_image_generation_group_id: Math.max(
+        0,
+        Math.floor(Number(form.system_image_generation_group_id) || 0),
       ),
       backend_mode_enabled: form.backend_mode_enabled,
       hide_ccs_import_button: form.hide_ccs_import_button,

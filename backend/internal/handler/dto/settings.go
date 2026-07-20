@@ -151,6 +151,7 @@ type SystemSettings struct {
 	DocURL                      string           `json:"doc_url"`
 	HomeContent                 string           `json:"home_content"`
 	HomeStatsGroupID            int64            `json:"home_stats_group_id"`
+	SystemImageGenerationGroupID int64            `json:"system_image_generation_group_id"`
 	HideCcsImportButton         bool             `json:"hide_ccs_import_button"`
 	PurchaseSubscriptionEnabled bool             `json:"purchase_subscription_enabled"`
 	PurchaseSubscriptionURL     string           `json:"purchase_subscription_url"`

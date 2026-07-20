@@ -271,6 +271,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DocURL:                                                 settings.DocURL,
 		HomeContent:                                            settings.HomeContent,
 		HomeStatsGroupID:                                       settings.HomeStatsGroupID,
+		SystemImageGenerationGroupID:                            settings.SystemImageGenerationGroupID,
 		HideCcsImportButton:                                    settings.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:                            settings.PurchaseSubscriptionEnabled,
 		PurchaseSubscriptionURL:                                settings.PurchaseSubscriptionURL,
@@ -573,6 +574,7 @@ type UpdateSettingsRequest struct {
 	DocURL                      string                `json:"doc_url"`
 	HomeContent                 string                `json:"home_content"`
 	HomeStatsGroupID            int64                 `json:"home_stats_group_id"`
+	SystemImageGenerationGroupID int64                 `json:"system_image_generation_group_id"`
 	HideCcsImportButton         bool                  `json:"hide_ccs_import_button"`
 	PurchaseSubscriptionEnabled *bool                 `json:"purchase_subscription_enabled"`
 	PurchaseSubscriptionURL     *string               `json:"purchase_subscription_url"`
@@ -1653,6 +1655,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DocURL:                      req.DocURL,
 		HomeContent:                 req.HomeContent,
 		HomeStatsGroupID:            req.HomeStatsGroupID,
+		SystemImageGenerationGroupID: req.SystemImageGenerationGroupID,
 		HideCcsImportButton:         req.HideCcsImportButton,
 		PurchaseSubscriptionEnabled: purchaseEnabled,
 		PurchaseSubscriptionURL:     purchaseURL,
@@ -2148,6 +2151,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DocURL:                                                 updatedSettings.DocURL,
 		HomeContent:                                            updatedSettings.HomeContent,
 		HomeStatsGroupID:                                       updatedSettings.HomeStatsGroupID,
+		SystemImageGenerationGroupID:                            updatedSettings.SystemImageGenerationGroupID,
 		HideCcsImportButton:                                    updatedSettings.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:                            updatedSettings.PurchaseSubscriptionEnabled,
 		PurchaseSubscriptionURL:                                updatedSettings.PurchaseSubscriptionURL,
@@ -2561,6 +2565,9 @@ func preserveOmittedUpdateSettingsFields(req *UpdateSettingsRequest, previous *s
 	if !fieldProvided(fields, "home_stats_group_id") {
 		req.HomeStatsGroupID = previous.HomeStatsGroupID
 	}
+	if !fieldProvided(fields, "system_image_generation_group_id") {
+		req.SystemImageGenerationGroupID = previous.SystemImageGenerationGroupID
+	}
 	if !fieldProvided(fields, "hide_ccs_import_button") {
 		req.HideCcsImportButton = previous.HideCcsImportButton
 	}
@@ -2890,6 +2897,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.HomeStatsGroupID != after.HomeStatsGroupID {
 		changed = append(changed, "home_stats_group_id")
+	}
+	if before.SystemImageGenerationGroupID != after.SystemImageGenerationGroupID {
+		changed = append(changed, "system_image_generation_group_id")
 	}
 	if before.HideCcsImportButton != after.HideCcsImportButton {
 		changed = append(changed, "hide_ccs_import_button")

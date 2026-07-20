@@ -128,6 +128,7 @@ type SystemSettings struct {
 	DocURL                      string
 	HomeContent                 string
 	HomeStatsGroupID            int64
+	SystemImageGenerationGroupID int64
 	HideCcsImportButton         bool
 	PurchaseSubscriptionEnabled bool
 	PurchaseSubscriptionURL     string

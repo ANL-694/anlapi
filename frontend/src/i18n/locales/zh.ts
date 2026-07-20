@@ -1290,7 +1290,7 @@ const anlZhOverrides = {
     failedToDelete: '删除 API 密钥失败',
     failedToUpdateStatus: '更新 API 密钥状态失败',
     clickToChangeGroup: '点击更换分组',
-    systemGroupLocked: 'GPT 生图专线由系统绑定到可用的 OpenAI 生图分组',
+    systemGroupLocked: 'GPT 生图专线由系统绑定到管理员指定的生图分组',
     groupChangedSuccess: '分组更换成功',
     failedToChangeGroup: '更换分组失败',
     groupRequired: '请选择分组',
@@ -7687,6 +7687,9 @@ const anlZhOverrides = {
         homeStatsGroup: '主页统计分组',
         homeStatsGroupAll: '全站统计',
         homeStatsGroupHint: '只影响首页成功率和平均首字时间；请求数和 Token 仍显示全站数据。',
+        systemImageGenerationGroup: '系统生图分组',
+        systemImageGenerationGroupNone: '不自动创建',
+        systemImageGenerationGroupHint: '选择已启用的公共 OpenAI 生图分组。符合该分组访问条件的用户会自动获得不可编辑的“GPT 生图专线”。',
         hideCcsImportButton: '隐藏 CCS 导入按钮',
         hideCcsImportButtonHint: '启用后将在 API Keys 页面隐藏"导入 CCS"按钮'
       },

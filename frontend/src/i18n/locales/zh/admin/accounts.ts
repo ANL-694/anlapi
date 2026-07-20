@@ -87,6 +87,12 @@ export default {
       // Filter options
       allPlatforms: '全部平台',
       allTypes: '全部类型',
+      accountViewLabel: '账号类型视图',
+      accountViews: {
+        all: '全部账号',
+        oauth: 'OAuth 账号',
+        apiKey: 'API Key 上游'
+      },
       allStatus: '全部状态',
       allGroups: '全部分组',
       ungroupedGroup: '未分配分组',

@@ -87,6 +87,12 @@ export default {
       notesHint: 'Notes are optional',
       allPlatforms: 'All Platforms',
       allTypes: 'All Types',
+      accountViewLabel: 'Account type view',
+      accountViews: {
+        all: 'All Accounts',
+        oauth: 'OAuth Accounts',
+        apiKey: 'API Key Upstreams'
+      },
       allStatus: 'All Status',
       allGroups: 'All Groups',
       ungroupedGroup: 'Ungrouped',

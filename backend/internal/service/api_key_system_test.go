@@ -26,6 +26,27 @@ func newSystemImageKeyRepoStub() *systemImageKeyRepoStub {
 	}
 }
 
+type systemImageSettingRepoStub struct {
+	SettingRepository
+	values map[string]string
+}
+
+func (r *systemImageSettingRepoStub) GetValue(_ context.Context, key string) (string, error) {
+	value, ok := r.values[key]
+	if !ok {
+		return "", ErrSettingNotFound
+	}
+	return value, nil
+}
+
+func newSystemImageSettingService(configuredGroupID string) (*SettingService, *systemImageSettingRepoStub) {
+	repo := &systemImageSettingRepoStub{values: map[string]string{}}
+	if configuredGroupID != "" {
+		repo.values[SettingKeySystemImageGenerationGroupID] = configuredGroupID
+	}
+	return NewSettingService(repo, &config.Config{}), repo
+}
+
 func (r *systemImageKeyRepoStub) GetByID(_ context.Context, id int64) (*APIKey, error) {
 	key, ok := r.keys[id]
 	if !ok {
@@ -158,6 +179,7 @@ func TestAPIKeyService_SystemImageKeyLifecycle(t *testing.T) {
 	ctx := context.Background()
 	userID := int64(42)
 	repo := newSystemImageKeyRepoStub()
+	settingService, settingRepo := newSystemImageSettingService("10")
 	groupRepo := &systemImageKeyGroupRepoStub{groups: []Group{
 		{ID: 20, Name: "later image group", Platform: PlatformOpenAI, Status: StatusActive, Scope: GroupScopePublic, SubscriptionType: SubscriptionTypeStandard, AllowImageGeneration: true, SortOrder: 20},
 		{ID: 10, Name: "preferred image group", Platform: PlatformOpenAI, Status: StatusActive, Scope: GroupScopePublic, SubscriptionType: SubscriptionTypeStandard, AllowImageGeneration: true, SortOrder: 10},
@@ -173,6 +195,7 @@ func TestAPIKeyService_SystemImageKeyLifecycle(t *testing.T) {
 		nil,
 		&config.Config{},
 	)
+	svc.SetSettingService(settingService)
 
 	created, err := svc.EnsureSystemImageKey(ctx, userID)
 	require.NoError(t, err)
@@ -187,7 +210,7 @@ func TestAPIKeyService_SystemImageKeyLifecycle(t *testing.T) {
 	require.Equal(t, created.ID, reused.ID)
 	require.Equal(t, 1, repo.ensureCalls)
 
-	groupRepo.groups[1].AllowImageGeneration = false
+	settingRepo.values[SettingKeySystemImageGenerationGroupID] = "20"
 	rebound, err := svc.EnsureSystemImageKey(ctx, userID)
 	require.NoError(t, err)
 	require.Equal(t, created.ID, rebound.ID)
@@ -216,6 +239,7 @@ func TestAPIKeyService_SystemImageKeyLifecycle(t *testing.T) {
 
 func TestAPIKeyService_EnsureSystemImageKeyRequiresImageGroup(t *testing.T) {
 	userID := int64(7)
+	settingService, _ := newSystemImageSettingService("")
 	svc := NewAPIKeyService(
 		newSystemImageKeyRepoStub(),
 		&systemImageKeyUserRepoStub{user: User{ID: userID, Status: StatusActive}},
@@ -225,6 +249,32 @@ func TestAPIKeyService_EnsureSystemImageKeyRequiresImageGroup(t *testing.T) {
 		nil,
 		&config.Config{},
 	)
+	svc.SetSettingService(settingService)
+
+	_, err := svc.EnsureSystemImageKey(context.Background(), userID)
+	require.ErrorIs(t, err, ErrImageGenerationGroupUnavailable)
+}
+
+func TestAPIKeyService_EnsureSystemImageKeyDoesNotFallbackFromConfiguredGroup(t *testing.T) {
+	userID := int64(8)
+	settingService, _ := newSystemImageSettingService("20")
+	svc := NewAPIKeyService(
+		newSystemImageKeyRepoStub(),
+		&systemImageKeyUserRepoStub{user: User{ID: userID, Status: StatusActive}},
+		&systemImageKeyGroupRepoStub{groups: []Group{{
+			ID:                   10,
+			Platform:             PlatformOpenAI,
+			Status:               StatusActive,
+			Scope:                GroupScopePublic,
+			SubscriptionType:     SubscriptionTypeStandard,
+			AllowImageGeneration: true,
+		}}},
+		&systemImageKeySubscriptionRepoStub{},
+		nil,
+		nil,
+		&config.Config{},
+	)
+	svc.SetSettingService(settingService)
 
 	_, err := svc.EnsureSystemImageKey(context.Background(), userID)
 	require.ErrorIs(t, err, ErrImageGenerationGroupUnavailable)

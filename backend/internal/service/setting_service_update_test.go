@@ -5,6 +5,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"anlapi/internal/config"
@@ -353,6 +354,82 @@ func TestSettingService_UpdateSettings_HomeStatsGroup_RejectsCarpoolGroup(t *tes
 	require.Equal(t, "HOME_STATS_GROUP_INVALID", infraerrors.Reason(err))
 	require.Equal(t, "23", infraerrors.FromError(err).Metadata["group_id"])
 	require.Nil(t, repo.updates)
+}
+
+func TestSettingService_UpdateSettings_SystemImageGenerationGroup(t *testing.T) {
+	t.Run("allows an active administrator public OpenAI image group", func(t *testing.T) {
+		repo := &settingUpdateRepoStub{}
+		groupReader := &defaultSubGroupReaderStub{
+			byID: map[int64]*Group{
+				31: {
+					ID:                   31,
+					Scope:                GroupScopePublic,
+					Status:               StatusActive,
+					Platform:             PlatformOpenAI,
+					AllowImageGeneration: true,
+				},
+			},
+		}
+		svc := NewSettingService(repo, &config.Config{})
+		svc.SetDefaultSubscriptionGroupReader(groupReader)
+
+		err := svc.UpdateSettings(context.Background(), &SystemSettings{
+			SystemImageGenerationGroupID: 31,
+		})
+		require.NoError(t, err)
+		require.Equal(t, "31", repo.updates[SettingKeySystemImageGenerationGroupID])
+	})
+
+	for _, test := range []struct {
+		name  string
+		group *Group
+	}{
+		{
+			name:  "inactive group",
+			group: &Group{ID: 32, Scope: GroupScopePublic, Status: StatusDisabled, Platform: PlatformOpenAI, AllowImageGeneration: true},
+		},
+		{
+			name:  "non OpenAI group",
+			group: &Group{ID: 33, Scope: GroupScopePublic, Status: StatusActive, Platform: PlatformGemini, AllowImageGeneration: true},
+		},
+		{
+			name:  "group without image capability",
+			group: &Group{ID: 34, Scope: GroupScopePublic, Status: StatusActive, Platform: PlatformOpenAI},
+		},
+		{
+			name: "user private group",
+			group: func() *Group {
+				ownerID := int64(9)
+				return &Group{ID: 35, Scope: GroupScopeUserPrivate, OwnerUserID: &ownerID, Status: StatusActive, Platform: PlatformOpenAI, AllowImageGeneration: true}
+			}(),
+		},
+	} {
+		t.Run("rejects "+test.name, func(t *testing.T) {
+			repo := &settingUpdateRepoStub{}
+			groupReader := &defaultSubGroupReaderStub{
+				byID: map[int64]*Group{test.group.ID: test.group},
+			}
+			svc := NewSettingService(repo, &config.Config{})
+			svc.SetDefaultSubscriptionGroupReader(groupReader)
+
+			err := svc.UpdateSettings(context.Background(), &SystemSettings{
+				SystemImageGenerationGroupID: test.group.ID,
+			})
+			require.Error(t, err)
+			require.Equal(t, "SYSTEM_IMAGE_GENERATION_GROUP_INVALID", infraerrors.Reason(err))
+			require.Equal(t, fmt.Sprintf("%d", test.group.ID), infraerrors.FromError(err).Metadata["group_id"])
+			require.Nil(t, repo.updates)
+		})
+	}
+
+	t.Run("allows clearing the configured group", func(t *testing.T) {
+		repo := &settingUpdateRepoStub{}
+		svc := NewSettingService(repo, &config.Config{})
+
+		err := svc.UpdateSettings(context.Background(), &SystemSettings{})
+		require.NoError(t, err)
+		require.Equal(t, "0", repo.updates[SettingKeySystemImageGenerationGroupID])
+	})
 }
 
 func TestSettingService_UpdateSettings_RegistrationEmailSuffixWhitelist_Normalized(t *testing.T) {

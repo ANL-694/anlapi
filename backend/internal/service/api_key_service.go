@@ -618,39 +618,31 @@ func (s *APIKeyService) annotateSystemAPIKeys(ctx context.Context, userID int64,
 	return nil
 }
 
-func (s *APIKeyService) imageGenerationGroups(ctx context.Context, userID int64) ([]Group, error) {
+func (s *APIKeyService) systemImageGenerationGroup(ctx context.Context, userID int64) (*Group, error) {
+	if s.settingService == nil {
+		return nil, ErrImageGenerationGroupUnavailable
+	}
+	configuredGroupID, err := s.settingService.GetSystemImageGenerationGroupID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get system image generation group: %w", err)
+	}
+	if configuredGroupID <= 0 {
+		return nil, ErrImageGenerationGroupUnavailable
+	}
+
 	groups, err := s.GetAvailableGroups(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	eligible := make([]Group, 0, len(groups))
 	for i := range groups {
 		group := &groups[i]
-		if !group.IsActive() || !strings.EqualFold(strings.TrimSpace(group.Platform), PlatformOpenAI) || !group.AllowImageGeneration {
-			continue
-		}
-		eligible = append(eligible, *group)
-	}
-	if len(eligible) == 0 {
-		return nil, ErrImageGenerationGroupUnavailable
-	}
-	return eligible, nil
-}
-
-func selectSystemImageGroup(groups []Group, currentGroupID *int64) *Group {
-	var selected *Group
-	for i := range groups {
-		group := &groups[i]
-		if currentGroupID != nil && group.ID == *currentGroupID {
-			return group
-		}
-		if selected == nil ||
-			group.SortOrder < selected.SortOrder ||
-			(group.SortOrder == selected.SortOrder && group.ID < selected.ID) {
-			selected = group
+		if group.ID == configuredGroupID && group.IsActive() &&
+			strings.EqualFold(strings.TrimSpace(group.Platform), PlatformOpenAI) &&
+			group.AllowImageGeneration {
+			return group, nil
 		}
 	}
-	return selected
+	return nil, ErrImageGenerationGroupUnavailable
 }
 
 func systemImageKeyRoutesMatch(key *APIKey, groupID int64) bool {
@@ -685,7 +677,7 @@ func (s *APIKeyService) EnsureSystemImageKey(ctx context.Context, userID int64) 
 	if !ok {
 		return nil, ErrSystemAPIKeyStoreUnavailable
 	}
-	groups, groupsErr := s.imageGenerationGroups(ctx, userID)
+	group, groupErr := s.systemImageGenerationGroup(ctx, userID)
 
 	if keyID, found, err := repo.GetSystemAPIKeyID(ctx, userID, APIKeyManagedTypeImageGeneration); err != nil {
 		if !errors.Is(err, ErrSystemAPIKeyStoreUnavailable) {
@@ -694,12 +686,8 @@ func (s *APIKeyService) EnsureSystemImageKey(ctx context.Context, userID int64) 
 	} else if found {
 		existing, getErr := s.apiKeyRepo.GetByID(ctx, keyID)
 		if getErr == nil && existing != nil && existing.UserID == userID {
-			if groupsErr != nil {
-				return nil, groupsErr
-			}
-			group := selectSystemImageGroup(groups, existing.GroupID)
-			if group == nil {
-				return nil, ErrImageGenerationGroupUnavailable
+			if groupErr != nil {
+				return nil, groupErr
 			}
 			needsUpdate := existing.Name != "GPT 生图专线" ||
 				existing.GroupID == nil || *existing.GroupID != group.ID ||
@@ -720,12 +708,8 @@ func (s *APIKeyService) EnsureSystemImageKey(ctx context.Context, userID int64) 
 		}
 	}
 
-	if groupsErr != nil {
-		return nil, groupsErr
-	}
-	group := selectSystemImageGroup(groups, nil)
-	if group == nil {
-		return nil, ErrImageGenerationGroupUnavailable
+	if groupErr != nil {
+		return nil, groupErr
 	}
 	generatedKey, err := s.GenerateKey()
 	if err != nil {

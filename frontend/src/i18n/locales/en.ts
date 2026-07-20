@@ -1290,7 +1290,7 @@ const anlEnOverrides = {
     failedToDelete: 'Failed to delete API key',
     failedToUpdateStatus: 'Failed to update API key status',
     clickToChangeGroup: 'Click to change group',
-    systemGroupLocked: 'The GPT image key is bound to an available OpenAI image group by the system',
+    systemGroupLocked: 'The GPT image key is bound to the administrator-selected image generation group by the system',
     groupChangedSuccess: 'Group changed successfully',
     failedToChangeGroup: 'Failed to change group',
     groupRequired: 'Please select a group',
@@ -7500,6 +7500,9 @@ const anlEnOverrides = {
         homeStatsGroup: 'Home Stats Group',
         homeStatsGroupAll: 'Site-wide Stats',
         homeStatsGroupHint: 'Only homepage success rate and average first token time use this group; requests and tokens remain site-wide.',
+        systemImageGenerationGroup: 'System Image Generation Group',
+        systemImageGenerationGroupNone: 'Do not create automatically',
+        systemImageGenerationGroupHint: 'Choose an active public OpenAI image group. Users eligible for that group receive a locked GPT image key automatically.',
         hideCcsImportButton: 'Hide CCS Import Button',
         hideCcsImportButtonHint: 'When enabled, the "Import to CCS" button will be hidden on the API Keys page'
       },

@@ -38,6 +38,10 @@ var (
 		"HOME_STATS_GROUP_INVALID",
 		"home stats group must be an administrator public group",
 	)
+	ErrSystemImageGenerationGroupInvalid = infraerrors.BadRequest(
+		"SYSTEM_IMAGE_GENERATION_GROUP_INVALID",
+		"system image generation group must be an active administrator public OpenAI image group",
+	)
 )
 
 type SettingRepository interface {
@@ -1395,6 +1399,12 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	if err := s.validateHomeStatsGroup(ctx, settings.HomeStatsGroupID); err != nil {
 		return nil, err
 	}
+	if settings.SystemImageGenerationGroupID < 0 {
+		settings.SystemImageGenerationGroupID = 0
+	}
+	if err := s.validateSystemImageGenerationGroup(ctx, settings.SystemImageGenerationGroupID); err != nil {
+		return nil, err
+	}
 	normalizedWhitelist, err := NormalizeRegistrationEmailSuffixWhitelist(settings.RegistrationEmailSuffixWhitelist)
 	if err != nil {
 		return nil, infraerrors.BadRequest("INVALID_REGISTRATION_EMAIL_SUFFIX_WHITELIST", err.Error())
@@ -1585,6 +1595,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		settings.HomeStatsGroupID = 0
 	}
 	updates[SettingKeyHomeStatsGroupID] = strconv.FormatInt(settings.HomeStatsGroupID, 10)
+	updates[SettingKeySystemImageGenerationGroupID] = strconv.FormatInt(settings.SystemImageGenerationGroupID, 10)
 	updates[SettingKeyHideCcsImportButton] = strconv.FormatBool(settings.HideCcsImportButton)
 	updates[SettingKeyPurchaseSubscriptionEnabled] = strconv.FormatBool(settings.PurchaseSubscriptionEnabled)
 	updates[SettingKeyPurchaseSubscriptionURL] = strings.TrimSpace(settings.PurchaseSubscriptionURL)
@@ -1935,6 +1946,29 @@ func (s *SettingService) validateHomeStatsGroup(ctx context.Context, groupID int
 	}
 	if !isAdministratorPublicGroup(group) {
 		return ErrHomeStatsGroupInvalid.WithMetadata(map[string]string{
+			"group_id": strconv.FormatInt(groupID, 10),
+		})
+	}
+	return nil
+}
+
+func (s *SettingService) validateSystemImageGenerationGroup(ctx context.Context, groupID int64) error {
+	if groupID <= 0 || s.defaultSubGroupReader == nil {
+		return nil
+	}
+	group, err := s.defaultSubGroupReader.GetByID(ctx, groupID)
+	if err != nil {
+		if errors.Is(err, ErrGroupNotFound) {
+			return ErrSystemImageGenerationGroupInvalid.WithMetadata(map[string]string{
+				"group_id": strconv.FormatInt(groupID, 10),
+			})
+		}
+		return fmt.Errorf("get system image generation group %d: %w", groupID, err)
+	}
+	if !isAdministratorPublicGroup(group) || !group.IsActive() ||
+		!strings.EqualFold(strings.TrimSpace(group.Platform), PlatformOpenAI) ||
+		!group.AllowImageGeneration {
+		return ErrSystemImageGenerationGroupInvalid.WithMetadata(map[string]string{
 			"group_id": strconv.FormatInt(groupID, 10),
 		})
 	}
@@ -2653,6 +2687,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyFreeModelsEnabled:        "false",
 		SettingKeyAutoModelSettings:        DefaultAutoModelSettingsJSON(),
 		SettingKeyHomeStatsGroupID:         "0",
+		SettingKeySystemImageGenerationGroupID: "0",
 
 		// Carpool pools feature (default disabled; opt-in)
 		SettingKeyCarpoolEnabled:           "false",
@@ -2752,6 +2787,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		DocURL:                           settings[SettingKeyDocURL],
 		HomeContent:                      settings[SettingKeyHomeContent],
 		HomeStatsGroupID:                 parseNonNegativeSettingInt64(settings[SettingKeyHomeStatsGroupID]),
+		SystemImageGenerationGroupID:     parseNonNegativeSettingInt64(settings[SettingKeySystemImageGenerationGroupID]),
 		HideCcsImportButton:              settings[SettingKeyHideCcsImportButton] == "true",
 		PurchaseSubscriptionEnabled:      settings[SettingKeyPurchaseSubscriptionEnabled] == "true",
 		PurchaseSubscriptionURL:          strings.TrimSpace(settings[SettingKeyPurchaseSubscriptionURL]),
@@ -4226,6 +4262,23 @@ func (s *SettingService) IsUngroupedKeySchedulingAllowed(ctx context.Context) bo
 		return false // fail-closed: 查询失败时默认不允许
 	}
 	return value == "true"
+}
+
+// GetSystemImageGenerationGroupID returns the administrator-selected group for
+// the platform-managed GPT image key. A missing or malformed value keeps the
+// feature unconfigured instead of silently selecting another group.
+func (s *SettingService) GetSystemImageGenerationGroupID(ctx context.Context) (int64, error) {
+	if s == nil || s.settingRepo == nil {
+		return 0, nil
+	}
+	value, err := s.settingRepo.GetValue(ctx, SettingKeySystemImageGenerationGroupID)
+	if err != nil {
+		if errors.Is(err, ErrSettingNotFound) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("get system image generation group setting: %w", err)
+	}
+	return parseNonNegativeSettingInt64(value), nil
 }
 
 // GetClaudeCodeVersionBounds 获取 Claude Code 版本号上下限要求
