@@ -4,7 +4,10 @@ import { nextTick } from 'vue'
 
 import UsageView from '../UsageView.vue'
 
-const { query, getStatsByDateRange, list, showError, showWarning, showSuccess, showInfo } = vi.hoisted(() => ({
+const { route, query, getStatsByDateRange, list, showError, showWarning, showSuccess, showInfo } = vi.hoisted(() => ({
+  route: {
+    query: {} as Record<string, string | null | Array<string | null> | undefined>,
+  },
   query: vi.fn(),
   getStatsByDateRange: vi.fn(),
   list: vi.fn(),
@@ -57,6 +60,10 @@ vi.mock('@/stores/app', () => ({
   useAppStore: () => ({ showError, showWarning, showSuccess, showInfo }),
 }))
 
+vi.mock('vue-router', () => ({
+  useRoute: () => route,
+}))
+
 vi.mock('vue-i18n', async () => {
   const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
   return {
@@ -72,8 +79,9 @@ const TablePageLayoutStub = {
   template: '<div><slot name="actions" /><slot name="filters" /><slot /></div>',
 }
 
-describe('user UsageView tooltip', () => {
+describe('user UsageView', () => {
   beforeEach(() => {
+    route.query = {}
     query.mockReset()
     getStatsByDateRange.mockReset()
     list.mockReset()
@@ -288,5 +296,77 @@ describe('user UsageView tooltip', () => {
     window.URL.createObjectURL = originalCreateObjectURL
     window.URL.revokeObjectURL = originalRevokeObjectURL
     clickSpy.mockRestore()
+  })
+
+  it('applies a valid API key ID from the URL query after loading the current user keys', async () => {
+    route.query = { api_key_id: '42' }
+    query.mockResolvedValue({ items: [], total: 0, pages: 0 })
+    getStatsByDateRange.mockResolvedValue({
+      total_requests: 0,
+      total_tokens: 0,
+      total_cost: 0,
+      average_duration_ms: 0,
+    })
+    list.mockResolvedValue({ items: [{ id: 42 }] })
+
+    const wrapper = mount(UsageView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          TablePageLayout: TablePageLayoutStub,
+          Pagination: true,
+          EmptyState: true,
+          Select: true,
+          DateRangePicker: true,
+          Icon: true,
+          Teleport: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(list).toHaveBeenCalledWith(1, 100)
+    expect(query).toHaveBeenCalledTimes(1)
+    expect(query.mock.calls[0][0]).toMatchObject({ api_key_id: 42 })
+    expect(getStatsByDateRange).toHaveBeenCalledWith(expect.any(String), expect.any(String), 42)
+    expect((wrapper.vm as any).$?.setupState.filters.api_key_id).toBe(42)
+  })
+
+  it.each([
+    ['invalid', 'not-a-key-id'],
+    ['unknown', '999'],
+  ])('ignores an %s URL API key ID without reporting an error', async (_kind, apiKeyId) => {
+    route.query = { api_key_id: apiKeyId }
+    query.mockResolvedValue({ items: [], total: 0, pages: 0 })
+    getStatsByDateRange.mockResolvedValue({
+      total_requests: 0,
+      total_tokens: 0,
+      total_cost: 0,
+      average_duration_ms: 0,
+    })
+    list.mockResolvedValue({ items: [{ id: 42 }] })
+
+    mount(UsageView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          TablePageLayout: TablePageLayoutStub,
+          Pagination: true,
+          EmptyState: true,
+          Select: true,
+          DateRangePicker: true,
+          Icon: true,
+          Teleport: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(query).toHaveBeenCalledTimes(1)
+    expect(query.mock.calls[0][0]).toMatchObject({ api_key_id: undefined })
+    expect(getStatsByDateRange).toHaveBeenCalledWith(expect.any(String), expect.any(String), undefined)
+    expect(showError).not.toHaveBeenCalled()
   })
 })

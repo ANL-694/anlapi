@@ -171,14 +171,14 @@ func TestAcquireAccountSlot_Success(t *testing.T) {
 	require.NotNil(t, result.ReleaseFunc)
 }
 
-func TestAcquireAccountSlot_Failure(t *testing.T) {
+func TestAcquireAccountSlot_IgnoresCacheCapacity(t *testing.T) {
 	cache := &stubConcurrencyCacheForTest{acquireResult: false}
 	svc := NewConcurrencyService(cache)
 
 	result, err := svc.AcquireAccountSlot(context.Background(), 1, 5)
 	require.NoError(t, err)
-	require.False(t, result.Acquired)
-	require.Nil(t, result.ReleaseFunc)
+	require.True(t, result.Acquired)
+	require.NotNil(t, result.ReleaseFunc)
 }
 
 func TestAcquireAccountSlot_UnlimitedConcurrency(t *testing.T) {
@@ -192,13 +192,14 @@ func TestAcquireAccountSlot_UnlimitedConcurrency(t *testing.T) {
 	}
 }
 
-func TestAcquireAccountSlot_CacheError(t *testing.T) {
+func TestAcquireAccountSlot_IgnoresCacheErrors(t *testing.T) {
 	cache := &stubConcurrencyCacheForTest{acquireErr: errors.New("redis down")}
 	svc := NewConcurrencyService(cache)
 
 	result, err := svc.AcquireAccountSlot(context.Background(), 1, 5)
-	require.Error(t, err)
-	require.Nil(t, result)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.True(t, result.Acquired)
 }
 
 func TestAcquireAccountSlot_ReleaseDecrements(t *testing.T) {
@@ -209,13 +210,11 @@ func TestAcquireAccountSlot_ReleaseDecrements(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, result.Acquired)
 
-	// 调用 ReleaseFunc 应释放槽位
+	// 账号并发不再是请求准入闸门，因此不会写入或释放账号槽位。
 	result.ReleaseFunc()
 
-	require.Len(t, cache.releasedAccountIDs, 1)
-	require.Equal(t, int64(42), cache.releasedAccountIDs[0])
-	require.Len(t, cache.releasedRequestIDs, 1)
-	require.NotEmpty(t, cache.releasedRequestIDs[0], "requestID 不应为空")
+	require.Empty(t, cache.releasedAccountIDs)
+	require.Empty(t, cache.releasedRequestIDs)
 }
 
 func TestAcquireUserSlot_IndependentFromAccount(t *testing.T) {
@@ -256,7 +255,7 @@ func TestGenerateRequestID_UsesStablePrefixAndMonotonicCounter(t *testing.T) {
 	require.Equal(t, n1+1, n2, "计数器应单调递增")
 }
 
-func TestGetAccountsLoadBatch_ReturnsCorrectData(t *testing.T) {
+func TestGetAccountsLoadBatch_ReturnsNeutralData(t *testing.T) {
 	expected := map[int64]*AccountLoadInfo{
 		1: {AccountID: 1, CurrentConcurrency: 3, WaitingCount: 0, LoadRate: 60},
 		2: {AccountID: 2, CurrentConcurrency: 5, WaitingCount: 2, LoadRate: 100},
@@ -270,7 +269,10 @@ func TestGetAccountsLoadBatch_ReturnsCorrectData(t *testing.T) {
 	}
 	result, err := svc.GetAccountsLoadBatch(context.Background(), accounts)
 	require.NoError(t, err)
-	require.Equal(t, expected, result)
+	require.Len(t, result, len(expected))
+	for _, account := range accounts {
+		require.Equal(t, &AccountLoadInfo{AccountID: account.ID}, result[account.ID])
+	}
 }
 
 func TestGetAccountsLoadBatch_NilCache(t *testing.T) {
@@ -340,7 +342,7 @@ func TestGetAccountWaitingCount(t *testing.T) {
 
 	count, err := svc.GetAccountWaitingCount(context.Background(), 1)
 	require.NoError(t, err)
-	require.Equal(t, 5, count)
+	require.Zero(t, count)
 }
 
 func TestGetAccountWaitingCount_NilCache(t *testing.T) {
@@ -359,7 +361,7 @@ func TestGetAccountConcurrencyBatch(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result, 3)
 	for _, id := range []int64{1, 2, 3} {
-		require.Equal(t, 3, result[id])
+		require.Zero(t, result[id])
 	}
 }
 

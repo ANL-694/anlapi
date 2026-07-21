@@ -636,7 +636,7 @@ func TestOpenAIGatewayService_SelectAccountForModelWithExclusions_DBRuntimeReche
 	require.Equal(t, int64(34002), account.ID)
 }
 
-func TestOpenAIGatewayService_SelectAccountWithScheduler_DBFreshGroupRecheckReleasesMovedAccount(t *testing.T) {
+func TestOpenAIGatewayService_SelectAccountWithScheduler_DBFreshGroupRecheckDoesNotUseAccountSlots(t *testing.T) {
 	ctx := context.Background()
 	groupID, otherGroupID := int64(10105), int64(10106)
 	stalePrimary := &Account{ID: 34101, Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Status: StatusActive, Schedulable: true, Concurrency: 1, Priority: 0, GroupIDs: []int64{groupID}}
@@ -669,12 +669,12 @@ func TestOpenAIGatewayService_SelectAccountWithScheduler_DBFreshGroupRecheckRele
 	})
 	require.NoError(t, err)
 	require.Equal(t, staleBackup.ID, selection.Account.ID)
-	require.Equal(t, []int64{stalePrimary.ID, staleBackup.ID}, acquiredIDs)
-	require.Equal(t, []int64{stalePrimary.ID}, releasedIDs)
+	require.Empty(t, acquiredIDs)
+	require.Empty(t, releasedIDs)
 	selection.ReleaseFunc()
 }
 
-func TestOpenAIGatewayService_SelectAccountWithLoadAwareness_DBFreshGroupRecheckWaitsOnValidAccount(t *testing.T) {
+func TestOpenAIGatewayService_SelectAccountWithLoadAwareness_DBFreshGroupRecheckIgnoresAccountCapacity(t *testing.T) {
 	ctx := context.Background()
 	groupID, otherGroupID := int64(10107), int64(10108)
 	stalePrimary := &Account{ID: 34201, Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Status: StatusActive, Schedulable: true, Concurrency: 1, Priority: 0, GroupIDs: []int64{groupID}}
@@ -699,9 +699,9 @@ func TestOpenAIGatewayService_SelectAccountWithLoadAwareness_DBFreshGroupRecheck
 
 	selection, err := svc.SelectAccountWithLoadAwareness(ctx, &groupID, "", "gpt-5.1", nil)
 	require.NoError(t, err)
-	require.NotNil(t, selection.WaitPlan)
 	require.Equal(t, staleBackup.ID, selection.Account.ID)
-	require.Equal(t, staleBackup.ID, selection.WaitPlan.AccountID)
+	require.True(t, selection.Acquired)
+	require.Nil(t, selection.WaitPlan)
 }
 
 func TestOpenAIGatewayService_RecheckSelectedOpenAIAccountFromDB_SimpleModeUsesFullPool(t *testing.T) {
@@ -833,7 +833,7 @@ func TestOpenAIGatewayService_SelectAccountWithScheduler_SessionSticky(t *testin
 	}
 }
 
-func TestOpenAIGatewayService_SelectAccountWithScheduler_SessionStickyBusyEscapesWhenQueueFull(t *testing.T) {
+func TestOpenAIGatewayService_SelectAccountWithScheduler_SessionStickyIgnoresAccountCapacity(t *testing.T) {
 	ctx := context.Background()
 	groupID := int64(10100)
 	accounts := []Account{
@@ -904,17 +904,17 @@ func TestOpenAIGatewayService_SelectAccountWithScheduler_SessionStickyBusyEscape
 	require.NoError(t, err)
 	require.NotNil(t, selection)
 	require.NotNil(t, selection.Account)
-	require.Equal(t, int64(21002), selection.Account.ID, "busy sticky account should escape to a healthy load-balance candidate")
+	require.Equal(t, int64(21001), selection.Account.ID, "账号容量不应打断粘性会话")
 	require.True(t, selection.Acquired)
 	require.Nil(t, selection.WaitPlan)
-	require.Equal(t, openAIAccountScheduleLayerLoadBalance, decision.Layer)
-	require.False(t, decision.StickySessionHit)
+	require.Equal(t, openAIAccountScheduleLayerSessionSticky, decision.Layer)
+	require.True(t, decision.StickySessionHit)
 	if selection.ReleaseFunc != nil {
 		selection.ReleaseFunc()
 	}
 }
 
-func TestOpenAIGatewayService_SelectAccountWithScheduler_ProbesOverflowWhenHybridTopKBusy(t *testing.T) {
+func TestOpenAIGatewayService_SelectAccountWithScheduler_DoesNotTreatTopKAsBusy(t *testing.T) {
 	ctx := context.Background()
 	accounts := make([]Account, 0, 40)
 	acquireResults := make(map[int64]bool, 16)
@@ -961,7 +961,7 @@ func TestOpenAIGatewayService_SelectAccountWithScheduler_ProbesOverflowWhenHybri
 	require.NotNil(t, selection)
 	require.NotNil(t, selection.Account)
 	require.True(t, selection.Acquired)
-	require.Greater(t, selection.Account.ID, int64(30016), "all primary hybrid top-k accounts are busy, so scheduler should probe overflow candidates before waiting")
+	require.LessOrEqual(t, selection.Account.ID, int64(30016), "账号容量不应迫使调度器跳过优先候选")
 	require.Equal(t, openAIAccountScheduleLayerLoadBalance, decision.Layer)
 	if selection.ReleaseFunc != nil {
 		selection.ReleaseFunc()
@@ -1126,7 +1126,7 @@ func TestOpenAIGatewayService_SelectAccountWithScheduler_RequiredWSV2_NoAvailabl
 	require.Equal(t, 0, decision.CandidateCount)
 }
 
-func TestOpenAIGatewayService_SelectAccountWithScheduler_LoadBalanceTopKFallback(t *testing.T) {
+func TestOpenAIGatewayService_SelectAccountWithScheduler_LoadBalanceIgnoresAccountCapacity(t *testing.T) {
 	ctx := context.Background()
 	groupID := int64(11)
 	accounts := []Account{
@@ -1200,11 +1200,11 @@ func TestOpenAIGatewayService_SelectAccountWithScheduler_LoadBalanceTopKFallback
 	require.NoError(t, err)
 	require.NotNil(t, selection)
 	require.NotNil(t, selection.Account)
-	require.Equal(t, int64(3002), selection.Account.ID)
+	require.Contains(t, []int64{3001, 3002, 3003}, selection.Account.ID)
 	require.Equal(t, openAIAccountScheduleLayerLoadBalance, decision.Layer)
 	require.Equal(t, 3, decision.CandidateCount)
 	require.Equal(t, 2, decision.TopK)
-	require.Greater(t, decision.LoadSkew, 0.0)
+	require.Zero(t, decision.LoadSkew)
 	if selection.ReleaseFunc != nil {
 		selection.ReleaseFunc()
 	}

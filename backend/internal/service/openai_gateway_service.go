@@ -4940,7 +4940,7 @@ func (s *OpenAIGatewayService) handleCompatErrorResponse(
 		return nil, fmt.Errorf("upstream error: %d (passthrough rule matched) message=%s", resp.StatusCode, upstreamMsg)
 	}
 
-	// Check custom error codes 閳?if the account does not handle this status,
+	// Check custom error codes. If the account does not handle this status,
 	// return a generic error without exposing upstream details.
 	if !account.ShouldHandleErrorCode(resp.StatusCode) {
 		appendOpsUpstreamError(c, OpsUpstreamErrorEvent{
@@ -7471,73 +7471,16 @@ type OpenAIFastBlockedError struct {
 
 func (e *OpenAIFastBlockedError) Error() string { return e.Message }
 
-// evaluateOpenAIFastPolicy returns the action and error message that should be
-// applied for a request with the given account/model/service_tier. When the
-// policy service is unavailable or no rule matches, it returns
-// (BetaPolicyActionPass, "") so callers can short-circuit safely.
-//
-// Matching rules:
-//   - Scope filters by account type (all / oauth / apikey / bedrock)
-//   - ServiceTier must be empty (= any), "all", or equal the normalized tier
-//   - ModelWhitelist narrows the rule to specific models; FallbackAction
-//     handles the non-matching case (default: pass)
-//
-// Unlike Claude BetaPolicy, the first matching fast-policy rule short-circuits:
-// service_tier is one scalar field, so filter actions cannot be accumulated.
-// Rules for the same scope and tier may still use different model whitelists.
-//
-// evaluateOpenAIFastPolicy evaluates the OpenAI service tier policy for an account.
-func (s *OpenAIGatewayService) evaluateOpenAIFastPolicy(ctx context.Context, account *Account, model, serviceTier string) (action, errMsg string) {
-	if s == nil || s.settingService == nil {
-		return BetaPolicyActionPass, ""
-	}
-	tier := strings.ToLower(strings.TrimSpace(serviceTier))
-	if tier == "" {
-		return BetaPolicyActionPass, ""
-	}
-	settings := openAIFastPolicySettingsFromContext(ctx)
-	if settings == nil {
-		fetched, err := s.settingService.GetOpenAIFastPolicySettings(ctx)
-		if err != nil || fetched == nil {
-			return BetaPolicyActionPass, ""
-		}
-		settings = fetched
-	}
-	return evaluateOpenAIFastPolicyWithSettings(settings, AuthenticatedUserIDFromContext(ctx), account, model, tier)
+// evaluateOpenAIFastPolicy is intentionally a pass-through. Fast is an
+// upstream service-tier capability, not a local entitlement, billing or
+// filtering policy. Unsupported tiers must be rejected by the upstream.
+func (s *OpenAIGatewayService) evaluateOpenAIFastPolicy(_ context.Context, _ *Account, _ string, _ string) (action, errMsg string) {
+	return BetaPolicyActionPass, ""
 }
 
-// evaluateOpenAIFastPolicyWithSettings is the pure-function core extracted so
-// long-lived sessions (e.g. WS) can prefetch settings once and avoid hitting
-// the settingService on every frame. See WSSession entry and
-// openAIFastPolicySettingsFromContext for the caching glue.
-func evaluateOpenAIFastPolicyWithSettings(settings *OpenAIFastPolicySettings, userID int64, account *Account, model, tier string) (action, errMsg string) {
-	if settings == nil {
-		return BetaPolicyActionPass, ""
-	}
-	isOAuth := account != nil && account.IsOAuth()
-	isBedrock := account != nil && account.IsBedrock()
-	for _, userScoped := range []bool{true, false} {
-		for _, rule := range settings.Rules {
-			if (len(rule.UserIDs) > 0) != userScoped || !openAIFastPolicyUserMatches(rule.UserIDs, userID) {
-				continue
-			}
-			if !betaPolicyScopeMatches(rule.Scope, isOAuth, isBedrock) {
-				continue
-			}
-			ruleTier := strings.ToLower(strings.TrimSpace(rule.ServiceTier))
-			if ruleTier != "" && ruleTier != OpenAIFastTierAny && ruleTier != tier {
-				continue
-			}
-			eff := BetaPolicyRule{
-				Action:               rule.Action,
-				ErrorMessage:         rule.ErrorMessage,
-				ModelWhitelist:       rule.ModelWhitelist,
-				FallbackAction:       rule.FallbackAction,
-				FallbackErrorMessage: rule.FallbackErrorMessage,
-			}
-			return resolveRuleAction(eff, model)
-		}
-	}
+// evaluateOpenAIFastPolicyWithSettings remains for compatibility with callers
+// that prefetch the legacy settings object. Settings no longer restrict Fast.
+func evaluateOpenAIFastPolicyWithSettings(_ *OpenAIFastPolicySettings, _ int64, _ *Account, _ string, _ string) (action, errMsg string) {
 	return BetaPolicyActionPass, ""
 }
 
@@ -7580,16 +7523,9 @@ func openAIFastPolicySettingsFromContext(ctx context.Context) *OpenAIFastPolicyS
 	return nil
 }
 
-// applyOpenAIFastPolicyToBody applies the OpenAI fast policy to a raw request
-// body. When action=filter it removes the service_tier field; when
-// action=block it returns (body, *OpenAIFastBlockedError). On pass it
-// normalizes the service_tier value (e.g. client alias "fast" -> "priority"),
-// rewriting the body so the upstream receives a slug it recognizes.
-//
-// Rationale for normalize-on-pass: chat-completions / messages normalize
-// service_tier before this function. Passthrough and native /responses do not,
-// so this function normalizes the pass path consistently for every entry point.
-func (s *OpenAIGatewayService) applyOpenAIFastPolicyToBody(ctx context.Context, account *Account, model string, body []byte) ([]byte, error) {
+// applyOpenAIFastPolicyToBody preserves every supported service tier and only
+// normalizes the client alias "fast" to the upstream value "priority".
+func (s *OpenAIGatewayService) applyOpenAIFastPolicyToBody(_ context.Context, _ *Account, _ string, body []byte) ([]byte, error) {
 	if len(body) == 0 {
 		return body, nil
 	}
@@ -7601,37 +7537,14 @@ func (s *OpenAIGatewayService) applyOpenAIFastPolicyToBody(ctx context.Context, 
 	if normTier == "" {
 		return body, nil
 	}
-	action, errMsg := s.evaluateOpenAIFastPolicy(ctx, account, model, normTier)
-	switch action {
-	case BetaPolicyActionBlock:
-		msg := errMsg
-		if msg == "" {
-			msg = fmt.Sprintf("openai service_tier=%s is not allowed for model %s", normTier, model)
-		}
-		return body, &OpenAIFastBlockedError{Message: msg}
-	case BetaPolicyActionFilter:
-		trimmed, err := sjson.DeleteBytes(body, "service_tier")
-		if err != nil {
-			return body, fmt.Errorf("strip service_tier from body: %w", err)
-		}
-		return trimmed, nil
-	case OpenAIFastPolicyActionForcePriority:
-		updated, err := sjson.SetBytes(body, "service_tier", OpenAIFastTierPriority)
-		if err != nil {
-			return body, fmt.Errorf("force service_tier priority on body: %w", err)
-		}
-		return updated, nil
-	default:
-		// pass：把别名（如 "fast"）写回为规范值（"priority"）。
-		if normTier == rawTier {
-			return body, nil
-		}
-		updated, err := sjson.SetBytes(body, "service_tier", normTier)
-		if err != nil {
-			return body, fmt.Errorf("normalize service_tier on pass: %w", err)
-		}
-		return updated, nil
+	if normTier == rawTier {
+		return body, nil
 	}
+	updated, err := sjson.SetBytes(body, "service_tier", normTier)
+	if err != nil {
+		return body, fmt.Errorf("normalize service_tier on pass: %w", err)
+	}
+	return updated, nil
 }
 
 // writeOpenAIFastPolicyBlockedResponse writes a 403 JSON response for a
@@ -7653,33 +7566,12 @@ func writeOpenAIFastPolicyBlockedResponse(c *gin.Context, err *OpenAIFastBlocked
 	})
 }
 
-// applyOpenAIFastPolicyToWSResponseCreate evaluates the OpenAI fast policy
-// against a single client→upstream WebSocket frame whose top-level
-// "type"=="response.create". It mirrors the HTTP-side
-// applyOpenAIFastPolicyToBody contract but operates on a Realtime/Responses
-// WS payload:
-//
-//   - pass: returns frame unchanged (newBytes == frame, blocked == nil)
-//   - filter: returns a copy with top-level service_tier removed
-//   - block: returns (frame, *OpenAIFastBlockedError)
-//
-// Only frames whose "type" field strictly equals "response.create" are
-// inspected/mutated. Any other frame type 閳?including the empty string 閳?// passes through untouched. The OpenAI Realtime client-event spec requires
-// "type" to be set, so an empty type is treated as a malformed frame we do
-// not police; the upstream is the source of truth for rejecting it.
-//
-// service_tier lives at the top level of response.create 閳?same as the
-// Responses HTTP body shape (see openai_gateway_chat_completions.go:304 +
-// extractOpenAIServiceTierFromBody at line 5593, and the test fixture at
-// openai_ws_forwarder_ingress_session_test.go:402). We therefore only need
-// to inspect / strip the top-level field; there is no nested form in the
-// schema today.
-//
-// The caller is responsible for choosing the upstream model passed in 閳?// this helper does not re-derive it.
+// applyOpenAIFastPolicyToWSResponseCreate preserves service_tier for an OpenAI
+// response.create event and normalizes only the client alias "fast".
 func (s *OpenAIGatewayService) applyOpenAIFastPolicyToWSResponseCreate(
-	ctx context.Context,
-	account *Account,
-	model string,
+	_ context.Context,
+	_ *Account,
+	_ string,
 	frame []byte,
 ) ([]byte, *OpenAIFastBlockedError, error) {
 	if len(frame) == 0 {
@@ -7693,7 +7585,7 @@ func (s *OpenAIGatewayService) applyOpenAIFastPolicyToWSResponseCreate(
 	// types pass through untouched so we never accidentally strip fields
 	// from response.cancel, conversation.item.create, or any future
 	// client-event the spec adds. The Realtime spec requires "type" on
-	// every client event, so an empty type is malformed input 閳?let the
+	// every client event, so an empty type is malformed input. Let the
 	// upstream reject it rather than guessing at our layer.
 	if frameType != "response.create" {
 		return frame, nil, nil
@@ -7706,29 +7598,14 @@ func (s *OpenAIGatewayService) applyOpenAIFastPolicyToWSResponseCreate(
 	if normTier == "" {
 		return frame, nil, nil
 	}
-	action, errMsg := s.evaluateOpenAIFastPolicy(ctx, account, model, normTier)
-	switch action {
-	case BetaPolicyActionBlock:
-		msg := errMsg
-		if msg == "" {
-			msg = fmt.Sprintf("openai service_tier=%s is not allowed for model %s", normTier, model)
-		}
-		return frame, &OpenAIFastBlockedError{Message: msg}, nil
-	case BetaPolicyActionFilter:
-		trimmed, err := sjson.DeleteBytes(frame, "service_tier")
-		if err != nil {
-			return frame, nil, fmt.Errorf("strip service_tier from ws frame: %w", err)
-		}
-		return trimmed, nil, nil
-	case OpenAIFastPolicyActionForcePriority:
-		updated, err := sjson.SetBytes(frame, "service_tier", OpenAIFastTierPriority)
-		if err != nil {
-			return frame, nil, fmt.Errorf("force service_tier priority on ws frame: %w", err)
-		}
-		return updated, nil, nil
-	default:
+	if normTier == rawTier {
 		return frame, nil, nil
 	}
+	updated, err := sjson.SetBytes(frame, "service_tier", normTier)
+	if err != nil {
+		return frame, nil, fmt.Errorf("normalize service_tier on ws frame: %w", err)
+	}
+	return updated, nil, nil
 }
 
 // newOpenAIFastPolicyWSEventID returns a Realtime-style event_id for a

@@ -652,7 +652,7 @@ func TestOpenAISelectAccountWithLoadAwareness_LoadBatchErrorFallback(t *testing.
 	}
 }
 
-func TestOpenAISelectAccountWithLoadAwareness_NoSlotFallbackWait(t *testing.T) {
+func TestOpenAISelectAccountWithLoadAwareness_IgnoresAccountSlotFailure(t *testing.T) {
 	groupID := int64(1)
 	repo := stubOpenAIAccountRepo{
 		accounts: []Account{
@@ -677,8 +677,8 @@ func TestOpenAISelectAccountWithLoadAwareness_NoSlotFallbackWait(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SelectAccountWithLoadAwareness error: %v", err)
 	}
-	if selection == nil || selection.WaitPlan == nil {
-		t.Fatalf("expected wait plan fallback")
+	if selection == nil || !selection.Acquired || selection.WaitPlan != nil {
+		t.Fatalf("expected immediate selection without account wait plan")
 	}
 	if selection.Account == nil || selection.Account.ID != 1 {
 		t.Fatalf("expected account 1")
@@ -711,7 +711,7 @@ func TestOpenAISelectAccountForModelWithExclusions_SetsStickyBinding(t *testing.
 	}
 }
 
-func TestOpenAISelectAccountWithLoadAwareness_StickyWaitPlan(t *testing.T) {
+func TestOpenAISelectAccountWithLoadAwareness_StickyIgnoresAccountSlotFailure(t *testing.T) {
 	sessionHash := "sticky-wait"
 	groupID := int64(1)
 	repo := stubOpenAIAccountRepo{
@@ -737,15 +737,15 @@ func TestOpenAISelectAccountWithLoadAwareness_StickyWaitPlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SelectAccountWithLoadAwareness error: %v", err)
 	}
-	if selection == nil || selection.WaitPlan == nil {
-		t.Fatalf("expected sticky wait plan")
+	if selection == nil || !selection.Acquired || selection.WaitPlan != nil {
+		t.Fatalf("expected immediate sticky selection without account wait plan")
 	}
 	if selection.Account == nil || selection.Account.ID != 1 {
 		t.Fatalf("expected account 1")
 	}
 }
 
-func TestOpenAISelectAccountWithLoadAwareness_PrefersLowerLoad(t *testing.T) {
+func TestOpenAISelectAccountWithLoadAwareness_IgnoresAccountLoad(t *testing.T) {
 	groupID := int64(1)
 	repo := stubOpenAIAccountRepo{
 		accounts: []Account{
@@ -771,10 +771,10 @@ func TestOpenAISelectAccountWithLoadAwareness_PrefersLowerLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SelectAccountWithLoadAwareness error: %v", err)
 	}
-	if selection == nil || selection.Account == nil || selection.Account.ID != 2 {
-		t.Fatalf("expected account 2")
+	if selection == nil || selection.Account == nil || (selection.Account.ID != 1 && selection.Account.ID != 2) {
+		t.Fatalf("expected one eligible account")
 	}
-	if cache.sessionBindings["openai:load"] != 2 {
+	if cache.sessionBindings["openai:load"] != selection.Account.ID {
 		t.Fatalf("expected sticky session updated")
 	}
 }
@@ -879,7 +879,7 @@ func TestOpenAISelectAccountWithLoadAwareness_NoCandidates(t *testing.T) {
 	}
 }
 
-func TestOpenAISelectAccountWithLoadAwareness_AllFullWaitPlan(t *testing.T) {
+func TestOpenAISelectAccountWithLoadAwareness_KnownFullAccountStaysEligible(t *testing.T) {
 	groupID := int64(1)
 	repo := stubOpenAIAccountRepo{
 		accounts: []Account{
@@ -903,12 +903,12 @@ func TestOpenAISelectAccountWithLoadAwareness_AllFullWaitPlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SelectAccountWithLoadAwareness error: %v", err)
 	}
-	if selection == nil || selection.WaitPlan == nil {
-		t.Fatalf("expected wait plan")
+	if selection == nil || !selection.Acquired || selection.WaitPlan != nil {
+		t.Fatalf("expected immediate selection without account wait plan")
 	}
 }
 
-func TestOpenAISelectAccountWithLoadAwareness_LoadBatchErrorNoAcquire(t *testing.T) {
+func TestOpenAISelectAccountWithLoadAwareness_LoadBatchFailureDoesNotCreateAccountWaitPlan(t *testing.T) {
 	groupID := int64(1)
 	repo := stubOpenAIAccountRepo{
 		accounts: []Account{
@@ -931,12 +931,12 @@ func TestOpenAISelectAccountWithLoadAwareness_LoadBatchErrorNoAcquire(t *testing
 	if err != nil {
 		t.Fatalf("SelectAccountWithLoadAwareness error: %v", err)
 	}
-	if selection == nil || selection.WaitPlan == nil {
-		t.Fatalf("expected wait plan")
+	if selection == nil || !selection.Acquired || selection.WaitPlan != nil {
+		t.Fatalf("expected immediate selection without account wait plan")
 	}
 }
 
-func TestOpenAISelectAccountWithLoadAwareness_MissingLoadInfo(t *testing.T) {
+func TestOpenAISelectAccountWithLoadAwareness_MissingLoadInfoDoesNotConstrainSelection(t *testing.T) {
 	groupID := int64(1)
 	repo := stubOpenAIAccountRepo{
 		accounts: []Account{
@@ -962,8 +962,8 @@ func TestOpenAISelectAccountWithLoadAwareness_MissingLoadInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SelectAccountWithLoadAwareness error: %v", err)
 	}
-	if selection == nil || selection.Account == nil || selection.Account.ID != 2 {
-		t.Fatalf("expected account 2")
+	if selection == nil || selection.Account == nil || (selection.Account.ID != 1 && selection.Account.ID != 2) {
+		t.Fatalf("expected one eligible account")
 	}
 }
 

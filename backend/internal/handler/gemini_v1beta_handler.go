@@ -64,6 +64,11 @@ func (h *GatewayHandler) GeminiV1BetaListModels(c *gin.Context) {
 		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
 		return
 	}
+	userReleaseFunc, ok := h.acquireGeminiMetadataUserSlot(c)
+	if !ok {
+		return
+	}
+	defer userReleaseFunc()
 
 	res, err := h.geminiCompatService.ForwardAIStudioGET(c.Request.Context(), account, "/v1beta/models")
 	if err != nil {
@@ -116,6 +121,11 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
 		return
 	}
+	userReleaseFunc, ok := h.acquireGeminiMetadataUserSlot(c)
+	if !ok {
+		return
+	}
+	defer userReleaseFunc()
 
 	res, err := h.geminiCompatService.ForwardAIStudioGET(c.Request.Context(), account, "/v1beta/models/"+modelName)
 	if err != nil {
@@ -127,6 +137,29 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 		return
 	}
 	writeUpstreamResponse(c, res)
+}
+
+// acquireGeminiMetadataUserSlot protects the two Gemini model metadata routes
+// only when they have selected a real upstream account. Static fallbacks do
+// not consume a user slot because they do not create an upstream request.
+func (h *GatewayHandler) acquireGeminiMetadataUserSlot(c *gin.Context) (func(), bool) {
+	if h == nil || h.concurrencyHelper == nil {
+		googleError(c, http.StatusInternalServerError, "User concurrency service is unavailable")
+		return nil, false
+	}
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		googleError(c, http.StatusInternalServerError, "User context not found")
+		return nil, false
+	}
+
+	streamStarted := false
+	releaseFunc, err := h.concurrencyHelper.AcquireUserSlotWithQueue(c, subject.UserID, subject.Concurrency, false, &streamStarted)
+	if err != nil {
+		googleError(c, http.StatusTooManyRequests, "Too many concurrent requests, please retry later")
+		return nil, false
+	}
+	return wrapReleaseOnDone(c.Request.Context(), releaseFunc), true
 }
 
 // GeminiV1BetaModels proxies Gemini native REST endpoints like:

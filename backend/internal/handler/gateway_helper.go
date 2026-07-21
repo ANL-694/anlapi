@@ -261,6 +261,36 @@ func (h *ConcurrencyHelper) AcquireUserSlotWithWait(c *gin.Context, userID int64
 	return h.withAPIKeySlotFromGin(c, releaseFunc), nil
 }
 
+// AcquireUserSlotWithQueue applies the only request-admission boundary used by
+// gateway traffic: the requesting user's configured concurrency. The bounded
+// wait queue is also user-scoped, so an upstream account or API key can never
+// make an otherwise eligible user request wait or fail.
+func (h *ConcurrencyHelper) AcquireUserSlotWithQueue(c *gin.Context, userID int64, maxConcurrency int, isStream bool, streamStarted *bool) (func(), error) {
+	ctx := c.Request.Context()
+	maxWait := service.CalculateMaxWait(maxConcurrency)
+	canWait, err := h.IncrementWaitCount(ctx, userID, maxWait)
+	if err == nil && !canWait {
+		return nil, &WaitQueueFullError{SlotType: "user"}
+	}
+
+	waitCounted := err == nil && canWait
+	defer func() {
+		if waitCounted {
+			h.DecrementWaitCount(ctx, userID)
+		}
+	}()
+
+	releaseFunc, err := h.AcquireUserSlotWithWait(c, userID, maxConcurrency, isStream, streamStarted)
+	if err != nil {
+		return nil, err
+	}
+	if waitCounted {
+		h.DecrementWaitCount(ctx, userID)
+		waitCounted = false
+	}
+	return releaseFunc, nil
+}
+
 func (h *ConcurrencyHelper) withAPIKeySlotFromGin(c *gin.Context, releaseFunc func()) func() {
 	if c == nil {
 		return releaseFunc

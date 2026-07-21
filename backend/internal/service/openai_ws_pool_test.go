@@ -101,7 +101,7 @@ func TestOpenAIWSConnPool_TargetConnCountAdaptive(t *testing.T) {
 	ap.conns[conn2.id] = conn2
 
 	target := pool.targetConnCountLocked(ap, pool.maxConnsHardCap())
-	require.Equal(t, 6, target, "应按 inflight+waiters 与 target_utilization 自适应扩容到上限")
+	require.Equal(t, 8, target, "应按 inflight+waiters 与 target_utilization 自适应扩容，不受账号池上限截断")
 
 	conn1.release()
 	conn2.release()
@@ -295,8 +295,10 @@ func TestOpenAIWSConnPool_AcquireQueueWaitMetrics(t *testing.T) {
 	}()
 
 	lease, err := pool.Acquire(context.Background(), openAIWSAcquireRequest{
-		Account: account,
-		WSURL:   "wss://example.com/v1/responses",
+		Account:            account,
+		WSURL:              "wss://example.com/v1/responses",
+		PreferredConnID:    conn.id,
+		ForcePreferredConn: true,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, lease)
@@ -430,7 +432,7 @@ func TestOpenAIWSConnPool_AcquireReplacesIdleConnWithDifferentBetaFeatures(t *te
 	require.Equal(t, 2, dialer.DialCount())
 }
 
-func TestOpenAIWSConnPool_AcquireWaitsForBusyIncompatibleConnection(t *testing.T) {
+func TestOpenAIWSConnPool_AcquireCreatesConnectionForBusyIncompatibleConnection(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 1
 	cfg.Gateway.OpenAIWS.MinIdlePerAccount = 0
@@ -462,16 +464,15 @@ func TestOpenAIWSConnPool_AcquireWaitsForBusyIncompatibleConnection(t *testing.T
 		done.Store(true)
 	}()
 
-	require.Never(t, done.Load, 50*time.Millisecond, 5*time.Millisecond)
-	plainLease.Release()
-
+	require.Eventually(t, done.Load, 100*time.Millisecond, 5*time.Millisecond)
 	result := <-resultCh
 	require.NoError(t, result.err)
 	require.NotNil(t, result.lease)
 	require.False(t, result.lease.Reused())
 	require.NotEqual(t, plainConnID, result.lease.ConnID())
 	result.lease.Release()
-	require.Equal(t, 2, dialer.DialCount())
+	plainLease.Release()
+	require.GreaterOrEqual(t, dialer.DialCount(), 2)
 }
 
 func TestOpenAIWSConnPool_AcquireReplacesIncompatibleIdleWhenMatchingBusy(t *testing.T) {
@@ -578,7 +579,7 @@ func TestOpenAIWSConnPool_AcquireForcePreferredConnQueuesOnPreferredOnly(t *test
 	otherConn.release()
 }
 
-func TestOpenAIWSConnPool_AcquireForcePreferredConnDirectAndQueueFull(t *testing.T) {
+func TestOpenAIWSConnPool_AcquireForcePreferredConnWaitsWithoutLocalQueueCap(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 2
 	cfg.Gateway.OpenAIWS.MinIdlePerAccount = 0
@@ -608,13 +609,15 @@ func TestOpenAIWSConnPool_AcquireForcePreferredConnDirectAndQueueFull(t *testing
 
 	require.True(t, preferredConn.tryAcquire())
 	preferredConn.waiters.Store(1)
-	_, err = pool.Acquire(context.Background(), openAIWSAcquireRequest{
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
+	defer cancel()
+	_, err = pool.Acquire(ctx, openAIWSAcquireRequest{
 		Account:            account,
 		WSURL:              "wss://example.com/v1/responses",
 		PreferredConnID:    preferredConn.id,
 		ForcePreferredConn: true,
 	})
-	require.ErrorIs(t, err, errOpenAIWSConnQueueFull, "严格模式下队列满应直接失败，不得漂移")
+	require.ErrorIs(t, err, context.DeadlineExceeded, "严格续链只受请求上下文约束，不应触发本地队列满")
 	preferredConn.waiters.Store(0)
 	preferredConn.release()
 }
@@ -700,9 +703,9 @@ func TestOpenAIWSConnPool_PinUnpinConnBranches(t *testing.T) {
 	pool.UnpinConn(999, conn.id)
 }
 
-func TestOpenAIWSConnPool_EffectiveMaxConnsByAccount(t *testing.T) {
+func TestOpenAIWSConnPool_EffectiveMaxConnsByAccountIsUnlimited(t *testing.T) {
 	cfg := &config.Config{}
-	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 8
+	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 1
 	cfg.Gateway.OpenAIWS.DynamicMaxConnsByAccountConcurrencyEnabled = true
 	cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor = 1.0
 	cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor = 0.6
@@ -710,64 +713,18 @@ func TestOpenAIWSConnPool_EffectiveMaxConnsByAccount(t *testing.T) {
 	pool := newOpenAIWSConnPool(cfg)
 
 	oauthHigh := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 10}
-	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(oauthHigh), "应受全局硬上限约束")
+	require.Equal(t, openAIWSUnlimitedConnections, pool.effectiveMaxConnsByAccount(oauthHigh))
 
 	oauthLow := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 3}
-	require.Equal(t, 3, pool.effectiveMaxConnsByAccount(oauthLow))
+	require.Equal(t, openAIWSUnlimitedConnections, pool.effectiveMaxConnsByAccount(oauthLow))
 
 	apiKeyHigh := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 10}
-	require.Equal(t, 6, pool.effectiveMaxConnsByAccount(apiKeyHigh), "API Key 应按系数缩放")
-
-	apiKeyLow := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 1}
-	require.Equal(t, 1, pool.effectiveMaxConnsByAccount(apiKeyLow), "最小值应保持为 1")
+	require.Equal(t, openAIWSUnlimitedConnections, pool.effectiveMaxConnsByAccount(apiKeyHigh))
 
 	unlimited := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 0}
-	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(unlimited), "无限并发应回退到全局硬上限")
+	require.Equal(t, openAIWSUnlimitedConnections, pool.effectiveMaxConnsByAccount(unlimited))
 
-	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(nil), "缺少账号上下文应回退到全局硬上限")
-}
-
-func TestOpenAIWSConnPool_EffectiveMaxConnsDisabledFallbackHardCap(t *testing.T) {
-	cfg := &config.Config{}
-	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 8
-	cfg.Gateway.OpenAIWS.DynamicMaxConnsByAccountConcurrencyEnabled = false
-	cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor = 1.0
-	cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor = 1.0
-
-	pool := newOpenAIWSConnPool(cfg)
-	account := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 2}
-	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(account), "关闭动态模式后应保持旧行为")
-}
-
-func TestOpenAIWSConnPool_EffectiveMaxConnsByAccount_ModeRouterV2RespectsHardCap(t *testing.T) {
-	cfg := &config.Config{}
-	cfg.Gateway.OpenAIWS.ModeRouterV2Enabled = true
-	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 8
-	cfg.Gateway.OpenAIWS.DynamicMaxConnsByAccountConcurrencyEnabled = true
-	cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor = 0.3
-	cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor = 0.6
-
-	pool := newOpenAIWSConnPool(cfg)
-
-	high := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 20}
-	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(high), "v2 路径也必须受连接池硬上限约束")
-
-	nonPositive := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 0}
-	require.Equal(t, 0, pool.effectiveMaxConnsByAccount(nonPositive), "并发数<=0 时应不可调度")
-}
-
-func TestOpenAIWSConnPool_AcquireRejectsWhenEffectiveMaxConnsIsZero(t *testing.T) {
-	cfg := &config.Config{}
-	cfg.Gateway.OpenAIWS.ModeRouterV2Enabled = true
-	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 8
-	pool := newOpenAIWSConnPool(cfg)
-
-	account := &Account{ID: 901, Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 0}
-	_, err := pool.Acquire(context.Background(), openAIWSAcquireRequest{
-		Account: account,
-		WSURL:   "wss://example.com/v1/responses",
-	})
-	require.ErrorIs(t, err, errOpenAIWSConnQueueFull)
+	require.Equal(t, openAIWSUnlimitedConnections, pool.effectiveMaxConnsByAccount(nil))
 }
 
 func TestOpenAIWSConnLease_ReadMessageWithContextTimeout_PerRead(t *testing.T) {
@@ -998,13 +955,13 @@ func TestOpenAIWSConnPool_RunBackgroundCleanupSweep_SkipsInvalidAndUsesAccountCa
 
 func TestOpenAIWSConnPool_QueueLimitPerConn_DefaultAndConfigured(t *testing.T) {
 	var nilPool *openAIWSConnPool
-	require.Equal(t, 256, nilPool.queueLimitPerConn())
+	require.Equal(t, 0, nilPool.queueLimitPerConn())
 
 	pool := &openAIWSConnPool{cfg: &config.Config{}}
-	require.Equal(t, 256, pool.queueLimitPerConn())
+	require.Equal(t, 0, pool.queueLimitPerConn())
 
 	pool.cfg.Gateway.OpenAIWS.QueueLimitPerConn = 9
-	require.Equal(t, 9, pool.queueLimitPerConn())
+	require.Equal(t, 0, pool.queueLimitPerConn())
 }
 
 func TestOpenAIWSConnPool_Close(t *testing.T) {
@@ -1273,12 +1230,11 @@ func TestOpenAIWSConnPool_UtilityBranches(t *testing.T) {
 	pool.setClientDialerForTest(nil)
 	require.NotNil(t, pool.clientDialer)
 
-	require.Equal(t, 8, nilPool.maxConnsHardCap())
-	require.False(t, nilPool.dynamicMaxConnsEnabled())
-	require.Equal(t, 1.0, nilPool.maxConnsFactorByAccount(nil))
+	require.Equal(t, openAIWSUnlimitedConnections, nilPool.maxConnsHardCap())
+	require.Equal(t, openAIWSUnlimitedConnections, nilPool.effectiveMaxConnsByAccount(nil))
 	require.Equal(t, 0, nilPool.minIdlePerAccount())
 	require.Equal(t, 4, nilPool.maxIdlePerAccount())
-	require.Equal(t, 256, nilPool.queueLimitPerConn())
+	require.Equal(t, 0, nilPool.queueLimitPerConn())
 	require.Equal(t, 0.7, nilPool.targetUtilization())
 	require.Equal(t, time.Duration(0), nilPool.prewarmCooldown())
 	require.Equal(t, 10*time.Second, nilPool.dialTimeout())
@@ -1548,38 +1504,6 @@ func TestOpenAIWSConnPool_Acquire_ErrorBranches(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ws url is empty")
 
-	// target=nil 分支：池满且仅有 nil 连接
-	cfg := &config.Config{}
-	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 1
-	cfg.Gateway.OpenAIWS.QueueLimitPerConn = 1
-	fullPool := newOpenAIWSConnPool(cfg)
-	account := &Account{ID: 2001, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
-	ap := fullPool.getOrCreateAccountPool(account.ID)
-	ap.mu.Lock()
-	ap.conns["nil"] = nil
-	ap.lastCleanupAt = time.Now()
-	ap.mu.Unlock()
-	_, err = fullPool.Acquire(context.Background(), openAIWSAcquireRequest{
-		Account: account,
-		WSURL:   "wss://example.com/v1/responses",
-	})
-	require.ErrorIs(t, err, errOpenAIWSConnClosed)
-
-	// queue full 分支：waiters 达上限
-	account2 := &Account{ID: 2002, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
-	ap2 := fullPool.getOrCreateAccountPool(account2.ID)
-	conn := newOpenAIWSConn("queue_full", account2.ID, &openAIWSFakeConn{}, nil)
-	require.True(t, conn.tryAcquire())
-	conn.waiters.Store(1)
-	ap2.mu.Lock()
-	ap2.conns[conn.id] = conn
-	ap2.lastCleanupAt = time.Now()
-	ap2.mu.Unlock()
-	_, err = fullPool.Acquire(context.Background(), openAIWSAcquireRequest{
-		Account: account2,
-		WSURL:   "wss://example.com/v1/responses",
-	})
-	require.ErrorIs(t, err, errOpenAIWSConnQueueFull)
 }
 
 type openAIWSFakeDialer struct{}

@@ -1359,11 +1359,6 @@ func (s *defaultOpenAIAccountScheduler) tryAcquireOpenAISelectionOrderWithBudget
 		if candidate.account == nil {
 			continue
 		}
-		if candidate.loadKnown && candidate.account.Concurrency > 0 &&
-			candidate.loadInfo.CurrentConcurrency >= candidate.account.Concurrency {
-			continue
-		}
-
 		result, attempted, acquireErr := s.tryAcquireOpenAIAccountSlot(ctx, candidate.account.ID, candidate.account.Concurrency, budget)
 		if !attempted {
 			break
@@ -1395,19 +1390,6 @@ func (s *defaultOpenAIAccountScheduler) tryAcquireOpenAISelectionOrderWithBudget
 			continue
 		}
 
-		if fresh.Concurrency != candidate.account.Concurrency {
-			release(result)
-			result, attempted, acquireErr = s.tryAcquireOpenAIAccountSlot(ctx, fresh.ID, fresh.Concurrency, budget)
-			if !attempted {
-				continue
-			}
-			if acquireErr != nil {
-				return nil, compactBlocked, acquireErr
-			}
-			if result == nil || !result.Acquired {
-				continue
-			}
-		}
 		if req.SessionHash != "" && !req.PreserveStickyBinding {
 			_ = s.service.BindStickySession(ctx, req.GroupID, req.SessionHash, fresh.ID)
 		}
@@ -1801,15 +1783,12 @@ func (s *defaultOpenAIAccountScheduler) finishLoadBalanceSelectionFallback(
 	}
 	for pass := 0; pass < passes; pass++ {
 		wantAttempted := pass == 1 || pass == 3
-		wantKnownFull := pass >= 2
 		for _, candidate := range attempt.selectionOrder {
 			if candidate.account == nil {
 				continue
 			}
 			if budget != nil && budget.limited {
-				knownFull := candidate.loadKnown && candidate.account.Concurrency > 0 &&
-					candidate.loadInfo.CurrentConcurrency >= candidate.account.Concurrency
-				if budget.wasAttempted(candidate.account.ID) != wantAttempted || knownFull != wantKnownFull {
+				if budget.wasAttempted(candidate.account.ID) != wantAttempted {
 					continue
 				}
 			}

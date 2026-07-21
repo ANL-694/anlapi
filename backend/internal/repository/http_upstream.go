@@ -50,9 +50,6 @@ const (
 	defaultMaxIdleConns = 240
 	// defaultMaxIdleConnsPerHost: 默认每主机最大空闲连接数
 	defaultMaxIdleConnsPerHost = 120
-	// defaultMaxConnsPerHost: 默认每主机最大连接数（含活跃连接）
-	// 达到上限后新请求会等待，而非无限创建连接
-	defaultMaxConnsPerHost = 240
 	// defaultIdleConnTimeout: 默认空闲连接超时时间（90秒）
 	// 超时后连接会被关闭，释放系统资源（建议小于上游 LB 超时）
 	defaultIdleConnTimeout = 90 * time.Second
@@ -841,28 +838,11 @@ func (s *httpUpstreamService) clientIdleTTL() time.Duration {
 	return time.Duration(defaultClientIdleTTLSeconds) * time.Second
 }
 
-// resolvePoolSettings 解析连接池配置
-// 根据隔离策略和账户并发数动态调整连接池参数
-//
-// 参数:
-//   - isolation: 隔离模式
-//   - accountConcurrency: 账户并发限制
-//
-// 返回:
-//   - poolSettings: 连接池配置
-//
-// 说明:
-//   - 账户隔离模式下，连接池大小与账户并发数对应
-//   - 这确保了单账户不会占用过多连接资源
-func (s *httpUpstreamService) resolvePoolSettings(isolation string, accountConcurrency int) poolSettings {
-	settings := defaultPoolSettings(s.cfg)
-	// 账户隔离模式下，根据账户并发数调整连接池大小
-	if (isolation == config.ConnectionPoolIsolationAccount || isolation == config.ConnectionPoolIsolationAccountProxy) && accountConcurrency > 0 {
-		settings.maxIdleConns = accountConcurrency
-		settings.maxIdleConnsPerHost = accountConcurrency
-		settings.maxConnsPerHost = accountConcurrency
-	}
-	return settings
+// resolvePoolSettings uses the gateway-wide transport limits only. Account
+// concurrency is routing metadata, not a per-account HTTP request cap; using
+// it for MaxConnsPerHost silently reintroduced account-level blocking.
+func (s *httpUpstreamService) resolvePoolSettings(_ string, _ int) poolSettings {
+	return defaultPoolSettings(s.cfg)
 }
 
 func (s *httpUpstreamService) applyProfilePoolSettings(settings poolSettings, profile service.HTTPUpstreamProfile) poolSettings {
@@ -1180,7 +1160,9 @@ func normalizeProxyURL(raw string) (string, *url.URL, error) {
 func defaultPoolSettings(cfg *config.Config) poolSettings {
 	maxIdleConns := defaultMaxIdleConns
 	maxIdleConnsPerHost := defaultMaxIdleConnsPerHost
-	maxConnsPerHost := defaultMaxConnsPerHost
+	// 0 让 net/http 不限制同一主机的活跃连接数。网关请求并发只由
+	// 用户账户控制，不能由 HTTP 连接池再额外排队或拒绝。
+	maxConnsPerHost := 0
 	idleConnTimeout := defaultIdleConnTimeout
 	responseHeaderTimeout := defaultResponseHeaderTimeout
 
@@ -1190,9 +1172,6 @@ func defaultPoolSettings(cfg *config.Config) poolSettings {
 		}
 		if cfg.Gateway.MaxIdleConnsPerHost > 0 {
 			maxIdleConnsPerHost = cfg.Gateway.MaxIdleConnsPerHost
-		}
-		if cfg.Gateway.MaxConnsPerHost >= 0 {
-			maxConnsPerHost = cfg.Gateway.MaxConnsPerHost
 		}
 		if cfg.Gateway.IdleConnTimeoutSeconds > 0 {
 			idleConnTimeout = time.Duration(cfg.Gateway.IdleConnTimeoutSeconds) * time.Second
@@ -1225,7 +1204,7 @@ func defaultPoolSettings(cfg *config.Config) poolSettings {
 // Transport 参数说明:
 //   - MaxIdleConns: 所有主机的最大空闲连接总数
 //   - MaxIdleConnsPerHost: 每主机最大空闲连接数（影响连接复用率）
-//   - MaxConnsPerHost: 每主机最大连接数（达到后新请求等待）
+//   - MaxConnsPerHost: 固定为 0，不作为网关请求并发限制
 //   - IdleConnTimeout: 空闲连接超时（超时后关闭）
 //   - ResponseHeaderTimeout: 等待响应头超时（不影响流式传输）
 func buildUpstreamTransport(settings poolSettings, proxyURL *url.URL, protocolMode string) (*http.Transport, error) {

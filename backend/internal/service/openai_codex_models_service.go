@@ -358,10 +358,10 @@ func (s *OpenAIGatewayService) fetchCachedAPIKeyCodexModelsManifest(ctx context.
 	if state == codexModelsManifestCacheFresh {
 		return codexModelsManifestForClient(manifest, ifNoneMatch), nil
 	}
-	resultCh := s.refreshCachedAPIKeyCodexModelsManifest(cacheKey, request)
 	if state == codexModelsManifestCacheStale {
 		return codexModelsManifestForClient(manifest, ifNoneMatch), nil
 	}
+	resultCh := s.refreshCachedAPIKeyCodexModelsManifest(ctx, cacheKey, request)
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -377,14 +377,17 @@ func (s *OpenAIGatewayService) fetchCachedAPIKeyCodexModelsManifest(ctx context.
 	}
 }
 
-func (s *OpenAIGatewayService) refreshCachedAPIKeyCodexModelsManifest(cacheKey string, request codexModelsManifestRequest) <-chan singleflight.Result {
+func (s *OpenAIGatewayService) refreshCachedAPIKeyCodexModelsManifest(ctx context.Context, cacheKey string, request codexModelsManifestRequest) <-chan singleflight.Result {
 	return s.codexModelsManifestCache.refresh.DoChan(cacheKey, func() (any, error) {
 		cached, _ := s.codexModelsManifestCache.get(cacheKey, time.Now())
 		ifNoneMatch := ""
 		if cached != nil {
 			ifNoneMatch = cached.ETag
 		}
-		manifest, err := s.fetchCodexModelsManifestUpstream(context.Background(), request, ifNoneMatch)
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		manifest, err := s.fetchCodexModelsManifestUpstream(ctx, request, ifNoneMatch)
 		if err != nil {
 			return nil, err
 		}

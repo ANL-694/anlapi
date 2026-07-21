@@ -88,13 +88,13 @@ func TestCollectConcurrencyQueueDepthUsesProjectionAndPreservesFallbackResult(t 
 
 	require.NotNil(t, projectionDepth)
 	require.NotNil(t, fallbackDepth)
-	require.Equal(t, 5, *projectionDepth)
+	require.Zero(t, *projectionDepth)
 	require.Equal(t, *fallbackDepth, *projectionDepth)
 	require.Equal(t, 1, projectionRepo.projectionCalls)
 	require.Zero(t, projectionRepo.listCalls)
 	require.Equal(t, 1, fallbackRepo.listCalls)
-	require.Equal(t, accountLoads, projectionCache.got)
-	require.Equal(t, fallbackCache.got, projectionCache.got)
+	require.Empty(t, projectionCache.got)
+	require.Empty(t, fallbackCache.got)
 }
 
 func BenchmarkOpsMetricsCollectorCollectConcurrencyQueueDepth(b *testing.B) {

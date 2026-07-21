@@ -16,8 +16,9 @@ import (
 // GET {base_url}/models?client_version=... (custom provider mode) or
 // GET /backend-api/codex/models (chatgpt_base_url mode). Both routes land
 // here. The manifest is proxied verbatim from the selected account's ChatGPT
-// backend or custom API key upstream. API key manifests use a short-lived,
-// asynchronously revalidated cache to tolerate canceled client requests.
+// backend or custom API key upstream. API key manifests use a short-lived
+// cache; stale entries are served until expiry so all upstream refreshes stay
+// inside a user-concurrency-guarded request.
 func (h *OpenAIGatewayHandler) CodexModels(c *gin.Context) {
 	if c.Request.Context().Err() != nil {
 		return
@@ -31,6 +32,23 @@ func (h *OpenAIGatewayHandler) CodexModels(c *gin.Context) {
 		h.errorResponse(c, http.StatusNotFound, "not_found_error", "Codex models manifest is only available for OpenAI groups")
 		return
 	}
+	if h.concurrencyHelper == nil {
+		h.errorResponse(c, http.StatusInternalServerError, "api_error", "User concurrency service is unavailable")
+		return
+	}
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		h.errorResponse(c, http.StatusInternalServerError, "api_error", "User context not found")
+		return
+	}
+	streamStarted := false
+	userReleaseFunc, err := h.concurrencyHelper.AcquireUserSlotWithQueue(c, subject.UserID, subject.Concurrency, false, &streamStarted)
+	if err != nil {
+		h.errorResponse(c, http.StatusTooManyRequests, "rate_limit_error", "Too many concurrent requests, please retry later")
+		return
+	}
+	userReleaseFunc = wrapReleaseOnDone(c.Request.Context(), userReleaseFunc)
+	defer userReleaseFunc()
 
 	maxAccountSwitches := h.maxAccountSwitches
 	if maxAccountSwitches <= 0 {

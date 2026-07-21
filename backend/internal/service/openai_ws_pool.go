@@ -28,6 +28,7 @@ const (
 
 	openAIWSPrewarmFailureWindow   = 30 * time.Second
 	openAIWSPrewarmFailureSuppress = 2
+	openAIWSUnlimitedConnections   = int(^uint(0) >> 1)
 )
 
 var (
@@ -901,7 +902,7 @@ retryAcquire:
 
 			connPick := time.Since(pickStartedAt)
 			p.recordConnPickDuration(connPick)
-			if int(preferredConn.waiters.Load()) >= p.queueLimitPerConn() {
+			if queueLimit := p.queueLimitPerConn(); queueLimit > 0 && int(preferredConn.waiters.Load()) >= queueLimit {
 				ap.mu.Unlock()
 				closeOpenAIWSConns(evicted)
 				return nil, errOpenAIWSConnQueueFull
@@ -1108,7 +1109,7 @@ retryAcquire:
 		closeOpenAIWSConns(evicted)
 		return nil, errOpenAIWSConnClosed
 	}
-	if int(target.waiters.Load()) >= p.queueLimitPerConn() {
+	if queueLimit := p.queueLimitPerConn(); queueLimit > 0 && int(target.waiters.Load()) >= queueLimit {
 		ap.mu.Unlock()
 		closeOpenAIWSConns(evicted)
 		return nil, errOpenAIWSConnQueueFull
@@ -1698,17 +1699,7 @@ func (p *openAIWSConnPool) shouldHealthCheckConn(conn *openAIWSConn) bool {
 }
 
 func (p *openAIWSConnPool) maxConnsHardCap() int {
-	if p != nil && p.cfg != nil && p.cfg.Gateway.OpenAIWS.MaxConnsPerAccount > 0 {
-		return p.cfg.Gateway.OpenAIWS.MaxConnsPerAccount
-	}
-	return 8
-}
-
-func (p *openAIWSConnPool) dynamicMaxConnsEnabled() bool {
-	if p != nil && p.cfg != nil {
-		return p.cfg.Gateway.OpenAIWS.DynamicMaxConnsByAccountConcurrencyEnabled
-	}
-	return false
+	return openAIWSUnlimitedConnections
 }
 
 func (p *openAIWSConnPool) modeRouterV2Enabled() bool {
@@ -1718,56 +1709,11 @@ func (p *openAIWSConnPool) modeRouterV2Enabled() bool {
 	return false
 }
 
-func (p *openAIWSConnPool) maxConnsFactorByAccount(account *Account) float64 {
-	if p == nil || p.cfg == nil || account == nil {
-		return 1.0
-	}
-	switch account.Type {
-	case AccountTypeOAuth:
-		if p.cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor > 0 {
-			return p.cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor
-		}
-	case AccountTypeAPIKey:
-		if p.cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor > 0 {
-			return p.cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor
-		}
-	}
-	return 1.0
-}
-
-func (p *openAIWSConnPool) effectiveMaxConnsByAccount(account *Account) int {
-	hardCap := p.maxConnsHardCap()
-	if hardCap <= 0 {
-		return 0
-	}
-	if p.modeRouterV2Enabled() {
-		if account == nil {
-			return hardCap
-		}
-		if account.Concurrency <= 0 {
-			return 0
-		}
-		return min(account.Concurrency, hardCap)
-	}
-	if account == nil || !p.dynamicMaxConnsEnabled() {
-		return hardCap
-	}
-	if account.Concurrency <= 0 {
-		// 0/-1 等“无限制”并发场景下，仍由全局硬上限兜底。
-		return hardCap
-	}
-	factor := p.maxConnsFactorByAccount(account)
-	if factor <= 0 {
-		factor = 1.0
-	}
-	effective := int(math.Ceil(float64(account.Concurrency) * factor))
-	if effective < 1 {
-		effective = 1
-	}
-	if effective > hardCap {
-		effective = hardCap
-	}
-	return effective
+// effectiveMaxConnsByAccount deliberately has no account-level ceiling. The
+// user request slot is the only application concurrency boundary; the pool may
+// create another upstream connection when an existing one is busy.
+func (p *openAIWSConnPool) effectiveMaxConnsByAccount(_ *Account) int {
+	return openAIWSUnlimitedConnections
 }
 
 func (p *openAIWSConnPool) minIdlePerAccount() int {
@@ -1789,10 +1735,7 @@ func (p *openAIWSConnPool) maxConnAge() time.Duration {
 }
 
 func (p *openAIWSConnPool) queueLimitPerConn() int {
-	if p != nil && p.cfg != nil && p.cfg.Gateway.OpenAIWS.QueueLimitPerConn > 0 {
-		return p.cfg.Gateway.OpenAIWS.QueueLimitPerConn
-	}
-	return 256
+	return 0
 }
 
 func (p *openAIWSConnPool) targetUtilization() float64 {

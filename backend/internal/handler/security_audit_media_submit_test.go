@@ -144,7 +144,15 @@ func TestBatchImagePromptGuardRunsBeforePersistenceOrBilling(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := blockingHandlerPromptEngine()
 	openAI := &OpenAIGatewayHandler{securityAuditCoordinator: securityaudit.NewCoordinator(nil, engine)}
-	h := &BatchImageHandler{openAI: openAI}
+	cache := &concurrencyCacheMock{
+		acquireUserSlotFn: func(context.Context, int64, int, string) (bool, error) {
+			return true, nil
+		},
+	}
+	h := &BatchImageHandler{
+		openAI:            openAI,
+		concurrencyHelper: NewConcurrencyHelper(service.NewConcurrencyService(cache), SSEPingFormatNone, time.Second),
+	}
 	router := gin.New()
 	router.Use(securityAuditMediaTestMiddleware)
 	router.POST("/v1/images/batches", h.Submit)

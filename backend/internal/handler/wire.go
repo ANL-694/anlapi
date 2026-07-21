@@ -166,6 +166,9 @@ func ProvideBatchImageHandler(
 ) *BatchImageHandler {
 	h := NewBatchImageHandler(batchService, download, cleanup)
 	h.openAI = openAI
+	if openAI != nil {
+		h.concurrencyHelper = openAI.concurrencyHelper
+	}
 	return h
 }
 

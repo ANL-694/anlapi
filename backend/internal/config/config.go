@@ -733,19 +733,6 @@ type ConcurrencyConfig struct {
 	PingInterval int `mapstructure:"ping_interval"`
 }
 
-type ImageConcurrencyConfig struct {
-	Enabled               bool   `mapstructure:"enabled"`
-	MaxConcurrentRequests int    `mapstructure:"max_concurrent_requests"`
-	OverflowMode          string `mapstructure:"overflow_mode"`
-	WaitTimeoutSeconds    int    `mapstructure:"wait_timeout_seconds"`
-	MaxWaitingRequests    int    `mapstructure:"max_waiting_requests"`
-}
-
-const (
-	ImageConcurrencyOverflowModeReject = "reject"
-	ImageConcurrencyOverflowModeWait   = "wait"
-)
-
 const (
 	OpenAIImagesResponsesReasoningEffortLow     = "low"
 	OpenAIImagesResponsesReasoningEffortMedium  = "medium"
@@ -819,15 +806,12 @@ type GatewayConfig struct {
 	OpenAIScheduler GatewayOpenAISchedulerConfig `mapstructure:"openai_scheduler"`
 	// OpenAIHTTP2: OpenAI HTTP 上游协议策略
 	OpenAIHTTP2 GatewayOpenAIHTTP2Config `mapstructure:"openai_http2"`
-	// ImageConcurrency: 图片生成独立并发限制配置（默认关闭）
-	ImageConcurrency ImageConcurrencyConfig `mapstructure:"image_concurrency"`
-
 	// HTTP 上游连接池配置（性能优化：支持高并发场景调优）
 	// MaxIdleConns: 所有主机的最大空闲连接总数
 	MaxIdleConns int `mapstructure:"max_idle_conns"`
 	// MaxIdleConnsPerHost: 每个主机的最大空闲连接数（关键参数，影响连接复用率）
 	MaxIdleConnsPerHost int `mapstructure:"max_idle_conns_per_host"`
-	// MaxConnsPerHost: 每个主机的最大连接数（包括活跃+空闲），0表示无限制
+	// MaxConnsPerHost: 兼容字段；当前不参与网关运行时连接并发限制。
 	MaxConnsPerHost int `mapstructure:"max_conns_per_host"`
 	// IdleConnTimeoutSeconds: 空闲连接超时时间（秒）
 	IdleConnTimeoutSeconds int `mapstructure:"idle_conn_timeout_seconds"`
@@ -962,8 +946,8 @@ type GatewayOpenAIWSConfig struct {
 	// IngressInterTurnIdleTimeoutSeconds bounds the time a client may remain idle
 	// between completed ingress turns. Zero disables this protection.
 	IngressInterTurnIdleTimeoutSeconds int `mapstructure:"ingress_inter_turn_idle_timeout_seconds"`
-	// MaxIngressConnectionsPerAPIKey bounds live client WebSocket ingress sessions
-	// per API key across all instances. Zero disables this protection.
+	// MaxIngressConnectionsPerAPIKey is retained for configuration compatibility.
+	// Runtime request admission is user-scoped, so this key-scoped limit is ignored.
 	MaxIngressConnectionsPerAPIKey int `mapstructure:"max_ingress_connections_per_api_key"`
 	// Enabled: 全局总开关（默认 true）
 	Enabled bool `mapstructure:"enabled"`
@@ -998,15 +982,16 @@ type GatewayOpenAIWSConfig struct {
 	ResponsesWebsockets   bool `mapstructure:"responses_websockets"`
 	ResponsesWebsocketsV2 bool `mapstructure:"responses_websockets_v2"`
 
-	// 连接池参数
+	// 连接池参数。MaxConnsPerAccount、动态系数和队列上限仅保留旧配置兼容；
+	// 运行时不再按上游账号限制请求并发。
 	MaxConnsPerAccount int `mapstructure:"max_conns_per_account"`
 	MinIdlePerAccount  int `mapstructure:"min_idle_per_account"`
 	MaxIdlePerAccount  int `mapstructure:"max_idle_per_account"`
-	// DynamicMaxConnsByAccountConcurrencyEnabled: 是否按账号并发动态计算连接池上限
+	// DynamicMaxConnsByAccountConcurrencyEnabled: 旧配置兼容字段，不再参与运行时决策。
 	DynamicMaxConnsByAccountConcurrencyEnabled bool `mapstructure:"dynamic_max_conns_by_account_concurrency_enabled"`
-	// OAuthMaxConnsFactor: OAuth 账号连接池系数（effective=ceil(concurrency*factor)）
+	// OAuthMaxConnsFactor: 旧配置兼容字段。
 	OAuthMaxConnsFactor float64 `mapstructure:"oauth_max_conns_factor"`
-	// APIKeyMaxConnsFactor: API Key 账号连接池系数（effective=ceil(concurrency*factor)）
+	// APIKeyMaxConnsFactor: 旧配置兼容字段。
 	APIKeyMaxConnsFactor  float64 `mapstructure:"apikey_max_conns_factor"`
 	DialTimeoutSeconds    int     `mapstructure:"dial_timeout_seconds"`
 	ReadTimeoutSeconds    int     `mapstructure:"read_timeout_seconds"`
@@ -2098,11 +2083,6 @@ func setDefaults() {
 	viper.SetDefault("gateway.openai_http2.fallback_error_threshold", 2)
 	viper.SetDefault("gateway.openai_http2.fallback_window_seconds", 60)
 	viper.SetDefault("gateway.openai_http2.fallback_ttl_seconds", 600)
-	viper.SetDefault("gateway.image_concurrency.enabled", false)
-	viper.SetDefault("gateway.image_concurrency.max_concurrent_requests", 0)
-	viper.SetDefault("gateway.image_concurrency.overflow_mode", ImageConcurrencyOverflowModeReject)
-	viper.SetDefault("gateway.image_concurrency.wait_timeout_seconds", 30)
-	viper.SetDefault("gateway.image_concurrency.max_waiting_requests", 100)
 	viper.SetDefault("gateway.image_nonstream_keepalive_interval", 0)
 	// OpenAI Responses WebSocket（默认开启；可通过 force_http 紧急回滚）
 	viper.SetDefault("gateway.openai_ws.enabled", true)
@@ -2110,7 +2090,7 @@ func setDefaults() {
 	viper.SetDefault("gateway.openai_ws.ingress_mode_default", "ctx_pool")
 	viper.SetDefault("gateway.openai_ws.client_first_message_timeout_seconds", DefaultOpenAIWSClientFirstMessageTimeoutSeconds)
 	viper.SetDefault("gateway.openai_ws.ingress_inter_turn_idle_timeout_seconds", 300)
-	viper.SetDefault("gateway.openai_ws.max_ingress_connections_per_api_key", 64)
+	viper.SetDefault("gateway.openai_ws.max_ingress_connections_per_api_key", 0)
 	viper.SetDefault("gateway.openai_ws.oauth_enabled", true)
 	viper.SetDefault("gateway.openai_ws.apikey_enabled", true)
 	viper.SetDefault("gateway.openai_ws.force_http", false)
@@ -2124,17 +2104,20 @@ func setDefaults() {
 	viper.SetDefault("gateway.openai_ws.http_bridge_threshold_bytes", 15*1024*1024)
 	viper.SetDefault("gateway.openai_ws.responses_websockets", false)
 	viper.SetDefault("gateway.openai_ws.responses_websockets_v2", true)
-	viper.SetDefault("gateway.openai_ws.max_conns_per_account", 128)
+	viper.SetDefault("gateway.openai_ws.max_conns_per_account", 0)
 	viper.SetDefault("gateway.openai_ws.min_idle_per_account", 4)
 	viper.SetDefault("gateway.openai_ws.max_idle_per_account", 12)
-	viper.SetDefault("gateway.openai_ws.dynamic_max_conns_by_account_concurrency_enabled", true)
+	viper.SetDefault("gateway.openai_ws.dynamic_max_conns_by_account_concurrency_enabled", false)
+	// Preserve legacy defaults so existing configuration validation and external
+	// config templates remain compatible. These factors are no longer used for
+	// request admission or WebSocket pool capacity.
 	viper.SetDefault("gateway.openai_ws.oauth_max_conns_factor", 1.0)
 	viper.SetDefault("gateway.openai_ws.apikey_max_conns_factor", 1.0)
 	viper.SetDefault("gateway.openai_ws.dial_timeout_seconds", 10)
 	viper.SetDefault("gateway.openai_ws.read_timeout_seconds", 900)
 	viper.SetDefault("gateway.openai_ws.write_timeout_seconds", 120)
 	viper.SetDefault("gateway.openai_ws.pool_target_utilization", 0.7)
-	viper.SetDefault("gateway.openai_ws.queue_limit_per_conn", 64)
+	viper.SetDefault("gateway.openai_ws.queue_limit_per_conn", 0)
 	viper.SetDefault("gateway.openai_ws.event_flush_batch_size", 1)
 	viper.SetDefault("gateway.openai_ws.event_flush_interval_ms", 10)
 	viper.SetDefault("gateway.openai_ws.prewarm_cooldown_ms", 300)
@@ -2898,21 +2881,6 @@ func (c *Config) Validate() error {
 	if c.Gateway.OpenAIHTTP2.FallbackTTLSeconds < 0 {
 		return fmt.Errorf("gateway.openai_http2.fallback_ttl_seconds must be non-negative")
 	}
-	if c.Gateway.ImageConcurrency.MaxConcurrentRequests < 0 {
-		return fmt.Errorf("gateway.image_concurrency.max_concurrent_requests must be non-negative")
-	}
-	switch strings.TrimSpace(c.Gateway.ImageConcurrency.OverflowMode) {
-	case "", ImageConcurrencyOverflowModeReject, ImageConcurrencyOverflowModeWait:
-	default:
-		return fmt.Errorf("gateway.image_concurrency.overflow_mode must be one of: %s/%s",
-			ImageConcurrencyOverflowModeReject, ImageConcurrencyOverflowModeWait)
-	}
-	if c.Gateway.ImageConcurrency.WaitTimeoutSeconds < 0 {
-		return fmt.Errorf("gateway.image_concurrency.wait_timeout_seconds must be non-negative")
-	}
-	if c.Gateway.ImageConcurrency.MaxWaitingRequests < 0 {
-		return fmt.Errorf("gateway.image_concurrency.max_waiting_requests must be non-negative")
-	}
 	if c.Gateway.ImageNonstreamKeepaliveInterval < 0 {
 		return fmt.Errorf("gateway.image_nonstream_keepalive_interval must be non-negative")
 	}
@@ -2990,8 +2958,8 @@ func (c *Config) Validate() error {
 	if c.Gateway.OpenAIWS.StickyResponseIDTTLSeconds <= 0 && c.Gateway.OpenAIWS.StickyPreviousResponseTTLSeconds > 0 {
 		c.Gateway.OpenAIWS.StickyResponseIDTTLSeconds = c.Gateway.OpenAIWS.StickyPreviousResponseTTLSeconds
 	}
-	if c.Gateway.OpenAIWS.MaxConnsPerAccount <= 0 {
-		return fmt.Errorf("gateway.openai_ws.max_conns_per_account must be positive")
+	if c.Gateway.OpenAIWS.MaxConnsPerAccount < 0 {
+		return fmt.Errorf("gateway.openai_ws.max_conns_per_account must be non-negative")
 	}
 	if c.Gateway.OpenAIScheduler.StickyEscapeTTFTMs <= 0 {
 		return fmt.Errorf("gateway.openai_scheduler.sticky_escape_ttft_ms must be positive")
@@ -3026,14 +2994,8 @@ func (c *Config) Validate() error {
 	if c.Gateway.OpenAIWS.MinIdlePerAccount > c.Gateway.OpenAIWS.MaxIdlePerAccount {
 		return fmt.Errorf("gateway.openai_ws.min_idle_per_account must be <= max_idle_per_account")
 	}
-	if c.Gateway.OpenAIWS.MaxIdlePerAccount > c.Gateway.OpenAIWS.MaxConnsPerAccount {
+	if c.Gateway.OpenAIWS.MaxConnsPerAccount > 0 && c.Gateway.OpenAIWS.MaxIdlePerAccount > c.Gateway.OpenAIWS.MaxConnsPerAccount {
 		return fmt.Errorf("gateway.openai_ws.max_idle_per_account must be <= max_conns_per_account")
-	}
-	if c.Gateway.OpenAIWS.OAuthMaxConnsFactor <= 0 {
-		return fmt.Errorf("gateway.openai_ws.oauth_max_conns_factor must be positive")
-	}
-	if c.Gateway.OpenAIWS.APIKeyMaxConnsFactor <= 0 {
-		return fmt.Errorf("gateway.openai_ws.apikey_max_conns_factor must be positive")
 	}
 	if c.Gateway.OpenAIWS.DialTimeoutSeconds <= 0 {
 		return fmt.Errorf("gateway.openai_ws.dial_timeout_seconds must be positive")
@@ -3047,8 +3009,8 @@ func (c *Config) Validate() error {
 	if c.Gateway.OpenAIWS.PoolTargetUtilization <= 0 || c.Gateway.OpenAIWS.PoolTargetUtilization > 1 {
 		return fmt.Errorf("gateway.openai_ws.pool_target_utilization must be within (0,1]")
 	}
-	if c.Gateway.OpenAIWS.QueueLimitPerConn <= 0 {
-		return fmt.Errorf("gateway.openai_ws.queue_limit_per_conn must be positive")
+	if c.Gateway.OpenAIWS.QueueLimitPerConn < 0 {
+		return fmt.Errorf("gateway.openai_ws.queue_limit_per_conn must be non-negative")
 	}
 	if c.Gateway.OpenAIWS.EventFlushBatchSize <= 0 {
 		return fmt.Errorf("gateway.openai_ws.event_flush_batch_size must be positive")

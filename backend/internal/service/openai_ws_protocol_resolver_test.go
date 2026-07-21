@@ -202,7 +202,7 @@ func TestOpenAIWSProtocolResolver_Resolve_ModeRouterV2(t *testing.T) {
 		require.Equal(t, "ws_v2_mode_passthrough", decision.Reason)
 	})
 
-	t.Run("non-positive concurrency is rejected in v2 router", func(t *testing.T) {
+	t.Run("non-positive account concurrency does not change v2 routing", func(t *testing.T) {
 		invalidConcurrency := &Account{
 			Platform: PlatformOpenAI,
 			Type:     AccountTypeOAuth,
@@ -211,7 +211,7 @@ func TestOpenAIWSProtocolResolver_Resolve_ModeRouterV2(t *testing.T) {
 			},
 		}
 		decision := NewOpenAIWSProtocolResolver(cfg).Resolve(invalidConcurrency)
-		require.Equal(t, OpenAIUpstreamTransportHTTPSSE, decision.Transport)
-		require.Equal(t, "account_concurrency_invalid", decision.Reason)
+		require.Equal(t, OpenAIUpstreamTransportResponsesWebsocketV2, decision.Transport)
+		require.Equal(t, "ws_v2_mode_ctx_pool", decision.Reason)
 	})
 }

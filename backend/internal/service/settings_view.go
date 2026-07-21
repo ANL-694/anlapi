@@ -120,22 +120,22 @@ type SystemSettings struct {
 	GoogleOAuthRedirectURL            string
 	GoogleOAuthFrontendRedirectURL    string
 
-	SiteName                    string
-	SiteLogo                    string
-	SiteSubtitle                string
-	APIBaseURL                  string
-	ContactInfo                 string
-	DocURL                      string
-	HomeContent                 string
-	HomeStatsGroupID            int64
+	SiteName                     string
+	SiteLogo                     string
+	SiteSubtitle                 string
+	APIBaseURL                   string
+	ContactInfo                  string
+	DocURL                       string
+	HomeContent                  string
+	HomeStatsGroupID             int64
 	SystemImageGenerationGroupID int64
-	HideCcsImportButton         bool
-	PurchaseSubscriptionEnabled bool
-	PurchaseSubscriptionURL     string
-	TableDefaultPageSize        int
-	TablePageSizeOptions        []int
-	CustomMenuItems             string // JSON array of custom menu items
-	CustomEndpoints             string // JSON array of custom endpoints
+	HideCcsImportButton          bool
+	PurchaseSubscriptionEnabled  bool
+	PurchaseSubscriptionURL      string
+	TableDefaultPageSize         int
+	TablePageSizeOptions         []int
+	CustomMenuItems              string // JSON array of custom menu items
+	CustomEndpoints              string // JSON array of custom endpoints
 
 	DefaultConcurrency              int
 	DefaultBalance                  float64
@@ -550,26 +550,9 @@ type OpenAIFastPolicySettings struct {
 	Rules []OpenAIFastPolicyRule `json:"rules"`
 }
 
-// DefaultOpenAIFastPolicySettings 返回默认的 OpenAI fast 策略配置。
-// 默认对所有模型的 priority（fast）请求执行 filter，即剔除 service_tier 字段，
-// 让上游按 normal 优先级处理。
-//
-// 为什么 ModelWhitelist 为空（=对所有模型生效）：
-// codex 客户端的 service_tier=fast 是用户级开关，与 model 字段正交。即使
-// 用户使用 gpt-4 + fast，priority 配额仍会被消耗。如果默认规则只锁
-// gpt-5.5*，"用 gpt-4 + fast 透传 priority 上游" 这条路径就会绕过策略。
-// 与 codex 真实语义对齐，默认对所有模型生效；管理员若需要只针对特定
-// 模型，可在 admin UI 中显式配置 model_whitelist。
+// DefaultOpenAIFastPolicySettings keeps the legacy setting shape while making
+// the default contract explicit: Fast/Flex service tiers are always sent to
+// the upstream after normalizing the client alias "fast" to "priority".
 func DefaultOpenAIFastPolicySettings() *OpenAIFastPolicySettings {
-	return &OpenAIFastPolicySettings{
-		Rules: []OpenAIFastPolicyRule{
-			{
-				ServiceTier:    OpenAIFastTierPriority,
-				Action:         BetaPolicyActionFilter,
-				Scope:          BetaPolicyScopeAll,
-				ModelWhitelist: []string{},
-				FallbackAction: BetaPolicyActionPass,
-			},
-		},
-	}
+	return &OpenAIFastPolicySettings{Rules: []OpenAIFastPolicyRule{}}
 }

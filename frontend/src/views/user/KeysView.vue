@@ -54,7 +54,7 @@
           :data="apiKeys"
           :loading="loading"
           :card-rows="true"
-          :sticky-actions-column="false"
+          :sticky-actions-column="true"
           :server-side-sort="true"
           default-sort-key="created_at"
           default-sort-order="desc"
@@ -355,6 +355,13 @@
                 <Icon name="terminal" size="sm" />
                 <span class="text-xs">{{ t('keys.useKey') }}</span>
               </button>
+              <UiIconButton
+                size="sm"
+                :label="t('keys.usage')"
+                @click="viewKeyUsage(row.id)"
+              >
+                <Icon name="chartBar" size="sm" />
+              </UiIconButton>
               <!-- Import to CC Switch Button -->
               <button
                 v-if="!publicSettings?.hide_ccs_import_button"
@@ -1244,12 +1251,14 @@
 <script setup lang="ts">
 	import { ref, computed, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
 	import { useI18n } from 'vue-i18n'
+	import { useRouter } from 'vue-router'
 	import { useAppStore } from '@/stores/app'
 	import { useOnboardingStore } from '@/stores/onboarding'
 	import { useClipboard } from '@/composables/useClipboard'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 
 const { t } = useI18n()
+const router = useRouter()
 import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
@@ -1759,6 +1768,13 @@ const loadPublicSettings = async () => {
 const openUseKeyModal = (key: ApiKey) => {
   selectedKey.value = key
   showUseKeyModal.value = true
+}
+
+const viewKeyUsage = (keyId: number) => {
+  router.push({
+    path: '/usage',
+    query: { api_key_id: String(keyId) }
+  })
 }
 
 const closeUseKeyModal = () => {

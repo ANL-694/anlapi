@@ -227,7 +227,11 @@ const (
 	apiKeySlotTrackTimeout          = 2 * time.Second
 )
 
-// ConcurrencyService 管理账号和用户的并发限制。
+// ConcurrencyService 管理用户请求并发，并保留 API Key 活跃请求统计。
+//
+// 上游账号、分组和 API Key 不参与业务请求并发限制：它们只能影响路由、
+// 鉴权和统计，不能因账号槽位已满而拒绝用户请求。唯一的请求并发闸门是
+// AcquireUserSlot。
 type ConcurrencyService struct {
 	cache ConcurrencyCache
 
@@ -336,43 +340,11 @@ type UserLoadInfo struct {
 	LoadRate           int // 0-100+ (percent)
 }
 
-// AcquireAccountSlot attempts to acquire a concurrency slot for an account.
-// If the account is at max concurrency, it waits until a slot is available or timeout.
-// Returns a release function that MUST be called when the request completes.
-func (s *ConcurrencyService) AcquireAccountSlot(ctx context.Context, accountID int64, maxConcurrency int) (*AcquireResult, error) {
-	// If maxConcurrency is 0 or negative, no limit
-	if maxConcurrency <= 0 {
-		return &AcquireResult{
-			Acquired:    true,
-			ReleaseFunc: func() {}, // no-op
-		}, nil
-	}
-
-	// Generate unique request ID for this slot
-	requestID := generateRequestID()
-
-	acquired, err := s.cache.AcquireAccountSlot(ctx, accountID, maxConcurrency, requestID)
-	if err != nil {
-		return nil, err
-	}
-
-	if acquired {
-		return &AcquireResult{
-			Acquired: true,
-			ReleaseFunc: func() {
-				bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				if err := s.cache.ReleaseAccountSlot(bgCtx, accountID, requestID); err != nil {
-					logger.LegacyPrintf("service.concurrency", "Warning: failed to release account slot for %d (req=%s): %v", accountID, requestID, err)
-				}
-			},
-		}, nil
-	}
-
-	return &AcquireResult{
-		Acquired:    false,
-		ReleaseFunc: nil,
-	}, nil
+// AcquireAccountSlot is retained for scheduler compatibility, but account-level
+// concurrency is intentionally disabled. Every caller receives a no-op lease;
+// the user-level slot remains the only request concurrency gate.
+func (s *ConcurrencyService) AcquireAccountSlot(_ context.Context, _ int64, _ int) (*AcquireResult, error) {
+	return &AcquireResult{Acquired: true, ReleaseFunc: func() {}}, nil
 }
 
 // AcquireUserSlot attempts to acquire a concurrency slot for a user.
@@ -523,40 +495,20 @@ func (s *ConcurrencyService) DecrementWaitCount(ctx context.Context, userID int6
 	}
 }
 
-// IncrementAccountWaitCount increments the wait queue counter for an account.
-func (s *ConcurrencyService) IncrementAccountWaitCount(ctx context.Context, accountID int64, maxWait int) (bool, error) {
-	if s.cache == nil {
-		return true, nil
-	}
-
-	result, err := s.cache.IncrementAccountWaitCount(ctx, accountID, maxWait)
-	if err != nil {
-		logger.LegacyPrintf("service.concurrency", "Warning: increment wait count failed for account %d: %v", accountID, err)
-		return true, nil
-	}
-	return result, nil
+// IncrementAccountWaitCount is a compatibility no-op. Account queues must not
+// become an additional business concurrency gate.
+func (s *ConcurrencyService) IncrementAccountWaitCount(_ context.Context, _ int64, _ int) (bool, error) {
+	return true, nil
 }
 
-// DecrementAccountWaitCount decrements the wait queue counter for an account.
-func (s *ConcurrencyService) DecrementAccountWaitCount(ctx context.Context, accountID int64) {
-	if s.cache == nil {
-		return
-	}
-
-	bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := s.cache.DecrementAccountWaitCount(bgCtx, accountID); err != nil {
-		logger.LegacyPrintf("service.concurrency", "Warning: decrement wait count failed for account %d: %v", accountID, err)
-	}
+// DecrementAccountWaitCount is the matching compatibility no-op.
+func (s *ConcurrencyService) DecrementAccountWaitCount(_ context.Context, _ int64) {
 }
 
-// GetAccountWaitingCount gets current wait queue count for an account.
-func (s *ConcurrencyService) GetAccountWaitingCount(ctx context.Context, accountID int64) (int, error) {
-	if s.cache == nil {
-		return 0, nil
-	}
-	return s.cache.GetAccountWaitingCount(ctx, accountID)
+// GetAccountWaitingCount always reports zero because account queues are not
+// used to limit or defer gateway requests.
+func (s *ConcurrencyService) GetAccountWaitingCount(_ context.Context, _ int64) (int, error) {
+	return 0, nil
 }
 
 // CalculateMaxWait calculates the maximum wait queue size for a user
@@ -568,14 +520,25 @@ func CalculateMaxWait(userConcurrency int) int {
 	return userConcurrency + defaultExtraWaitSlots
 }
 
-// GetAccountsLoadBatch 批量获取账号负载信息。
-func (s *ConcurrencyService) GetAccountsLoadBatch(ctx context.Context, accounts []AccountWithConcurrency) (map[int64]*AccountLoadInfo, error) {
-	return s.getAccountsLoadBatch(ctx, accounts, true)
+// GetAccountsLoadBatch returns neutral account load data. Routing may still
+// use account priority, health, quota and model support, but active account
+// concurrency must not make a candidate unavailable.
+func (s *ConcurrencyService) GetAccountsLoadBatch(_ context.Context, accounts []AccountWithConcurrency) (map[int64]*AccountLoadInfo, error) {
+	return zeroAccountLoadMap(accounts), nil
 }
 
-// GetAccountsLoadBatchFresh 绕过极短 TTL 缓存，用于抢槽失败后的实时刷新兜底。
-func (s *ConcurrencyService) GetAccountsLoadBatchFresh(ctx context.Context, accounts []AccountWithConcurrency) (map[int64]*AccountLoadInfo, error) {
-	return s.getAccountsLoadBatch(ctx, accounts, false)
+// GetAccountsLoadBatchFresh mirrors GetAccountsLoadBatch now that account
+// concurrency no longer participates in request scheduling.
+func (s *ConcurrencyService) GetAccountsLoadBatchFresh(_ context.Context, accounts []AccountWithConcurrency) (map[int64]*AccountLoadInfo, error) {
+	return zeroAccountLoadMap(accounts), nil
+}
+
+func zeroAccountLoadMap(accounts []AccountWithConcurrency) map[int64]*AccountLoadInfo {
+	result := make(map[int64]*AccountLoadInfo, len(accounts))
+	for _, account := range accounts {
+		result[account.ID] = &AccountLoadInfo{AccountID: account.ID}
+	}
+	return result
 }
 
 func (s *ConcurrencyService) getAccountsLoadBatch(ctx context.Context, accounts []AccountWithConcurrency, allowCache bool) (map[int64]*AccountLoadInfo, error) {
@@ -747,25 +710,12 @@ func (s *ConcurrencyService) StartSlotCleanupWorker(_ AccountRepository, interva
 	}()
 }
 
-// GetAccountConcurrencyBatch gets current concurrency counts for multiple accounts.
-// Uses a detached context with timeout to prevent HTTP request cancellation from
-// causing the entire batch to fail (which would show all concurrency as 0).
-func (s *ConcurrencyService) GetAccountConcurrencyBatch(ctx context.Context, accountIDs []int64) (map[int64]int, error) {
-	if len(accountIDs) == 0 {
-		return map[int64]int{}, nil
+// GetAccountConcurrencyBatch reports zero because account slots are not used
+// for request admission under the user-only concurrency policy.
+func (s *ConcurrencyService) GetAccountConcurrencyBatch(_ context.Context, accountIDs []int64) (map[int64]int, error) {
+	result := make(map[int64]int, len(accountIDs))
+	for _, accountID := range accountIDs {
+		result[accountID] = 0
 	}
-	if s.cache == nil {
-		result := make(map[int64]int, len(accountIDs))
-		for _, accountID := range accountIDs {
-			result[accountID] = 0
-		}
-		return result, nil
-	}
-
-	// Use a detached context so that a cancelled HTTP request doesn't cause
-	// the Redis pipeline to fail and return all-zero concurrency counts.
-	redisCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	return s.cache.GetAccountConcurrencyBatch(redisCtx, accountIDs)
+	return result, nil
 }

@@ -3107,33 +3107,11 @@ func (s *GatewayService) IncrementAccountRPM(ctx context.Context, accountID int6
 	return err
 }
 
-// checkAndRegisterSession 检查并注册会话，用于会话数量限制
-// 仅适用于 Anthropic OAuth/SetupToken 账号
-// sessionID: 会话标识符（使用粘性会话的 hash）
-// 返回 true 表示允许（在限制内或会话已存在），false 表示拒绝（超出限制且是新会话）
-func (s *GatewayService) checkAndRegisterSession(ctx context.Context, account *Account, sessionID string) bool {
-	// 只检查 Anthropic OAuth/SetupToken 账号
-	if !account.IsAnthropicOAuthOrSetupToken() {
-		return true
-	}
-
-	maxSessions := account.GetMaxSessions()
-	if maxSessions <= 0 || sessionID == "" {
-		return true // 未启用会话限制或无会话ID
-	}
-
-	if s.sessionLimitCache == nil {
-		return true // 缓存不可用时允许通过
-	}
-
-	idleTimeout := time.Duration(account.GetSessionIdleTimeoutMinutes()) * time.Minute
-
-	allowed, err := s.sessionLimitCache.RegisterSession(ctx, account.ID, sessionID, maxSessions, idleTimeout)
-	if err != nil {
-		// 失败开放：缓存错误时允许通过
-		return true
-	}
-	return allowed
+// checkAndRegisterSession remains as a routing compatibility hook. Account
+// session counts are not an admission boundary: only the requesting user's
+// configured concurrency may defer or reject a request.
+func (s *GatewayService) checkAndRegisterSession(_ context.Context, _ *Account, _ string) bool {
+	return true
 }
 
 func (s *GatewayService) getSchedulableAccount(ctx context.Context, accountID int64) (*Account, error) {

@@ -18,7 +18,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func TestAPIKeyAuthForwardsUserScopedOpenAIFastPolicyToUpstream(t *testing.T) {
+func TestAPIKeyAuthForwardsOpenAIFastModeToUpstreamForEveryUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	upstreamBodies := make(chan []byte, 2)
@@ -128,7 +128,7 @@ func TestAPIKeyAuthForwardsUserScopedOpenAIFastPolicyToUpstream(t *testing.T) {
 	allowedUserBody := <-upstreamBodies
 	otherUserBody := <-upstreamBodies
 	require.Equal(t, service.OpenAIFastTierPriority, gjson.GetBytes(allowedUserBody, "service_tier").String())
-	require.False(t, gjson.GetBytes(otherUserBody, "service_tier").Exists())
+	require.Equal(t, service.OpenAIFastTierPriority, gjson.GetBytes(otherUserBody, "service_tier").String())
 }
 
 func newOpenAIFastPolicyForwardingAPIKey(id int64, key string, userID, groupID int64, group *service.Group) *service.APIKey {

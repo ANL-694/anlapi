@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"anlapi/internal/pkg/apicompat"
+	"anlapi/internal/pkg/claude"
 	"anlapi/internal/pkg/logger"
 	"anlapi/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
@@ -55,6 +56,11 @@ func (s *OpenAIGatewayService) forwardAnthropicViaRawChatCompletions(
 
 	reasoningEffort := extractOpenAIReasoningEffortFromBody(body, upstreamModel, billingModel, originalModel)
 	serviceTier := extractOpenAIServiceTierFromBody(body)
+	if containsBetaToken(c.GetHeader("anthropic-beta"), claude.BetaFastMode) {
+		priorityTier := OpenAIFastTierPriority
+		chatReq.ServiceTier = priorityTier
+		serviceTier = &priorityTier
+	}
 
 	chatBody, err := json.Marshal(chatReq)
 	if err != nil {

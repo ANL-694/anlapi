@@ -731,24 +731,19 @@ func (s *HTTPUpstreamSuite) TestAccountModeProxyChangeClearsPool() {
 	require.False(s.T(), hasEntry(svc, entry1), "旧连接池应被清理")
 }
 
-// TestAccountConcurrencyOverridesPoolSettings 测试账户并发数覆盖连接池配置
-// 验证账户隔离模式下，连接池大小与账户并发数对应
-func (s *HTTPUpstreamSuite) TestAccountConcurrencyOverridesPoolSettings() {
+// TestAccountConcurrencyDoesNotOverridePoolSettings confirms that account
+// metadata does not reintroduce a per-account HTTP request cap.
+func (s *HTTPUpstreamSuite) TestAccountConcurrencyDoesNotOverridePoolSettings() {
 	s.cfg.Gateway = config.GatewayConfig{ConnectionPoolIsolation: config.ConnectionPoolIsolationAccount}
 	svc := s.newService()
-	// 账户并发数为 12
-	entry := mustGetOrCreateClient(s.T(), svc, "", 1, 12)
-	transport, ok := entry.client.Transport.(*http.Transport)
-	require.True(s.T(), ok, "expected *http.Transport")
-	// 连接池参数应与并发数一致
-	require.Equal(s.T(), 12, transport.MaxConnsPerHost, "MaxConnsPerHost mismatch")
-	require.Equal(s.T(), 12, transport.MaxIdleConns, "MaxIdleConns mismatch")
-	require.Equal(s.T(), 12, transport.MaxIdleConnsPerHost, "MaxIdleConnsPerHost mismatch")
+	withAccountConcurrency := svc.resolvePoolSettings(config.ConnectionPoolIsolationAccount, 12)
+	withoutAccountConcurrency := svc.resolvePoolSettings(config.ConnectionPoolIsolationAccount, 0)
+	require.Equal(s.T(), defaultPoolSettings(s.cfg), withAccountConcurrency)
+	require.Equal(s.T(), withoutAccountConcurrency, withAccountConcurrency)
 }
 
-// TestAccountConcurrencyFallbackToDefault 测试账户并发数为 0 时回退到默认配置
-// 验证未指定并发数时使用全局配置值
-func (s *HTTPUpstreamSuite) TestAccountConcurrencyFallbackToDefault() {
+// TestActiveConnectionCapIsDisabled 确保 HTTP 连接池不会形成第二道并发闸门。
+func (s *HTTPUpstreamSuite) TestActiveConnectionCapIsDisabled() {
 	s.cfg.Gateway = config.GatewayConfig{
 		ConnectionPoolIsolation: config.ConnectionPoolIsolationAccount,
 		MaxIdleConns:            77,
@@ -756,11 +751,11 @@ func (s *HTTPUpstreamSuite) TestAccountConcurrencyFallbackToDefault() {
 		MaxConnsPerHost:         66,
 	}
 	svc := s.newService()
-	// 账户并发数为 0，应使用全局配置
+	// 即使保留了旧全局配置，活跃连接数仍必须不受连接池限制。
 	entry := mustGetOrCreateClient(s.T(), svc, "", 1, 0)
 	transport, ok := entry.client.Transport.(*http.Transport)
 	require.True(s.T(), ok, "expected *http.Transport")
-	require.Equal(s.T(), 66, transport.MaxConnsPerHost, "MaxConnsPerHost fallback mismatch")
+	require.Zero(s.T(), transport.MaxConnsPerHost, "active upstream connections must not be capped")
 	require.Equal(s.T(), 77, transport.MaxIdleConns, "MaxIdleConns fallback mismatch")
 	require.Equal(s.T(), 55, transport.MaxIdleConnsPerHost, "MaxIdleConnsPerHost fallback mismatch")
 }

@@ -1,4 +1,8 @@
-# anlapi
+# ANL API
+
+`anlapi` 是 ANL API 的自托管 AI API 网关与用量管理平台。它把不同类型的 AI 上游统一到 OpenAI 兼容接口下，并提供账号、分组、API Key、用量、计费和后台运营能力，适合个人部署、内部团队使用和二次开发。
+
+[在线控制台](https://api.anlmc.top) | [中文说明](README_CN.md) | [部署文档](deploy/README.md)
 
 ![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)
@@ -7,221 +11,147 @@
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-LGPL--3.0-blue)
 
-anlapi is a self-hosted AI API gateway and subscription management platform based on Sub2API. It provides account pooling, API key management, multi-provider request forwarding, usage accounting, subscription billing, moderation controls, and admin operations for AI API services.
+> ANL API 是独立维护的项目名称和代码仓库。它基于 [Sub2API](https://github.com/Wei-Shaw/sub2api) 进行二次开发，并不代表上游项目或任何模型供应商的官方产品。
 
-English | [中文](README_CN.md) | [日本語](README_JA.md)
+## 项目定位
 
-Website: [https://api.anlmc.top](https://api.anlmc.top)
+ANL API 面向需要统一接入 AI 能力的部署者：管理员在后台配置合法的渠道或账号、分组和计费规则，用户通过 API Key 调用允许的模型，并在控制台查看余额和用量记录。
 
-QQ group: `146499741`
+项目仓库只包含源码、配置模板、迁移文件和部署示例，不包含生产数据库、OAuth 凭据、支付密钥、服务器密码或真实用户数据。
 
-This repository is intended for private deployment, customization, and secondary development. It does not include production secrets, private server configuration, hosted-service credentials, or commercial operation data.
+## 当前能力
 
-## Important Notice
+### API 网关
 
-Please read the following carefully before deploying or operating this project:
+- 提供 OpenAI 兼容的 `chat`、`responses`、`models`、`embeddings`、图像和流式请求入口。
+- 支持不同上游类型的统一路由、失败切换和请求/响应处理。
+- 支持 Codex 客户端相关请求；客户端的 `fast` 意图可按兼容路径透传给上游，由上游决定是否支持。
+- 支持长耗时图像任务的异步提交与轮询（需要按 [异步图像任务文档](docs/ASYNC_IMAGE_TASKS.md) 配置对象存储）。
 
-- Terms of service risk: routing requests through subscription or account-based upstreams may violate the terms of service of some upstream providers. Review the relevant provider agreements before use.
-- Compliance: use this project only in compliance with the laws and regulations of your country or region.
-- Account risk: account bans, quota resets, service interruptions, upstream policy changes, and billing errors are operational risks that must be handled by the deployer.
-- Disclaimer: this project is provided for technical learning, self-hosting, and secondary development. You are responsible for your own deployment, data, users, payments, and upstream accounts.
+### 账号、渠道与分组
 
-## Features
+- 管理员可以按账号类型、渠道和分组组织可用上游。
+- 支持公开、私有、归属和共享等账号池调度边界，具体权限以后台配置和当前版本实现为准。
+- 支持为不同用途配置模型分组，包括图像能力分组；可用模型、参数和上游限制仍以实际账号及供应商能力为准。
+- 支持 OAuth 账号与普通 API Key/渠道的管理和隔离路径，凭据不会通过 README 或示例配置公开。
 
-- OpenAI-compatible gateway endpoints for chat, responses, models, embeddings, image, and streaming workloads.
-- Grok OAuth, Kiro OAuth, free-model provider onboarding, and configurable private-account access flows.
-- Multi-provider routing for OpenAI-compatible channels and account-based upstreams.
-- Account pool management with public, private, owned, and carpool-style scheduling concepts.
-- API key management with multi-group routing, IP access controls, quota controls, usage records, and billing metadata.
-- User subscriptions, recharge flows, redeem codes, invitation rewards, and shop/card-key workflows.
-- Admin dashboard for users, accounts, channels, payments, moderation, risk events, data management, and system settings.
-- Content moderation and risk-control integration points for request/response auditing.
-- Built-in release workflow for tagged builds, Docker images, archives, and GitHub Releases.
-- Frontend console built with Vue 3, TypeScript, Pinia, Vue Router, Tailwind CSS, and Vite.
-- Backend service built with Go, Gin, Ent, PostgreSQL, Redis, and modular service boundaries.
+### 用户控制台
 
-## Version 1.0.3 Updates
+- 用户注册、登录、余额与充值流程。
+- 创建和管理 API Key，并为 Key 配置允许的分组路由。
+- 在控制台查看 Key 用量、请求记录和按时间汇总的消耗。
+- 由服务端按用户账户执行请求并发控制；不会在 README 中虚构固定倍率、永久免费额度或上游可用性承诺。
 
-- Upgraded the backend toolchain to Go 1.26.5 and refreshed vulnerable AWS SDK dependencies used by storage integrations.
-- Added Grok OAuth integration, Kiro OAuth integration, K12 account-level support, and video-related gateway endpoint coverage.
-- Added free-model provider onboarding, multi-group API key routing, and API Key IP access-control support.
-- Improved carpool pool, private account, subscription, billing, reasoning-token, and usage-stat workflows.
-- Updated CI, security scanning, and frontend audit handling for the current dependency set.
+### 管理后台
 
-## Tech Stack
+- 用户、账号、渠道、分组、API Key、订阅、支付和用量管理。
+- 图像相关账号和分组的管理入口，以及请求审计、风险控制和系统设置。
+- 支持按部署需要启用支付、邮件、对象存储、内容审查和 OAuth 等可选模块。
 
-- Backend: Go 1.26.5, Gin, Ent, PostgreSQL, Redis
-- Frontend: Vue 3, TypeScript, Vite, Pinia, Tailwind CSS
-- Testing: Go test, Vitest, vue-tsc, ESLint
-- Deployment: Docker or source build, with external PostgreSQL and Redis recommended
+## 技术栈
 
-## Repository Layout
+- 后端：Go 1.26.5、Gin、Ent、PostgreSQL、Redis
+- 前端：Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS、Vite
+- 测试：Go test、Vitest、`vue-tsc`、ESLint
+- 部署：Docker Compose 或 Linux systemd，生产环境建议将 PostgreSQL 和 Redis 持久化到应用容器之外
+
+## 仓库结构
 
 ```text
 .
-├── backend/              # Go backend, migrations, services, handlers, repositories
-├── frontend/             # Vue 3 admin/user console
-├── deploy/               # Deployment examples and configuration template
-├── docs/                 # Additional integration and operation documents
-├── assets/               # Static project assets
-├── Makefile              # Common build and test entry points
-└── Dockerfile            # Production image build
+├── backend/              # Go 后端、迁移、服务、处理器和仓储层
+├── frontend/             # Vue 3 管理端与用户端控制台
+├── deploy/               # Docker、systemd 和配置模板
+├── docs/                 # 集成、支付、图像任务和运维文档
+├── assets/               # 项目静态资源
+├── tools/                # 开发与安全检查工具
+├── Makefile              # 构建和测试入口
+└── Dockerfile            # 应用镜像构建文件
 ```
 
-## Requirements
+## 环境要求
 
 - Go 1.26.5
-- Node.js 20+
-- pnpm 9+
-- PostgreSQL
-- Redis
-- Docker, optional but recommended for deployment
+- Node.js 20 或更高版本
+- pnpm 9 或更高版本
+- PostgreSQL 15 或更高版本
+- Redis 7 或更高版本
+- Docker 与 Docker Compose（推荐用于部署）
 
-## Configuration
+## 快速部署
 
-Start from the example configuration:
+生产或长期运行环境建议先阅读完整的 [部署文档](deploy/README.md)。一个基于本地目录持久化的 Docker Compose 示例：
 
 ```bash
-cp deploy/config.example.yaml deploy/config.yaml
+git clone https://github.com/ANL-694/anlapi.git
+cd anlapi/deploy
+cp .env.example .env
+# 编辑 .env，至少设置数据库密码和固定的安全密钥
+chmod 600 .env
+docker compose -f docker-compose.local.yml up -d
+docker compose -f docker-compose.local.yml logs -f anlapi
 ```
 
-Edit the generated configuration for your environment:
+首次部署时，应用会根据环境变量初始化数据库和管理员账号。正式对外提供服务前，请配置反向代理、TLS、可信代理地址、数据库备份和日志策略。
 
-- `server`: host, port, frontend URL, request body limits, CORS, and security headers.
-- `database`: PostgreSQL connection settings.
-- `redis`: cache and queue backend settings.
-- `gateway`: upstream timeout, body-size limits, routing, and model behavior.
-- `security`: URL allowlist, response header filtering, proxy fallback, and CSP.
-- payment, email, storage, moderation, and OAuth sections as needed.
-
-Never commit real production credentials. Local and deployment-specific config files are intentionally ignored by git.
-
-## Development
-
-Install frontend dependencies:
+源码开发方式：
 
 ```bash
 pnpm --dir frontend install
-```
-
-Run the frontend dev server:
-
-```bash
 pnpm --dir frontend run dev
-```
 
-Run the backend from source:
-
-```bash
 cd backend
 go run ./cmd/server
 ```
 
-On first run, the backend may start the setup flow if no valid configuration or installation state is detected.
+详细配置以 [`deploy/config.example.yaml`](deploy/config.example.yaml)、[`deploy/.env.example`](deploy/.env.example) 和 `deploy/README.md` 为准。不要把生产配置复制到仓库，也不要把真实凭据填入示例文件。
 
-## Build
+## 常用检查
 
-Build backend and frontend:
+在仓库根目录执行：
 
 ```bash
 make build
-```
-
-Build only the backend:
-
-```bash
-make build-backend
-```
-
-Build only the frontend:
-
-```bash
-make build-frontend
-```
-
-Build a Docker image:
-
-```bash
-docker build -t anlapi:local .
-```
-
-## Tests
-
-Run all configured checks:
-
-```bash
 make test
 ```
 
-Run backend tests:
+也可以分别执行：
 
 ```bash
 cd backend
-go test -tags=unit ./...
-go test -tags=integration ./...
+go test ./...
+
+cd ../frontend
+pnpm run test:run
+pnpm run typecheck
+pnpm run i18n:audit:strict
 ```
 
-Run frontend checks:
+发布前建议额外运行仓库提供的安全扫描，并检查 Git 暂存区中没有本地配置、数据库导出、日志或凭据文件。
 
-```bash
-pnpm --dir frontend run lint:check
-pnpm --dir frontend run typecheck
-pnpm --dir frontend run i18n:audit:strict
-pnpm --dir frontend exec vitest run
-```
+## 安全与合规
 
-Run golangci-lint with the repository configuration:
+- 只接入你有权使用的账号、渠道和供应商接口，并遵守相关服务条款。
+- 不要提交 API Key、OAuth token、支付密钥、数据库密码、JWT 密钥或服务器凭据。
+- 生产环境使用强管理员密码，限制后台访问，并为 PostgreSQL、Redis 和对象存储建立独立备份策略。
+- `/api/*`、`/v1/*`、流式接口和网关请求不应被 CDN 缓存；反向代理应正确转发 WebSocket 和长连接。
+- 模型价格、可用性、额度、响应时间和图像参数取决于管理员配置及实际上游服务，仓库不对第三方服务作稳定性或额度保证。
+- 使用者应自行确认所在国家或地区的法律法规、数据处理要求和上游服务协议。
 
-```bash
-cd backend
-golangci-lint run ./... --timeout=30m
-```
+## 相关文档
 
-If `golangci-lint` is not installed locally, use the same version as CI:
+- [部署与运维](deploy/README.md)
+- [异步图像任务](docs/ASYNC_IMAGE_TASKS.md)
+- [支付接入](docs/PAYMENT.md)
+- [管理员支付接口](docs/ADMIN_PAYMENT_INTEGRATION_API.md)
+- [官方更新与合并流程](docs/OFFICIAL_UPDATE_AND_DEPLOY_CN.md)
+- [中文说明](README_CN.md)
 
-```bash
-cd backend
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0 run ./... --timeout=30m
-```
+## 许可证与上游
 
-## Deployment Notes
+本项目遵循仓库中的 [LGPL-3.0 许可证](LICENSE)。ANL API 基于以下项目进行二次开发：
 
-For production, run anlapi behind a reverse proxy such as Nginx, Caddy, or a managed load balancer.
-
-### Nginx Reverse Proxy Note
-
-When using Nginx with account scheduling, sticky sessions, Codex CLI, or clients that send headers containing underscores, enable underscore headers in the Nginx `http` block:
-
-```nginx
-underscores_in_headers on;
-```
-
-Nginx drops headers containing underscores by default. That can break session routing and some native client compatibility paths.
-
-Recommended production basics:
-
-- Use PostgreSQL and Redis outside the application container.
-- Mount a production config file instead of baking secrets into the image.
-- Terminate TLS at the reverse proxy or load balancer.
-- Keep `/api/*`, `/v1/*`, streaming, and gateway routes out of CDN cache.
-- Configure request body limits consistently across the reverse proxy and backend.
-- Back up PostgreSQL before applying migrations or upgrading the application.
-
-## Security
-
-- Do not commit API keys, OAuth secrets, payment keys, database passwords, or server credentials.
-- Review `deploy/config.example.yaml` before exposing the service publicly.
-- Restrict admin access with strong passwords, MFA where available, and trusted reverse-proxy rules.
-- Keep payment, storage, moderation, and email credentials scoped to the minimum required permissions.
-- Run `make secret-scan` before publishing changes.
-
-## License
-
-This project follows the license included in [LICENSE](LICENSE).
-
-## Acknowledgements
-
-anlapi is based on Sub2API and extends it for self-hosted AI gateway, subscription, accounting, and operation workflows.
-
-- [PIXEL-API/PixelAPI](https://github.com/PIXEL-API/PixelAPI)
 - [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api)
+- [PIXEL-API/PixelAPI](https://github.com/PIXEL-API/PixelAPI)
+
+请同时阅读各上游项目的许可证、贡献协议和第三方依赖许可。

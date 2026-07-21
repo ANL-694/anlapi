@@ -746,7 +746,7 @@ func TestOpenAIResponsesWebSocket_InvalidUpgradeDoesNotSetTransport(t *testing.T
 	require.Equal(t, service.OpenAIClientTransportUnknown, service.GetOpenAIClientTransport(c))
 }
 
-func TestOpenAIResponsesWebSocket_IngressCapacityRejected(t *testing.T) {
+func TestOpenAIResponsesWebSocket_IgnoresAPIKeyIngressCapacity(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	cache := &concurrencyCacheMock{
 		acquireIngressLeaseFn: func(context.Context, int64, int, string) (bool, error) {
@@ -762,14 +762,15 @@ func TestOpenAIResponsesWebSocket_IngressCapacityRejected(t *testing.T) {
 	dialCtx, cancelDial := context.WithTimeout(context.Background(), 3*time.Second)
 	clientConn, response, err := coderws.Dial(dialCtx, "ws"+strings.TrimPrefix(wsServer.URL, "http")+"/openai/v1/responses", nil)
 	cancelDial()
-	require.Error(t, err)
-	require.Nil(t, clientConn)
-	require.NotNil(t, response)
-	require.Equal(t, http.StatusTooManyRequests, response.StatusCode)
-	_ = response.Body.Close()
+	require.NoError(t, err)
+	require.NotNil(t, clientConn)
+	if response != nil && response.Body != nil {
+		_ = response.Body.Close()
+	}
+	_ = clientConn.CloseNow()
 }
 
-func TestOpenAIResponsesWebSocket_IngressLeaseBackendUnavailableBeforeUpgrade(t *testing.T) {
+func TestOpenAIResponsesWebSocket_IgnoresAPIKeyIngressLeaseBackend(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	cache := &concurrencyCacheMock{
 		acquireIngressLeaseFn: func(context.Context, int64, int, string) (bool, error) {
@@ -785,11 +786,12 @@ func TestOpenAIResponsesWebSocket_IngressLeaseBackendUnavailableBeforeUpgrade(t 
 	dialCtx, cancelDial := context.WithTimeout(context.Background(), 3*time.Second)
 	clientConn, response, err := coderws.Dial(dialCtx, "ws"+strings.TrimPrefix(wsServer.URL, "http")+"/openai/v1/responses", nil)
 	cancelDial()
-	require.Error(t, err)
-	require.Nil(t, clientConn)
-	require.NotNil(t, response)
-	require.Equal(t, http.StatusServiceUnavailable, response.StatusCode)
-	_ = response.Body.Close()
+	require.NoError(t, err)
+	require.NotNil(t, clientConn)
+	if response != nil && response.Body != nil {
+		_ = response.Body.Close()
+	}
+	_ = clientConn.CloseNow()
 }
 
 func TestOpenAIResponsesWebSocket_FirstMessageTimeoutUsesConfig(t *testing.T) {
@@ -856,9 +858,7 @@ func TestOpenAIResponsesWebSocket_IngressLeaseReleasedOnEarlyReturn(t *testing.T
 	var closeErr coderws.CloseError
 	require.ErrorAs(t, err, &closeErr)
 	require.Equal(t, coderws.StatusPolicyViolation, closeErr.Code)
-	require.Eventually(t, func() bool {
-		return atomic.LoadInt32(&cache.releaseIngressCalled) == 1
-	}, time.Second, 10*time.Millisecond)
+	require.Zero(t, atomic.LoadInt32(&cache.releaseIngressCalled))
 }
 
 func TestOpenAIResponsesWebSocket_IngressLeaseReleasedWhenUpgradeFails(t *testing.T) {
@@ -883,9 +883,7 @@ func TestOpenAIResponsesWebSocket_IngressLeaseReleasedWhenUpgradeFails(t *testin
 	require.NoError(t, err)
 	_ = resp.Body.Close()
 	require.NotEqual(t, http.StatusSwitchingProtocols, resp.StatusCode)
-	require.Eventually(t, func() bool {
-		return atomic.LoadInt32(&cache.releaseIngressCalled) == 1
-	}, time.Second, 10*time.Millisecond)
+	require.Zero(t, atomic.LoadInt32(&cache.releaseIngressCalled))
 }
 
 func TestOpenAIResponsesWebSocket_RejectsMessageIDAsPreviousResponseID(t *testing.T) {

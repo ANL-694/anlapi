@@ -2435,7 +2435,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 		return
 	}
 
-	_, ok = middleware2.GetAuthSubjectFromContext(c)
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
 	if !ok {
 		h.errorResponse(c, http.StatusInternalServerError, "api_error", "User context not found")
 		return
@@ -2487,6 +2487,20 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 
 	setOpsRequestContext(c, parsedReq.Model, parsedReq.Stream, body)
 	setOpsEndpointContext(c, "", int16(service.RequestTypeFromLegacy(parsedReq.Stream, false)))
+
+	// count_tokens is still an upstream gateway call. It shares the same
+	// user-scoped admission policy as messages, chat, responses, and images.
+	streamStarted := false
+	userReleaseFunc, err := h.concurrencyHelper.AcquireUserSlotWithQueue(c, subject.UserID, subject.Concurrency, false, &streamStarted)
+	if err != nil {
+		reqLog.Warn("gateway.count_tokens_user_slot_acquire_failed", zap.Error(err))
+		h.handleConcurrencyError(c, err, "user", streamStarted)
+		return
+	}
+	userReleaseFunc = wrapReleaseOnDone(c.Request.Context(), userReleaseFunc)
+	if userReleaseFunc != nil {
+		defer userReleaseFunc()
+	}
 
 	// 获取订阅信息（可能为nil）
 	subscription, _ := middleware2.GetSubscriptionFromContext(c)
@@ -2841,23 +2855,9 @@ func (h *GatewayHandler) submitUsageRecordTask(task service.UsageRecordTask) {
 	task(ctx)
 }
 
-// getUserMsgQueueMode 获取当前请求的 UMQ 模式
-// 返回 "serialize" | "throttle" | ""
-func (h *GatewayHandler) getUserMsgQueueMode(account *service.Account, parsed *service.ParsedRequest) string {
-	if h.userMsgQueueHelper == nil {
-		return ""
-	}
-	// 仅适用于 Anthropic OAuth/SetupToken 账号
-	if !account.IsAnthropicOAuthOrSetupToken() {
-		return ""
-	}
-	if !service.IsRealUserMessage(parsed) {
-		return ""
-	}
-	// 账号级模式优先，fallback 到全局配置
-	mode := account.GetUserMsgQueueMode()
-	if mode == "" {
-		mode = h.cfg.Gateway.UserMessageQueue.GetEffectiveMode()
-	}
-	return mode
+// getUserMsgQueueMode preserves the legacy configuration surface without
+// letting an upstream account serialize or delay gateway requests. User
+// concurrency is the sole request-admission policy.
+func (h *GatewayHandler) getUserMsgQueueMode(_ *service.Account, _ *service.ParsedRequest) string {
+	return ""
 }

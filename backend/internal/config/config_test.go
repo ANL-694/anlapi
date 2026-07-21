@@ -178,14 +178,20 @@ func TestLoadDefaultOpenAIWSConfig(t *testing.T) {
 	if cfg.Gateway.OpenAIWS.ResponsesWebsockets {
 		t.Fatalf("Gateway.OpenAIWS.ResponsesWebsockets = true, want false")
 	}
-	if !cfg.Gateway.OpenAIWS.DynamicMaxConnsByAccountConcurrencyEnabled {
-		t.Fatalf("Gateway.OpenAIWS.DynamicMaxConnsByAccountConcurrencyEnabled = false, want true")
+	if cfg.Gateway.OpenAIWS.DynamicMaxConnsByAccountConcurrencyEnabled {
+		t.Fatalf("Gateway.OpenAIWS.DynamicMaxConnsByAccountConcurrencyEnabled = true, want false")
 	}
 	if cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor != 1.0 {
 		t.Fatalf("Gateway.OpenAIWS.OAuthMaxConnsFactor = %v, want 1.0", cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor)
 	}
 	if cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor != 1.0 {
 		t.Fatalf("Gateway.OpenAIWS.APIKeyMaxConnsFactor = %v, want 1.0", cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor)
+	}
+	if cfg.Gateway.OpenAIWS.MaxConnsPerAccount != 0 {
+		t.Fatalf("Gateway.OpenAIWS.MaxConnsPerAccount = %d, want 0", cfg.Gateway.OpenAIWS.MaxConnsPerAccount)
+	}
+	if cfg.Gateway.OpenAIWS.QueueLimitPerConn != 0 {
+		t.Fatalf("Gateway.OpenAIWS.QueueLimitPerConn = %d, want 0", cfg.Gateway.OpenAIWS.QueueLimitPerConn)
 	}
 	if cfg.Gateway.OpenAIWS.StickySessionTTLSeconds != 3600 {
 		t.Fatalf("Gateway.OpenAIWS.StickySessionTTLSeconds = %d, want 3600", cfg.Gateway.OpenAIWS.StickySessionTTLSeconds)
@@ -257,8 +263,8 @@ func TestLoadDefaultOpenAIWSConfig(t *testing.T) {
 	if cfg.Gateway.OpenAIWS.IngressInterTurnIdleTimeoutSeconds != 300 {
 		t.Fatalf("Gateway.OpenAIWS.IngressInterTurnIdleTimeoutSeconds = %d, want 300", cfg.Gateway.OpenAIWS.IngressInterTurnIdleTimeoutSeconds)
 	}
-	if cfg.Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey != 64 {
-		t.Fatalf("Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey = %d, want 64", cfg.Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey)
+	if cfg.Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey != 0 {
+		t.Fatalf("Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey = %d, want 0", cfg.Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey)
 	}
 }
 
@@ -1379,16 +1385,6 @@ func TestValidateConfigErrors(t *testing.T) {
 			wantErr: "gateway.stream_keepalive_interval",
 		},
 		{
-			name:    "gateway openai ws oauth max conns factor",
-			mutate:  func(c *Config) { c.Gateway.OpenAIWS.OAuthMaxConnsFactor = 0 },
-			wantErr: "gateway.openai_ws.oauth_max_conns_factor",
-		},
-		{
-			name:    "gateway openai ws apikey max conns factor",
-			mutate:  func(c *Config) { c.Gateway.OpenAIWS.APIKeyMaxConnsFactor = 0 },
-			wantErr: "gateway.openai_ws.apikey_max_conns_factor",
-		},
-		{
 			name:    "gateway stream data interval range",
 			mutate:  func(c *Config) { c.Gateway.StreamDataIntervalTimeout = 5 },
 			wantErr: "gateway.stream_data_interval_timeout",
@@ -1593,8 +1589,8 @@ func TestValidateConfig_OpenAIWSRules(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "max_conns_per_account 必须为正数",
-			mutate:  func(c *Config) { c.Gateway.OpenAIWS.MaxConnsPerAccount = 0 },
+			name:    "max_conns_per_account 不能为负数",
+			mutate:  func(c *Config) { c.Gateway.OpenAIWS.MaxConnsPerAccount = -1 },
 			wantErr: "gateway.openai_ws.max_conns_per_account",
 		},
 		{
@@ -1665,8 +1661,8 @@ func TestValidateConfig_OpenAIWSRules(t *testing.T) {
 			wantErr: "gateway.openai_ws.pool_target_utilization",
 		},
 		{
-			name:    "queue_limit_per_conn 必须为正数",
-			mutate:  func(c *Config) { c.Gateway.OpenAIWS.QueueLimitPerConn = 0 },
+			name:    "queue_limit_per_conn 不能为负数",
+			mutate:  func(c *Config) { c.Gateway.OpenAIWS.QueueLimitPerConn = -1 },
 			wantErr: "gateway.openai_ws.queue_limit_per_conn",
 		},
 		{

@@ -462,6 +462,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { usageAPI, keysAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
@@ -486,6 +487,7 @@ import { hasImageOutputTokens, textOutputTokens, hasImageOutputCost } from '@/ut
 
 const { t } = useI18n()
 const appStore = useAppStore()
+const route = useRoute()
 
 let abortController: AbortController | null = null
 
@@ -637,6 +639,30 @@ const filters = ref<UsageQueryParams>({
 // Initialize filters with date range
 filters.value.start_date = startDate.value
 filters.value.end_date = endDate.value
+
+const getSingleQueryValue = (
+  value: string | null | Array<string | null> | undefined
+): string | undefined => {
+  if (Array.isArray(value)) return value.find((item): item is string => typeof item === 'string' && item.length > 0)
+  return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+
+const getApiKeyIdFromQuery = (
+  value: string | null | Array<string | null> | undefined
+): number | undefined => {
+  const raw = getSingleQueryValue(value)
+  if (!raw || !/^[1-9]\d*$/.test(raw)) return undefined
+
+  const apiKeyId = Number(raw)
+  return Number.isSafeInteger(apiKeyId) ? apiKeyId : undefined
+}
+
+const applyApiKeyFilterFromRoute = () => {
+  const apiKeyId = getApiKeyIdFromQuery(route.query.api_key_id)
+  if (!apiKeyId || !apiKeys.value.some((key) => key.id === apiKeyId)) return
+
+  filters.value.api_key_id = apiKeyId
+}
 
 // Handle date range change from DateRangePicker
 const onDateRangeChange = (range: {
@@ -977,16 +1003,16 @@ const hideTokenTooltip = () => {
   tokenTooltipData.value = null
 }
 
-onMounted(() => {
+onMounted(async () => {
   usageViewportMediaQuery = window.matchMedia('(max-width: 767px)')
   compactViewport.value = usageViewportMediaQuery.matches
   usageViewportListener = (event: MediaQueryListEvent) => {
     compactViewport.value = event.matches
   }
   usageViewportMediaQuery.addEventListener('change', usageViewportListener)
-  loadApiKeys()
-  loadUsageLogs()
-  loadUsageStats()
+  await loadApiKeys()
+  applyApiKeyFilterFromRoute()
+  applyFilters()
 })
 
 onUnmounted(() => {

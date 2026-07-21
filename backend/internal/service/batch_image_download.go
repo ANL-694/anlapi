@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -18,7 +17,6 @@ import (
 	"unicode"
 
 	"anlapi/internal/config"
-	infraerrors "anlapi/internal/pkg/errors"
 )
 
 const (
@@ -74,7 +72,6 @@ type BatchImageDownloadService struct {
 	Repo             BatchImageRepository
 	ProviderRegistry *BatchImageProviderRegistry
 	AccountResolver  BatchImageAccountResolver
-	Limiter          BatchImageDownloadLimiter
 	Config           *config.Config
 }
 
@@ -96,12 +93,13 @@ func (w *batchImageDownloadLimitWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func NewBatchImageDownloadService(repo BatchImageRepository, accountRepo AccountRepository, limiter BatchImageDownloadLimiter, cfg *config.Config) *BatchImageDownloadService {
+// limiter is retained as a constructor argument for wire compatibility, but it
+// is deliberately ignored: user concurrency is enforced at the HTTP handler.
+func NewBatchImageDownloadService(repo BatchImageRepository, accountRepo AccountRepository, _ BatchImageDownloadLimiter, cfg *config.Config) *BatchImageDownloadService {
 	return &BatchImageDownloadService{
 		Repo:             repo,
 		ProviderRegistry: NewBatchImageProviderRegistryFromConfig(cfg),
 		AccountResolver:  &BatchImageAccountRepositoryResolver{Repo: accountRepo},
-		Limiter:          limiter,
 		Config:           cfg,
 	}
 }
@@ -124,17 +122,6 @@ func (s *BatchImageDownloadService) OpenItemContent(ctx context.Context, owner B
 	if imageIndex >= item.ImageCount {
 		return nil, ErrBatchImageItemImageIndexOutOfRange
 	}
-
-	permit, err := s.acquirePermit(ctx, owner.UserID, "item")
-	if err != nil {
-		return nil, err
-	}
-	releasePermit := true
-	defer func() {
-		if releasePermit && permit != nil {
-			_ = permit.Release(ctx)
-		}
-	}()
 
 	provider, account, err := s.providerAndAccount(ctx, job)
 	if err != nil {
@@ -170,9 +157,8 @@ func (s *BatchImageDownloadService) OpenItemContent(ctx context.Context, owner B
 	}
 
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(image.Base64Data))
-	releasePermit = false
 	return &BatchImageContentStream{
-		Reader:      &batchImagePermitReadCloser{Reader: reader, permit: permit},
+		Reader:      io.NopCloser(reader),
 		ContentType: contentType,
 		Filename:    BatchImageSafeDownloadFilename(item.CustomID, extension),
 	}, nil
@@ -201,14 +187,6 @@ func (s *BatchImageDownloadService) StreamZip(ctx context.Context, owner BatchIm
 	failedItems, err := s.Repo.ListBatchImageItemsForDownload(ctx, job.BatchID, BatchImageItemStatusFailed, maxItems)
 	if err != nil {
 		return nil, err
-	}
-
-	permit, err := s.acquirePermit(ctx, owner.UserID, "zip")
-	if err != nil {
-		return nil, err
-	}
-	if permit != nil {
-		defer func() { _ = permit.Release(ctx) }()
 	}
 
 	provider, account, err := s.providerAndAccount(ctx, job)
@@ -382,20 +360,6 @@ func (s *BatchImageDownloadService) providerAndAccount(ctx context.Context, job 
 		return nil, nil, ErrBatchImageProviderUnsupportedAccount
 	}
 	return provider, account, nil
-}
-
-func (s *BatchImageDownloadService) acquirePermit(ctx context.Context, userID int64, kind string) (BatchImageDownloadPermit, error) {
-	if s == nil || s.Limiter == nil {
-		return nil, nil
-	}
-	permit, err := s.Limiter.Acquire(ctx, fmt.Sprintf("%d", userID), kind)
-	if err != nil {
-		if infraerrors.Code(err) == http.StatusTooManyRequests {
-			return nil, ErrBatchImageDownloadLimited
-		}
-		return nil, ErrBatchImageDownloadLimited.WithCause(err)
-	}
-	return permit, nil
 }
 
 func (s *BatchImageDownloadService) maxZipItems() int {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"anlapi/internal/config"
 	middleware2 "anlapi/internal/server/middleware"
@@ -283,7 +284,15 @@ func newCodexModelsFailoverTestHandlerWithAccountCount(firstStatus, accountCount
 		upstream,
 		nil, nil, nil, nil, nil, nil, nil, nil,
 	)
-	return &OpenAIGatewayHandler{gatewayService: gatewayService, maxAccountSwitches: maxSwitches}, upstream, groupID
+	return &OpenAIGatewayHandler{
+		gatewayService:     gatewayService,
+		maxAccountSwitches: maxSwitches,
+		concurrencyHelper: NewConcurrencyHelper(
+			service.NewConcurrencyService(&helperConcurrencyCacheStub{userSeq: []bool{true}}),
+			SSEPingFormatNone,
+			time.Second,
+		),
+	}, upstream, groupID
 }
 
 func performCodexModelsRequest(t *testing.T, handler *OpenAIGatewayHandler, groupID int64) *httptest.ResponseRecorder {
@@ -292,9 +301,11 @@ func performCodexModelsRequest(t *testing.T, handler *OpenAIGatewayHandler, grou
 	c, _ := gin.CreateTestContext(recorder)
 	c.Request = httptest.NewRequest(http.MethodGet, "/v1/models?client_version=0.144.0", nil)
 	c.Set(string(middleware2.ContextKeyAPIKey), &service.APIKey{
+		UserID:  101,
 		GroupID: &groupID,
 		Group:   &service.Group{ID: groupID, Platform: service.PlatformOpenAI},
 	})
+	c.Set(string(middleware2.ContextKeyUser), middleware2.AuthSubject{UserID: 101, Concurrency: 1})
 
 	handler.CodexModels(c)
 	return recorder

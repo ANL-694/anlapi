@@ -80,6 +80,21 @@ func (h *OpenAIGatewayHandler) CountTokens(c *gin.Context) {
 	setOpsRequestContext(c, reqModel, false, body)
 	setOpsEndpointContext(c, "", int16(service.RequestTypeFromLegacy(false, false)))
 
+	// count_tokens reaches an upstream account just like the other gateway
+	// endpoints, so it must use the requesting user's shared concurrency slot.
+	streamStarted := false
+	userReleaseFunc, err := h.concurrencyHelper.AcquireUserSlotWithQueue(c, subject.UserID, subject.Concurrency, false, &streamStarted)
+	if err != nil {
+		reqLog.Warn("openai_count_tokens.user_slot_acquire_failed", zap.Error(err))
+		status, errType, message := concurrencyErrorResponse(err, "user")
+		h.anthropicErrorResponse(c, status, errType, message)
+		return
+	}
+	userReleaseFunc = wrapReleaseOnDone(c.Request.Context(), userReleaseFunc)
+	if userReleaseFunc != nil {
+		defer userReleaseFunc()
+	}
+
 	channelMapping, _ := h.gatewayService.ResolveChannelMappingAndRestrict(c.Request.Context(), apiKey.GroupID, reqModel)
 	mappedBodyForMessages := newOpenAIModelMappedBodyCache(body, h.gatewayService.ReplaceModelInBody)
 

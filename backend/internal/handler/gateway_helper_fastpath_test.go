@@ -15,6 +15,7 @@ type concurrencyCacheMock struct {
 	acquireAccountSlotFn  func(ctx context.Context, accountID int64, maxConcurrency int, requestID string) (bool, error)
 	acquireIngressLeaseFn func(ctx context.Context, apiKeyID int64, maxConnections int, leaseID string) (bool, error)
 	releaseIngressLeaseFn func(ctx context.Context, apiKeyID int64, leaseID string) error
+	acquireUserCalled     int32
 	releaseUserCalled     int32
 	releaseAccountCalled  int32
 	releaseIngressCalled  int32
@@ -57,6 +58,7 @@ func (m *concurrencyCacheMock) GetAccountWaitingCount(ctx context.Context, accou
 }
 
 func (m *concurrencyCacheMock) AcquireUserSlot(ctx context.Context, userID int64, maxConcurrency int, requestID string) (bool, error) {
+	atomic.AddInt32(&m.acquireUserCalled, 1)
 	if m.acquireUserSlotFn != nil {
 		return m.acquireUserSlotFn(ctx, userID, maxConcurrency, requestID)
 	}
@@ -136,7 +138,7 @@ func TestConcurrencyHelper_TryAcquireUserSlot(t *testing.T) {
 	require.Equal(t, int32(1), atomic.LoadInt32(&cache.releaseUserCalled))
 }
 
-func TestConcurrencyHelper_TryAcquireAccountSlot_NotAcquired(t *testing.T) {
+func TestConcurrencyHelper_TryAcquireAccountSlot_IgnoresAccountCapacity(t *testing.T) {
 	cache := &concurrencyCacheMock{
 		acquireAccountSlotFn: func(ctx context.Context, accountID int64, maxConcurrency int, requestID string) (bool, error) {
 			return false, nil
@@ -146,7 +148,8 @@ func TestConcurrencyHelper_TryAcquireAccountSlot_NotAcquired(t *testing.T) {
 
 	release, acquired, err := helper.TryAcquireAccountSlot(context.Background(), 201, 1)
 	require.NoError(t, err)
-	require.False(t, acquired)
-	require.Nil(t, release)
+	require.True(t, acquired)
+	require.NotNil(t, release)
+	release()
 	require.Equal(t, int32(0), atomic.LoadInt32(&cache.releaseAccountCalled))
 }

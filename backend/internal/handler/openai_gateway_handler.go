@@ -42,7 +42,6 @@ type OpenAIGatewayHandler struct {
 	preFlightHooks             *gatewayhook.Chain
 	carpoolService             *service.CarpoolService
 	concurrencyHelper          *ConcurrencyHelper
-	imageLimiter               *imageConcurrencyLimiter
 	maxAccountSwitches         int
 	cfg                        *config.Config
 }
@@ -201,7 +200,6 @@ func NewOpenAIGatewayHandler(
 		preFlightHooks:           preFlightHooks,
 		carpoolService:           carpoolService,
 		concurrencyHelper:        NewConcurrencyHelper(concurrencyService, SSEPingFormatComment, pingInterval),
-		imageLimiter:             &imageConcurrencyLimiter{},
 		maxAccountSwitches:       maxAccountSwitches,
 		cfg:                      cfg,
 	}
@@ -1457,10 +1455,10 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 	clientIP := ip.GetClientIP(c)
 	userAgent := strings.TrimSpace(c.GetHeader("User-Agent"))
 	ctx := c.Request.Context()
-	maxIngressConnections := 0
-	if h.cfg != nil {
-		maxIngressConnections = h.cfg.Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey
-	}
+	// API Key is an authentication and accounting identifier, not a concurrency
+	// boundary. Per-Key ingress leases would add a second request admission gate
+	// ahead of the user-level concurrency policy, so keep them disabled.
+	const maxIngressConnections = 0
 	ingressLease, ingressLeaseAcquired, ingressLeaseErr := h.concurrencyHelper.AcquireOpenAIWSIngressLease(ctx, apiKey.ID, maxIngressConnections)
 	if ingressLeaseErr != nil {
 		reqLog.Error("openai.websocket_ingress_lease_acquire_failed", zap.Error(ingressLeaseErr))
@@ -2158,24 +2156,11 @@ func (h *OpenAIGatewayHandler) submitMandatoryUsageRecordTask(parent context.Con
 }
 
 func (h *OpenAIGatewayHandler) acquireImageGenerationSlot(c *gin.Context, streamStarted bool) (func(), bool) {
-	if h == nil || h.cfg == nil || h.imageLimiter == nil {
-		return nil, true
-	}
-	imageConcurrency := h.cfg.Gateway.ImageConcurrency
-	wait := strings.TrimSpace(imageConcurrency.OverflowMode) == config.ImageConcurrencyOverflowModeWait
-	release, acquired := h.imageLimiter.Acquire(
-		c.Request.Context(),
-		imageConcurrency.Enabled,
-		imageConcurrency.MaxConcurrentRequests,
-		wait,
-		time.Duration(imageConcurrency.WaitTimeoutSeconds)*time.Second,
-		imageConcurrency.MaxWaitingRequests,
-	)
-	if acquired {
-		return release, true
-	}
-	h.handleStreamingAwareError(c, http.StatusTooManyRequests, "rate_limit_error", "Image generation concurrency limit exceeded, please retry later", streamStarted)
-	return nil, false
+	// Image generation uses the same user-level request slot as every other
+	// gateway request. There is intentionally no image-wide global limiter.
+	_ = c
+	_ = streamStarted
+	return nil, true
 }
 
 // handleConcurrencyError handles concurrency-related errors with proper 429 response

@@ -18,10 +18,11 @@ import (
 )
 
 type BatchImageHandler struct {
-	service  *service.BatchImagePublicService
-	download *service.BatchImageDownloadService
-	cleanup  *service.BatchImageCleanupService
-	openAI   *OpenAIGatewayHandler
+	service           *service.BatchImagePublicService
+	download          *service.BatchImageDownloadService
+	cleanup           *service.BatchImageCleanupService
+	openAI            *OpenAIGatewayHandler
+	concurrencyHelper *ConcurrencyHelper
 }
 
 func NewBatchImageHandler(service *service.BatchImagePublicService, download *service.BatchImageDownloadService, cleanup *service.BatchImageCleanupService) *BatchImageHandler {
@@ -39,6 +40,11 @@ func (h *BatchImageHandler) Submit(c *gin.Context) {
 		batchImageError(c, infraerrors.New(http.StatusUnauthorized, "API_KEY_REQUIRED", "API key is required"))
 		return
 	}
+	userReleaseFunc, ok := h.acquireUserUpstreamSlot(c)
+	if !ok {
+		return
+	}
+	defer userReleaseFunc()
 	if !h.checkSecurityAuditBeforeSubmit(c, &req) {
 		return
 	}
@@ -164,6 +170,11 @@ func (h *BatchImageHandler) Cancel(c *gin.Context) {
 		batchImageError(c, infraerrors.New(http.StatusUnauthorized, "API_KEY_REQUIRED", "API key is required"))
 		return
 	}
+	userReleaseFunc, ok := h.acquireUserUpstreamSlot(c)
+	if !ok {
+		return
+	}
+	defer userReleaseFunc()
 	got, err := h.service.Cancel(c.Request.Context(), owner, c.Param("id"))
 	if err != nil {
 		batchImageError(c, err)
@@ -187,6 +198,11 @@ func (h *BatchImageHandler) ItemContent(c *gin.Context) {
 		}
 		imageIndex = parsed
 	}
+	userReleaseFunc, ok := h.acquireUserUpstreamSlot(c)
+	if !ok {
+		return
+	}
+	defer userReleaseFunc()
 	stream, err := h.download.OpenItemContent(c.Request.Context(), owner, c.Param("id"), c.Param("custom_id"), imageIndex)
 	if err != nil {
 		batchImageError(c, err)
@@ -226,6 +242,11 @@ func (h *BatchImageHandler) Download(c *gin.Context) {
 		return
 	}
 	maxItems, _ := strconv.Atoi(c.Query("max_items"))
+	userReleaseFunc, ok := h.acquireUserUpstreamSlot(c)
+	if !ok {
+		return
+	}
+	defer userReleaseFunc()
 
 	c.Header("Content-Type", "application/zip")
 	c.Header("Content-Disposition", service.BatchImageContentDispositionAttachment(c.Param("id")+".zip"))
@@ -264,12 +285,39 @@ func (h *BatchImageHandler) DeleteOutputs(c *gin.Context) {
 		batchImageError(c, infraerrors.New(http.StatusUnauthorized, "API_KEY_REQUIRED", "API key is required"))
 		return
 	}
+	userReleaseFunc, ok := h.acquireUserUpstreamSlot(c)
+	if !ok {
+		return
+	}
+	defer userReleaseFunc()
 	got, err := h.cleanup.DeleteOutputsForOwner(c.Request.Context(), owner, c.Param("id"))
 	if err != nil {
 		batchImageError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, got)
+}
+
+// acquireUserUpstreamSlot is shared by batch-image routes that can call an
+// upstream provider. Local status/listing routes deliberately do not use it.
+func (h *BatchImageHandler) acquireUserUpstreamSlot(c *gin.Context) (func(), bool) {
+	if h == nil || h.concurrencyHelper == nil {
+		batchImageError(c, infraerrors.New(http.StatusInternalServerError, "CONCURRENCY_UNAVAILABLE", "User concurrency service is unavailable"))
+		return nil, false
+	}
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		batchImageError(c, infraerrors.New(http.StatusInternalServerError, "USER_CONTEXT_REQUIRED", "User context not found"))
+		return nil, false
+	}
+
+	streamStarted := false
+	releaseFunc, err := h.concurrencyHelper.AcquireUserSlotWithQueue(c, subject.UserID, subject.Concurrency, false, &streamStarted)
+	if err != nil {
+		batchImageError(c, infraerrors.New(http.StatusTooManyRequests, "USER_CONCURRENCY_LIMIT", "Too many concurrent requests, please retry later"))
+		return nil, false
+	}
+	return wrapReleaseOnDone(c.Request.Context(), releaseFunc), true
 }
 
 func batchImageOwnerFromContext(c *gin.Context) (service.BatchImageOwner, bool) {
