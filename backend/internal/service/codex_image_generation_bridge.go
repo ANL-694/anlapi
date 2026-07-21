@@ -91,6 +91,16 @@ func (a *Account) CodexImageGenerationBridgeOverride() *bool {
 	return boolOverrideFromMap(openaiConfig, featureKeyCodexImageGenerationBridge, "codex_image_generation_bridge_enabled")
 }
 
+func shouldEnableCodexImageGenerationBridge(group *Group, account *Account) bool {
+	if !GroupAllowsImageGeneration(group) {
+		return false
+	}
+	if override := account.CodexImageGenerationBridgeOverride(); override != nil {
+		return *override
+	}
+	return true
+}
+
 // CodexImageGenerationExplicitToolPolicy returns the account-level policy for
 // client-provided Codex /responses image_generation tools. Unknown or unset
 // values default to allow to preserve existing behavior.

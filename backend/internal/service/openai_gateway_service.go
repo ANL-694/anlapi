@@ -2744,12 +2744,10 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 		markPatchSet("instructions", instructions)
 	}
 
-	codexImageGenerationBridgeEnabled := true
-	if isCodexCLI {
-		if override := account.CodexImageGenerationBridgeOverride(); override != nil {
-			codexImageGenerationBridgeEnabled = *override
-		}
-	}
+	codexImageGenerationBridgeEnabled := isCodexCLI && shouldEnableCodexImageGenerationBridge(
+		apiKeyGroup(getAPIKeyFromContext(c)),
+		account,
+	)
 	if !isCompactRequest && isCodexCLI && codexImageGenerationExplicitToolPolicy == codexImageGenerationExplicitToolPolicyStrip {
 		if stripOpenAIImageGenerationTools(reqBody) {
 			bodyModified = true
