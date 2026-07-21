@@ -122,12 +122,14 @@ func TestSchedulerCacheEmptySnapshotEvictsBucket(t *testing.T) {
 		GroupIDs:    []int64{bucket.GroupID},
 	}
 
-	require.NoError(t, cache.SetSnapshot(ctx, bucket, []service.Account{account}))
+	token, err := cache.CaptureBucketWriteToken(ctx, bucket)
+	require.NoError(t, err)
+	require.NoError(t, cache.SetSnapshot(ctx, bucket, token, []service.Account{account}))
 	buckets, err := cache.ListBuckets(ctx)
 	require.NoError(t, err)
 	require.Contains(t, schedulerBucketStrings(buckets), bucket.String())
 
-	require.NoError(t, cache.SetSnapshot(ctx, bucket, nil))
+	require.NoError(t, cache.SetSnapshot(ctx, bucket, token, nil))
 
 	snapshot, hit, err := cache.GetSnapshot(ctx, bucket)
 	require.NoError(t, err)

@@ -22,7 +22,8 @@ var testSlotTTL = time.Duration(testSlotTTLMinutes) * time.Minute
 
 type ConcurrencyCacheSuite struct {
 	IntegrationRedisSuite
-	cache service.ConcurrencyCache
+	cache    service.ConcurrencyCache
+	rawCache *concurrencyCache
 }
 
 func TestConcurrencyCacheSuite(t *testing.T) {
@@ -31,7 +32,8 @@ func TestConcurrencyCacheSuite(t *testing.T) {
 
 func (s *ConcurrencyCacheSuite) SetupTest() {
 	s.IntegrationRedisSuite.SetupTest()
-	s.cache = NewConcurrencyCache(s.rdb, testSlotTTLMinutes, int(testSlotTTL.Seconds()))
+	s.rawCache = NewConcurrencyCache(s.rdb, testSlotTTLMinutes, int(testSlotTTL.Seconds())).(*concurrencyCache)
+	s.cache = s.rawCache
 }
 
 func (s *ConcurrencyCacheSuite) seedActiveIndex(indexKey string, id int64) {
