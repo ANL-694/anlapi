@@ -3,6 +3,12 @@
   "private": true,
   "version": "1.0.6",
   "type": "module",
+  "pnpm": {
+    "overrides": {
+      "form-data": "4.0.6",
+      "js-cookie": "3.0.7"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
