@@ -48,18 +48,7 @@ func ProvideRouter(
 
 	r := gin.New()
 	r.Use(middleware2.Recovery())
-	if len(cfg.Server.TrustedProxies) > 0 {
-		if err := r.SetTrustedProxies(cfg.Server.TrustedProxies); err != nil {
-			log.Printf("Failed to set trusted proxies: %v", err)
-		}
-	} else {
-		if err := r.SetTrustedProxies(nil); err != nil {
-			log.Printf("Failed to disable trusted proxies: %v", err)
-		}
-		if cfg.Server.Mode == "release" {
-			log.Printf("Warning: server.trusted_proxies is empty in release mode; client IP trust chain is disabled")
-		}
-	}
+	configureTrustedProxies(r, cfg.Server)
 
 	// Wire up websearch Manager builder so it initializes on startup and rebuilds on config save.
 	settingService.SetWebSearchManagerBuilder(context.Background(), func(cfg *service.WebSearchEmulationConfig, proxyURLs map[int64]string) {
@@ -98,6 +87,30 @@ func ProvideRouter(
 	})
 
 	return SetupRouter(r, handlers, jwtAuth, adminAuth, apiKeyAuth, auditLog, stepUpAuth, apiKeyService, subscriptionService, opsService, settingService, cfg, redisClient)
+}
+
+// configureTrustedProxies disables Gin's default "trust all proxies" behavior
+// unless server.trusted_proxies was explicitly supplied. This keeps direct IP
+// access safe while allowing operators to opt in to an exact Cloudflare/Nginx
+// CIDR chain.
+func configureTrustedProxies(r *gin.Engine, cfg config.ServerConfig) {
+	if cfg.TrustedProxiesConfigured {
+		if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+			log.Printf("Failed to set trusted proxies: %v; falling back to direct peer addresses", err)
+			_ = r.SetTrustedProxies(nil)
+		}
+		if len(cfg.TrustedProxies) == 0 && cfg.Mode == "release" {
+			log.Printf("Warning: server.trusted_proxies is explicitly empty; forwarded client IP trust is disabled")
+		}
+		return
+	}
+
+	if err := r.SetTrustedProxies(nil); err != nil {
+		log.Printf("Failed to disable trusted proxies: %v", err)
+	}
+	if cfg.Mode == "release" {
+		log.Printf("Warning: server.trusted_proxies is not configured; client IP security paths use direct peer addresses unless the explicit compatibility switch is enabled")
+	}
 }
 
 // ProvideHTTPServer 提供 HTTP 服务器

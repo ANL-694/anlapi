@@ -140,3 +140,33 @@ func TestUpdateSettingsOmittedSecuritySwitchesKeepDisabled(t *testing.T) {
 	require.Equal(t, "false", repo.values[service.SettingKeyStepUpEnabled])
 	require.Equal(t, "false", repo.values[service.SettingKeySessionBindingEnabled])
 }
+
+func TestUpdateSettingsForwardedClientIPHeadersOmittedPreservesAndEmptyClears(t *testing.T) {
+	h, repo := newStepUpSwitchTestHandler(t, map[string]string{
+		service.SettingKeyForwardedClientIPHeaders: `["X-Cdn-Ip","True-Client-Ip"]`,
+	})
+
+	preserved := doUpdateSettings(t, h, map[string]any{"registration_enabled": true}, nil)
+	require.Equal(t, http.StatusOK, preserved.Code)
+	require.JSONEq(t, `["X-Cdn-Ip","True-Client-Ip"]`, repo.values[service.SettingKeyForwardedClientIPHeaders])
+	require.Contains(t, preserved.Body.String(), `"forwarded_client_ip_headers":["X-Cdn-Ip","True-Client-Ip"]`)
+
+	cleared := doUpdateSettings(t, h, map[string]any{"forwarded_client_ip_headers": []string{}}, nil)
+	require.Equal(t, http.StatusOK, cleared.Code)
+	require.JSONEq(t, `[]`, repo.values[service.SettingKeyForwardedClientIPHeaders])
+	require.Contains(t, cleared.Body.String(), `"forwarded_client_ip_headers":[]`)
+}
+
+func TestUpdateSettingsRejectsInvalidForwardedClientIPHeader(t *testing.T) {
+	h, repo := newStepUpSwitchTestHandler(t, map[string]string{
+		service.SettingKeyForwardedClientIPHeaders: `["X-Existing-IP"]`,
+	})
+
+	rec := doUpdateSettings(t, h, map[string]any{
+		"forwarded_client_ip_headers": []string{"X Invalid"},
+	}, nil)
+
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+	require.Contains(t, rec.Body.String(), "INVALID_FORWARDED_CLIENT_IP_HEADERS")
+	require.JSONEq(t, `["X-Existing-IP"]`, repo.values[service.SettingKeyForwardedClientIPHeaders])
+}

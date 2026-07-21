@@ -283,6 +283,62 @@ func TestChatCompletionsToResponses_ReasoningEffort(t *testing.T) {
 	assert.Equal(t, "auto", resp.Reasoning.Summary)
 }
 
+func TestChatCompletionsToResponses_ResponseFormatJsonObject(t *testing.T) {
+	req := &ChatCompletionsRequest{
+		Model:          "gpt-4o",
+		Messages:       []ChatMessage{{Role: "user", Content: json.RawMessage(`"Return JSON"`)}},
+		ResponseFormat: json.RawMessage(`{"type":"json_object"}`),
+	}
+
+	resp, err := ChatCompletionsToResponses(req)
+	require.NoError(t, err)
+	require.NotNil(t, resp.Text)
+	assert.JSONEq(t, `{"type":"json_object"}`, string(resp.Text.Format))
+
+	payload, err := json.Marshal(resp)
+	require.NoError(t, err)
+	var serialized struct {
+		Text ResponsesText `json:"text"`
+	}
+	require.NoError(t, json.Unmarshal(payload, &serialized))
+	assert.JSONEq(t, `{"type":"json_object"}`, string(serialized.Text.Format))
+}
+
+func TestChatCompletionsToResponses_ResponseFormatJsonSchema(t *testing.T) {
+	req := &ChatCompletionsRequest{
+		Model:    "gpt-4o",
+		Messages: []ChatMessage{{Role: "user", Content: json.RawMessage(`"Return structured JSON"`)}},
+		ResponseFormat: json.RawMessage(`{
+			"type":"json_schema",
+			"json_schema":{
+				"name":"answer",
+				"schema":{
+					"type":"object",
+					"properties":{"ok":{"type":"boolean"}},
+					"required":["ok"],
+					"additionalProperties":false
+				},
+				"strict":true
+			}
+		}`),
+	}
+
+	resp, err := ChatCompletionsToResponses(req)
+	require.NoError(t, err)
+	require.NotNil(t, resp.Text)
+	assert.JSONEq(t, `{
+		"type":"json_schema",
+		"name":"answer",
+		"schema":{
+			"type":"object",
+			"properties":{"ok":{"type":"boolean"}},
+			"required":["ok"],
+			"additionalProperties":false
+		},
+		"strict":true
+	}`, string(resp.Text.Format))
+}
+
 func TestChatCompletionsToResponses_ImageURL(t *testing.T) {
 	content := `[{"type":"text","text":"Describe this"},{"type":"image_url","image_url":{"url":"data:image/png;base64,abc123"}}]`
 	req := &ChatCompletionsRequest{
@@ -502,6 +558,34 @@ func TestChatCompletionsToResponses_AssistantThinkingTagPreserved(t *testing.T) 
 		Messages: []ChatMessage{
 			{Role: "user", Content: json.RawMessage(`"Hi"`)},
 			{Role: "assistant", Content: json.RawMessage(`[{"type":"thinking","thinking":"internal plan"},{"type":"text","text":"final answer"}]`)},
+		},
+	}
+
+	resp, err := ChatCompletionsToResponses(req)
+	require.NoError(t, err)
+
+	var items []ResponsesInputItem
+	require.NoError(t, json.Unmarshal(resp.Input, &items))
+	require.Len(t, items, 2)
+
+	var parts []ResponsesContentPart
+	require.NoError(t, json.Unmarshal(items[1].Content, &parts))
+	require.Len(t, parts, 1)
+	assert.Equal(t, "output_text", parts[0].Type)
+	assert.Contains(t, parts[0].Text, "<thinking>internal plan</thinking>")
+	assert.Contains(t, parts[0].Text, "final answer")
+}
+
+func TestChatCompletionsToResponses_AssistantReasoningContentPreserved(t *testing.T) {
+	req := &ChatCompletionsRequest{
+		Model: "gpt-4o",
+		Messages: []ChatMessage{
+			{Role: "user", Content: json.RawMessage(`"Hi"`)},
+			{
+				Role:             "assistant",
+				ReasoningContent: "internal plan",
+				Content:          json.RawMessage(`"final answer"`),
+			},
 		},
 	}
 

@@ -102,6 +102,19 @@ export default {
         testFailed: 'S3 连接测试失败',
         saved: 'S3 配置已保存'
       },
+      imageStorage: {
+        title: '异步生图对象存储',
+        description: '开启后，异步生图结果会转存到对象存储，只把短链接写入 Redis。与备份共用 S3 客户端，保存后立即生效，无需重启。',
+        enabled: '启用异步生图',
+        reuseBackupS3: '复用上方备份 S3 配置（仅使用不同的存储桶或前缀）',
+        bucket: '存储桶',
+        bucketInherited: '留空则沿用备份存储桶',
+        prefix: 'Key 前缀',
+        publicBaseUrl: '公开访问域名',
+        publicBaseUrlPlaceholder: '留空则返回预签名临时链接',
+        presignExpiryHours: '预签名链接有效期（小时）',
+        saved: '异步生图对象存储配置已保存'
+      },
       schedule: {
         title: '定时备份',
         description: '配置自动定时备份',
@@ -494,7 +507,7 @@ export default {
         usageOpenAI: '用量 (OpenAI)',
         usageGemini: '用量 (Gemini)',
         usageAntigravity: '用量 (Antigravity)',
-        concurrency: '并发数',
+        concurrency: '用户并发（当前 / 上限）',
         status: '状态',
         lastActive: '最后活跃时间',
         lastUsed: '最后使用时间',

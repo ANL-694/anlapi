@@ -65,6 +65,13 @@ func ChatCompletionsToResponses(req *ChatCompletionsRequest) (*ResponsesRequest,
 		}
 	}
 
+	if format := chatResponseFormatToResponsesTextFormat(req.ResponseFormat); len(format) > 0 {
+		if out.Text == nil {
+			out.Text = &ResponsesText{}
+		}
+		out.Text.Format = format
+	}
+
 	// tools[] and legacy functions[] → ResponsesTool[]
 	if len(req.Tools) > 0 || len(req.Functions) > 0 {
 		out.Tools = convertChatToolsToResponses(req.Tools, req.Functions)
@@ -151,6 +158,11 @@ func chatUserToResponses(m ChatMessage) ([]ResponsesInputItem, error) {
 // empty/nil and there are tool_calls, only function_call items are emitted.
 func chatAssistantToResponses(m ChatMessage) ([]ResponsesInputItem, error) {
 	var items []ResponsesInputItem
+	content := ""
+
+	if m.ReasoningContent != "" {
+		content = "<thinking>" + m.ReasoningContent + "</thinking>"
+	}
 
 	// Emit assistant message with output_text if content is non-empty.
 	if len(m.Content) > 0 {
@@ -159,13 +171,20 @@ func chatAssistantToResponses(m ChatMessage) ([]ResponsesInputItem, error) {
 			return nil, err
 		}
 		if s != "" {
-			parts := []ResponsesContentPart{{Type: "output_text", Text: s}}
-			partsJSON, err := json.Marshal(parts)
-			if err != nil {
-				return nil, err
+			if content != "" {
+				content += "\n"
 			}
-			items = append(items, ResponsesInputItem{Role: "assistant", Content: partsJSON})
+			content += s
 		}
+	}
+
+	if content != "" {
+		parts := []ResponsesContentPart{{Type: "output_text", Text: content}}
+		partsJSON, err := json.Marshal(parts)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, ResponsesInputItem{Role: "assistant", Content: partsJSON})
 	}
 
 	// Emit one function_call item per tool_call.

@@ -53,11 +53,14 @@ type AnthropicMessage struct {
 type AnthropicContentBlock struct {
 	Type string `json:"type"`
 
+	CacheControl *AnthropicCacheControl `json:"cache_control,omitempty"`
+
 	// type=text
 	Text string `json:"text,omitempty"`
 
 	// type=thinking
-	Thinking string `json:"thinking,omitempty"`
+	Thinking  string `json:"thinking,omitempty"`
+	Signature string `json:"signature,omitempty"`
 
 	// type=image
 	Source *AnthropicImageSource `json:"source,omitempty"`
@@ -106,6 +109,32 @@ type AnthropicResponse struct {
 	StopReason   string                  `json:"stop_reason"`
 	StopSequence *string                 `json:"stop_sequence,omitempty"`
 	Usage        AnthropicUsage          `json:"usage"`
+}
+
+// MarshalJSON preserves ANL's string StopReason API while emitting the
+// official Anthropic message_start wire value: stop_reason must be null until
+// a terminal event supplies the final reason.
+func (r AnthropicResponse) MarshalJSON() ([]byte, error) {
+	type responseWire struct {
+		ID           string                  `json:"id"`
+		Type         string                  `json:"type"`
+		Role         string                  `json:"role"`
+		Content      []AnthropicContentBlock `json:"content"`
+		Model        string                  `json:"model"`
+		StopReason   *string                 `json:"stop_reason"`
+		StopSequence *string                 `json:"stop_sequence,omitempty"`
+		Usage        AnthropicUsage          `json:"usage"`
+	}
+
+	var stopReason *string
+	if r.StopReason != "" {
+		value := r.StopReason
+		stopReason = &value
+	}
+	return json.Marshal(responseWire{
+		ID: r.ID, Type: r.Type, Role: r.Role, Content: r.Content, Model: r.Model,
+		StopReason: stopReason, StopSequence: r.StopSequence, Usage: r.Usage,
+	})
 }
 
 // AnthropicUsage holds token counts in Anthropic format.
@@ -205,6 +234,9 @@ type ResponsesInputItem struct {
 	// Role-based messages (system/user/assistant)
 	Role    string          `json:"role,omitempty"`
 	Content json.RawMessage `json:"content,omitempty"` // string or []ResponsesContentPart
+
+	// type=reasoning，用于跨轮次回放上游加密推理内容。
+	EncryptedContent string `json:"encrypted_content,omitempty"`
 
 	// type=function_call
 	CallID string `json:"call_id,omitempty"`

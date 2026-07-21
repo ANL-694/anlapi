@@ -3,6 +3,7 @@ package apicompat
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -32,10 +33,11 @@ func ResponsesToAnthropic(resp *ResponsesResponse, model string) *AnthropicRespo
 					summaryText += s.Text
 				}
 			}
-			if summaryText != "" {
+			if summaryText != "" || strings.TrimSpace(item.EncryptedContent) != "" {
 				blocks = append(blocks, AnthropicContentBlock{
-					Type:     "thinking",
-					Thinking: summaryText,
+					Type:      "thinking",
+					Thinking:  summaryText,
+					Signature: item.EncryptedContent,
 				})
 			}
 		case "message":
@@ -171,13 +173,14 @@ type ResponsesEventToAnthropicState struct {
 	MessageStartSent bool
 	MessageStopSent  bool
 
-	ContentBlockIndex   int
-	ContentBlockOpen    bool
-	CurrentBlockType    string // "text" | "thinking" | "tool_use"
-	CurrentToolName     string
-	CurrentToolArgs     string
-	CurrentToolHadDelta bool
-	HasToolCall         bool
+	ContentBlockIndex        int
+	ContentBlockOpen         bool
+	CurrentBlockType         string // "text" | "thinking" | "tool_use"
+	CurrentToolName          string
+	CurrentToolArgs          string
+	CurrentToolHadDelta      bool
+	PendingThinkingSignature string
+	HasToolCall              bool
 
 	// OutputIndexToBlockIdx maps Responses output_index → Anthropic content block index.
 	OutputIndexToBlockIdx map[int]int
@@ -228,7 +231,8 @@ func ResponsesEventToAnthropicEvents(
 		"response.reasoning_text.delta":
 		return resToAnthHandleReasoningDelta(evt, state)
 	case "response.reasoning_summary_text.done":
-		return resToAnthHandleBlockDone(state)
+		// encrypted_content 通常到 output_item.done 才出现，先保持 thinking 块开启。
+		return nil
 	case "response.completed", "response.incomplete", "response.failed":
 		return resToAnthHandleCompleted(evt, state)
 	default:
@@ -347,6 +351,7 @@ func resToAnthHandleOutputItemAdded(evt *ResponsesStreamEvent, state *ResponsesE
 		state.OutputIndexToBlockIdx[evt.OutputIndex] = idx
 		state.ContentBlockOpen = true
 		state.CurrentBlockType = "thinking"
+		state.PendingThinkingSignature = strings.TrimSpace(evt.Item.EncryptedContent)
 
 		events = append(events, AnthropicStreamEvent{
 			Type:  "content_block_start",
@@ -528,6 +533,11 @@ func resToAnthHandleOutputItemDone(evt *ResponsesStreamEvent, state *ResponsesEv
 	if evt.Item.Type == "web_search_call" && evt.Item.Status == "completed" {
 		return resToAnthHandleWebSearchDone(evt, state)
 	}
+	if evt.Item.Type == "reasoning" {
+		if signature := strings.TrimSpace(evt.Item.EncryptedContent); signature != "" {
+			state.PendingThinkingSignature = signature
+		}
+	}
 
 	if state.ContentBlockOpen {
 		return closeCurrentBlock(state)
@@ -643,13 +653,25 @@ func closeCurrentBlock(state *ResponsesEventToAnthropicState) []AnthropicStreamE
 		return nil
 	}
 	idx := state.ContentBlockIndex
+	events := make([]AnthropicStreamEvent, 0, 2)
+	if state.CurrentBlockType == "thinking" {
+		if signature := strings.TrimSpace(state.PendingThinkingSignature); signature != "" {
+			events = append(events, AnthropicStreamEvent{
+				Type:  "content_block_delta",
+				Index: &idx,
+				Delta: &AnthropicDelta{Type: "signature_delta", Signature: signature},
+			})
+		}
+		state.PendingThinkingSignature = ""
+	}
 	state.ContentBlockOpen = false
 	state.ContentBlockIndex++
 	state.CurrentToolName = ""
 	state.CurrentToolArgs = ""
 	state.CurrentToolHadDelta = false
-	return []AnthropicStreamEvent{{
+	events = append(events, AnthropicStreamEvent{
 		Type:  "content_block_stop",
 		Index: &idx,
-	}}
+	})
+	return events
 }

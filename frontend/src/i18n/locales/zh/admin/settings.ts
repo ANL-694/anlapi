@@ -152,7 +152,14 @@ export default {
         description: '控制 API Key 白/黑名单、操作审计日志与会话 IP/UA 绑定使用哪个客户端 IP 判断',
         trustForwardedIp: '信任反代传递的客户端 IP',
         trustForwardedIpHint:
-          '默认关闭。仅在源站只允许 Cloudflare 或 Nginx 反代访问时开启；开启后 API Key IP 白/黑名单、操作审计日志与会话 IP/UA 绑定会使用 CF-Connecting-IP、X-Real-IP 或 X-Forwarded-For，与使用记录中的请求 IP 保持一致。切换本开关会改变已登录会话的 IP 指纹，开启会话绑定时现有会话需重新登录。'
+          '默认关闭。关闭时 API Key 白/黑名单、审计日志和会话绑定只使用 server.trusted_proxies 的 Gin 可信代理链或直连地址。ANL API 支持源站 IP 直连，未先限制源站访问时不要开启；切换会改变已登录会话的 IP 指纹。',
+        forwardedClientIpHeaders: '自定义客户端 IP 请求头',
+        forwardedClientIpHeadersHint: '仅在上方兼容开关开启时生效，按顺序优先于内置请求头解析。',
+        forwardedClientIpHeadersPlaceholder: 'X-Client-IP',
+        forwardedClientIpHeadersRiskHint: '高风险：源站 IP 可被直接访问时，请求方可伪造这些原始请求头并绕过 API Key IP 白名单或改变会话指纹。请先在防火墙只放行可信反代 IP 段。',
+        forwardedClientIpHeaderInvalid: '请输入有效的 HTTP 请求头名称。',
+        forwardedClientIpHeadersLimit: '自定义客户端 IP 请求头最多允许 {max} 个。',
+        removeForwardedClientIpHeader: '移除 {header}'
       },
       linuxdo: {
         title: 'LinuxDo Connect 登录',

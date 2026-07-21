@@ -2969,21 +2969,7 @@
         <p v-if="userProxyForcesPrivate" class="input-hint">{{ t('userAccounts.proxyForcesPrivate') }}</p>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div>
-          <label class="input-label">{{ t('admin.accounts.concurrency') }}</label>
-          <input
-            v-model.number="form.concurrency"
-            type="number"
-            min="1"
-            :readonly="isUserScope"
-            :class="[
-              'input',
-              isUserScope && 'cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-dark-800 dark:text-dark-400'
-            ]"
-            @input="normalizeConcurrencyInput"
-          />
-        </div>
+      <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <div>
           <label class="input-label">{{ t('admin.accounts.loadFactor') }}</label>
           <input v-model.number="form.load_factor" type="number" min="1"
@@ -4366,14 +4352,6 @@ const syncPreviewCredentials = computed(() => {
     api_key: apiKey
   }
 })
-
-const normalizeConcurrencyInput = () => {
-  if (isUserScope.value) {
-    form.concurrency = PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY
-    return
-  }
-  form.concurrency = Math.max(1, form.concurrency || 1)
-}
 
 const applyOpenAIPlusConcurrencyDefaults = () => {
   if (isUserScope.value) {

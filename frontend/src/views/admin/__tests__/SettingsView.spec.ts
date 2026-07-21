@@ -332,6 +332,8 @@ const baseSettingsResponse = {
   turnstile_enabled: false,
   turnstile_site_key: "",
   turnstile_secret_key_configured: false,
+  api_key_acl_trust_forwarded_ip: false,
+  forwarded_client_ip_headers: [],
   linuxdo_connect_enabled: false,
   linuxdo_connect_client_id: "",
   linuxdo_connect_client_secret_configured: false,
@@ -1008,6 +1010,42 @@ describe("admin SettingsView wechat connect controls", () => {
       expect.objectContaining({
         oidc_connect_use_pkce: false,
         oidc_connect_validate_id_token: false,
+      }),
+    );
+  });
+
+  it("keeps custom forwarded headers behind the explicit compatibility switch", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      api_key_acl_trust_forwarded_ip: false,
+      forwarded_client_ip_headers: ["X-Cdn-IP"],
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+    await openSecurityTab(wrapper);
+
+    expect(
+      wrapper.find('[data-testid="forwarded-client-ip-headers-input"]').exists(),
+    ).toBe(false);
+
+    await wrapper
+      .get('[data-testid="api-key-acl-trust-forwarded-ip"]')
+      .setValue(true);
+
+    const input = wrapper.get('[data-testid="forwarded-client-ip-headers-input"]');
+    expect(
+      wrapper.findAll('[data-testid="forwarded-client-ip-header-tag"]'),
+    ).toHaveLength(1);
+    await input.setValue("x-client-ip");
+    await input.trigger("keydown", { key: "Enter" });
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        api_key_acl_trust_forwarded_ip: true,
+        forwarded_client_ip_headers: ["X-Cdn-Ip", "X-Client-Ip"],
       }),
     );
   });

@@ -4,6 +4,7 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,45 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAbortWithAPIKeyQuotaErrorUsesOpenAIFormatForResponses(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+
+	abortWithAPIKeyQuotaError(c)
+
+	require.Equal(t, http.StatusTooManyRequests, recorder.Code)
+	var response struct {
+		Error struct {
+			Message string  `json:"message"`
+			Type    string  `json:"type"`
+			Param   *string `json:"param"`
+			Code    string  `json:"code"`
+		} `json:"error"`
+	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
+	require.Equal(t, "API key 额度已用完", response.Error.Message)
+	require.Equal(t, "insufficient_quota", response.Error.Type)
+	require.Nil(t, response.Error.Param)
+	require.Equal(t, "insufficient_quota", response.Error.Code)
+}
+
+func TestAbortWithAPIKeyQuotaErrorKeepsLegacyFormatForMessages(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
+
+	abortWithAPIKeyQuotaError(c)
+
+	require.Equal(t, http.StatusTooManyRequests, recorder.Code)
+	var response ErrorResponse
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
+	require.Equal(t, "API_KEY_QUOTA_EXHAUSTED", response.Code)
+	require.Equal(t, "API key 额度已用完", response.Message)
+}
 
 func TestSimpleModeBypassesQuotaCheck(t *testing.T) {
 	gin.SetMode(gin.TestMode)

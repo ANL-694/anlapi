@@ -479,6 +479,26 @@
 
       </div>
 
+      <!-- Grok OAuth 客户端工具缓存。 -->
+      <div
+        v-if="account.platform === 'grok' && account.type === 'oauth'"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+      >
+        <div class="flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <label class="input-label mb-0">{{ t('admin.accounts.grokClientToolCache.title') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.grokClientToolCache.hint') }}
+            </p>
+          </div>
+          <Toggle
+            v-model="grokClientToolCacheEnabled"
+            data-testid="grok-client-tool-cache-toggle"
+            :aria-label="t('admin.accounts.grokClientToolCache.title')"
+          />
+        </div>
+      </div>
+
       <!-- Grok OAuth 自定义上游地址只改写转发端点，不影响 OAuth 授权和刷新。 -->
       <div
         v-if="account.platform === 'grok' && account.type === 'oauth'"
@@ -1384,18 +1404,7 @@
         <p v-if="userProxyForcesPrivate" class="input-hint">{{ t('userAccounts.proxyForcesPrivate') }}</p>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div>
-          <label class="input-label">{{ t('admin.accounts.concurrency') }}</label>
-          <input
-            v-model.number="form.concurrency"
-            type="number"
-            min="1"
-            class="input"
-            :disabled="!canEditConcurrency"
-            @input="normalizeConcurrencyInput"
-          />
-        </div>
+      <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <div>
           <label class="input-label">{{ t('admin.accounts.loadFactor') }}</label>
           <input v-model.number="form.load_factor" type="number" min="1"
@@ -2366,6 +2375,7 @@ import type { AccountApiScope } from '@/composables/useAccountOAuth'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
+import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
 import ProxySelector from '@/components/common/ProxySelector.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
@@ -2447,7 +2457,6 @@ const showHeaderOverrideEditor = computed(() =>
   !!props.account &&
   isHeaderOverrideCapable(props.account.platform, props.account.type)
 )
-const canEditConcurrency = computed(() => !isUserScope.value || form.share_mode !== 'public')
 const normalizeCustomProtocol = (value: unknown): CustomAccountProtocol => {
   const normalized = String(value || '').trim().toLowerCase()
   if (
@@ -2529,6 +2538,7 @@ const allowedModels = ref<string[]>([])
 const DEFAULT_POOL_MODE_RETRY_COUNT = 3
 const MAX_POOL_MODE_RETRY_COUNT = 10
 const DEFAULT_POOL_MODE_RETRY_STATUS_CODES = [401, 403, 429]
+const GROK_CLIENT_TOOL_CACHE_EXTRA_KEY = 'grok_client_tool_cache_enabled'
 const poolModeEnabled = ref(false)
 const poolModeRetryCount = ref(DEFAULT_POOL_MODE_RETRY_COUNT)
 const poolModeRetryStatusCodesInput = ref('')
@@ -2563,6 +2573,7 @@ const headerOverrideEnabled = ref(false)
 const headerOverrideRows = ref<HeaderOverrideRow[]>([])
 const grokOAuthCustomBaseUrlEnabled = ref(false)
 const grokOAuthBaseUrl = ref('')
+const grokClientToolCacheEnabled = ref(true)
 const interceptWarmupRequests = ref(false)
 const autoPauseOnExpired = ref(false)
 const mixedScheduling = ref(false) // For antigravity accounts: enable mixed scheduling
@@ -2860,19 +2871,11 @@ const userAccountLevelOptions = computed(() => [
 
 const isUserEditableAccountLevel = (level: AccountLevel) => level === 'unknown' || level === 'team' || level === 'k12'
 
-const normalizeConcurrencyInput = () => {
-  if (isUserScope.value && !canEditConcurrency.value) {
-    form.concurrency = PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY
-    return
-  }
-  form.concurrency = Math.max(1, form.concurrency || 1)
-}
-
 const applyUserScopeConcurrencyTemplate = () => {
   if (isUserScope.value) {
-    form.concurrency = canEditConcurrency.value
-      ? Math.max(1, form.concurrency || PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY)
-      : PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY
+    form.concurrency = form.share_mode === 'public'
+      ? PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY
+      : Math.max(1, form.concurrency || PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY)
     form.load_factor = null
     return
   }
@@ -3019,6 +3022,14 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   mixedScheduling.value = extra?.mixed_scheduling === true
   allowOverages.value = extra?.allow_overages === true
   customProtocol.value = normalizeCustomProtocol(extra?.protocol)
+  const grokClientToolCacheSetting =
+    newAccount.platform === 'grok' && newAccount.type === 'oauth'
+      ? extra?.[GROK_CLIENT_TOOL_CACHE_EXTRA_KEY]
+      : undefined
+  grokClientToolCacheEnabled.value =
+    newAccount.platform === 'grok' &&
+    newAccount.type === 'oauth' &&
+    (grokClientToolCacheSetting === undefined || grokClientToolCacheSetting === true)
 
   // Load OpenAI passthrough toggle (OpenAI OAuth/API Key)
   openaiPassthroughEnabled.value = false
@@ -4240,6 +4251,13 @@ const handleSubmit = async () => {
       applyHeaderOverride(newCredentials, headerOverrideEnabled.value, headerOverrideRows.value, 'edit')
 
       updatePayload.credentials = newCredentials
+      const currentExtra =
+        (updatePayload.extra as Record<string, unknown>) ||
+        ((props.account.extra as Record<string, unknown>) || {})
+      updatePayload.extra = {
+        ...currentExtra,
+        [GROK_CLIENT_TOOL_CACHE_EXTRA_KEY]: grokClientToolCacheEnabled.value
+      }
     }
 
     // OpenAI: 手动覆盖订阅档位 plan_type（Plus/Pro/Free）。仅 OAuth 非影子账号：

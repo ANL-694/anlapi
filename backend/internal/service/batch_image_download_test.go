@@ -31,10 +31,10 @@ func TestBatchImageDownloadService_OpenItemContent(t *testing.T) {
 		require.Equal(t, []byte("second"), body)
 		require.Equal(t, "image/jpeg", stream.ContentType)
 		require.Equal(t, "cover___001.jpg", stream.Filename)
-		require.Equal(t, 1, limiter.acquireCount)
+		require.Zero(t, limiter.acquireCount)
 		require.Zero(t, limiter.releaseCount)
 		require.NoError(t, stream.Reader.Close())
-		require.Equal(t, 1, limiter.releaseCount)
+		require.Zero(t, limiter.releaseCount)
 	})
 
 	tests := []struct {
@@ -86,8 +86,8 @@ func TestBatchImageDownloadService_StreamZip(t *testing.T) {
 		result, err := svc.StreamZip(ctx, testBatchImageOwner(), "imgbatch_download", BatchImageZipOptions{}, &buf)
 		require.NoError(t, err)
 		require.Equal(t, 3, result.FileCount)
-		require.Equal(t, 1, limiter.acquireCount)
-		require.Equal(t, 1, limiter.releaseCount)
+		require.Zero(t, limiter.acquireCount)
+		require.Zero(t, limiter.releaseCount)
 
 		files := readZipFiles(t, buf.Bytes())
 		require.Equal(t, []byte("first"), files["images/cover___001.png"])
@@ -125,15 +125,17 @@ func TestBatchImageDownloadService_StreamZip(t *testing.T) {
 		require.Equal(t, "SAFETY_BLOCKED", errorsJSON[0]["code"])
 	})
 
-	t.Run("limiter denial returns public limit error", func(t *testing.T) {
+	t.Run("retired download limiter does not block a user request", func(t *testing.T) {
 		svc, _, limiter := newTestBatchImageDownloadService()
 		limiter.deny = true
 		var buf bytes.Buffer
 
 		result, err := svc.StreamZip(ctx, testBatchImageOwner(), "imgbatch_download", BatchImageZipOptions{}, &buf)
-		require.Nil(t, result)
-		require.ErrorIs(t, err, ErrBatchImageDownloadLimited)
-		require.Empty(t, buf.Bytes())
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.NotEmpty(t, buf.Bytes())
+		require.Zero(t, limiter.acquireCount)
+		require.Zero(t, limiter.releaseCount)
 	})
 
 	t.Run("rejects too many zip items before opening output", func(t *testing.T) {
@@ -221,13 +223,14 @@ func newTestBatchImageDownloadService() (*BatchImageDownloadService, *fakeBatchI
 	}
 	provider := &publicBatchImageProvider{name: BatchImageProviderGeminiAPI, result: batchImageDownloadResultJSONL()}
 	limiter := &fakeBatchImageDownloadLimiter{}
-	svc := &BatchImageDownloadService{
-		Repo:             repo,
-		ProviderRegistry: NewBatchImageProviderRegistry(provider),
-		AccountResolver:  &fakeBatchImageAccountResolver{account: &Account{ID: accountID, Platform: PlatformGemini, Type: AccountTypeAPIKey, Status: StatusActive, Schedulable: true}},
-		Limiter:          limiter,
-		Config:           &config.Config{BatchImage: config.BatchImageConfig{MaxDownloadItemsZip: 10, MaxDownloadDurationSeconds: 60}},
-	}
+	svc := NewBatchImageDownloadService(
+		repo,
+		nil,
+		limiter,
+		&config.Config{BatchImage: config.BatchImageConfig{MaxDownloadItemsZip: 10, MaxDownloadDurationSeconds: 60}},
+	)
+	svc.ProviderRegistry = NewBatchImageProviderRegistry(provider)
+	svc.AccountResolver = &fakeBatchImageAccountResolver{account: &Account{ID: accountID, Platform: PlatformGemini, Type: AccountTypeAPIKey, Status: StatusActive, Schedulable: true}}
 	return svc, repo, limiter
 }
 

@@ -42,7 +42,7 @@
       <!-- Row: Concurrency + Throughput -->
       <div v-if="opsEnabled && !(loading && !hasLoadedOnce)" class="ops-monitor-grid ops-monitor-grid--primary">
         <div class="ops-monitor-cell h-[360px] lg:col-span-1">
-          <OpsConcurrencyCard :platform-filter="platform" :group-id-filter="groupId" :refresh-token="dashboardRefreshToken" />
+          <OpsConcurrencyCard :refresh-token="dashboardRefreshToken" />
         </div>
         <div class="ops-monitor-cell h-[360px] lg:col-span-1">
           <OpsSwitchRateTrendChart

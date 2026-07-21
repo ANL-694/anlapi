@@ -160,6 +160,24 @@ func TestCodexModelsFailsOverFromUpstreamTransportError(t *testing.T) {
 	}
 }
 
+func TestCodexModelsRecordsSelectedAccountForOps(t *testing.T) {
+	handler, _, groupID := newCodexModelsFailoverTestHandler(http.StatusServiceUnavailable)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/v1/models?client_version=0.144.0", nil)
+	c.Set(string(middleware2.ContextKeyAPIKey), &service.APIKey{
+		UserID: 101, GroupID: &groupID,
+		Group: &service.Group{ID: groupID, Platform: service.PlatformOpenAI},
+	})
+	c.Set(string(middleware2.ContextKeyUser), middleware2.AuthSubject{UserID: 101, Concurrency: 1})
+
+	handler.CodexModels(c)
+
+	if got, ok := c.Get(opsAccountIDKey); !ok || got != int64(2) {
+		t.Fatalf("ops selected account: got %v (present=%v), want 2", got, ok)
+	}
+}
+
 func TestCodexModelsFailsOverFromInvalidManifestEnvelope(t *testing.T) {
 	handler, upstream, groupID := newCodexModelsFailoverTestHandler(http.StatusOK)
 	upstream.firstBody = `{"object":"list","data":[]}`

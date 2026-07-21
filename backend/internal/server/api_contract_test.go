@@ -798,14 +798,7 @@ func TestAPIContracts(t *testing.T) {
 					"openai_free_account_repair_enabled": false,
 					"openai_free_account_repair_weekly_threshold_usd": 60,
 					"openai_fast_policy_settings": {
-						"rules": [
-							{
-								"service_tier": "priority",
-								"action": "filter",
-								"scope": "all",
-								"fallback_action": "pass"
-							}
-						]
+						"rules": []
 					},
 					"custom_menu_items": [],
 					"custom_endpoints": [],
@@ -1031,14 +1024,7 @@ func TestAPIContracts(t *testing.T) {
 					"openai_free_account_repair_enabled": false,
 					"openai_free_account_repair_weekly_threshold_usd": 60,
 					"openai_fast_policy_settings": {
-						"rules": [
-							{
-								"service_tier": "priority",
-								"action": "filter",
-								"scope": "all",
-								"fallback_action": "pass"
-							}
-						]
+						"rules": []
 					},
 					"payment_enabled": false,
 					"payment_min_amount": 0,

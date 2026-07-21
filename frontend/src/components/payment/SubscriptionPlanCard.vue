@@ -25,12 +25,12 @@
         </div>
         <div class="shrink-0 text-right">
           <div class="flex items-baseline gap-1">
-            <span class="text-xs text-[var(--ui-text-tertiary)]">¥</span>
+            <span class="text-xs text-[var(--ui-text-tertiary)]">{{ planCurrencySymbol }}</span>
             <span class="text-2xl font-semibold tracking-tight text-[var(--ui-text)]">{{ plan.price }}</span>
           </div>
           <span class="text-[11px] text-[var(--ui-text-tertiary)]">/ {{ validitySuffix }}</span>
           <div v-if="plan.original_price" class="mt-0.5 flex items-center justify-end gap-1.5">
-            <span class="text-xs text-[var(--ui-text-tertiary)] line-through">¥{{ plan.original_price }}</span>
+            <span class="text-xs text-[var(--ui-text-tertiary)] line-through">{{ planCurrencySymbol }}{{ plan.original_price }}</span>
             <span class="text-[10px] font-semibold text-[var(--ui-success)]">{{ discountText }}</span>
           </div>
         </div>
@@ -118,6 +118,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { SubscriptionPlan } from '@/types/payment'
 import type { UserSubscription } from '@/types'
+import { currencySymbol } from '@/components/payment/currency'
 import {
   platformLabel,
 } from '@/utils/platformColors'
@@ -147,6 +148,8 @@ const rateDisplay = computed(() => {
   const rate = props.plan.rate_multiplier ?? 1
   return `×${Number(rate.toPrecision(10))}`
 })
+
+const planCurrencySymbol = computed(() => currencySymbol(props.plan.currency))
 
 const MODEL_SCOPE_LABELS: Record<string, string> = {
   claude: 'Claude',

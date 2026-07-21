@@ -26,6 +26,12 @@ type ImageStorage interface {
 	Save(ctx context.Context, key, contentType string, data []byte) (url string, err error)
 }
 
+// ImageStorageConnectionTester 由支持后台连接检测的存储实现提供。
+// 测试必须发起真实的远端请求，不能只验证 SDK 客户端能否构造。
+type ImageStorageConnectionTester interface {
+	TestConnection(ctx context.Context) error
+}
+
 // ImageResultUploader 是 ImageStorage 的上层编排器（与具体厂商无关）：
 // 把上游生图响应里的每张图片（b64_json 解码 / url 下载）转存到对象存储，
 // 并把响应结果改写为只含短链接的紧凑 JSON，从而避免大 base64 落 Redis。

@@ -33,7 +33,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 	promptCacheKey string,
 	defaultMappedModel string,
 ) (*OpenAIForwardResult, error) {
-	if account != nil && account.Type == AccountTypeAPIKey && !openai_compat.ShouldUseResponsesAPI(account.Extra) {
+	if account != nil && account.Platform != PlatformGrok && account.Type == AccountTypeAPIKey && !openai_compat.ShouldUseResponsesAPI(account.Extra) {
 		return s.forwardAnthropicViaRawChatCompletions(ctx, c, account, body, defaultMappedModel)
 	}
 
@@ -60,7 +60,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		compatReplayTrimmed = applyAnthropicCompatFullReplayGuard(&anthropicReq)
 	}
 
-	// 2. Convert Anthropic 鈫?Responses
+	// 2. Convert Anthropic to Responses
 	responsesReq, err := apicompat.AnthropicToResponses(&anthropicReq)
 	if err != nil {
 		return nil, fmt.Errorf("convert anthropic to responses: %w", err)
@@ -71,7 +71,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 	responsesReq.Stream = true
 	isStream := true
 
-	// 2b. Handle BetaFastMode 鈫?service_tier: "priority"
+	// 2b. Handle BetaFastMode to service_tier: "priority"
 	if containsBetaToken(c.GetHeader("anthropic-beta"), claude.BetaFastMode) {
 		responsesReq.ServiceTier = "priority"
 	}
@@ -114,7 +114,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		return nil, fmt.Errorf("marshal responses request: %w", err)
 	}
 
-	if account.Type == AccountTypeOAuth {
+	if account.Type == AccountTypeOAuth && account.Platform != PlatformGrok {
 		var reqBody map[string]any
 		if err := json.Unmarshal(responsesBody, &reqBody); err != nil {
 			return nil, fmt.Errorf("unmarshal for codex transform: %w", err)
@@ -200,6 +200,23 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		return nil, policyErr
 	}
 	responsesBody = updatedBody
+	grokCacheIdentity := ""
+	if account.Platform == PlatformGrok {
+		grokIntentBody := responsesBody
+		grokCacheIdentity = resolveGrokCacheIdentity(c, grokIntentBody, promptCacheKey, upstreamModel)
+		patchedBody, patchErr := patchGrokResponsesBody(grokIntentBody, upstreamModel)
+		if patchErr != nil {
+			return nil, patchErr
+		}
+		responsesBody, patchErr = applyGrokResponsesCacheIdentity(patchedBody, grokIntentBody, grokCacheIdentity, account.IsGrokOAuth())
+		if patchErr != nil {
+			return nil, fmt.Errorf("apply grok prompt cache identity: %w", patchErr)
+		}
+		responsesBody, patchErr = applyGrokFreeMessagesFunctionToolCacheRoute(responsesBody, grokIntentBody, account, grokCacheIdentity)
+		if patchErr != nil {
+			return nil, fmt.Errorf("apply grok Free function-tool cache route: %w", patchErr)
+		}
+	}
 
 	// 5. Get access token
 	token, _, err := s.getRequestCredential(ctx, c, account)
@@ -208,14 +225,19 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 	}
 
 	// 6. Build upstream request
-	upstreamReq, err := s.buildUpstreamRequest(ctx, c, account, responsesBody, token, isStream, promptCacheKey, false)
+	var upstreamReq *http.Request
+	if account.Platform == PlatformGrok {
+		upstreamReq, err = buildGrokResponsesRequest(ctx, c, account, responsesBody, token, grokCacheIdentity, s.cfg)
+	} else {
+		upstreamReq, err = s.buildUpstreamRequest(ctx, c, account, responsesBody, token, isStream, promptCacheKey, false)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("build upstream request: %w", err)
 	}
 
 	// Override session_id with a deterministic UUID derived from the isolated
 	// session key, ensuring different API keys produce different upstream sessions.
-	if promptCacheKey != "" {
+	if account.Platform != PlatformGrok && promptCacheKey != "" {
 		apiKeyID := getAPIKeyIDFromContext(c)
 		upstreamReq.Header.Set("session_id", generateSessionUUID(isolateOpenAISessionID(apiKeyID, promptCacheKey)))
 	}
@@ -240,6 +262,32 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		writeAnthropicError(c, http.StatusBadGateway, "api_error", "Upstream request failed")
 		return nil, fmt.Errorf("upstream request failed: %s", safeErr)
 	}
+	if account.Platform == PlatformGrok && resp.StatusCode == http.StatusBadRequest {
+		respBody := s.readUpstreamErrorBody(resp)
+		_ = resp.Body.Close()
+		shouldStrip := isGrokInvalidEncryptedContentResponse(resp.StatusCode, respBody)
+		if shouldStrip {
+			retryBody, changed, trimErr := trimGrokInvalidEncryptedContentRetryBody(responsesBody)
+			if trimErr != nil {
+				return nil, fmt.Errorf("prepare Grok invalid encrypted_content retry: %w", trimErr)
+			}
+			if changed {
+				responsesBody = retryBody
+				upstreamReq, err = buildGrokResponsesRequest(ctx, c, account, responsesBody, token, grokCacheIdentity, s.cfg)
+				if err != nil {
+					return nil, fmt.Errorf("build Grok retry request: %w", err)
+				}
+				resp, err = s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
+				if err != nil {
+					return nil, s.handleOpenAIUpstreamTransportError(ctx, c, account, err, false)
+				}
+			} else {
+				resp.Body = io.NopCloser(bytes.NewReader(respBody))
+			}
+		} else {
+			resp.Body = io.NopCloser(bytes.NewReader(respBody))
+		}
+	}
 	defer func() { _ = resp.Body.Close() }()
 
 	// 8. Handle error response with failover
@@ -256,6 +304,13 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 				return nil, fmt.Errorf("agent identity task recovery failed: %w", err)
 			}
 			return s.ForwardAsAnthropic(markAgentIdentityTaskRecoveryTried(ctx), c, account, body, promptCacheKey, defaultMappedModel)
+		}
+		if account.Platform == PlatformGrok &&
+			isGrokInvalidEncryptedContentResponse(resp.StatusCode, respBody) &&
+			!grokEncryptedContentStripRetried(ctx) {
+			if strippedBody, changed := stripAnthropicThinkingSignatures(body); changed {
+				return s.ForwardAsAnthropic(markGrokEncryptedContentStripRetried(ctx), c, account, strippedBody, promptCacheKey, defaultMappedModel)
+			}
 		}
 		if s.shouldFailoverOpenAIUpstreamResponse(resp.StatusCode, upstreamMsg, respBody) {
 			upstreamDetail := ""
@@ -285,6 +340,9 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		}
 		// Non-failover error: return Anthropic-formatted error to client
 		return s.handleAnthropicErrorResponse(resp, c, account, upstreamModel)
+	}
+	if account.Platform == PlatformGrok && account.Type == AccountTypeOAuth && !account.IsShadow() {
+		s.updateGrokUsageFromResponse(ctx, account, resp.Header, resp.StatusCode)
 	}
 
 	// 9. Handle normal response
@@ -416,6 +474,7 @@ func (s *OpenAIGatewayService) handleAnthropicBufferedStreamingResponse(
 	if s.responseHeaderFilter != nil {
 		responseheaders.WriteFilteredHeaders(c.Writer.Header(), resp.Header, s.responseHeaderFilter)
 	}
+	c.Header("Content-Type", "application/json; charset=utf-8")
 	c.JSON(http.StatusOK, anthropicResp)
 
 	return &OpenAIForwardResult{

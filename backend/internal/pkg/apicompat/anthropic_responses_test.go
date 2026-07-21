@@ -610,12 +610,27 @@ func TestStreamingReasoning(t *testing.T) {
 	assert.Equal(t, "thinking_delta", events[0].Delta.Type)
 	assert.Equal(t, "Let me think...", events[0].Delta.Thinking)
 
-	// reasoning done
+	// summary.done keeps thinking open until output_item.done so a late
+	// encrypted_content value can be returned as an Anthropic signature.
 	events = ResponsesEventToAnthropicEvents(&ResponsesStreamEvent{
 		Type: "response.reasoning_summary_text.done",
 	}, state)
-	require.Len(t, events, 1)
-	assert.Equal(t, "content_block_stop", events[0].Type)
+	require.Empty(t, events)
+
+	events = ResponsesEventToAnthropicEvents(&ResponsesStreamEvent{
+		Type:        "response.output_item.done",
+		OutputIndex: 0,
+		Item: &ResponsesOutput{
+			Type:             "reasoning",
+			EncryptedContent: "enc-rs-stream",
+			Status:           "completed",
+		},
+	}, state)
+	require.Len(t, events, 2)
+	assert.Equal(t, "content_block_delta", events[0].Type)
+	assert.Equal(t, "signature_delta", events[0].Delta.Type)
+	assert.Equal(t, "enc-rs-stream", events[0].Delta.Signature)
+	assert.Equal(t, "content_block_stop", events[1].Type)
 }
 
 func TestStreamingIncomplete(t *testing.T) {
@@ -803,6 +818,24 @@ func TestResponsesToAnthropic_Failed(t *testing.T) {
 	// Should have at least an empty text block
 	require.Len(t, anth.Content, 1)
 	assert.Equal(t, "text", anth.Content[0].Type)
+}
+
+func TestMessageStartSSEStopReasonIsJSONNull(t *testing.T) {
+	state := NewResponsesEventToAnthropicState()
+	state.Model = "gpt-5.4"
+	events := ResponsesEventToAnthropicEvents(&ResponsesStreamEvent{
+		Type:     "response.created",
+		Response: &ResponsesResponse{ID: "resp_test", Model: "gpt-5.4"},
+	}, state)
+	require.Len(t, events, 1)
+	require.Equal(t, "message_start", events[0].Type)
+	require.NotNil(t, events[0].Message)
+	require.Empty(t, events[0].Message.StopReason)
+
+	sse, err := ResponsesAnthropicEventToSSE(events[0])
+	require.NoError(t, err)
+	require.Contains(t, sse, `"stop_reason":null`)
+	require.NotContains(t, sse, `"stop_reason":""`)
 }
 
 // ---------------------------------------------------------------------------

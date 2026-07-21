@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	infraerrors "anlapi/internal/pkg/errors"
@@ -69,12 +70,33 @@ type ImageTaskStore interface {
 	Get(ctx context.Context, id string) (*ImageTaskRecord, error)
 }
 
+// ImageStorageResolver 返回当前生效的对象存储绑定，支持后台热切换。
+type ImageStorageResolver func() (uploader *ImageResultUploader, enabled bool)
+
 type ImageTaskService struct {
 	store            ImageTaskStore
 	uploader         *ImageResultUploader
 	enabled          bool
+	resolve          ImageStorageResolver
 	ttl              time.Duration
 	executionTimeout time.Duration
+	taskUploaders    sync.Map
+}
+
+func NewImageTaskServiceWithResolver(store ImageTaskStore, resolve ImageStorageResolver, ttl, executionTimeout time.Duration) *ImageTaskService {
+	s := NewImageTaskServiceWithOptions(store, ttl, executionTimeout)
+	s.resolve = resolve
+	return s
+}
+
+func (s *ImageTaskService) current() (*ImageResultUploader, bool) {
+	if s == nil {
+		return nil, false
+	}
+	if s.resolve != nil {
+		return s.resolve()
+	}
+	return s.uploader, s.enabled
 }
 
 func NewImageTaskService(store ImageTaskStore) *ImageTaskService {
@@ -103,7 +125,19 @@ func NewImageTaskServiceWithUploader(store ImageTaskStore, uploader *ImageResult
 // Enabled 表示异步图片任务功能是否可用（总开关 + 凭证齐全）。
 // 关闭时 handler 直接返回 404，不创建任务、不写 Redis。
 func (s *ImageTaskService) Enabled() bool {
-	return s != nil && s.enabled && s.store != nil
+	if s == nil || s.store == nil {
+		return false
+	}
+	uploader, enabled := s.current()
+	if s.resolve != nil {
+		return enabled && uploader != nil
+	}
+	return enabled
+}
+
+// Pollable 允许功能关闭后继续查询已经创建的任务。
+func (s *ImageTaskService) Pollable() bool {
+	return s != nil && s.store != nil
 }
 
 func (s *ImageTaskService) ExecutionTimeout() time.Duration {
@@ -117,6 +151,10 @@ func (s *ImageTaskService) Create(ctx context.Context, owner ImageTaskOwner) (*I
 	if s == nil || s.store == nil {
 		return nil, ErrImageTaskUnavailable
 	}
+	uploader, enabled := s.current()
+	if s.resolve != nil && (!enabled || uploader == nil) {
+		return nil, ErrImageTaskUnavailable
+	}
 	now := time.Now().UTC()
 	task := &ImageTaskRecord{
 		ID:        "imgtask_" + strings.ReplaceAll(uuid.NewString(), "-", ""),
@@ -128,6 +166,9 @@ func (s *ImageTaskService) Create(ctx context.Context, owner ImageTaskOwner) (*I
 	}
 	if err := s.store.Save(ctx, task, s.ttl); err != nil {
 		return nil, ErrImageTaskUnavailable.WithCause(err)
+	}
+	if uploader != nil {
+		s.taskUploaders.Store(task.ID, uploader)
 	}
 	return imageTaskToPublic(task), nil
 }
@@ -154,8 +195,13 @@ func (s *ImageTaskService) Complete(ctx context.Context, id string, statusCode i
 	if !json.Valid(result) {
 		return s.Fail(ctx, id, http.StatusBadGateway, imageTaskErrorJSON("api_error", "upstream returned a non-JSON image response"))
 	}
-	if s.uploader != nil {
-		rewritten, err := s.uploader.Rewrite(ctx, id, result)
+	uploader, captured := s.taskUploader(id)
+	if !captured && s.resolve != nil {
+		logger.L().Error("image_task.uploader_snapshot_missing", zap.String("task_id", id))
+		return s.Fail(ctx, id, http.StatusBadGateway, imageTaskErrorJSON("api_error", "object storage binding for this image task is unavailable"))
+	}
+	if uploader != nil {
+		rewritten, err := uploader.Rewrite(ctx, id, result)
 		if err != nil {
 			// 转存失败不回退存 base64，避免大 blob 撑爆 Redis：直接把任务标记为失败。
 			logger.L().Error("image_task.offload_failed", zap.String("task_id", id), zap.Error(err))
@@ -163,14 +209,36 @@ func (s *ImageTaskService) Complete(ctx context.Context, id string, statusCode i
 		}
 		result = rewritten
 	}
-	return s.finish(ctx, id, ImageTaskStatusCompleted, statusCode, result, nil)
+	err := s.finish(ctx, id, ImageTaskStatusCompleted, statusCode, result, nil)
+	if err == nil {
+		s.taskUploaders.Delete(id)
+	}
+	return err
 }
 
 func (s *ImageTaskService) Fail(ctx context.Context, id string, statusCode int, taskErr json.RawMessage) error {
 	if !json.Valid(taskErr) {
 		taskErr = imageTaskErrorJSON("api_error", "image generation failed")
 	}
-	return s.finish(ctx, id, ImageTaskStatusFailed, statusCode, nil, taskErr)
+	err := s.finish(ctx, id, ImageTaskStatusFailed, statusCode, nil, taskErr)
+	if err == nil {
+		s.taskUploaders.Delete(id)
+	}
+	return err
+}
+
+func (s *ImageTaskService) taskUploader(id string) (*ImageResultUploader, bool) {
+	if s == nil {
+		return nil, false
+	}
+	if value, ok := s.taskUploaders.Load(id); ok {
+		uploader, valid := value.(*ImageResultUploader)
+		return uploader, valid
+	}
+	if s.resolve == nil {
+		return s.uploader, s.uploader != nil
+	}
+	return nil, false
 }
 
 func (s *ImageTaskService) finish(ctx context.Context, id, status string, statusCode int, result, taskErr json.RawMessage) error {

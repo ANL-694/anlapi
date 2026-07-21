@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -34,6 +35,108 @@ func TestLoadServerTimingConfig(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, cfg.Server.EnableServerTiming)
 	})
+}
+
+func TestLoadClientIPSafetyDefaults(t *testing.T) {
+	resetViperWithJWTSecret(t)
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.Empty(t, cfg.Server.TrustedProxies)
+	require.False(t, cfg.Server.TrustedProxiesConfigured)
+	require.False(t, cfg.TrustForwardedIPForAPIKeyACL())
+	require.Empty(t, cfg.ForwardedClientIPSettings().Headers)
+}
+
+func TestNormalizeForwardedClientIPHeaders(t *testing.T) {
+	headers, err := NormalizeForwardedClientIPHeaders([]string{
+		" x-cdn-client-ip ",
+		"X-CDN-CLIENT-IP",
+		"true-client-ip",
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{"X-Cdn-Client-Ip", "True-Client-Ip"}, headers)
+
+	_, err = NormalizeForwardedClientIPHeaders([]string{"X Invalid"})
+	require.ErrorContains(t, err, "invalid HTTP header field name")
+
+	tooMany := make([]string, 0, MaxForwardedClientIPHeaders+1)
+	for i := 0; i <= MaxForwardedClientIPHeaders; i++ {
+		tooMany = append(tooMany, fmt.Sprintf("X-CDN-IP-%d", i))
+	}
+	_, err = NormalizeForwardedClientIPHeaders(tooMany)
+	require.ErrorContains(t, err, "at most 16 unique names")
+}
+
+func TestLoadForwardedClientIPHeadersFromEnvironment(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	t.Setenv("SECURITY_FORWARDED_CLIENT_IP_HEADERS", " x-cdn-ip , X-CDN-IP, true-client-ip ")
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.Equal(t, []string{"X-Cdn-Ip", "True-Client-Ip"}, cfg.ForwardedClientIPSettings().Headers)
+
+	snapshot := cfg.ForwardedClientIPSettings()
+	snapshot.Headers[0] = "X-Mutated"
+	require.Equal(t, []string{"X-Cdn-Ip", "True-Client-Ip"}, cfg.ForwardedClientIPSettings().Headers)
+}
+
+func TestLoadRejectsInvalidForwardedClientIPHeader(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	t.Setenv("SECURITY_FORWARDED_CLIENT_IP_HEADERS", "X-Valid-IP, X Invalid")
+
+	_, err := Load()
+	require.ErrorContains(t, err, "security.forwarded_client_ip_headers")
+}
+
+func TestLoadTrustedProxiesTracksExplicitConfiguration(t *testing.T) {
+	tests := []struct {
+		name       string
+		configure  func(*testing.T)
+		want       []string
+		configured bool
+	}{
+		{
+			name:      "absent",
+			configure: func(*testing.T) {},
+		},
+		{
+			name: "explicit empty through environment",
+			configure: func(t *testing.T) {
+				t.Setenv("SERVER_TRUSTED_PROXIES", "")
+			},
+			want:       []string{},
+			configured: true,
+		},
+		{
+			name: "CIDRs through environment",
+			configure: func(t *testing.T) {
+				t.Setenv("SERVER_TRUSTED_PROXIES", "127.0.0.1/32, ::1/128")
+			},
+			want:       []string{"127.0.0.1/32", "::1/128"},
+			configured: true,
+		},
+		{
+			name: "explicit empty through Viper",
+			configure: func(*testing.T) {
+				viper.Set("server.trusted_proxies", []string{})
+			},
+			want:       []string{},
+			configured: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resetViperWithJWTSecret(t)
+			test.configure(t)
+
+			cfg, err := Load()
+			require.NoError(t, err)
+			require.Equal(t, test.want, cfg.Server.TrustedProxies)
+			require.Equal(t, test.configured, cfg.Server.TrustedProxiesConfigured)
+		})
+	}
 }
 
 func TestLoadGitHubUpdateTokenFromEnv(t *testing.T) {

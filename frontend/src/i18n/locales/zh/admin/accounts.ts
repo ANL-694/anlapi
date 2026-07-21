@@ -357,7 +357,7 @@ export default {
         claude: 'Claude',
         grokRequests: '请求',
         grokTokens: 'Token',
-        grokFreeQuota24hHint: '按 sub2api 近 24 小时本地 Token 用量估算（上限 2M）',
+        grokFreeQuota24hHint: '按 ANL API 近 24 小时本地 Token 用量估算（上限 {limit}）',
         grokWeeklyUsage: '周额度已用 {percent}%',
         grokUnknown: 'Grok 配额需等待首次上游响应返回 xAI rate-limit 头后显示。',
         grokRetryAfter: '{time} 后重试',
@@ -739,6 +739,10 @@ export default {
           cli: 'Grok Build CLI',
           official: '官方 API'
         }
+      },
+      grokClientToolCache: {
+        title: '客户端工具缓存',
+        hint: '仅对已识别为 Free 的 Grok OAuth 账号生效。默认让 Codex、Trae 等客户端工具请求复用上游提示缓存；关闭后不再为这类请求自动补充缓存路由。'
       },
       autoPauseOnExpired: '过期自动暂停调度',
       autoPauseOnExpiredDesc: '启用后，账号过期将自动暂停调度',

@@ -102,6 +102,19 @@ export default {
         testFailed: 'S3 connection test failed',
         saved: 'S3 configuration saved'
       },
+      imageStorage: {
+        title: 'Async image object storage',
+        description: 'Generated images are offloaded to object storage while Redis keeps short links only. The setting shares the backup S3 client and takes effect immediately after saving.',
+        enabled: 'Enable async image tasks',
+        reuseBackupS3: 'Reuse the backup S3 configuration above (use a different bucket or prefix)',
+        bucket: 'Bucket',
+        bucketInherited: 'Leave empty to use the backup bucket',
+        prefix: 'Key prefix',
+        publicBaseUrl: 'Public base URL',
+        publicBaseUrlPlaceholder: 'Leave empty to return presigned links',
+        presignExpiryHours: 'Presigned link TTL (hours)',
+        saved: 'Async image object storage saved'
+      },
       schedule: {
         title: 'Scheduled Backup',
         description: 'Configure automatic scheduled backups',
@@ -514,7 +527,7 @@ export default {
         usageOpenAI: 'Usage (OpenAI)',
         usageGemini: 'Usage (Gemini)',
         usageAntigravity: 'Usage (Antigravity)',
-        concurrency: 'Concurrency',
+        concurrency: 'User concurrency (current / limit)',
         status: 'Status',
         lastActive: 'Last Active',
         lastUsed: 'Last Used',

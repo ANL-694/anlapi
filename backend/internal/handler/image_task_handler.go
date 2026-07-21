@@ -39,6 +39,10 @@ func (h *AsyncImageHandler) enabled() bool {
 	return h != nil && h.tasks != nil && h.tasks.Enabled()
 }
 
+func (h *AsyncImageHandler) pollable() bool {
+	return h != nil && h.tasks != nil && h.tasks.Pollable()
+}
+
 // Submit accepts the same payload as the synchronous Images endpoint and
 // returns before the upstream image generation begins.
 func (h *AsyncImageHandler) Submit(c *gin.Context) {
@@ -155,7 +159,7 @@ func (h *AsyncImageHandler) checkSecurityAuditBeforeSubmit(c *gin.Context, apiKe
 }
 
 func (h *AsyncImageHandler) Get(c *gin.Context) {
-	if !h.enabled() {
+	if !h.pollable() {
 		imageTaskJSONError(c, http.StatusNotFound, "not_found_error", "async image tasks are not enabled")
 		return
 	}

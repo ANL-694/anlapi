@@ -10,7 +10,6 @@ const {
   duplicateGroup,
   getModelsListCandidates,
   getUsageSummary,
-  getCapacitySummary,
   showSuccess,
   showError
 } = vi.hoisted(() => ({
@@ -18,7 +17,6 @@ const {
   duplicateGroup: vi.fn(),
   getModelsListCandidates: vi.fn(),
   getUsageSummary: vi.fn(),
-  getCapacitySummary: vi.fn(),
   showSuccess: vi.fn(),
   showError: vi.fn()
 }))
@@ -30,7 +28,6 @@ vi.mock('@/api/admin', () => ({
       duplicate: duplicateGroup,
       getModelsListCandidates,
       getUsageSummary,
-      getCapacitySummary,
       getAll: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -130,7 +127,7 @@ const DataTableStub = defineComponent({
     columns: { type: Array, default: () => [] },
     loading: { type: Boolean, default: false }
   },
-  template: '<div><div v-for="row in data" :key="row.id"><slot name="cell-actions" :row="row" /></div></div>'
+  template: '<div data-test="groups-table" :data-columns="columns.map((column) => column.key).join(\',\')"><div v-for="row in data" :key="row.id"><slot name="cell-actions" :row="row" /></div></div>'
 })
 
 function mountView() {
@@ -147,7 +144,6 @@ function mountView() {
         Select: true,
         PlatformIcon: true,
         Icon: true,
-        GroupCapacityBadge: true,
         GroupRateMultipliersModal: true,
         GroupRPMOverridesModal: true,
         VueDraggable: true
@@ -165,7 +161,6 @@ describe('GroupsView duplicate action', () => {
       duplicateGroup,
       getModelsListCandidates,
       getUsageSummary,
-      getCapacitySummary,
       showSuccess,
       showError
     ]) {
@@ -187,7 +182,6 @@ describe('GroupsView duplicate action', () => {
     })
     getModelsListCandidates.mockResolvedValue([])
     getUsageSummary.mockResolvedValue([])
-    getCapacitySummary.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -205,6 +199,14 @@ describe('GroupsView duplicate action', () => {
     expect(duplicateGroup).toHaveBeenCalledWith(42)
     expect(showSuccess).toHaveBeenCalledWith('admin.groups.duplicateSuccess')
     expect(listGroups).toHaveBeenCalledTimes(2)
+    wrapper.unmount()
+  })
+
+  it('不展示或请求旧账号容量汇总', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="groups-table"]').attributes('data-columns')?.split(',')).not.toContain('capacity')
     wrapper.unmount()
   })
 

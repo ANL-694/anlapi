@@ -83,15 +83,16 @@ const DataTableStub = {
       <div data-test="columns">{{ columns.map(col => col.key).join(',') }}</div>
       <button data-test="sort-last-used" @click="$emit('sort', 'last_used_at', 'desc')">sort</button>
       <div v-for="row in data" :key="row.id">
+        <slot name="cell-concurrency" :value="row.concurrency" :row="row" />
         <slot name="cell-last_used_at" :value="row.last_used_at" :row="row" />
       </div>
     </div>
   `
 }
 
-const PaginationStub = {
-  emits: ['update:page'],
-  template: '<button data-test="next-page" @click="$emit(\'update:page\', 2)">next</button>'
+const UserConcurrencyCellStub = {
+  props: ['current', 'max'],
+  template: '<span data-test="user-concurrency">{{ current }} / {{ max }}</span>'
 }
 
 const BulkEditUserModalStub = {
@@ -129,6 +130,8 @@ describe('admin UsersView', () => {
   })
 
   it('shows active, used, and created activity columns in order and requests last_used_at sort', async () => {
+    localStorage.setItem('user-hidden-columns', JSON.stringify(['concurrency']))
+
     const wrapper = mount(UsersView, {
       global: {
         stubs: {
@@ -143,7 +146,7 @@ describe('admin UsersView', () => {
           GroupBadge: true,
           Select: true,
           UserAttributesConfigModal: true,
-          UserConcurrencyCell: true,
+          UserConcurrencyCell: UserConcurrencyCellStub,
           UserCreateModal: true,
           UserEditModal: true,
           BulkEditUserModal: BulkEditUserModalStub,
@@ -165,6 +168,8 @@ describe('admin UsersView', () => {
     const visibleColumns = columns.split(',')
     expect(visibleColumns.slice(-4, -1)).toEqual(['last_active_at', 'last_used_at', 'created_at'])
     expect(visibleColumns).not.toContain('last_login_at')
+    expect(visibleColumns).toContain('concurrency')
+    expect(wrapper.get('[data-test="user-concurrency"]').text()).toBe('0 / 1')
 
     await wrapper.get('[data-test="sort-last-used"]').trigger('click')
     await flushPromises()

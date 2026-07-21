@@ -82,10 +82,11 @@ type SystemSettings struct {
 	SMTPFromName           string `json:"smtp_from_name"`
 	SMTPUseTLS             bool   `json:"smtp_use_tls"`
 
-	TurnstileEnabled             bool   `json:"turnstile_enabled"`
-	TurnstileSiteKey             string `json:"turnstile_site_key"`
-	TurnstileSecretKeyConfigured bool   `json:"turnstile_secret_key_configured"`
-	APIKeyACLTrustForwardedIP    bool   `json:"api_key_acl_trust_forwarded_ip"`
+	TurnstileEnabled             bool     `json:"turnstile_enabled"`
+	TurnstileSiteKey             string   `json:"turnstile_site_key"`
+	TurnstileSecretKeyConfigured bool     `json:"turnstile_secret_key_configured"`
+	APIKeyACLTrustForwardedIP    bool     `json:"api_key_acl_trust_forwarded_ip"`
+	ForwardedClientIPHeaders     []string `json:"forwarded_client_ip_headers"`
 
 	LinuxDoConnectEnabled                bool   `json:"linuxdo_connect_enabled"`
 	LinuxDoConnectClientID               string `json:"linuxdo_connect_client_id"`
@@ -143,22 +144,22 @@ type SystemSettings struct {
 	GoogleOAuthRedirectURL            string `json:"google_oauth_redirect_url"`
 	GoogleOAuthFrontendRedirectURL    string `json:"google_oauth_frontend_redirect_url"`
 
-	SiteName                    string           `json:"site_name"`
-	SiteLogo                    string           `json:"site_logo"`
-	SiteSubtitle                string           `json:"site_subtitle"`
-	APIBaseURL                  string           `json:"api_base_url"`
-	ContactInfo                 string           `json:"contact_info"`
-	DocURL                      string           `json:"doc_url"`
-	HomeContent                 string           `json:"home_content"`
-	HomeStatsGroupID            int64            `json:"home_stats_group_id"`
+	SiteName                     string           `json:"site_name"`
+	SiteLogo                     string           `json:"site_logo"`
+	SiteSubtitle                 string           `json:"site_subtitle"`
+	APIBaseURL                   string           `json:"api_base_url"`
+	ContactInfo                  string           `json:"contact_info"`
+	DocURL                       string           `json:"doc_url"`
+	HomeContent                  string           `json:"home_content"`
+	HomeStatsGroupID             int64            `json:"home_stats_group_id"`
 	SystemImageGenerationGroupID int64            `json:"system_image_generation_group_id"`
-	HideCcsImportButton         bool             `json:"hide_ccs_import_button"`
-	PurchaseSubscriptionEnabled bool             `json:"purchase_subscription_enabled"`
-	PurchaseSubscriptionURL     string           `json:"purchase_subscription_url"`
-	TableDefaultPageSize        int              `json:"table_default_page_size"`
-	TablePageSizeOptions        []int            `json:"table_page_size_options"`
-	CustomMenuItems             []CustomMenuItem `json:"custom_menu_items"`
-	CustomEndpoints             []CustomEndpoint `json:"custom_endpoints"`
+	HideCcsImportButton          bool             `json:"hide_ccs_import_button"`
+	PurchaseSubscriptionEnabled  bool             `json:"purchase_subscription_enabled"`
+	PurchaseSubscriptionURL      string           `json:"purchase_subscription_url"`
+	TableDefaultPageSize         int              `json:"table_default_page_size"`
+	TablePageSizeOptions         []int            `json:"table_page_size_options"`
+	CustomMenuItems              []CustomMenuItem `json:"custom_menu_items"`
+	CustomEndpoints              []CustomEndpoint `json:"custom_endpoints"`
 
 	DefaultConcurrency              int                                             `json:"default_concurrency"`
 	DefaultBalance                  float64                                         `json:"default_balance"`

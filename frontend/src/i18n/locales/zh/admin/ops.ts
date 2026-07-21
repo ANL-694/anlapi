@@ -737,11 +737,13 @@ export default {
         }
       },
       concurrency: {
-        title: '并发 / 排队',
+        title: '用户实时并发',
         byPlatform: '按平台',
         byGroup: '按分组',
         byAccount: '按账号',
-        byUser: '按用户',
+        byUser: '用户',
+        currentInUse: '当前真实占用',
+        userLimit: '用户并发上限',
         showByUserTooltip: '切换用户视图，显示每个用户的并发使用情况',
         switchToUser: '切换到用户视图',
         switchToPlatform: '切换回平台视图',

@@ -15,6 +15,7 @@ import (
 	"anlapi/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 )
 
 type openAIResponseFlushRecorder struct {
@@ -418,6 +419,31 @@ func TestOpenAIResponseFlush_ClientDisconnectStillDrainsUsage(t *testing.T) {
 	gotBody, flushes := recorder.snapshot()
 	require.Equal(t, first, gotBody)
 	require.Len(t, flushes, 1)
+}
+
+func TestOpenAIStreamEventIsTerminalWithTypeMatchesExistingSemantics(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		want bool
+	}{
+		{name: "empty", data: "", want: false},
+		{name: "done", data: " [DONE] ", want: true},
+		{name: "completed", data: `{"type":"response.completed"}`, want: true},
+		{name: "failed", data: `{"type":"response.failed"}`, want: true},
+		{name: "delta", data: `{"type":"response.output_text.delta"}`, want: false},
+		{name: "invalid JSON", data: `{"type":`, want: false},
+		{name: "type whitespace remains nonterminal", data: `{"type":" response.completed "}`, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			eventType := gjson.GetBytes([]byte(tt.data), "type").String()
+			got := openAIStreamEventIsTerminalWithType(tt.data, eventType)
+			require.Equal(t, tt.want, got)
+			require.Equal(t, openAIStreamEventIsTerminal(tt.data), got)
+		})
+	}
 }
 
 func runOpenAIResponseFlushTest(recorder *openAIResponseFlushRecorder, body io.ReadCloser, gatewayCfg config.GatewayConfig) (*openaiStreamingResult, error) {

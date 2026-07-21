@@ -33,7 +33,8 @@ vi.mock('@/api/admin', () => ({
       toggleSchedulable: vi.fn()
     },
     proxies: {
-      getAll: getAllProxies
+      getAll: getAllProxies,
+      list: getAllProxies
     },
     groups: {
       getAll: getAllGroups
@@ -67,7 +68,7 @@ vi.mock('vue-i18n', async () => {
 
 const DataTableStub = {
   props: ['columns', 'data'],
-  template: '<div data-test="data-table"></div>'
+  template: '<div data-test="data-table" :data-columns="columns.map(column => column.key).join(\',\')"></div>'
 }
 
 const AccountBulkActionsBarStub = {
@@ -79,11 +80,6 @@ const AccountBulkActionsBarStub = {
       <button data-test="probe-upstream-billing" @click="$emit('probe-upstream-billing')">probe</button>
     </div>
   `
-}
-
-const PaginationStub = {
-  emits: ['update:page'],
-  template: '<button data-test="next-page" @click="$emit(\'update:page\', 2)">next</button>'
 }
 
 const BulkEditAccountModalStub = {
@@ -148,7 +144,6 @@ describe('admin AccountsView bulk edit scope', () => {
           EditAccountModal: true,
           BulkEditAccountModal: BulkEditAccountModalStub,
           PlatformTypeBadge: true,
-          AccountCapacityCell: true,
           AccountStatusIndicator: true,
           AccountTodayStatsCell: true,
           AccountGroupsCell: true,
@@ -159,6 +154,7 @@ describe('admin AccountsView bulk edit scope', () => {
     })
 
     await flushPromises()
+    expect(wrapper.get('[data-test="data-table"]').attributes('data-columns')?.split(',')).not.toContain('capacity')
     await wrapper.get('[data-test="edit-filtered"]').trigger('click')
     await flushPromises()
 

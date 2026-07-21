@@ -124,3 +124,111 @@ func TestGetSecurityClientIPHonorsTrustToggle(t *testing.T) {
 		})
 	}
 }
+
+func TestGetSecurityClientIPCustomHeadersRequireCompatibilityMode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name           string
+		trustForwarded bool
+		headers        []string
+		requestHeaders map[string]string
+		want           string
+	}{
+		{
+			name:           "configured order precedes built-in headers",
+			trustForwarded: true,
+			headers:        []string{"X-CDN-First", "X-CDN-Second"},
+			requestHeaders: map[string]string{
+				"X-CDN-First":      "198.51.100.10",
+				"X-CDN-Second":     "203.0.113.20",
+				"CF-Connecting-IP": "8.8.8.8",
+			},
+			want: "198.51.100.10",
+		},
+		{
+			name:           "private custom candidate falls through to public legacy header",
+			trustForwarded: true,
+			headers:        []string{"X-CDN-IP"},
+			requestHeaders: map[string]string{
+				"X-CDN-IP":  "10.0.0.8",
+				"X-Real-IP": "1.2.3.4",
+			},
+			want: "1.2.3.4",
+		},
+		{
+			name:           "disabled mode ignores custom and legacy headers",
+			trustForwarded: false,
+			headers:        []string{"X-CDN-IP"},
+			requestHeaders: map[string]string{
+				"X-CDN-IP":  "1.2.3.4",
+				"X-Real-IP": "4.4.4.4",
+			},
+			want: "9.9.9.9",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r := gin.New()
+			require.NoError(t, r.SetTrustedProxies(nil))
+			r.GET("/t", func(c *gin.Context) {
+				SetForwardedIPSettings(c, tc.trustForwarded, tc.headers)
+				c.String(200, GetSecurityClientIP(c, !tc.trustForwarded))
+			})
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/t", nil)
+			req.RemoteAddr = "9.9.9.9:12345"
+			for name, value := range tc.requestHeaders {
+				req.Header.Set(name, value)
+			}
+			r.ServeHTTP(w, req)
+
+			require.Equal(t, 200, w.Code)
+			require.Equal(t, tc.want, w.Body.String())
+		})
+	}
+}
+
+func TestGetSecurityClientIPRequestSnapshotCopiesCustomHeaders(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	require.NoError(t, r.SetTrustedProxies(nil))
+	r.GET("/t", func(c *gin.Context) {
+		headers := []string{"X-Original-IP"}
+		SetForwardedIPSettings(c, true, headers)
+		headers[0] = "X-Mutated-IP"
+		c.String(200, GetSecurityClientIP(c, false))
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/t", nil)
+	req.RemoteAddr = "9.9.9.9:12345"
+	req.Header.Set("X-Original-IP", "1.2.3.4")
+	req.Header.Set("X-Mutated-IP", "4.4.4.4")
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, 200, w.Code)
+	require.Equal(t, "1.2.3.4", w.Body.String())
+}
+
+func TestGetClientIPSnapshotDisabledUsesTrustedProxyChain(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	require.NoError(t, r.SetTrustedProxies([]string{"9.9.9.9"}))
+	r.GET("/t", func(c *gin.Context) {
+		SetLegacyForwardedIPTrust(c, false)
+		c.String(200, GetClientIP(c))
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/t", nil)
+	req.RemoteAddr = "9.9.9.9:12345"
+	req.Header.Set("X-Real-IP", "4.4.4.4")
+	req.Header.Set("X-Forwarded-For", "1.2.3.4")
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, 200, w.Code)
+	require.Equal(t, "1.2.3.4", w.Body.String())
+}

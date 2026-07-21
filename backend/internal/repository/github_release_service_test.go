@@ -272,6 +272,41 @@ func (s *GitHubReleaseServiceSuite) TestGitHubAuthorizationSkipsUntrustedHost() 
 	require.Empty(s.T(), req.Header.Get("Authorization"))
 }
 
+func (s *GitHubReleaseServiceSuite) TestGitHubAuthorizationRequiresTrustedHTTPSDefaultPort() {
+	client := &githubReleaseClient{githubToken: "private-test-token"}
+	tests := []struct {
+		name     string
+		url      string
+		wantAuth string
+	}{
+		{name: "GitHub API", url: "https://api.github.com/repos/ANL-694/anlapi", wantAuth: "Bearer private-test-token"},
+		{name: "GitHub release", url: "https://github.com/ANL-694/anlapi/releases/download/v1/app", wantAuth: "Bearer private-test-token"},
+		{name: "HTTP", url: "http://api.github.com/repos/ANL-694/anlapi"},
+		{name: "custom port", url: "https://api.github.com:8443/repos/ANL-694/anlapi"},
+		{name: "userinfo", url: "https://user@api.github.com/repos/ANL-694/anlapi"},
+		{name: "asset CDN", url: "https://objects.githubusercontent.com/release.bin"},
+	}
+
+	for _, tt := range tests {
+		s.T().Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, tt.url, nil)
+			require.NoError(t, err)
+			client.setGitHubAuthorization(req)
+			require.Equal(t, tt.wantAuth, req.Header.Get("Authorization"))
+		})
+	}
+}
+
+func (s *GitHubReleaseServiceSuite) TestGitHubAuthorizationRedirectClearsUntrustedDestination() {
+	checkRedirect := githubAuthorizationCheckRedirect(nil)
+	req, err := http.NewRequest(http.MethodGet, "https://objects.githubusercontent.com/release.bin", nil)
+	require.NoError(s.T(), err)
+	req.Header.Set("Authorization", "Bearer private-test-token")
+
+	require.NoError(s.T(), checkRedirect(req, nil))
+	require.Empty(s.T(), req.Header.Get("Authorization"))
+}
+
 func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Non200() {
 	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -55,9 +56,13 @@ func (r *gatewayRouteSettingRepo) GetAll(context.Context) (map[string]string, er
 func (r *gatewayRouteSettingRepo) Delete(context.Context, string) error { return nil }
 
 func newGatewayRoutesTestRouter(platforms ...string) *gin.Engine {
+	return newGatewayRoutesTestRouterWithConfig(&config.Config{}, platforms...)
+}
+
+func newGatewayRoutesTestRouterWithConfig(cfg *config.Config, platforms ...string) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	settingSvc := service.NewSettingService(&gatewayRouteSettingRepo{values: map[string]string{}}, &config.Config{})
+	settingSvc := service.NewSettingService(&gatewayRouteSettingRepo{values: map[string]string{}}, cfg)
 	platform := service.PlatformOpenAI
 	if len(platforms) > 0 && strings.TrimSpace(platforms[0]) != "" {
 		platform = platforms[0]
@@ -82,7 +87,7 @@ func newGatewayRoutesTestRouter(platforms ...string) *gin.Engine {
 		nil,
 		nil,
 		settingSvc,
-		&config.Config{},
+		cfg,
 	)
 
 	return router
@@ -181,6 +186,25 @@ func TestGatewayRoutesNonGrokVideoContentIsRejectedAtPlatformGate(t *testing.T) 
 		router.ServeHTTP(w, req)
 		require.Equal(t, http.StatusNotFound, w.Code, "path=%s", path)
 		require.Contains(t, w.Body.String(), "Videos API is not supported for this platform")
+	}
+}
+
+func TestGatewayRoutesGrokCountTokensUsesLocalEstimator(t *testing.T) {
+	router := newGatewayRoutesTestRouterWithConfig(&config.Config{
+		Gateway: config.GatewayConfig{MaxBodySize: 1024 * 1024},
+	}, service.PlatformGrok)
+	for _, path := range []string{"/v1/messages/count_tokens", "/messages/count_tokens"} {
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"model":"grok-4","messages":[{"role":"user","content":"hi"}]}`))
+		req.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+
+		router.ServeHTTP(response, req)
+		require.Equal(t, http.StatusOK, response.Code, "path=%s", path)
+		var body struct {
+			InputTokens int `json:"input_tokens"`
+		}
+		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body), "path=%s", path)
+		require.Positive(t, body.InputTokens, "path=%s", path)
 	}
 }
 

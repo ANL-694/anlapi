@@ -114,6 +114,58 @@ func TestApplyCodexOAuthTransform_ToolSearchOutputPreservesCallID(t *testing.T) 
 	require.Equal(t, "fc_1", first["call_id"])
 }
 
+func TestApplyCodexOAuthTransformBoundsLongCallIDsAndPreservesPairing(t *testing.T) {
+	suffix := strings.Repeat("z", 62)
+	for _, tc := range []struct {
+		name         string
+		callID       string
+		outputCallID string
+	}{
+		{name: "non-native boundary id", callID: "call-" + strings.Repeat("x", 59), outputCallID: "call-" + strings.Repeat("x", 59)},
+		{name: "overlong fc id", callID: "fc_" + strings.Repeat("y", 62), outputCallID: "fc_" + strings.Repeat("y", 62)},
+		{name: "equivalent prefixes", callID: "call_" + suffix, outputCallID: "fc_" + suffix},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reqBody := map[string]any{
+				"model": "gpt-5.2",
+				"input": []any{
+					map[string]any{"type": "function_call", "call_id": tc.callID, "name": "shell"},
+					map[string]any{"type": "function_call_output", "call_id": tc.outputCallID, "output": "done"},
+				},
+			}
+
+			applyCodexOAuthTransform(reqBody, false, false)
+
+			input := reqBody["input"].([]any)
+			call := input[0].(map[string]any)
+			output := input[1].(map[string]any)
+			fixedCallID := call["call_id"].(string)
+			require.LessOrEqual(t, len(fixedCallID), codexCallIDMaxLength)
+			require.True(t, strings.HasPrefix(fixedCallID, codexCallIDPrefix))
+			require.Equal(t, fixedCallID, output["call_id"])
+			require.Equal(t, fixedCallID, normalizeCodexCallID(tc.callID))
+			require.Equal(t, fixedCallID, normalizeCodexCallID(tc.outputCallID))
+		})
+	}
+}
+
+func TestApplyCodexOAuthTransformPreservesLongCallIDsWhenRequested(t *testing.T) {
+	callID := "call-" + strings.Repeat("x", 70)
+	reqBody := map[string]any{
+		"model": "gpt-5.2",
+		"input": []any{
+			map[string]any{"type": "function_call", "call_id": callID, "name": "shell"},
+			map[string]any{"type": "function_call_output", "call_id": callID, "output": "done"},
+		},
+	}
+
+	applyCodexOAuthTransformWithOptions(reqBody, codexOAuthTransformOptions{PreserveToolCallIDs: true})
+
+	input := reqBody["input"].([]any)
+	require.Equal(t, callID, input[0].(map[string]any)["call_id"])
+	require.Equal(t, callID, input[1].(map[string]any)["call_id"])
+}
+
 func TestApplyCodexOAuthTransform_CustomAndMCPToolOutputsPreserveCallID(t *testing.T) {
 	reqBody := map[string]any{
 		"model": "gpt-5.2",
@@ -1166,7 +1218,7 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 				map[string]any{"role": "user", "content": "hello"},
 			},
 		}
-		result := extractSystemMessagesFromInput(reqBody)
+		result := extractSystemMessagesFromInput(reqBody, false)
 		require.False(t, result)
 		input, ok := reqBody["input"].([]any)
 		require.True(t, ok)
@@ -1182,7 +1234,7 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 				map[string]any{"role": "user", "content": "hello"},
 			},
 		}
-		result := extractSystemMessagesFromInput(reqBody)
+		result := extractSystemMessagesFromInput(reqBody, false)
 		require.True(t, result)
 		input, ok := reqBody["input"].([]any)
 		require.True(t, ok)
@@ -1208,7 +1260,7 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 				},
 			},
 		}
-		result := extractSystemMessagesFromInput(reqBody)
+		result := extractSystemMessagesFromInput(reqBody, false)
 		require.True(t, result)
 		require.Equal(t, "Be helpful.", reqBody["instructions"])
 		input, ok := reqBody["input"].([]any)
@@ -1230,7 +1282,7 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 				map[string]any{"role": "user", "content": "hi"},
 			},
 		}
-		result := extractSystemMessagesFromInput(reqBody)
+		result := extractSystemMessagesFromInput(reqBody, false)
 		require.True(t, result)
 		require.Equal(t, "First.\n\nSecond.", reqBody["instructions"])
 		input, ok := reqBody["input"].([]any)
@@ -1255,7 +1307,7 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 				map[string]any{"role": "assistant", "content": "Hi there"},
 			},
 		}
-		result := extractSystemMessagesFromInput(reqBody)
+		result := extractSystemMessagesFromInput(reqBody, false)
 		require.True(t, result)
 		input, ok := reqBody["input"].([]any)
 		require.True(t, ok)
@@ -1280,7 +1332,7 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 			},
 			"instructions": "Existing instructions.",
 		}
-		result := extractSystemMessagesFromInput(reqBody)
+		result := extractSystemMessagesFromInput(reqBody, false)
 		require.True(t, result)
 		require.Equal(t, "Extracted.\n\nExisting instructions.", reqBody["instructions"])
 		input, ok := reqBody["input"].([]any)
@@ -1288,6 +1340,48 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 		msg, ok := input[0].(map[string]any)
 		require.True(t, ok)
 		require.Equal(t, "developer", msg["role"])
+	})
+
+	t.Run("omit losslessly promoted text-only messages", func(t *testing.T) {
+		reqBody := map[string]any{
+			"input": []any{
+				map[string]any{"role": "system", "content": "First."},
+				map[string]any{"role": "system", "content": []any{
+					map[string]any{"type": "text", "text": "Second "},
+					map[string]any{"type": "input_text", "text": "and third."},
+				}},
+				map[string]any{"role": "user", "content": "hi"},
+			},
+			"instructions": "Existing.",
+		}
+
+		result := extractSystemMessagesFromInput(reqBody, true)
+
+		require.True(t, result)
+		require.Equal(t, "First.\n\nSecond and third.\n\nExisting.", reqBody["instructions"])
+		input := reqBody["input"].([]any)
+		require.Len(t, input, 1)
+		require.Equal(t, "user", input[0].(map[string]any)["role"])
+	})
+
+	t.Run("omit keeps mixed system content as developer", func(t *testing.T) {
+		reqBody := map[string]any{
+			"input": []any{
+				map[string]any{"role": "system", "content": []any{
+					map[string]any{"type": "input_text", "text": "Inspect this image."},
+					map[string]any{"type": "input_image", "image_url": "https://example.com/image.png"},
+				}},
+				map[string]any{"role": "user", "content": "hi"},
+			},
+		}
+
+		result := extractSystemMessagesFromInput(reqBody, true)
+
+		require.True(t, result)
+		require.Equal(t, "Inspect this image.", reqBody["instructions"])
+		input := reqBody["input"].([]any)
+		require.Len(t, input, 2)
+		require.Equal(t, "developer", input[0].(map[string]any)["role"])
 	})
 }
 

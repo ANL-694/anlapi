@@ -9,7 +9,7 @@
 //     返回 502 + 映射错误体；
 //   - I-5.2 失败账号进入排除集合不被重选（同一账号不会被尝试两次）；
 //   - I-5.3 可重试错误（池模式）先同账号重试 maxSameAccountRetries 次再换号（完整链）；
-//   - I-6.1 转发失败路径下账号/用户槽位获取-释放严格配平（配平计数器）；
+//   - I-6.1 转发失败路径下用户槽位获取-释放严格配平，账号槽兼容接口不触碰缓存；
 //   - chat-completions 兼容路径耗尽错误体（"All available accounts exhausted"）。
 //
 // 复用同包既有夹具：fakeSchedulerCache / fakeGroupRepo
@@ -452,7 +452,7 @@ func TestSchedulingInvariant_FailoverSwitchLimit_DefaultValues(t *testing.T) {
 //     （/v1/messages 路径按 mapUpstreamError 映射 500→502；
 //     "server_error/All available accounts exhausted" 错误体属于
 //     chat-completions/responses 兼容路径，见下方独立用例）；
-//  4. 转发失败路径下账号/用户槽位获取-释放严格配平。
+//  4. 转发失败路径下用户槽位获取-释放严格配平，账号槽保持禁用。
 func TestSchedulingInvariant_FailoverAnthropic_FullLoopExhaustion(t *testing.T) {
 	groupID := int64(9001)
 	group := schedInvGroup(groupID)
@@ -494,8 +494,8 @@ func TestSchedulingInvariant_FailoverAnthropic_FullLoopExhaustion(t *testing.T) 
 		`{"type":"error","error":{"type":"upstream_error","message":"Upstream service temporarily unavailable"}}`,
 		rec.Body.String())
 
-	// 4. I-6.1 转发失败路径：槽位严格配平
-	require.Equal(t, 11, cc.accountAcquired, "每次尝试获取一次账号槽位")
+	// 4. I-6.1 转发失败路径：只获取一次用户槽，账号槽兼容接口不得触碰缓存。
+	require.Equal(t, 0, cc.accountAcquired, "账号级并发限制已禁用")
 	require.Equal(t, 1, cc.userAcquired, "整个请求只获取一次用户槽位")
 	schedInvRequireBalanced(t, cc)
 }
@@ -507,7 +507,7 @@ func TestSchedulingInvariant_FailoverAnthropic_FullLoopExhaustion(t *testing.T) 
 // TestSchedulingInvariant_FailoverSameAccountRetry_FullChain 使用池模式账号
 // （pool_mode_retry_status_codes=[500]）驱动完整链路：
 // 上游恒定 500 → 同账号共尝试 1+maxSameAccountRetries=4 次 → 加入排除集合换号 →
-// 无其他账号 → 502。同时验证每次重试均独立获取/释放账号槽位（配平）。
+// 无其他账号 → 502。同时验证重试不会启用账号级并发限制。
 func TestSchedulingInvariant_FailoverSameAccountRetry_FullChain(t *testing.T) {
 	groupID := int64(9002)
 	group := schedInvGroup(groupID)
@@ -544,8 +544,8 @@ func TestSchedulingInvariant_FailoverSameAccountRetry_FullChain(t *testing.T) {
 		`{"type":"error","error":{"type":"upstream_error","message":"Upstream service temporarily unavailable"}}`,
 		rec.Body.String())
 
-	// 每轮重试独立获取/释放账号槽位
-	require.Equal(t, 4, cc.accountAcquired)
+	// 账号槽兼容接口为 no-op，所有重试都不能触碰账号槽缓存。
+	require.Equal(t, 0, cc.accountAcquired)
 	schedInvRequireBalanced(t, cc)
 }
 

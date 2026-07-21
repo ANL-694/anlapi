@@ -27,8 +27,10 @@ server:
   # 用于生成邮件中的外部链接（例如：重置密码链接）的前端基础地址
   # Example: "https://example.com"
   frontend_url: ""
-  # Trusted proxies for X-Forwarded-For parsing (CIDR/IP). Empty disables trusted proxies.
-  # 信任的代理地址（CIDR/IP 格式），用于解析 X-Forwarded-For 头。留空则禁用代理信任。
+  # Explicit trusted proxy CIDRs/IPs for Gin client-IP parsing. Omit this key to
+  # disable Gin's default proxy trust; an explicitly empty list also disables it.
+  # Gin 客户端 IP 解析的显式可信代理（CIDR/IP）。省略本键会关闭 Gin 默认
+  # 代理信任；显式空列表同样关闭。只填实际的 Cloudflare/Nginx 反代 IP 段。
   trusted_proxies: []
   # Global max request body size in bytes (default: 256MB)
   # 全局最大请求体大小（字节，默认 256MB）
@@ -143,11 +145,17 @@ security:
     # 辅助服务（更新检查、定价数据拉取）代理初始化失败时是否允许回退直连。
     # 不影响 AI 账号网关连接。默认 false：fail-fast 防止 IP 泄露。
     allow_direct_on_error: false
-  # Trust reverse-proxy real client IP headers for API Key IP allow/deny lists.
-  # Only enable when the origin is reachable only through Cloudflare/Nginx.
-  # API Key IP 白/黑名单是否信任反代传递的真实客户端 IP。
-  # 仅在源站只能通过 Cloudflare/Nginx 访问时开启，避免用户伪造转发头。
+  # Legacy raw forwarded-header compatibility mode. Disabled by default.
+  # API Key IP ACL、审计日志和会话绑定是否信任原始反代头。默认关闭。
+  # Do NOT enable while the origin IP supports direct access: callers can forge
+  # CF-Connecting-IP / X-Real-IP / X-Forwarded-For and bypass IP ACLs.
+  # 源站 IP 可直连时绝不能开启，否则可伪造转发头绕过 IP 白名单。
   trust_forwarded_ip_for_api_key_acl: false
+  # Optional header names checked before built-in CF-Connecting-IP, X-Real-IP,
+  # and X-Forwarded-For. They are ignored unless the compatibility switch above
+  # is explicitly enabled. At most 16 valid HTTP field names are accepted.
+  # 自定义客户端 IP 请求头。仅在上方兼容开关明确开启后生效，最多 16 个。
+  forwarded_client_ip_headers: []
 
 # =============================================================================
 # Gateway Configuration

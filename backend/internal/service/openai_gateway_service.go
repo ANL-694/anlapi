@@ -4328,7 +4328,8 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 				responseID = extractOpenAIResponseIDFromJSONBytes(dataBytes)
 			}
 			imageCounter.AddSSEData(dataBytes)
-			eventType := strings.TrimSpace(gjson.Get(trimmedData, "type").String())
+			eventTypeRaw := gjson.GetBytes(dataBytes, "type").String()
+			eventType := strings.TrimSpace(eventTypeRaw)
 			if eventType == "response.failed" {
 				failedMessage = extractOpenAISSEErrorMessage(dataBytes)
 				if openAIStreamClientOutputStarted(c, clientOutputStarted) {
@@ -4344,7 +4345,7 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 			if trimmedData == "[DONE]" {
 				sawDone = true
 			}
-			if openAIStreamEventIsTerminal(trimmedData) {
+			if openAIStreamEventIsTerminalWithType(trimmedData, eventTypeRaw) {
 				sawTerminalEvent = true
 			}
 			lineStartsClientOutput = forceFlushFailedEvent || openAIStreamDataStartsClientOutput(trimmedData, eventType)
@@ -5357,10 +5358,11 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 		// Extract data from SSE line (supports both "data: " and "data:" formats)
 		if data, ok := extractOpenAISSEDataLine(line); ok {
 			dataBytes := []byte(data)
-			if openAIStreamEventIsTerminal(data) {
+			eventTypeRaw := gjson.GetBytes(dataBytes, "type").String()
+			if openAIStreamEventIsTerminalWithType(data, eventTypeRaw) {
 				sawTerminalEvent = true
 			}
-			eventType := strings.TrimSpace(gjson.GetBytes(dataBytes, "type").String())
+			eventType := strings.TrimSpace(eventTypeRaw)
 			if responseID == "" {
 				responseID = extractOpenAIResponseIDFromJSONBytes(dataBytes)
 			}

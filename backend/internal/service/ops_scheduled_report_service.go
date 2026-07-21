@@ -336,7 +336,7 @@ func (s *OpsScheduledReportService) runReport(ctx context.Context, report *opsSc
 		return 0, nil
 	}
 
-	subject := fmt.Sprintf("[Ops Report] %s", strings.TrimSpace(report.Name))
+	subject := fmt.Sprintf("[ANL 运维报表] %s", strings.TrimSpace(report.Name))
 
 	attempts := 0
 	for _, to := range recipients {
@@ -422,7 +422,7 @@ func (s *OpsScheduledReportService) generateReportHTML(ctx context.Context, repo
 
 func buildOpsSummaryEmailHTML(title string, start, end time.Time, overview *OpsDashboardOverview) string {
 	if overview == nil {
-		return fmt.Sprintf("<h2>%s</h2><p>No data.</p>", htmlEscape(title))
+		return buildOpsReportEmailShell(title, start, end, `<p style="margin:0;color:#64748b;">当前周期暂无可用数据。</p>`)
 	}
 
 	latP50 := "-"
@@ -443,28 +443,25 @@ func buildOpsSummaryEmailHTML(title string, start, end time.Time, overview *OpsD
 		ttftP99 = fmt.Sprintf("%dms", *overview.TTFT.P99)
 	}
 
-	return fmt.Sprintf(`
-<h2>%s</h2>
-<p><b>Period</b>: %s ~ %s (UTC)</p>
-<ul>
-  <li><b>Total Requests</b>: %d</li>
-  <li><b>Success</b>: %d</li>
-  <li><b>Errors (SLA)</b>: %d</li>
-  <li><b>Business Limited</b>: %d</li>
-  <li><b>SLA</b>: %.2f%%</li>
-  <li><b>Error Rate</b>: %.2f%%</li>
-  <li><b>Upstream Error Rate (excl 429/529)</b>: %.2f%%</li>
-  <li><b>Upstream Errors</b>: excl429/529=%d, 429=%d, 529=%d</li>
-  <li><b>Latency</b>: p50=%s, p99=%s</li>
-  <li><b>TTFT</b>: p50=%s, p99=%s</li>
-  <li><b>Tokens</b>: %d</li>
-  <li><b>QPS</b>: current=%.1f, peak=%.1f, avg=%.1f</li>
-  <li><b>TPS</b>: current=%.1f, peak=%.1f, avg=%.1f</li>
-</ul>
-`,
-		htmlEscape(strings.TrimSpace(title)),
-		htmlEscape(start.UTC().Format(time.RFC3339)),
-		htmlEscape(end.UTC().Format(time.RFC3339)),
+	body := fmt.Sprintf(`
+<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">
+  <tr>
+    <td width="33%%" style="padding:12px;background:#f8fafc;border:1px solid #e2e8f0;"><div style="font-size:12px;color:#64748b;">总请求</div><div style="font-size:24px;font-weight:700;color:#0f172a;">%d</div></td>
+    <td width="33%%" style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;"><div style="font-size:12px;color:#166534;">成功</div><div style="font-size:24px;font-weight:700;color:#166534;">%d</div></td>
+    <td width="34%%" style="padding:12px;background:#fef2f2;border:1px solid #fecaca;"><div style="font-size:12px;color:#991b1b;">SLA 错误</div><div style="font-size:24px;font-weight:700;color:#991b1b;">%d</div></td>
+  </tr>
+</table>
+<table role="presentation" width="100%%" cellpadding="8" cellspacing="0" style="border-collapse:collapse;font-size:14px;color:#334155;">
+  <tr><td style="border-bottom:1px solid #e2e8f0;">业务受限</td><td align="right" style="border-bottom:1px solid #e2e8f0;font-weight:600;">%d</td></tr>
+  <tr><td style="border-bottom:1px solid #e2e8f0;">SLA / 错误率</td><td align="right" style="border-bottom:1px solid #e2e8f0;font-weight:600;">%.2f%% / %.2f%%</td></tr>
+  <tr><td style="border-bottom:1px solid #e2e8f0;">上游错误率（不含 429/529）</td><td align="right" style="border-bottom:1px solid #e2e8f0;font-weight:600;">%.2f%%</td></tr>
+  <tr><td style="border-bottom:1px solid #e2e8f0;">上游错误</td><td align="right" style="border-bottom:1px solid #e2e8f0;font-weight:600;">其他 %d / 429 %d / 529 %d</td></tr>
+  <tr><td style="border-bottom:1px solid #e2e8f0;">请求延迟 p50 / p99</td><td align="right" style="border-bottom:1px solid #e2e8f0;font-weight:600;">%s / %s</td></tr>
+  <tr><td style="border-bottom:1px solid #e2e8f0;">首 Token 延迟 p50 / p99</td><td align="right" style="border-bottom:1px solid #e2e8f0;font-weight:600;">%s / %s</td></tr>
+  <tr><td style="border-bottom:1px solid #e2e8f0;">Token 消耗</td><td align="right" style="border-bottom:1px solid #e2e8f0;font-weight:600;">%d</td></tr>
+  <tr><td style="border-bottom:1px solid #e2e8f0;">QPS 当前 / 峰值 / 平均</td><td align="right" style="border-bottom:1px solid #e2e8f0;font-weight:600;">%.1f / %.1f / %.1f</td></tr>
+  <tr><td>TPS 当前 / 峰值 / 平均</td><td align="right" style="font-weight:600;">%.1f / %.1f / %.1f</td></tr>
+</table>`,
 		overview.RequestCountTotal,
 		overview.SuccessCount,
 		overview.ErrorCountSLA,
@@ -487,6 +484,7 @@ func buildOpsSummaryEmailHTML(title string, start, end time.Time, overview *OpsD
 		overview.TPS.Peak,
 		overview.TPS.Avg,
 	)
+	return buildOpsReportEmailShell(title, start, end, body)
 }
 
 func buildOpsErrorDigestEmailHTML(title string, start, end time.Time, list *OpsErrorLogList) string {
@@ -506,7 +504,7 @@ func buildOpsErrorDigestEmailHTML(title string, start, end time.Time, list *OpsE
 			continue
 		}
 		rows += fmt.Sprintf(
-			"<tr><td>%s</td><td>%s</td><td>%d</td><td>%s</td></tr>",
+			"<tr><td style=\"padding:8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;\">%s</td><td style=\"padding:8px;border-bottom:1px solid #e2e8f0;\">%s</td><td style=\"padding:8px;border-bottom:1px solid #e2e8f0;\">%d</td><td style=\"padding:8px;border-bottom:1px solid #e2e8f0;word-break:break-word;\">%s</td></tr>",
 			htmlEscape(item.CreatedAt.UTC().Format(time.RFC3339)),
 			htmlEscape(item.Platform),
 			item.StatusCode,
@@ -514,25 +512,18 @@ func buildOpsErrorDigestEmailHTML(title string, start, end time.Time, list *OpsE
 		)
 	}
 	if rows == "" {
-		rows = "<tr><td colspan=\"4\">No recent errors.</td></tr>"
+		rows = "<tr><td colspan=\"4\" style=\"padding:16px;color:#64748b;\">当前周期没有错误记录。</td></tr>"
 	}
 
-	return fmt.Sprintf(`
-<h2>%s</h2>
-<p><b>Period</b>: %s ~ %s (UTC)</p>
-<p><b>Total Errors</b>: %d</p>
-<h3>Recent</h3>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-  <thead><tr><th>Time</th><th>Platform</th><th>Status</th><th>Message</th></tr></thead>
+	body := fmt.Sprintf(`
+<p style="margin:0 0 16px;color:#334155;">错误总数：<strong style="color:#b91c1c;">%d</strong></p>
+<div style="overflow-x:auto;">
+<table width="100%%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;color:#334155;">
+  <thead><tr style="background:#f8fafc;"><th align="left" style="padding:8px;">时间</th><th align="left" style="padding:8px;">平台</th><th align="left" style="padding:8px;">状态</th><th align="left" style="padding:8px;">消息</th></tr></thead>
   <tbody>%s</tbody>
 </table>
-`,
-		htmlEscape(strings.TrimSpace(title)),
-		htmlEscape(start.UTC().Format(time.RFC3339)),
-		htmlEscape(end.UTC().Format(time.RFC3339)),
-		total,
-		rows,
-	)
+</div>`, total, rows)
+	return buildOpsReportEmailShell(title, start, end, body)
 }
 
 func buildOpsAccountHealthEmailHTML(title string, start, end time.Time, avail *OpsAccountAvailability) string {
@@ -559,24 +550,33 @@ func buildOpsAccountHealthEmailHTML(title string, start, end time.Time, avail *O
 		}
 	}
 
-	return fmt.Sprintf(`
-<h2>%s</h2>
-<p><b>Period</b>: %s ~ %s (UTC)</p>
-<ul>
-  <li><b>Total Accounts</b>: %d</li>
-  <li><b>Available</b>: %d</li>
-  <li><b>Rate Limited</b>: %d</li>
-  <li><b>Error</b>: %d</li>
-</ul>
-<p>Note: This report currently reflects account availability status only.</p>
-`,
+	body := fmt.Sprintf(`
+<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+  <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;">账号总数</td><td align="right" style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:700;">%d</td></tr>
+  <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;color:#166534;">可用</td><td align="right" style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#166534;">%d</td></tr>
+  <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;color:#92400e;">限流</td><td align="right" style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#92400e;">%d</td></tr>
+  <tr><td style="padding:10px;color:#991b1b;">异常</td><td align="right" style="padding:10px;font-weight:700;color:#991b1b;">%d</td></tr>
+</table>
+<p style="margin:16px 0 0;color:#64748b;font-size:12px;">当前报表反映账号可用性状态，不代表完整的账号错误率。</p>`, total, available, rateLimited, hasError)
+	return buildOpsReportEmailShell(title, start, end, body)
+}
+
+func buildOpsReportEmailShell(title string, start, end time.Time, body string) string {
+	return fmt.Sprintf(`<!doctype html>
+<html><body style="margin:0;background:#f1f5f9;font-family:Arial,'Microsoft YaHei',sans-serif;color:#0f172a;">
+<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px;"><tr><td align="center">
+  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:680px;background:#ffffff;border:1px solid #e2e8f0;">
+    <tr><td style="padding:22px 24px;background:#0f172a;color:#ffffff;"><div style="font-size:12px;color:#94a3b8;">ANL API 运维中心</div><h1 style="margin:6px 0 0;font-size:22px;letter-spacing:0;">%s</h1></td></tr>
+    <tr><td style="padding:14px 24px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:12px;">统计周期：%s 至 %s（UTC）</td></tr>
+    <tr><td style="padding:24px;">%s</td></tr>
+    <tr><td style="padding:14px 24px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:11px;">此邮件由 ANL API 自动生成。</td></tr>
+  </table>
+</td></tr></table>
+</body></html>`,
 		htmlEscape(strings.TrimSpace(title)),
-		htmlEscape(start.UTC().Format(time.RFC3339)),
-		htmlEscape(end.UTC().Format(time.RFC3339)),
-		total,
-		available,
-		rateLimited,
-		hasError,
+		htmlEscape(start.UTC().Format("2006-01-02 15:04")),
+		htmlEscape(end.UTC().Format("2006-01-02 15:04")),
+		body,
 	)
 }
 

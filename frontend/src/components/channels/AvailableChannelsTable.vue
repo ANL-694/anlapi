@@ -8,7 +8,7 @@
     <p>{{ emptyLabel }}</p>
   </div>
 
-  <div v-else class="channel-list">
+  <div v-else class="channel-list channel-list--scrollable">
     <article v-for="(channel, channelIndex) in rows" :key="`${channel.name}-${channelIndex}`" class="channel-panel">
       <header class="channel-header">
         <div class="min-w-0">
@@ -160,6 +160,13 @@ function priceSummary(model: UserSupportedModel): string {
 .channel-list {
   display: grid;
   gap: 0.75rem;
+}
+
+.channel-list--scrollable {
+  max-height: min(68vh, 56rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.25rem;
 }
 
 .channel-panel {

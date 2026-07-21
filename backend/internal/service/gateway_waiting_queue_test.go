@@ -52,21 +52,21 @@ func TestWaitingQueueFlow_IncrementThenDecrement(t *testing.T) {
 	svc.DecrementWaitCount(context.Background(), 1)
 }
 
-// TestWaitingQueueFlow_AccountLevel 测试账号级等待队列流程
-func TestWaitingQueueFlow_AccountLevel(t *testing.T) {
-	cache := &stubConcurrencyCacheForTest{waitAllowed: true}
+// TestAccountWaitingQueueCompatibilityNoop 确保账号级等待队列不能成为请求闸门。
+func TestAccountWaitingQueueCompatibilityNoop(t *testing.T) {
+	cache := &stubConcurrencyCacheForTest{waitAllowed: false}
 	svc := NewConcurrencyService(cache)
 
-	// 进入账号等待队列
+	// 即使底层旧缓存报告“已满”，账号级兼容接口也必须放行。
 	allowed, err := svc.IncrementAccountWaitCount(context.Background(), 42, 10)
 	require.NoError(t, err)
-	require.True(t, allowed)
+	require.True(t, allowed, "账号等待队列已停用，不得限制请求")
 
 	// 离开账号等待队列
 	svc.DecrementAccountWaitCount(context.Background(), 42)
 }
 
-// TestWaitingQueueFull_Returns429Signal 测试等待队列满时返回 false
+// TestWaitingQueueFull_Returns429Signal 验证只有用户级队列和用户级槽位可拒绝请求。
 func TestWaitingQueueFull_Returns429Signal(t *testing.T) {
 	// waitAllowed=false 模拟队列已满
 	cache := &stubConcurrencyCacheForTest{waitAllowed: false}
@@ -77,10 +77,16 @@ func TestWaitingQueueFull_Returns429Signal(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, allowed, "等待队列满时应返回 false（调用方根据此返回 429）")
 
-	// 账号级等待队列满
+	// 用户槽位仍是唯一的请求并发闸门。
+	userSlotSvc := NewConcurrencyService(&stubConcurrencyCacheForTest{acquireResult: false})
+	userSlot, err := userSlotSvc.AcquireUserSlot(context.Background(), 1, 1)
+	require.NoError(t, err)
+	require.False(t, userSlot.Acquired, "用户槽位满时必须拒绝请求")
+
+	// 账号级等待队列即使旧缓存报告已满，也必须放行。
 	allowed, err = svc.IncrementAccountWaitCount(context.Background(), 1, 10)
 	require.NoError(t, err)
-	require.False(t, allowed, "账号等待队列满时应返回 false")
+	require.True(t, allowed, "账号等待队列已停用，不得触发 429")
 }
 
 // TestWaitingQueue_FailOpen_OnCacheError 测试 Redis 故障时 fail-open
@@ -93,7 +99,7 @@ func TestWaitingQueue_FailOpen_OnCacheError(t *testing.T) {
 	require.NoError(t, err, "Redis 错误不应向调用方传播")
 	require.True(t, allowed, "Redis 故障时应 fail-open 放行")
 
-	// 账号级：同样 fail-open
+	// 账号级：已停用，始终放行
 	allowed, err = svc.IncrementAccountWaitCount(context.Background(), 1, 10)
 	require.NoError(t, err, "Redis 错误不应向调用方传播")
 	require.True(t, allowed, "Redis 故障时应 fail-open 放行")

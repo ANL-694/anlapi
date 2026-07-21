@@ -45,12 +45,19 @@ export interface UpdateResult {
   need_restart: boolean
 }
 
+// In-place updates download and swap a release binary. Align the client
+// timeout with the bounded server-side update context instead of aborting at
+// the global Axios timeout while the download is still running.
+const UPDATE_REQUEST_TIMEOUT_MS = 15 * 60 * 1000
+
 /**
  * Perform system update
  * Downloads and applies the latest version
  */
 export async function performUpdate(): Promise<UpdateResult> {
-  const { data } = await apiClient.post<UpdateResult>('/admin/system/update')
+  const { data } = await apiClient.post<UpdateResult>('/admin/system/update', undefined, {
+    timeout: UPDATE_REQUEST_TIMEOUT_MS
+  })
   return data
 }
 

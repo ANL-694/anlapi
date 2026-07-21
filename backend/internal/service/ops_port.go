@@ -312,7 +312,7 @@ type OpsSystemMetricsSnapshot struct {
 	DBConnWaiting *int `json:"db_conn_waiting"`
 
 	GoroutineCount        *int   `json:"goroutine_count"`
-	ConcurrencyQueueDepth *int   `json:"concurrency_queue_depth"`
+	ConcurrencyQueueDepth *int   `json:"-"`
 	AccountSwitchCount    *int64 `json:"account_switch_count"`
 }
 

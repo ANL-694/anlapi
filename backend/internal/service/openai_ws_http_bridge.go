@@ -211,7 +211,7 @@ func (s *OpenAIGatewayService) proxyOpenAIWSHTTPBridgeTurn(
 		if err != nil {
 			return nil, fmt.Errorf("apply grok prompt cache identity: %w", err)
 		}
-		body, err = applyGrokFreeMessagesFunctionToolCacheRoute(body, grokMixedCacheIntentBody, account, grokCacheIdentity)
+		body, err = applyGrokFreeRequestToolCacheRoute(c, body, grokMixedCacheIntentBody, account, grokCacheIdentity)
 		if err != nil {
 			return nil, fmt.Errorf("apply grok Free function-tool cache route: %w", err)
 		}

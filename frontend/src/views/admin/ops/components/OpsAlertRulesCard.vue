@@ -158,15 +158,6 @@ const metricDefinitions = computed(() => {
       recommendedThreshold: 80,
       unit: '%'
     },
-    {
-      type: 'concurrency_queue_depth',
-      group: 'system',
-      label: t('admin.ops.alertRules.metrics.queueDepth'),
-      description: t('admin.ops.alertRules.metricDescriptions.queueDepth'),
-      recommendedOperator: '>',
-      recommendedThreshold: 10
-    },
-
     // Group-level metrics (requires group_id filter)
     {
       type: 'group_available_accounts',

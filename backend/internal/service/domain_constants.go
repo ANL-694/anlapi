@@ -167,6 +167,7 @@ const (
 	SettingKeyTurnstileSecretKey = "turnstile_secret_key"
 
 	SettingKeyAPIKeyACLTrustForwardedIP = "api_key_acl_trust_forwarded_ip"
+	SettingKeyForwardedClientIPHeaders  = "forwarded_client_ip_headers"
 
 	SettingKeyTotpEnabled           = "totp_enabled"
 	SettingKeySessionBindingEnabled = "session_binding_enabled"

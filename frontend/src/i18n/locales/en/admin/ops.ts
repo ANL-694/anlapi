@@ -736,11 +736,13 @@ export default {
         }
       },
       concurrency: {
-        title: 'Concurrency / Queue',
+        title: 'Live user concurrency',
         byPlatform: 'By Platform',
         byGroup: 'By Group',
         byAccount: 'By Account',
-        byUser: 'By User',
+        byUser: 'User',
+        currentInUse: 'Current in use',
+        userLimit: 'User limit',
         showByUserTooltip: 'Switch to user view to see concurrency usage per user',
         switchToUser: 'Switch to user view',
         switchToPlatform: 'Switch to platform view',

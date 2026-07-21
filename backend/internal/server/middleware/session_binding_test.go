@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"anlapi/internal/config"
+	"anlapi/internal/pkg/ip"
 	"anlapi/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -97,6 +98,36 @@ func TestRequestSessionBindingPrefersInjectedBinding(t *testing.T) {
 	req.RemoteAddr = "127.0.0.1:54321"
 	req.Header.Set("X-Real-IP", "1.2.3.4")
 	req.Header.Set("User-Agent", "test-agent")
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, 200, w.Code)
+}
+
+func TestSessionBindingContextKeepsForwardedIPSnapshotForWholeRequest(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	cfg := &config.Config{}
+	cfg.SetForwardedClientIPSettings(true, []string{"X-Original-IP"})
+
+	r := gin.New()
+	require.NoError(t, r.SetTrustedProxies(nil))
+	r.Use(SessionBindingContext(cfg))
+	r.GET("/t", func(c *gin.Context) {
+		// Simulate an admin save while this request is still being handled.
+		cfg.SetForwardedClientIPSettings(false, []string{"X-Mutated-IP"})
+
+		binding := service.SessionBindingFromContext(c.Request.Context())
+		require.NotNil(t, binding)
+		require.Equal(t, "1.2.3.4", binding.IP)
+		require.Equal(t, "1.2.3.4", ip.GetSecurityClientIP(c, false))
+		c.Status(200)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/t", nil)
+	req.RemoteAddr = "9.9.9.9:12345"
+	req.Header.Set("X-Original-IP", "1.2.3.4")
+	req.Header.Set("X-Mutated-IP", "4.4.4.4")
 	r.ServeHTTP(w, req)
 
 	require.Equal(t, 200, w.Code)

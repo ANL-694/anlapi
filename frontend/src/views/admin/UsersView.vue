@@ -830,9 +830,14 @@ const allColumns = computed<Column[]>(() => [
   { key: 'actions', label: t('admin.users.columns.actions'), sortable: false }
 ])
 
-// Columns that can be toggled (exclude email and actions which are always visible)
+const REMOVED_COLUMNS = new Set(['last_login_at'])
+const FORCED_VISIBLE_COLUMNS = new Set(['last_active_at', 'concurrency'])
+
+// Columns that can be toggled (exclude columns which are always visible)
 const toggleableColumns = computed(() =>
-  allColumns.value.filter(col => col.key !== 'email' && col.key !== 'actions')
+  allColumns.value.filter(col =>
+    col.key !== 'email' && col.key !== 'actions' && !FORCED_VISIBLE_COLUMNS.has(col.key)
+  )
 )
 
 // Hidden columns (stored in Set - columns NOT in this set are visible)
@@ -840,9 +845,7 @@ const toggleableColumns = computed(() =>
 const hiddenColumns = reactive<Set<string>>(new Set())
 
 // Default hidden columns (columns hidden by default on first load)
-const DEFAULT_HIDDEN_COLUMNS = ['notes', 'groups', 'subscriptions', 'usage', 'concurrency']
-const REMOVED_COLUMNS = new Set(['last_login_at'])
-const FORCED_VISIBLE_COLUMNS = new Set(['last_active_at'])
+const DEFAULT_HIDDEN_COLUMNS = ['notes', 'groups', 'subscriptions', 'usage']
 
 // localStorage key for column settings
 const HIDDEN_COLUMNS_KEY = 'user-hidden-columns'
@@ -877,6 +880,7 @@ const saveColumnsToStorage = () => {
 
 // Toggle column visibility
 const toggleColumn = (key: string) => {
+  if (FORCED_VISIBLE_COLUMNS.has(key)) return
   const wasHidden = hiddenColumns.has(key)
   if (hiddenColumns.has(key)) {
     hiddenColumns.delete(key)
@@ -896,7 +900,7 @@ const toggleColumn = (key: string) => {
 }
 
 // Check if column is visible (not in hidden set)
-const isColumnVisible = (key: string) => !hiddenColumns.has(key)
+const isColumnVisible = (key: string) => FORCED_VISIBLE_COLUMNS.has(key) || !hiddenColumns.has(key)
 const hasVisibleUsageColumn = computed(() => !hiddenColumns.has('usage'))
 const hasVisibleSubscriptionsColumn = computed(() => !hiddenColumns.has('subscriptions'))
 const hasVisibleGroupsColumn = computed(() => !hiddenColumns.has('groups'))
@@ -907,7 +911,7 @@ const hasVisibleAttributeColumns = computed(() =>
 // Filtered columns based on visibility
 const columns = computed<Column[]>(() =>
   allColumns.value.filter(col =>
-    col.key === 'email' || col.key === 'actions' || !hiddenColumns.has(col.key)
+    col.key === 'email' || col.key === 'actions' || isColumnVisible(col.key)
   )
 )
 

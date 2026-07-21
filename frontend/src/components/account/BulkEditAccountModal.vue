@@ -547,38 +547,8 @@
         </div>
       </div>
 
-      <!-- Concurrency & Priority -->
-      <div class="grid grid-cols-2 gap-4 border-t border-gray-200 pt-4 dark:border-dark-600 lg:grid-cols-4">
-        <div>
-          <div class="mb-3 flex items-center justify-between">
-            <label
-              id="bulk-edit-concurrency-label"
-              class="input-label mb-0"
-              for="bulk-edit-concurrency-enabled"
-            >
-              {{ t('admin.accounts.concurrency') }}
-            </label>
-            <input
-              v-model="enableConcurrency"
-              id="bulk-edit-concurrency-enabled"
-              type="checkbox"
-              :disabled="isUserScope"
-              aria-controls="bulk-edit-concurrency"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-          </div>
-          <input
-            v-model.number="concurrency"
-            id="bulk-edit-concurrency"
-            type="number"
-            min="1"
-            :disabled="isUserScope || !enableConcurrency"
-            class="input"
-            :class="(isUserScope || !enableConcurrency) && 'cursor-not-allowed opacity-50'"
-            aria-labelledby="bulk-edit-concurrency-label"
-            @input="concurrency = Math.max(1, concurrency || 1)"
-          />
-        </div>
+      <!-- Scheduling & billing -->
+      <div class="grid grid-cols-2 gap-4 border-t border-gray-200 pt-4 dark:border-dark-600 lg:grid-cols-3">
         <div>
           <div class="mb-3 flex items-center justify-between">
             <label
@@ -1095,10 +1065,7 @@ import GrokBaseUrlPresets from '@/components/account/GrokBaseUrlPresets.vue'
 import HeaderOverrideEditor from '@/components/account/HeaderOverrideEditor.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import Icon from '@/components/icons/Icon.vue'
-import {
-  PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY,
-  PERSONAL_ACCOUNT_DEFAULT_PRIORITY
-} from '@/components/account/personalAccountTemplate'
+import { PERSONAL_ACCOUNT_DEFAULT_PRIORITY } from '@/components/account/personalAccountTemplate'
 import {
   buildModelMappingObject as buildModelMappingPayload,
   getPresetMappingsByPlatform
@@ -1294,7 +1261,6 @@ const enableCustomErrorCodes = ref(false)
 const enableInterceptWarmup = ref(false)
 const enableHeaderOverride = ref(false)
 const enableProxy = ref(false)
-const enableConcurrency = ref(false)
 const enableLoadFactor = ref(false)
 const enablePriority = ref(false)
 const enableRateMultiplier = ref(false)
@@ -1323,7 +1289,6 @@ const interceptWarmupRequests = ref(false)
 const headerOverrideEnabled = ref(false)
 const headerOverrideRows = ref<HeaderOverrideRow[]>([])
 const proxyId = ref<number | null>(null)
-const concurrency = ref(1)
 const loadFactor = ref<number | null>(null)
 const priority = ref(1)
 const rateMultiplier = ref(1)
@@ -1509,10 +1474,6 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
     updates.proxy_id = proxyId.value === null ? 0 : proxyId.value
   }
 
-  if (enableConcurrency.value) {
-    updates.concurrency = concurrency.value
-  }
-
   if (enableLoadFactor.value) {
     // 空值/NaN/0 时发送 0（后端约定 <= 0 表示清除）
     const lf = loadFactor.value
@@ -1524,7 +1485,6 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
   }
 
   if (isUserScope.value) {
-    delete updates.concurrency
     delete updates.load_factor
   }
 
@@ -1665,6 +1625,7 @@ const handleClose = () => {
 
 const sanitizeBulkUpdatePayload = (payload: Record<string, unknown>) => {
   const next = { ...payload }
+  delete next.concurrency
   if (isUserScope.value && next.status === 'inactive') {
     next.status = 'disabled'
   }
@@ -1683,7 +1644,6 @@ const sanitizeBulkUpdatePayload = (payload: Record<string, unknown>) => {
   if (isUserScope.value) {
     delete next.status
     delete next.account_level
-    delete next.concurrency
     delete next.load_factor
     if ('priority' in next) {
       next.priority = typeof next.priority === 'number' && Number(next.priority) > 0
@@ -1748,7 +1708,6 @@ const handleSubmit = async () => {
     enableInterceptWarmup.value ||
     enableHeaderOverride.value ||
     (canManageProxy.value && enableProxy.value) ||
-    enableConcurrency.value ||
     enableLoadFactor.value ||
     enablePriority.value ||
     (canManageBillingRate.value && enableRateMultiplier.value) ||
@@ -1881,7 +1840,6 @@ watch(
       enableInterceptWarmup.value = false
       enableHeaderOverride.value = false
       enableProxy.value = false
-      enableConcurrency.value = false
       enableLoadFactor.value = false
       enablePriority.value = false
       enableRateMultiplier.value = false
@@ -1907,7 +1865,6 @@ watch(
       headerOverrideEnabled.value = false
       headerOverrideRows.value = []
       proxyId.value = null
-      concurrency.value = isUserScope.value ? PERSONAL_ACCOUNT_DEFAULT_CONCURRENCY : 1
       loadFactor.value = null
       priority.value = PERSONAL_ACCOUNT_DEFAULT_PRIORITY
       rateMultiplier.value = 1

@@ -31,12 +31,16 @@ const (
 )
 
 var (
-	ErrBackupS3NotConfigured = infraerrors.BadRequest("BACKUP_S3_NOT_CONFIGURED", "backup S3 storage is not configured")
-	ErrBackupNotFound        = infraerrors.NotFound("BACKUP_NOT_FOUND", "backup record not found")
-	ErrBackupInProgress      = infraerrors.Conflict("BACKUP_IN_PROGRESS", "a backup is already in progress")
-	ErrRestoreInProgress     = infraerrors.Conflict("RESTORE_IN_PROGRESS", "a restore is already in progress")
-	ErrBackupRecordsCorrupt  = infraerrors.InternalServer("BACKUP_RECORDS_CORRUPT", "backup records data is corrupted")
-	ErrBackupS3ConfigCorrupt = infraerrors.InternalServer("BACKUP_S3_CONFIG_CORRUPT", "backup S3 config data is corrupted")
+	ErrBackupS3NotConfigured            = infraerrors.BadRequest("BACKUP_S3_NOT_CONFIGURED", "backup S3 storage is not configured")
+	ErrBackupNotFound                   = infraerrors.NotFound("BACKUP_NOT_FOUND", "backup record not found")
+	ErrBackupInProgress                 = infraerrors.Conflict("BACKUP_IN_PROGRESS", "a backup is already in progress")
+	ErrRestoreInProgress                = infraerrors.Conflict("RESTORE_IN_PROGRESS", "a restore is already in progress")
+	ErrBackupRecordsCorrupt             = infraerrors.InternalServer("BACKUP_RECORDS_CORRUPT", "backup records data is corrupted")
+	ErrBackupS3ConfigCorrupt            = infraerrors.InternalServer("BACKUP_S3_CONFIG_CORRUPT", "backup S3 config data is corrupted")
+	ErrSecretEncryptionKeyNotConfigured = infraerrors.BadRequest(
+		"SECRET_ENCRYPTION_KEY_NOT_CONFIGURED",
+		"cannot store the S3 secret access key: set a fixed TOTP_ENCRYPTION_KEY (for example, generate one with `openssl rand -hex 32`) before saving object storage credentials",
+	)
 )
 
 // ─── 接口定义 ───
@@ -122,12 +126,13 @@ type UsageLogsArchiveInput struct {
 
 // BackupService 数据库备份恢复服务
 type BackupService struct {
-	settingRepo  SettingRepository
-	dbCfg        *config.DatabaseConfig
-	usageCleanup config.UsageCleanupConfig
-	encryptor    SecretEncryptor
-	storeFactory BackupObjectStoreFactory
-	dumper       DBDumper
+	settingRepo             SettingRepository
+	dbCfg                   *config.DatabaseConfig
+	usageCleanup            config.UsageCleanupConfig
+	encryptor               SecretEncryptor
+	encryptionKeyConfigured bool
+	storeFactory            BackupObjectStoreFactory
+	dumper                  DBDumper
 
 	opMu      sync.Mutex // 保护 backingUp/restoring 标志
 	backingUp bool
@@ -159,19 +164,22 @@ func NewBackupService(
 	bgCtx, bgCancel := context.WithCancel(context.Background())
 	dbCfg := &config.DatabaseConfig{}
 	var usageCleanup config.UsageCleanupConfig
+	var encryptionKeyConfigured bool
 	if cfg != nil {
 		dbCfg = &cfg.Database
 		usageCleanup = cfg.UsageCleanup
+		encryptionKeyConfigured = cfg.Totp.EncryptionKeyConfigured
 	}
 	return &BackupService{
-		settingRepo:  settingRepo,
-		dbCfg:        dbCfg,
-		usageCleanup: usageCleanup,
-		encryptor:    encryptor,
-		storeFactory: storeFactory,
-		dumper:       dumper,
-		bgCtx:        bgCtx,
-		bgCancel:     bgCancel,
+		settingRepo:             settingRepo,
+		dbCfg:                   dbCfg,
+		usageCleanup:            usageCleanup,
+		encryptor:               encryptor,
+		encryptionKeyConfigured: encryptionKeyConfigured,
+		storeFactory:            storeFactory,
+		dumper:                  dumper,
+		bgCtx:                   bgCtx,
+		bgCancel:                bgCancel,
 	}
 }
 
@@ -261,6 +269,12 @@ func (s *BackupService) Stop() {
 
 // ─── S3 配置管理 ───
 
+// EncryptionKeyConfigured 表示当前进程使用固定的 TOTP_ENCRYPTION_KEY。
+// 自动生成的启动期密钥会在重启后变化，不能用于持久化对象存储凭证。
+func (s *BackupService) EncryptionKeyConfigured() bool {
+	return s != nil && s.encryptionKeyConfigured
+}
+
 func (s *BackupService) GetS3Config(ctx context.Context) (*BackupS3Config, error) {
 	cfg, err := s.loadS3Config(ctx)
 	if err != nil {
@@ -282,6 +296,9 @@ func (s *BackupService) UpdateS3Config(ctx context.Context, cfg BackupS3Config) 
 			cfg.SecretAccessKey = old.SecretAccessKey
 		}
 	} else {
+		if !s.EncryptionKeyConfigured() {
+			return nil, ErrSecretEncryptionKeyNotConfigured
+		}
 		// 加密 SecretAccessKey
 		encrypted, err := s.encryptor.Encrypt(cfg.SecretAccessKey)
 		if err != nil {

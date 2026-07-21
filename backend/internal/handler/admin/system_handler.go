@@ -21,6 +21,21 @@ type SystemHandler struct {
 	lockSvc   *service.SystemOperationLockService
 }
 
+// systemUpdateTimeout bounds a full in-place update. It stays above the
+// release download timeout so the updater owns the download deadline.
+const systemUpdateTimeout = 15 * time.Minute
+
+// systemUpdateContext keeps a long-running binary download alive after a
+// browser or reverse proxy aborts the HTTP request, while retaining a bounded
+// timeout for the update itself.
+func systemUpdateContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	base := context.Background()
+	if ctx != nil {
+		base = context.WithoutCancel(ctx)
+	}
+	return context.WithTimeout(base, systemUpdateTimeout)
+}
+
 // NewSystemHandler creates a new SystemHandler
 func NewSystemHandler(updateSvc *service.UpdateService, lockSvc *service.SystemOperationLockService) *SystemHandler {
 	return &SystemHandler{
@@ -66,7 +81,10 @@ func (h *SystemHandler) PerformUpdate(c *gin.Context) {
 			release(releaseReason, succeeded)
 		}()
 
-		if err := h.updateSvc.PerformUpdate(ctx); err != nil {
+		updateCtx, cancel := systemUpdateContext(ctx)
+		defer cancel()
+
+		if err := h.updateSvc.PerformUpdate(updateCtx); err != nil {
 			releaseReason = "SYSTEM_UPDATE_FAILED"
 			return nil, err
 		}

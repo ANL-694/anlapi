@@ -5,6 +5,20 @@ export function normalizePaymentCurrency(currency?: string | null): string {
   return /^[A-Z]{3}$/.test(normalized) ? normalized : DEFAULT_PAYMENT_CURRENCY
 }
 
+export function currencySymbol(currency?: string | null, locale?: string): string {
+  const normalized = normalizePaymentCurrency(currency)
+  try {
+    const part = new Intl.NumberFormat(locale || undefined, {
+      style: 'currency',
+      currency: normalized,
+      currencyDisplay: 'narrowSymbol',
+    }).formatToParts(0).find(({ type }) => type === 'currency')
+    return part?.value || normalized
+  } catch {
+    return normalized
+  }
+}
+
 function paymentCurrencyFractionDigits(currency: string): number {
   try {
     return new Intl.NumberFormat(undefined, {

@@ -12,6 +12,7 @@ import (
 	"anlapi/internal/pkg/logger"
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 // BuildInfo contains build information
@@ -32,17 +33,24 @@ func ProvideBatchImageCleanupService(repo BatchImageRepository, accountRepo Acco
 	return svc
 }
 
-// ProvideImageTaskService enables async image tasks only when object storage is
-// fully configured, preventing large base64 results from being stored in Redis.
-func ProvideImageTaskService(store ImageTaskStore, storage ImageStorage, cfg *config.Config) *ImageTaskService {
-	if !cfg.ImageStorage.Active() {
-		if cfg.ImageStorage.Enabled {
-			logger.L().Warn("image_storage.enabled is true but object storage is not fully configured; async image tasks are disabled")
-		}
-		return NewImageTaskService(store)
+// ProvideImageStorageSettingService 保留 config.yaml/env 作为未保存后台设置时的回退。
+func ProvideImageStorageSettingService(
+	settingRepo SettingRepository,
+	encryptor SecretEncryptor,
+	backup *BackupService,
+	factory ImageStorageFactory,
+	cfg *config.Config,
+) *ImageStorageSettingService {
+	if cfg.ImageStorage.Enabled && !cfg.ImageStorage.Active() {
+		logger.L().Warn("image_storage.enabled is true in config but object storage is not fully configured; configure it in the admin UI or complete the environment variables",
+			zap.Strings("missing_keys", cfg.ImageStorage.MissingCredentialKeys()))
 	}
-	uploader := NewImageResultUploader(storage, cfg.ImageStorage.Prefix, cfg.ImageStorage.MaxDownloadByte, nil)
-	return NewImageTaskServiceWithUploader(store, uploader, defaultImageTaskTTL, defaultImageTaskExecutionTimeout)
+	return NewImageStorageSettingService(settingRepo, encryptor, backup, factory, cfg.ImageStorage)
+}
+
+// ProvideImageTaskService 在每次请求时解析当前后台设置，保存后无需重启即可生效。
+func ProvideImageTaskService(store ImageTaskStore, settings *ImageStorageSettingService) *ImageTaskService {
+	return NewImageTaskServiceWithResolver(store, settings.Resolver(), defaultImageTaskTTL, defaultImageTaskExecutionTimeout)
 }
 
 // ProvideGatewayService gives Wire an explicit dependency graph while keeping
@@ -715,8 +723,8 @@ func ProvideSettingService(settingRepo SettingRepository, groupRepo GroupReposit
 	svc := NewSettingService(settingRepo, cfg)
 	svc.SetDefaultSubscriptionGroupReader(groupRepo)
 	svc.SetProxyRepository(proxyRepo)
-	if err := svc.LoadAPIKeyACLTrustForwardedIPSetting(context.Background()); err != nil {
-		logger.LegacyPrintf("service.setting", "Warning: load api key acl forwarded ip setting failed: %v", err)
+	if err := svc.LoadForwardedClientIPSettings(context.Background()); err != nil {
+		logger.LegacyPrintf("service.setting", "Warning: load forwarded client IP settings failed; compatibility mode remains disabled: %v", err)
 	}
 	return svc
 }
@@ -920,6 +928,7 @@ var ProviderSet = wire.NewSet(
 	ProvideAdminService,
 	ProvideGatewayService,
 	ProvideOpenAIGatewayService,
+	ProvideImageStorageSettingService,
 	ProvideImageTaskService,
 	ProvideBatchImageModelPricingResolver,
 	NewBatchImagePublicService,

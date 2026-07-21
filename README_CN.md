@@ -40,6 +40,13 @@ QQ 群：`146499741`
 - 前端控制台基于 Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS 和 Vite。
 - 后端服务基于 Go、Gin、Ent、PostgreSQL、Redis 和模块化服务边界。
 
+## 1.0.4 更新内容
+
+- 对齐 Sub2API v0.1.162 的 OpenAI/Codex、Responses、Anthropic、Grok 媒体、订阅到期和异步生图存储相关改进。
+- API Key IP 访问控制改为默认不信任原始转发头；只有显式配置可信代理和兼容开关后才会读取转发客户端 IP，直连源站时不能伪造 Cloudflare 头绕过限制。
+- 请求并发只按用户账户执行。账号、分组、平台和 API Key 不再作为额外并发闸门；管理端仅展示用户当前真实并发与该用户上限。
+- 管理端移除账号容量、分组容量、账号并发编辑和账号队列展示，避免把调度信息误当作用户限流。
+
 ## 1.0.3 更新内容
 
 - 后端工具链升级到 Go 1.26.5，并更新存储集成相关的 AWS SDK 安全依赖。

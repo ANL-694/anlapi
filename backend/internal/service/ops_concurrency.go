@@ -379,27 +379,16 @@ func (s *OpsService) GetUserConcurrencyStats(ctx context.Context) (map[int64]*Us
 
 		load := loadMap[u.ID]
 		currentInUse := int64(0)
-		waiting := int64(0)
 		if load != nil {
 			currentInUse = int64(load.CurrentConcurrency)
-			waiting = int64(load.WaitingCount)
-		}
-
-		// Skip users with no concurrency activity
-		if currentInUse == 0 && waiting == 0 {
-			continue
 		}
 
 		info := &UserConcurrencyInfo{
-			UserID:         u.ID,
-			UserEmail:      u.Email,
-			Username:       u.Username,
-			CurrentInUse:   currentInUse,
-			MaxCapacity:    int64(u.Concurrency),
-			WaitingInQueue: waiting,
-		}
-		if info.MaxCapacity > 0 {
-			info.LoadPercentage = float64(info.CurrentInUse) / float64(info.MaxCapacity) * 100
+			UserID:       u.ID,
+			UserEmail:    u.Email,
+			Username:     u.Username,
+			CurrentInUse: currentInUse,
+			MaxCapacity:  int64(u.Concurrency),
 		}
 		result[u.ID] = info
 	}

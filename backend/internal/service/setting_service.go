@@ -553,19 +553,57 @@ func (s *SettingService) SetProxyRepository(repo ProxyRepository) {
 	s.proxyRepo = repo
 }
 
-func (s *SettingService) LoadAPIKeyACLTrustForwardedIPSetting(ctx context.Context) error {
+// LoadForwardedClientIPSettings loads the compatibility switch and custom
+// header list as one unit. Bad or unavailable persisted settings fail closed so
+// a direct origin request can never gain trust through a stale raw header.
+func (s *SettingService) LoadForwardedClientIPSettings(ctx context.Context) error {
 	if s == nil || s.cfg == nil || s.settingRepo == nil {
 		return nil
 	}
-	value, err := s.settingRepo.GetValue(ctx, SettingKeyAPIKeyACLTrustForwardedIP)
+	values, err := s.settingRepo.GetMultiple(ctx, []string{
+		SettingKeyAPIKeyACLTrustForwardedIP,
+		SettingKeyForwardedClientIPHeaders,
+	})
 	if err != nil {
-		if errors.Is(err, ErrSettingNotFound) {
-			s.cfg.SetTrustForwardedIPForAPIKeyACL(s.cfg.Security.TrustForwardedIPForAPIKeyACL)
-			return nil
-		}
-		return fmt.Errorf("get api key acl forwarded ip setting: %w", err)
+		s.cfg.SetForwardedClientIPSettings(false, nil)
+		return fmt.Errorf("get forwarded client IP settings: %w", err)
 	}
-	s.cfg.SetTrustForwardedIPForAPIKeyACL(value == "true")
+
+	// Values in config.yaml are explicit operator configuration. Database values
+	// override them once present, but a missing setting never auto-enables raw
+	// forwarded-header trust.
+	runtimeSettings := s.cfg.ForwardedClientIPSettings()
+	enabled := runtimeSettings.TrustForwardedIP
+	headers := runtimeSettings.Headers
+	if value, ok := values[SettingKeyAPIKeyACLTrustForwardedIP]; ok {
+		enabled = value == "true"
+	}
+
+	updates := make(map[string]string)
+	if value, ok := values[SettingKeyForwardedClientIPHeaders]; ok {
+		parsed, parseErr := parseForwardedClientIPHeadersSetting(value)
+		if parseErr != nil {
+			s.cfg.SetForwardedClientIPSettings(false, nil)
+			return fmt.Errorf("load forwarded client IP headers: %w", parseErr)
+		}
+		headers = parsed
+	} else {
+		headersJSON, marshalErr := json.Marshal(headers)
+		if marshalErr != nil {
+			s.cfg.SetForwardedClientIPSettings(false, nil)
+			return fmt.Errorf("marshal forwarded client IP headers: %w", marshalErr)
+		}
+		updates[SettingKeyForwardedClientIPHeaders] = string(headersJSON)
+	}
+
+	if len(updates) > 0 {
+		if err := s.settingRepo.SetMultiple(ctx, updates); err != nil {
+			s.cfg.SetForwardedClientIPSettings(false, nil)
+			return fmt.Errorf("persist forwarded client IP settings: %w", err)
+		}
+	}
+
+	s.cfg.SetForwardedClientIPSettings(enabled, headers)
 	return nil
 }
 
@@ -1413,6 +1451,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		normalizedWhitelist = []string{}
 	}
 	settings.RegistrationEmailSuffixWhitelist = normalizedWhitelist
+	normalizedForwardedClientIPHeaders, err := config.NormalizeForwardedClientIPHeaders(settings.ForwardedClientIPHeaders)
+	if err != nil {
+		return nil, infraerrors.BadRequest("INVALID_FORWARDED_CLIENT_IP_HEADERS", err.Error())
+	}
+	settings.ForwardedClientIPHeaders = normalizedForwardedClientIPHeaders
 	alipaySource, err := normalizeVisibleMethodSettingSource("alipay", settings.PaymentVisibleMethodAlipaySource, settings.PaymentVisibleMethodAlipayEnabled)
 	if err != nil {
 		return nil, err
@@ -1506,6 +1549,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		updates[SettingKeyTurnstileSecretKey] = settings.TurnstileSecretKey
 	}
 	updates[SettingKeyAPIKeyACLTrustForwardedIP] = strconv.FormatBool(settings.APIKeyACLTrustForwardedIP)
+	forwardedClientIPHeadersJSON, err := json.Marshal(settings.ForwardedClientIPHeaders)
+	if err != nil {
+		return nil, fmt.Errorf("marshal forwarded client IP headers: %w", err)
+	}
+	updates[SettingKeyForwardedClientIPHeaders] = string(forwardedClientIPHeadersJSON)
 
 	// LinuxDo Connect OAuth 登录
 	updates[SettingKeyLinuxDoConnectEnabled] = strconv.FormatBool(settings.LinuxDoConnectEnabled)
@@ -1885,7 +1933,7 @@ func (s *SettingService) refreshCachedSettings(settings *SystemSettings) {
 		expiresAt: time.Now().Add(autoModelSettingsCacheTTL).UnixNano(),
 	})
 	if s.cfg != nil {
-		s.cfg.SetTrustForwardedIPForAPIKeyACL(settings.APIKeyACLTrustForwardedIP)
+		s.cfg.SetForwardedClientIPSettings(settings.APIKeyACLTrustForwardedIP, settings.ForwardedClientIPHeaders)
 	}
 	if s.onUpdate != nil {
 		s.onUpdate() // Invalidate cache after settings update
@@ -2543,6 +2591,14 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		return err
 	}
 	defaultCustomEndpointsJSON := `[]`
+	forwardedClientIPHeaders := []string{}
+	if s != nil && s.cfg != nil {
+		forwardedClientIPHeaders = s.cfg.ForwardedClientIPSettings().Headers
+	}
+	forwardedClientIPHeadersJSON, err := json.Marshal(forwardedClientIPHeaders)
+	if err != nil {
+		return fmt.Errorf("marshal default forwarded client IP headers: %w", err)
+	}
 
 	// 初始化默认设置
 	defaults := map[string]string{
@@ -2558,6 +2614,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyLoginAgreementUpdatedAt:                  defaultLoginAgreementDate,
 		SettingKeyLoginAgreementDocuments:                  loginAgreementDocumentsJSON,
 		SettingKeyAPIKeyACLTrustForwardedIP:                "false",
+		SettingKeyForwardedClientIPHeaders:                 string(forwardedClientIPHeadersJSON),
 		SettingKeySiteLogo:                                 "",
 		SettingKeyPurchaseSubscriptionEnabled:              "false",
 		SettingKeyPurchaseSubscriptionURL:                  "",
@@ -2683,10 +2740,10 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyChannelMonitorDefaultIntervalSeconds: "60",
 
 		// Available channels feature (default disabled; opt-in)
-		SettingKeyAvailableChannelsEnabled: "false",
-		SettingKeyFreeModelsEnabled:        "false",
-		SettingKeyAutoModelSettings:        DefaultAutoModelSettingsJSON(),
-		SettingKeyHomeStatsGroupID:         "0",
+		SettingKeyAvailableChannelsEnabled:     "false",
+		SettingKeyFreeModelsEnabled:            "false",
+		SettingKeyAutoModelSettings:            DefaultAutoModelSettingsJSON(),
+		SettingKeyHomeStatsGroupID:             "0",
 		SettingKeySystemImageGenerationGroupID: "0",
 
 		// Carpool pools feature (default disabled; opt-in)
@@ -2740,6 +2797,21 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 	return s.settingRepo.SetMultiple(ctx, defaults)
 }
 
+func parseForwardedClientIPHeadersSetting(value string) ([]string, error) {
+	var headers []string
+	if err := json.Unmarshal([]byte(value), &headers); err != nil {
+		return nil, fmt.Errorf("parse forwarded_client_ip_headers: %w", err)
+	}
+	if headers == nil {
+		return nil, fmt.Errorf("parse forwarded_client_ip_headers: value must be a JSON array")
+	}
+	normalized, err := config.NormalizeForwardedClientIPHeaders(headers)
+	if err != nil {
+		return nil, fmt.Errorf("parse forwarded_client_ip_headers: %w", err)
+	}
+	return normalized, nil
+}
+
 // parseSettings 解析设置到结构体
 func (s *SettingService) parseSettings(settings map[string]string) *SystemSettings {
 	emailVerifyEnabled := settings[SettingKeyEmailVerifyEnabled] == "true"
@@ -2749,10 +2821,24 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		loginAgreementUpdatedAt = defaultLoginAgreementDate
 	}
 	apiKeyACLTrustForwardedIP := false
+	forwardedClientIPHeaders := []string{}
+	if s != nil && s.cfg != nil {
+		runtimeSettings := s.cfg.ForwardedClientIPSettings()
+		apiKeyACLTrustForwardedIP = runtimeSettings.TrustForwardedIP
+		forwardedClientIPHeaders = runtimeSettings.Headers
+	}
 	if value, ok := settings[SettingKeyAPIKeyACLTrustForwardedIP]; ok {
 		apiKeyACLTrustForwardedIP = value == "true"
-	} else if s != nil && s.cfg != nil {
-		apiKeyACLTrustForwardedIP = s.cfg.Security.TrustForwardedIPForAPIKeyACL
+	}
+	if value, ok := settings[SettingKeyForwardedClientIPHeaders]; ok {
+		parsed, err := parseForwardedClientIPHeadersSetting(value)
+		if err != nil {
+			slog.Error("invalid persisted forwarded client IP headers; disabling forwarded header compatibility", "error", err)
+			apiKeyACLTrustForwardedIP = false
+			forwardedClientIPHeaders = []string{}
+		} else {
+			forwardedClientIPHeaders = parsed
+		}
 	}
 	result := &SystemSettings{
 		RegistrationEnabled:              settings[SettingKeyRegistrationEnabled] == "true",
@@ -2779,6 +2865,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
 		APIKeyACLTrustForwardedIP:        apiKeyACLTrustForwardedIP,
+		ForwardedClientIPHeaders:         forwardedClientIPHeaders,
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "anlapi"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "AI API 接入与用量管理平台"),

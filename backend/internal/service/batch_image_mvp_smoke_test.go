@@ -72,7 +72,6 @@ func TestBatchImageMVPFlow(t *testing.T) {
 		Repo:             repo,
 		ProviderRegistry: registry,
 		AccountResolver:  &fakeBatchImageAccountResolver{account: &accountRepo.accounts[0]},
-		Limiter:          &fakeBatchImageDownloadLimiter{},
 		Config:           cfg,
 	}
 	cleanupSvc := &BatchImageCleanupService{

@@ -350,6 +350,7 @@ export interface SystemSettings {
   totp_enabled: boolean; // TOTP 双因素认证
   totp_encryption_key_configured: boolean; // TOTP 加密密钥是否已配置
   api_key_acl_trust_forwarded_ip: boolean;
+  forwarded_client_ip_headers: string[];
   session_binding_enabled: boolean;
   step_up_enabled: boolean;
   audit_log_retention_days: number;
@@ -645,6 +646,7 @@ export interface UpdateSettingsRequest {
   invitation_code_enabled?: boolean;
   totp_enabled?: boolean; // TOTP 双因素认证
   api_key_acl_trust_forwarded_ip?: boolean;
+  forwarded_client_ip_headers?: string[];
   session_binding_enabled?: boolean;
   step_up_enabled?: boolean;
   audit_log_retention_days?: number;

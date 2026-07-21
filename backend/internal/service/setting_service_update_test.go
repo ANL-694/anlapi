@@ -560,3 +560,63 @@ func TestSettingService_UpdateSettings_RejectsInvalidPaymentVisibleMethodSource(
 	require.Equal(t, "INVALID_PAYMENT_VISIBLE_METHOD_SOURCE", infraerrors.Reason(err))
 	require.Nil(t, repo.updates)
 }
+
+func TestSettingService_UpdateSettingsPersistsForwardedClientIPHeaders(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	cfg := &config.Config{}
+	svc := NewSettingService(repo, cfg)
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		APIKeyACLTrustForwardedIP: true,
+		ForwardedClientIPHeaders:  []string{" x-cdn-ip ", "X-CDN-IP", "true-client-ip"},
+	})
+	require.NoError(t, err)
+	require.Equal(t, "true", repo.updates[SettingKeyAPIKeyACLTrustForwardedIP])
+	require.JSONEq(t, `["X-Cdn-Ip","True-Client-Ip"]`, repo.updates[SettingKeyForwardedClientIPHeaders])
+	require.Equal(t, config.ForwardedClientIPSettings{
+		TrustForwardedIP: true,
+		Headers:          []string{"X-Cdn-Ip", "True-Client-Ip"},
+	}, cfg.ForwardedClientIPSettings())
+}
+
+func TestSettingService_UpdateSettingsRejectsInvalidForwardedClientIPHeaders(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		ForwardedClientIPHeaders: []string{"X Invalid"},
+	})
+	require.Error(t, err)
+	require.Equal(t, "INVALID_FORWARDED_CLIENT_IP_HEADERS", infraerrors.Reason(err))
+	require.Nil(t, repo.updates)
+}
+
+func TestSettingService_LoadForwardedClientIPSettingsNeverAutoEnablesCompatibility(t *testing.T) {
+	cfg := &config.Config{Security: config.SecurityConfig{
+		TrustForwardedIPForAPIKeyACL: true,
+		ForwardedClientIPHeaders:     []string{"X-Config-IP"},
+	}}
+	cfg.SetForwardedClientIPSettings(true, []string{"X-Config-IP"})
+	repo := &settingValueRepoStub{values: map[string]string{
+		SettingKeyAPIKeyACLTrustForwardedIP: "false",
+		SettingKeyForwardedClientIPHeaders:  `["X-Database-IP"]`,
+	}}
+	svc := NewSettingService(repo, cfg)
+
+	require.NoError(t, svc.LoadForwardedClientIPSettings(context.Background()))
+	require.Equal(t, config.ForwardedClientIPSettings{
+		TrustForwardedIP: false,
+		Headers:          []string{"X-Database-Ip"},
+	}, cfg.ForwardedClientIPSettings())
+}
+
+func TestSettingService_ParseSettingsFailsClosedForMalformedForwardedHeaders(t *testing.T) {
+	svc := NewSettingService(&settingGetAllRepoStub{values: map[string]string{}}, &config.Config{})
+	settings := svc.parseSettings(map[string]string{
+		SettingKeyAPIKeyACLTrustForwardedIP: "true",
+		SettingKeyForwardedClientIPHeaders:  `{"not":"an array"}`,
+	})
+
+	require.False(t, settings.APIKeyACLTrustForwardedIP)
+	require.Empty(t, settings.ForwardedClientIPHeaders)
+}

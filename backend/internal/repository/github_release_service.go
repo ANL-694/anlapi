@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -45,6 +46,8 @@ func NewGitHubReleaseClient(proxyURL string, allowDirectOnProxyError bool, githu
 		}
 		sharedClient = &http.Client{Timeout: 30 * time.Second}
 	}
+	apiClient := cloneHTTPClient(sharedClient)
+	apiClient.CheckRedirect = githubAuthorizationCheckRedirect(apiClient.CheckRedirect)
 
 	// 下载客户端需要更长的超时时间
 	downloadClient, err := httpclient.GetClient(httpclient.Options{
@@ -58,11 +61,42 @@ func NewGitHubReleaseClient(proxyURL string, allowDirectOnProxyError bool, githu
 		}
 		downloadClient = &http.Client{Timeout: 10 * time.Minute}
 	}
+	downloadClient = cloneHTTPClient(downloadClient)
+	downloadClient.CheckRedirect = githubAuthorizationCheckRedirect(downloadClient.CheckRedirect)
 
 	return &githubReleaseClient{
-		httpClient:         sharedClient,
+		httpClient:         apiClient,
 		downloadHTTPClient: downloadClient,
 		githubToken:        strings.TrimSpace(githubToken),
+	}
+}
+
+func cloneHTTPClient(client *http.Client) *http.Client {
+	cloned := *client
+	return &cloned
+}
+
+func isTrustedGitHubURL(target *url.URL) bool {
+	if target == nil || !strings.EqualFold(target.Scheme, "https") || target.User != nil || target.Port() != "" {
+		return false
+	}
+	switch strings.ToLower(target.Hostname()) {
+	case "api.github.com", "github.com":
+		return true
+	default:
+		return false
+	}
+}
+
+func githubAuthorizationCheckRedirect(previous func(*http.Request, []*http.Request) error) func(*http.Request, []*http.Request) error {
+	return func(req *http.Request, via []*http.Request) error {
+		if !isTrustedGitHubURL(req.URL) {
+			req.Header.Del("Authorization")
+		}
+		if previous != nil {
+			return previous(req, via)
+		}
+		return nil
 	}
 }
 
@@ -180,8 +214,7 @@ func (c *githubReleaseClient) setGitHubAuthorization(req *http.Request) {
 	if c == nil || req == nil || strings.TrimSpace(c.githubToken) == "" {
 		return
 	}
-	host := strings.ToLower(req.URL.Hostname())
-	if host != "api.github.com" && host != "github.com" {
+	if !isTrustedGitHubURL(req.URL) {
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(c.githubToken))

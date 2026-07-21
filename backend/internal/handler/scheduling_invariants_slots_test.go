@@ -3,12 +3,12 @@
 // Phase-0 TASK-004 并发槽不变量测试（INVARIANTS I-6.1 / I-6.2）。
 //
 // 固化内容：
-//   - I-6.1 用户槽/账号槽获取-释放严格配平：
+//   - I-6.1 用户槽获取-释放严格配平，账号槽兼容接口保持 no-op：
 //   - 正常路径（上游 200，完整 Messages 链路）；
 //   - early-return 路径（预热拦截：选号后转发前直接返回）；
-//   - panic 路径（defer 释放用户槽 + context 取消兜底回收账号槽）；
+//   - panic 路径（defer 释放用户槽，账号槽不参与限流）；
 //   - wrapReleaseOnDone 恰好一次语义（显式调用 / context 取消两种触发）；
-//   - service 层 AcquireResult.ReleaseFunc 重复调用的当前行为特征化；
+//   - service 层账号槽 AcquireResult.ReleaseFunc 重复调用保持安全 no-op；
 //   - I-6.2 AcquireUserSlotWithWait 等待队列：满 → 等待 → 释放 → 唤醒；
 //     等待超时返回 ConcurrencyError{IsTimeout}。
 //
@@ -92,31 +92,32 @@ func TestSchedulingInvariant_UserSlotWaitQueue_FullWaitReleaseWakeup(t *testing.
 	schedInvRequireBalanced(t, cc)
 }
 
-// TestSchedulingInvariant_AccountSlotWait_TimeoutReturnsConcurrencyError 固化：
-// 账号槽等待超时后返回 ConcurrencyError{IsTimeout:true}，且不产生未配平的获取。
-func TestSchedulingInvariant_AccountSlotWait_TimeoutReturnsConcurrencyError(t *testing.T) {
+// TestSchedulingInvariant_AccountSlotWait_IsCompatibilityNoOp 固化：
+// 账号级并发已禁用，兼容接口必须立即放行且不触碰账号槽缓存。
+func TestSchedulingInvariant_AccountSlotWait_IsCompatibilityNoOp(t *testing.T) {
 	cc := schedInvNewCountingCache()
 	svc := service.NewConcurrencyService(cc)
 	helper := NewConcurrencyHelper(svc, SSEPingFormatNone, time.Hour)
 
 	const accountID = int64(801)
 
-	// 占满唯一槽位
+	// 兼容接口始终返回 no-op lease，因此不存在“占满”状态。
 	holder, err := svc.AcquireAccountSlot(context.Background(), accountID, 1)
 	require.NoError(t, err)
 	require.True(t, holder.Acquired)
 
 	c, _ := schedInvNewGinContext(t)
 	var ss bool
+	startedAt := time.Now()
 	release, err := helper.AcquireAccountSlotWithWaitTimeout(c, accountID, 1, 300*time.Millisecond, false, &ss)
-	require.Nil(t, release)
-	require.Error(t, err)
-	var concurrencyErr *ConcurrencyError
-	require.ErrorAs(t, err, &concurrencyErr)
-	require.True(t, concurrencyErr.IsTimeout, "等待超时必须返回 IsTimeout 的 ConcurrencyError")
-	require.Equal(t, "account", concurrencyErr.SlotType)
+	require.NoError(t, err)
+	require.NotNil(t, release)
+	require.Less(t, time.Since(startedAt), 100*time.Millisecond, "账号槽兼容接口必须立即放行")
 
+	release()
 	holder.ReleaseFunc()
+	require.Equal(t, 0, cc.accountAcquired)
+	require.Equal(t, 0, cc.accountReleased)
 	schedInvRequireBalanced(t, cc)
 }
 
@@ -125,7 +126,7 @@ func TestSchedulingInvariant_AccountSlotWait_TimeoutReturnsConcurrencyError(t *t
 // ---------------------------------------------------------------------------
 
 // TestSchedulingInvariant_SlotBalance_NormalSuccessPath 固化：上游 200 正常完成时，
-// 账号槽与用户槽各获取/释放一次，严格配平。
+// 用户槽获取/释放一次，账号槽保持禁用。
 func TestSchedulingInvariant_SlotBalance_NormalSuccessPath(t *testing.T) {
 	groupID := int64(9003)
 	group := schedInvGroup(groupID)
@@ -149,13 +150,13 @@ func TestSchedulingInvariant_SlotBalance_NormalSuccessPath(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), "msg_sched_inv", "上游 200 响应体应透传给客户端")
 	require.Len(t, upstream.attemptedAccounts(), 1)
-	require.Equal(t, 1, cc.accountAcquired)
+	require.Equal(t, 0, cc.accountAcquired)
 	require.Equal(t, 1, cc.userAcquired)
 	schedInvRequireBalanced(t, cc)
 }
 
 // TestSchedulingInvariant_SlotBalance_InterceptEarlyReturnPath 固化 early-return 路径：
-// 预热拦截在选号成功后、转发上游前直接返回 mock 响应，账号槽必须被释放。
+// 预热拦截在选号成功后、转发上游前直接返回 mock 响应，账号槽仍保持禁用。
 func TestSchedulingInvariant_SlotBalance_InterceptEarlyReturnPath(t *testing.T) {
 	groupID := int64(9004)
 	group := schedInvGroup(groupID)
@@ -181,19 +182,17 @@ func TestSchedulingInvariant_SlotBalance_InterceptEarlyReturnPath(t *testing.T) 
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), "msg_mock_warmup", "预热请求应被拦截返回 mock 响应")
 	require.Empty(t, upstream.attemptedAccounts(), "early-return 路径不应触达上游")
-	require.Equal(t, 1, cc.accountAcquired, "选号阶段获取过账号槽")
+	require.Equal(t, 0, cc.accountAcquired, "选号阶段不得启用账号级并发限制")
 	schedInvRequireBalanced(t, cc)
 }
 
 // ---------------------------------------------------------------------------
-// I-6.1 panic 路径：defer 释放用户槽 + context 取消兜底回收账号槽
+// I-6.1 panic 路径：defer 释放用户槽，账号槽保持禁用
 // ---------------------------------------------------------------------------
 
 // TestSchedulingInvariant_SlotBalance_PanicPath 固化当前 panic 语义：
 //   - 用户槽通过 defer userReleaseFunc() 在 panic 展开时立即释放；
-//   - 账号槽的释放调用位于 Forward 之后（非 defer），panic 时依赖
-//     wrapReleaseOnDone 注册的 context.AfterFunc 在请求 context 取消时兜底回收
-//     （生产环境由 net/http 在连接结束时取消请求 context）。
+//   - 账号槽兼容接口返回 no-op lease，不参与 panic 路径资源回收。
 func TestSchedulingInvariant_SlotBalance_PanicPath(t *testing.T) {
 	groupID := int64(9005)
 	group := schedInvGroup(groupID)
@@ -220,13 +219,13 @@ func TestSchedulingInvariant_SlotBalance_PanicPath(t *testing.T) {
 	cc.mu.Unlock()
 	require.Equal(t, 1, userReleased, "panic 展开时 defer 必须释放用户槽")
 
-	// 账号槽：panic 跳过了显式释放调用，由请求 context 取消兜底回收
+	// 取消请求 context 后，账号槽计数仍应保持为零。
 	cancel()
 	require.Eventually(t, func() bool {
 		cc.mu.Lock()
 		defer cc.mu.Unlock()
-		return cc.accountReleased == cc.accountAcquired
-	}, 5*time.Second, 10*time.Millisecond, "context 取消后账号槽必须被兜底回收")
+		return cc.accountAcquired == 0 && cc.accountReleased == 0
+	}, 5*time.Second, 10*time.Millisecond, "账号槽兼容接口不得触碰缓存")
 	schedInvRequireBalanced(t, cc)
 }
 
@@ -261,15 +260,12 @@ func TestSchedulingInvariant_WrapReleaseOnDone_ExactlyOnce(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// service 层 ReleaseFunc 重复调用特征化
+// service 层账号槽 no-op ReleaseFunc 特征化
 // ---------------------------------------------------------------------------
 
-// TestSchedulingCharacterization_ServiceReleaseFuncNotOnceGuarded 固化当前实际行为：
-// ConcurrencyService 返回的 AcquireResult.ReleaseFunc 本身没有 once 保护，
-// 重复调用会向缓存重复发出释放请求；配平依赖两点：
-//  1. 缓存释放按 requestID 幂等（Redis ZREM 不存在的成员是 no-op）；
-//  2. handler 层统一经 wrapReleaseOnDone 包装后才暴露。
-func TestSchedulingCharacterization_ServiceReleaseFuncNotOnceGuarded(t *testing.T) {
+// TestSchedulingCharacterization_ServiceAccountReleaseFuncIsNoOp 固化当前实际行为：
+// 账号级并发已禁用，重复调用兼容 lease 的 ReleaseFunc 也不得访问缓存。
+func TestSchedulingCharacterization_ServiceAccountReleaseFuncIsNoOp(t *testing.T) {
 	cc := schedInvNewCountingCache()
 	svc := service.NewConcurrencyService(cc)
 
@@ -282,8 +278,8 @@ func TestSchedulingCharacterization_ServiceReleaseFuncNotOnceGuarded(t *testing.
 
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
-	require.Equal(t, 1, cc.accountReleased, "第一次释放生效")
-	require.Equal(t, 1, cc.accountReleasedUnknown,
-		"当前行为：第二次释放仍会调用缓存（按 requestID 幂等，不破坏配平）")
+	require.Equal(t, 0, cc.accountAcquired)
+	require.Equal(t, 0, cc.accountReleased)
+	require.Equal(t, 0, cc.accountReleasedUnknown)
 	require.Empty(t, cc.accountHeld[901])
 }

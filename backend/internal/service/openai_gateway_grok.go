@@ -52,18 +52,21 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 	if isGrokImageGenerationModel(upstreamModel) {
 		return nil, fmt.Errorf("model %s is an image model and is not available on the Responses endpoint; use /v1/images/generations instead", upstreamModel)
 	}
-	cacheIdentity := resolveGrokCacheIdentity(c, body, "", upstreamModel)
 	patchedBody, err := patchGrokResponsesBody(body, upstreamModel)
 	if err != nil {
 		return nil, err
 	}
+	// Derive the identity from the request xAI will actually see. This makes
+	// Codex Responses Lite additional_tools part of the stable tool prefix.
+	cacheIdentity := resolveGrokCacheIdentity(c, patchedBody, "", upstreamModel)
+	mixedCacheIntentBody := append([]byte(nil), patchedBody...)
 	patchedBody, err = applyGrokResponsesCacheIdentity(patchedBody, body, cacheIdentity, account.IsGrokOAuth())
 	if err != nil {
 		return nil, fmt.Errorf("apply grok prompt cache identity: %w", err)
 	}
 	// Free OAuth + client function tools: reuse Messages mixed-tools cache route
 	// (append web_search/x_search so xAI does not force non-cacheable build-free).
-	patchedBody, err = applyGrokFreeMessagesFunctionToolCacheRoute(patchedBody, body, account, cacheIdentity)
+	patchedBody, err = applyGrokFreeRequestToolCacheRoute(c, patchedBody, mixedCacheIntentBody, account, cacheIdentity)
 	if err != nil {
 		return nil, fmt.Errorf("apply grok Free function-tool cache route: %w", err)
 	}
@@ -197,15 +200,95 @@ func isGrokInvalidEncryptedContentResponse(statusCode int, body []byte) bool {
 		return false
 	}
 
-	code := gjson.GetBytes(body, "code")
-	message := gjson.GetBytes(body, "error")
-	if code.Type != gjson.String || message.Type != gjson.String ||
-		!strings.EqualFold(strings.TrimSpace(code.String()), "invalid-argument") {
+	topLevelCode := strings.TrimSpace(gjson.GetBytes(body, "code").String())
+	code := topLevelCode
+	message := ""
+	errorNode := gjson.GetBytes(body, "error")
+	switch {
+	case errorNode.Type == gjson.String:
+		message = errorNode.String()
+	case errorNode.IsObject():
+		// 保留 ANL 的严格门控：顶层 xAI code 与嵌套 OpenAI envelope
+		// 混用时不做恢复；仅接受没有顶层 code 的官方嵌套形态。
+		if topLevelCode != "" {
+			return false
+		}
+		message = firstNonEmpty(errorNode.Get("message").String(), errorNode.Get("error").String())
+		if code == "" {
+			code = strings.TrimSpace(errorNode.Get("code").String())
+		}
+	default:
+		message = gjson.GetBytes(body, "message").String()
+	}
+	normalizedMessage := strings.ToLower(strings.TrimSpace(message))
+	if normalizedMessage == "" {
 		return false
 	}
+	if strings.EqualFold(code, "invalid_encrypted_content") {
+		return true
+	}
+	if code != "" && !strings.EqualFold(code, "invalid-argument") {
+		return false
+	}
+	if code == "" && !strings.Contains(normalizedMessage, "decrypt") {
+		return false
+	}
+	return strings.Contains(normalizedMessage, "encrypted_content") &&
+		(strings.Contains(normalizedMessage, "decrypt") || strings.Contains(normalizedMessage, "unmodified"))
+}
 
-	normalizedMessage := strings.ToLower(message.String())
-	return strings.Contains(normalizedMessage, "decrypt") && strings.Contains(normalizedMessage, "encrypted_content")
+type grokEncryptedContentStripRetriedKey struct{}
+
+func markGrokEncryptedContentStripRetried(ctx context.Context) context.Context {
+	return context.WithValue(ctx, grokEncryptedContentStripRetriedKey{}, true)
+}
+
+func grokEncryptedContentStripRetried(ctx context.Context) bool {
+	value, _ := ctx.Value(grokEncryptedContentStripRetriedKey{}).(bool)
+	return value
+}
+
+func stripAnthropicThinkingSignatures(body []byte) ([]byte, bool) {
+	if len(body) == 0 || !bytes.Contains(body, []byte(`"signature"`)) {
+		return body, false
+	}
+	var request map[string]any
+	if err := json.Unmarshal(body, &request); err != nil {
+		return body, false
+	}
+	messages, ok := request["messages"].([]any)
+	if !ok {
+		return body, false
+	}
+	changed := false
+	for _, rawMessage := range messages {
+		message, ok := rawMessage.(map[string]any)
+		if !ok {
+			continue
+		}
+		content, ok := message["content"].([]any)
+		if !ok {
+			continue
+		}
+		for _, rawBlock := range content {
+			block, ok := rawBlock.(map[string]any)
+			if !ok || block["type"] != "thinking" {
+				continue
+			}
+			if _, exists := block["signature"]; exists {
+				delete(block, "signature")
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return body, false
+	}
+	stripped, err := json.Marshal(request)
+	if err != nil {
+		return body, false
+	}
+	return stripped, true
 }
 
 func trimGrokInvalidEncryptedContentRetryBody(body []byte) ([]byte, bool, error) {
@@ -373,10 +456,9 @@ func deleteJSONFields(value any, fields map[string]struct{}) bool {
 }
 
 // additional_tools is a Codex/Responses Lite private input carrier. xAI's
-// Responses schema accepts ordinary message/function-call input items but
-// rejects this carrier before inference with a ModelInput deserialization
-// error. Top-level supported tools remain available through the separate
-// sanitizeGrokResponsesTools path.
+// Responses schema rejects the carrier itself, but accepts supported tools at
+// the top level. Preserve top-level order, append newly discovered tools in
+// carrier order, then let sanitizeGrokResponsesTools filter unsupported types.
 func sanitizeGrokResponsesInput(body []byte) ([]byte, error) {
 	if !bytes.Contains(body, []byte(`"additional_tools"`)) {
 		return body, nil
@@ -388,8 +470,36 @@ func sanitizeGrokResponsesInput(body []byte) ([]byte, error) {
 
 	rawItems := input.Array()
 	filtered := make([]json.RawMessage, 0, len(rawItems))
+	topLevelTools := gjson.GetBytes(body, "tools")
+	mergedTools := make([]json.RawMessage, 0)
+	seenTools := make(map[string]struct{})
+	appendTool := func(tool gjson.Result) bool {
+		key := grokResponsesToolDedupKey(tool)
+		if _, exists := seenTools[key]; exists {
+			return false
+		}
+		seenTools[key] = struct{}{}
+		mergedTools = append(mergedTools, json.RawMessage(tool.Raw))
+		return true
+	}
+	if topLevelTools.IsArray() {
+		for _, tool := range topLevelTools.Array() {
+			seenTools[grokResponsesToolDedupKey(tool)] = struct{}{}
+			mergedTools = append(mergedTools, json.RawMessage(tool.Raw))
+		}
+	}
+
+	promoted := false
 	for _, item := range rawItems {
 		if strings.TrimSpace(item.Get("type").String()) == "additional_tools" {
+			tools := item.Get("tools")
+			if tools.IsArray() {
+				for _, tool := range tools.Array() {
+					if appendTool(tool) {
+						promoted = true
+					}
+				}
+			}
 			continue
 		}
 		filtered = append(filtered, json.RawMessage(item.Raw))
@@ -401,7 +511,30 @@ func sanitizeGrokResponsesInput(body []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return sjson.SetRawBytes(body, "input", encoded)
+	body, err = sjson.SetRawBytes(body, "input", encoded)
+	if err != nil || !promoted {
+		return body, err
+	}
+	encodedTools, err := json.Marshal(mergedTools)
+	if err != nil {
+		return nil, err
+	}
+	return sjson.SetRawBytes(body, "tools", encodedTools)
+}
+
+func grokResponsesToolDedupKey(tool gjson.Result) string {
+	toolType := strings.TrimSpace(tool.Get("type").String())
+	if toolType != "" {
+		if name := strings.TrimSpace(tool.Get("name").String()); name != "" {
+			return "type:" + toolType + "\x00name:" + name
+		}
+		if toolType == "mcp" {
+			if label := strings.TrimSpace(tool.Get("server_label").String()); label != "" {
+				return "type:mcp\x00server_label:" + label
+			}
+		}
+	}
+	return "json:" + normalizeCompatSeedJSON(json.RawMessage(tool.Raw))
 }
 
 // sanitizeGrokReasoningNullContent 删除 reasoning 项中的 "content": null。

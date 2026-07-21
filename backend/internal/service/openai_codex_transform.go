@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -105,11 +107,40 @@ var openAICodexOAuthUnsupportedFields = append([]string{
 }, openAIChatGPTInternalUnsupportedFields...)
 
 type codexOAuthTransformOptions struct {
-	IsCodexCLI              bool
-	IsCompact               bool
-	BlockConnectorTools     bool
-	SkipDefaultInstructions bool
-	PreserveToolCallIDs     bool
+	IsCodexCLI                          bool
+	IsCompact                           bool
+	BlockConnectorTools                 bool
+	SkipDefaultInstructions             bool
+	PreserveToolCallIDs                 bool
+	OmitPromotedSystemMessagesFromInput bool
+}
+
+const (
+	codexCallIDMaxLength = 64
+	codexCallIDPrefix    = "fc_"
+)
+
+func normalizeCodexCallID(id string) string {
+	candidate := id
+	switch {
+	case id == "":
+		return ""
+	case strings.HasPrefix(id, "fc"):
+	case strings.HasPrefix(id, "call_"):
+		candidate = codexCallIDPrefix + strings.TrimPrefix(id, "call_")
+	default:
+		candidate = codexCallIDPrefix + id
+	}
+	if len(candidate) <= codexCallIDMaxLength {
+		return candidate
+	}
+	return compactCodexCallID(candidate)
+}
+
+func compactCodexCallID(id string) string {
+	digest := sha256.Sum256([]byte("sub2api:codex-call-id:v1:" + id))
+	encoded := hex.EncodeToString(digest[:])
+	return codexCallIDPrefix + encoded[:codexCallIDMaxLength-len(codexCallIDPrefix)]
 }
 
 func applyCodexOAuthTransform(reqBody map[string]any, isCodexCLI bool, isCompact bool) codexTransformResult {
@@ -223,10 +254,10 @@ func applyCodexOAuthTransformWithOptions(reqBody map[string]any, opts codexOAuth
 		result.PromptCacheKey = strings.TrimSpace(v)
 	}
 
-	// ChatGPT internal Codex endpoint does not accept role:"system".
-	// Keep the guidance in input as developer for Responses JSON mode, and
-	// also mirror it into instructions because Codex OAuth requires it.
-	if extractSystemMessagesFromInput(reqBody) {
+	// ChatGPT internal Codex endpoint does not accept role:"system". Mirror its
+	// text into instructions; callers may omit text-only input messages after a
+	// lossless promotion to avoid duplicate OAuth system prompts.
+	if extractSystemMessagesFromInput(reqBody, opts.OmitPromotedSystemMessagesFromInput) {
 		result.Modified = true
 	}
 
@@ -1068,31 +1099,45 @@ func extractTextFromContent(content any) string {
 	}
 }
 
-// extractSystemMessagesFromInput scans input for role=="system", maps those
-// items to developer, and mirrors their text into reqBody["instructions"].
-// It preserves the input items so Responses JSON mode can still see JSON
-// instructions in input messages.
-func extractSystemMessagesFromInput(reqBody map[string]any) bool {
+// extractSystemMessagesFromInput scans input for role=="system" and mirrors
+// their text into reqBody["instructions"]. By default it maps those items to
+// developer. When omitPromoted is true, text-only items are removed after
+// their content is promoted without loss.
+func extractSystemMessagesFromInput(reqBody map[string]any, omitPromoted bool) bool {
 	input, ok := reqBody["input"].([]any)
 	if !ok || len(input) == 0 {
 		return false
 	}
 
 	var systemTexts []string
+	filteredInput := make([]any, 0, len(input))
 	modified := false
 	for _, item := range input {
 		m, ok := item.(map[string]any)
-		if !ok {
+		if !ok || m["role"] != "system" {
+			filteredInput = append(filteredInput, item)
 			continue
 		}
-		if role, _ := m["role"].(string); role != "system" {
-			continue
+
+		if omitPromoted {
+			if losslessText, lossless := extractLosslessTextFromContent(m["content"]); lossless {
+				if losslessText != "" {
+					systemTexts = append(systemTexts, losslessText)
+				}
+				modified = true
+				continue
+			}
 		}
-		m["role"] = "developer"
-		modified = true
+
 		if text := extractTextFromContent(m["content"]); text != "" {
 			systemTexts = append(systemTexts, text)
 		}
+		m["role"] = "developer"
+		filteredInput = append(filteredInput, item)
+		modified = true
+	}
+	if omitPromoted && len(filteredInput) != len(input) {
+		reqBody["input"] = filteredInput
 	}
 
 	if len(systemTexts) == 0 {
@@ -1106,6 +1151,33 @@ func extractSystemMessagesFromInput(reqBody map[string]any) bool {
 		reqBody["instructions"] = extracted
 	}
 	return true
+}
+
+func extractLosslessTextFromContent(content any) (string, bool) {
+	switch v := content.(type) {
+	case string:
+		return v, true
+	case []any:
+		var b strings.Builder
+		for _, part := range v {
+			m, ok := part.(map[string]any)
+			if !ok {
+				return "", false
+			}
+			typeName, ok := m["type"].(string)
+			if !ok || (typeName != "text" && typeName != "input_text" && typeName != "output_text") {
+				return "", false
+			}
+			text, ok := m["text"].(string)
+			if !ok {
+				return "", false
+			}
+			b.WriteString(text)
+		}
+		return b.String(), true
+	default:
+		return "", false
+	}
 }
 
 func extractPromptLikeInstructionsFromInput(reqBody map[string]any) string {
@@ -1279,13 +1351,7 @@ func filterCodexInputWithOptions(input []any, opts codexInputFilterOptions) []an
 			if opts.PreserveCallIDs {
 				return id
 			}
-			if id == "" || strings.HasPrefix(id, "fc") {
-				return id
-			}
-			if strings.HasPrefix(id, "call_") {
-				return "fc_" + strings.TrimPrefix(id, "call_")
-			}
-			return "fc_" + id
+			return normalizeCodexCallID(id)
 		}
 
 		if typ == "item_reference" {

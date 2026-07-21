@@ -512,7 +512,7 @@ func (s *OpenAIGatewayService) forwardGrokMediaVideoContent(
 		return nil, err
 	}
 
-	contentURL, err := grokMediaSignedVideoContentURL(statusBody)
+	contentURL, err := grokMediaSignedVideoContentURL(statusBody, requestID)
 	if err != nil {
 		SetOpsLatencyMs(c, OpsUpstreamLatencyMsKey, time.Since(upstreamStart).Milliseconds())
 		return nil, err
@@ -575,9 +575,14 @@ func (s *OpenAIGatewayService) forwardGrokMediaVideoContent(
 	}, nil
 }
 
-func grokMediaSignedVideoContentURL(body []byte) (string, error) {
+func grokMediaSignedVideoContentURL(body []byte, requestID string) (string, error) {
 	rawURL := strings.TrimSpace(gjson.GetBytes(body, "video.url").String())
 	if rawURL == "" {
+		return "", nil
+	}
+	// 上游 Sub2API 可能已把受保护内容改写成自己的中继地址。此时应按
+	// 当前账号 base_url 重建地址并继续携带认证，而不是当成外部签名 URL。
+	if isGrokMediaVideoContentURL(rawURL, requestID) {
 		return "", nil
 	}
 	parsed, err := url.Parse(rawURL)

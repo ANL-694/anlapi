@@ -153,6 +153,24 @@ describe('BulkEditAccountModal', () => {
     expect(wrapper.text()).not.toContain('gpt-5.3-codex')
   })
 
+  it('does not expose or submit legacy account concurrency in bulk edits', async () => {
+    const wrapper = mountModal({
+      selectedPlatforms: ['openai'],
+      selectedTypes: ['apikey']
+    })
+
+    expect(wrapper.find('#bulk-edit-concurrency-enabled').exists()).toBe(false)
+    expect(wrapper.find('#bulk-edit-concurrency').exists()).toBe(false)
+
+    await wrapper.get('#bulk-edit-status-enabled').setValue(true)
+    await wrapper.get('#bulk-edit-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
+    const payload = vi.mocked(adminAPI.accounts.bulkUpdate).mock.calls[0]?.[1] as Record<string, unknown>
+    expect(payload).not.toHaveProperty('concurrency')
+  })
+
   it('antigravity 映射预设包含图片映射并过滤 OpenAI 预设', async () => {
     const wrapper = mountModal()
 

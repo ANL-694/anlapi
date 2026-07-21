@@ -244,10 +244,6 @@
             <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
           </template>
 
-          <template #cell-capacity="{ row }">
-            <AccountCapacityCell :account="row" />
-          </template>
-
           <template #cell-status="{ row }">
             <AccountStatusIndicator :account="row" @show-temp-unsched="handleShowTempUnsched" />
           </template>
@@ -528,7 +524,6 @@ import Select from '@/components/common/Select.vue'
 import SearchInput from '@/components/common/SearchInput.vue'
 import Icon from '@/components/icons/Icon.vue'
 import PlatformTypeBadge from '@/components/common/PlatformTypeBadge.vue'
-import AccountCapacityCell from '@/components/account/AccountCapacityCell.vue'
 import AccountStatusIndicator from '@/components/account/AccountStatusIndicator.vue'
 import AccountGroupsCell from '@/components/account/AccountGroupsCell.vue'
 import AccountUsageCell from '@/components/account/AccountUsageCell.vue'
@@ -643,7 +638,6 @@ const columns = computed<Column[]>(() => [
   { key: 'platform_type', label: t('admin.accounts.columns.platformType'), sortable: false, class: 'min-w-[150px]' },
   { key: 'share', label: t('userAccounts.share'), sortable: false },
   { key: 'proxy', label: t('admin.accounts.columns.proxy'), sortable: false, class: 'min-w-[140px]' },
-  { key: 'capacity', label: t('admin.accounts.columns.capacity'), sortable: false },
   { key: 'status', label: t('admin.accounts.columns.status'), sortable: true },
   { key: 'schedulable', label: t('admin.accounts.columns.schedulable'), sortable: true },
   { key: 'today_stats', label: t('admin.accounts.columns.todayStats'), sortable: false },

@@ -60,7 +60,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { UserSubscription } from '@/types'
-import { formatDateOnly } from '@/utils/format'
+import { formatDateTimeToMinute } from '@/utils/format'
 import { platformLabel } from '@/utils/platformColors'
 
 const props = defineProps<{
@@ -128,7 +128,7 @@ const expirationText = computed(() => {
   const days = Math.ceil((expires.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
   if (days < 0) return t('userSubscriptions.status.expired')
 
-  const date = formatDateOnly(expires)
+  const date = formatDateTimeToMinute(expires)
   if (days === 0) return `${date} (${t('common.today')})`
   if (days === 1) return `${date} (${t('common.tomorrow')})`
   return `${t('userSubscriptions.daysRemaining', { days })} (${date})`

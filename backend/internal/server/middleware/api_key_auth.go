@@ -94,8 +94,11 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 		// 注意：错误信息故意模糊，避免暴露具体的 IP 限制机制
 		if len(apiKey.IPWhitelist) > 0 || len(apiKey.IPBlacklist) > 0 {
 			clientIP := ip.GetTrustedClientIP(c)
-			if cfg != nil && cfg.TrustForwardedIPForAPIKeyACL() {
-				clientIP = ip.GetClientIP(c)
+			if cfg != nil {
+				// GetSecurityClientIP prefers the request snapshot produced by
+				// SessionBindingContext, so an in-flight settings save cannot
+				// change the ACL address halfway through this request.
+				clientIP = ip.GetSecurityClientIP(c, cfg.TrustForwardedIPForAPIKeyACL())
 			}
 			allowed, _ := ip.CheckIPRestrictionWithCompiledRules(clientIP, apiKey.CompiledIPWhitelist, apiKey.CompiledIPBlacklist)
 			if !allowed {
@@ -175,7 +178,7 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 			// Key 状态检查
 			switch apiKey.Status {
 			case service.StatusAPIKeyQuotaExhausted:
-				AbortWithError(c, 429, "API_KEY_QUOTA_EXHAUSTED", "API key 额度已用完")
+				abortWithAPIKeyQuotaError(c)
 				return
 			case service.StatusAPIKeyExpired:
 				AbortWithError(c, 403, "API_KEY_EXPIRED", "API key 已过期")
@@ -188,7 +191,7 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 				return
 			}
 			if apiKey.IsQuotaExhausted() {
-				AbortWithError(c, 429, "API_KEY_QUOTA_EXHAUSTED", "API key 额度已用完")
+				abortWithAPIKeyQuotaError(c)
 				return
 			}
 
@@ -312,4 +315,32 @@ func validateAPIKeyGroupAllowed(apiKey *service.APIKey) bool {
 		return true
 	}
 	return apiKey.User.CanBindGroup(group.ID, group.IsExclusive)
+}
+
+func abortWithAPIKeyQuotaError(c *gin.Context) {
+	const message = "API key 额度已用完"
+	if isOpenAICompatibleAPIKeyRequest(c) {
+		abortWithOpenAIQuotaError(c, http.StatusTooManyRequests, message)
+		return
+	}
+	AbortWithError(c, http.StatusTooManyRequests, "API_KEY_QUOTA_EXHAUSTED", message)
+}
+
+func isOpenAICompatibleAPIKeyRequest(c *gin.Context) bool {
+	if c == nil || c.Request == nil || c.Request.URL == nil {
+		return false
+	}
+
+	path := strings.TrimRight(c.Request.URL.Path, "/")
+	for _, root := range []string{
+		"/v1/responses",
+		"/openai/v1/responses",
+		"/responses",
+		"/backend-api/codex/responses",
+	} {
+		if path == root || strings.HasPrefix(path, root+"/") {
+			return true
+		}
+	}
+	return false
 }

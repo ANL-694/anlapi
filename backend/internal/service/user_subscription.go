@@ -41,10 +41,11 @@ func (s *UserSubscription) IsExpired() bool {
 }
 
 func (s *UserSubscription) DaysRemaining() int {
-	if s.IsExpired() {
-		return 0
-	}
-	return int(time.Until(s.ExpiresAt).Hours() / 24)
+	return s.daysRemainingAt(time.Now())
+}
+
+func (s *UserSubscription) daysRemainingAt(now time.Time) int {
+	return subscriptionDaysRemainingAt(s.ExpiresAt, now)
 }
 
 func (s *UserSubscription) IsWindowActivated() bool {

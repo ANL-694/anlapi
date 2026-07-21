@@ -566,6 +566,47 @@ describe('AccountUsageCell', () => {
 		expect(badges.some(node => node.attributes('title') === 'usage.userBilled')).toBe(true)
   })
 
+  it('Grok Free 使用后端下发的 24 小时 Token 上限', async () => {
+    getUsage.mockResolvedValue({
+      grok_free_token_limit: 1_000_000,
+      grok_billing: {
+        period_type: 'weekly',
+        usage_percent: null,
+        plan: 'Free'
+      },
+      grok_local_usage_24h: {
+        requests: 5,
+        tokens: 500_000,
+        cost: 0,
+        standard_cost: 0
+      }
+    })
+
+    const wrapper = mount(AccountUsageCell, {
+      props: {
+        account: makeAccount({
+          id: 3004,
+          platform: 'grok',
+          type: 'oauth'
+        })
+      },
+      global: {
+        stubs: {
+          UsageProgressBar: {
+            props: ['label', 'utilization'],
+            template: '<div class="usage-bar">{{ label }}|{{ utilization }}</div>'
+          },
+          AccountQuotaInfo: true,
+          GrokQuotaProbeCell: true
+        }
+      }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('24h|50')
+  })
+
   it('Key 账号在 today stats loading 时显示骨架屏', async () => {
 		const wrapper = mount(AccountUsageCell, {
 		  props: {

@@ -153,7 +153,14 @@ export default {
           'Choose which client IP is used by API Key allowlists/denylists, admin audit logs, and session IP/UA binding',
         trustForwardedIp: 'Trust forwarded client IP',
         trustForwardedIpHint:
-          'Disabled by default. Enable only when the origin is reachable only through Cloudflare or Nginx reverse proxy. When enabled, API Key IP allowlists/denylists, admin audit logs, and session IP/UA binding use CF-Connecting-IP, X-Real-IP, or X-Forwarded-For, matching the request IP shown in usage records. Toggling this switch changes the IP fingerprint of existing sessions; with session binding enabled they must sign in again.'
+          'Disabled by default. When off, API Key allowlists/denylists, audit logs, and session binding use only Gin\'s server.trusted_proxies chain or the direct peer address. ANL API also supports direct origin IP access, so do not enable this before restricting origin access. Toggling this switch changes existing session IP fingerprints.',
+        forwardedClientIpHeaders: 'Custom client-IP headers',
+        forwardedClientIpHeadersHint: 'Used only when the compatibility switch above is enabled, before built-in headers in the listed order.',
+        forwardedClientIpHeadersPlaceholder: 'X-Client-IP',
+        forwardedClientIpHeadersRiskHint: 'High risk: when the origin IP is reachable directly, callers can forge these raw headers to bypass API Key IP allowlists or change session fingerprints. Restrict the origin firewall to trusted proxy ranges first.',
+        forwardedClientIpHeaderInvalid: 'Enter a valid HTTP header name.',
+        forwardedClientIpHeadersLimit: 'At most {max} custom client-IP headers are allowed.',
+        removeForwardedClientIpHeader: 'Remove {header}'
       },
       linuxdo: {
         title: 'LinuxDo Connect Login',

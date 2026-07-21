@@ -3,7 +3,7 @@
     <HelpTooltip class="-ml-1" width-class="w-64" data-testid="upstream-billing-details">
       <template #trigger>
         <span
-          class="cursor-help border-b border-dotted border-gray-300 font-mono text-sm font-medium text-gray-800 dark:border-gray-600 dark:text-gray-200"
+          class="cursor-help border-b border-dotted border-gray-300 font-mono text-sm font-medium text-gray-800 dark:border-dark-600 dark:text-gray-200"
           data-testid="upstream-billing-rate"
         >
           {{ effectiveRate }}

@@ -72,6 +72,8 @@ func (h *OpenAIGatewayHandler) CodexModels(c *gin.Context) {
 			return
 		}
 
+		setOpsSelectedAccount(c, account.ID, account.Platform)
+
 		manifest, err := h.gatewayService.FetchCodexModelsManifest(c.Request.Context(), account, c.Query("client_version"), c.GetHeader("If-None-Match"))
 		if err != nil {
 			if c.Request.Context().Err() != nil {

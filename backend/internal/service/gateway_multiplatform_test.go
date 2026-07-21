@@ -2052,7 +2052,8 @@ func (m *mockConcurrencyCache) GetUsersLoadBatch(ctx context.Context, users []Us
 	return result, nil
 }
 
-// TestGatewayService_SelectAccountWithLoadAwareness tests load-aware account selection
+// TestGatewayService_SelectAccountWithLoadAwareness 保留历史测试名，并验证账号级并发
+// 已退出请求准入后，模型路由、粘性会话和优先级选择仍然正确。
 func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 	ctx := context.Background()
 
@@ -2240,7 +2241,7 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.Equal(t, 0, concurrencyCache.loadBatchCalls, "粘性命中应在负载批量查询前返回")
 	})
 
-	t.Run("粘性账号不在候选集-回退负载感知选择", func(t *testing.T) {
+	t.Run("粘性账号不在候选集-回退选择不读取账号负载", func(t *testing.T) {
 		repo := &mockAccountRepoForPlatform{
 			accounts: []Account{
 				{ID: 2, Platform: PlatformAnthropic, Priority: 1, Status: StatusActive, Schedulable: true, Concurrency: 5},
@@ -2273,7 +2274,8 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.NotNil(t, result.Account)
 		require.Equal(t, int64(2), result.Account.ID, "粘性账号不在候选集时应回退到可用账号")
 		require.Equal(t, 0, repo.getByIDCalls, "粘性账号缺失不应回退到GetByID")
-		require.Equal(t, 1, concurrencyCache.loadBatchCalls, "应继续进行负载批量查询")
+		require.Zero(t, concurrencyCache.loadBatchCalls, "账号并发不再参与调度，不应读取账号负载缓存")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应请求账号槽位")
 	})
 
 	t.Run("粘性账号禁用-清理会话并回退选择", func(t *testing.T) {
@@ -2408,7 +2410,7 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.Equal(t, int64(2), result.Account.ID, "应跳过过载账号，选择可用账号")
 	})
 
-	t.Run("粘性账号槽位满-返回粘性等待计划", func(t *testing.T) {
+	t.Run("粘性账号伪满-仍直接选中且不排队", func(t *testing.T) {
 		repo := &mockAccountRepoForPlatform{
 			accounts: []Account{
 				{ID: 1, Platform: PlatformAnthropic, Priority: 1, Status: StatusActive, Schedulable: true, Concurrency: 5},
@@ -2442,12 +2444,13 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		result, err := svc.SelectAccountWithLoadAwareness(ctx, nil, "sticky", "claude-3-5-sonnet-20241022", nil, "", int64(0))
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.NotNil(t, result.WaitPlan)
+		require.Nil(t, result.WaitPlan, "账号伪满不能生成等待计划")
 		require.Equal(t, int64(1), result.Account.ID)
-		require.Equal(t, 0, concurrencyCache.loadBatchCalls)
+		require.Zero(t, concurrencyCache.loadBatchCalls, "粘性选择不应读取账号负载")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
-	t.Run("负载批量查询失败-降级旧顺序选择", func(t *testing.T) {
+	t.Run("账号伪负载异常-仍按优先级选择", func(t *testing.T) {
 		repo := &mockAccountRepoForPlatform{
 			accounts: []Account{
 				{ID: 1, Platform: PlatformAnthropic, Priority: 2, Status: StatusActive, Schedulable: true, Concurrency: 5},
@@ -2481,9 +2484,11 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.NotNil(t, result.Account)
 		require.Equal(t, int64(2), result.Account.ID)
 		require.Equal(t, int64(2), cache.sessionBindings["legacy"])
+		require.Zero(t, concurrencyCache.loadBatchCalls, "账号负载异常不应影响调度")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
-	t.Run("模型路由-粘性账号等待计划", func(t *testing.T) {
+	t.Run("模型路由-粘性账号伪满仍直接选中", func(t *testing.T) {
 		groupID := int64(20)
 		sessionHash := "route-sticky"
 
@@ -2537,8 +2542,10 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		result, err := svc.SelectAccountWithLoadAwareness(ctx, &groupID, sessionHash, "claude-3-5-sonnet-20241022", nil, "", int64(0))
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.NotNil(t, result.WaitPlan)
+		require.Nil(t, result.WaitPlan, "模型路由不能因账号伪满进入等待")
 		require.Equal(t, int64(1), result.Account.ID)
+		require.Zero(t, concurrencyCache.loadBatchCalls, "粘性路由不应读取账号负载")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
 	t.Run("模型路由-粘性账号命中", func(t *testing.T) {
@@ -2651,7 +2658,7 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.Equal(t, int64(2), cache.sessionBindings[sessionHash])
 	})
 
-	t.Run("模型路由-按负载选择账号", func(t *testing.T) {
+	t.Run("模型路由-忽略账号伪负载", func(t *testing.T) {
 		groupID := int64(21)
 
 		repo := &mockAccountRepoForPlatform{
@@ -2704,11 +2711,13 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.NotNil(t, result.Account)
-		require.Equal(t, int64(2), result.Account.ID)
-		require.Equal(t, int64(2), cache.sessionBindings["route"])
+		require.Contains(t, []int64{1, 2}, result.Account.ID, "必须从模型路由指定的账号中选择")
+		require.Equal(t, result.Account.ID, cache.sessionBindings["route"])
+		require.Zero(t, concurrencyCache.loadBatchCalls, "账号伪负载不能参与模型路由选择")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
-	t.Run("模型路由-路由账号全满返回等待计划", func(t *testing.T) {
+	t.Run("模型路由-路由账号伪满仍直接选择", func(t *testing.T) {
 		groupID := int64(23)
 
 		repo := &mockAccountRepoForPlatform{
@@ -2761,11 +2770,14 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		result, err := svc.SelectAccountWithLoadAwareness(ctx, &groupID, "route-full", "claude-3-5-sonnet-20241022", nil, "", int64(0))
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.NotNil(t, result.WaitPlan)
-		require.Equal(t, int64(1), result.Account.ID)
+		require.Nil(t, result.WaitPlan, "路由账号伪满不能生成等待计划")
+		require.Contains(t, []int64{1, 2}, result.Account.ID, "必须保留模型路由范围")
+		require.Equal(t, result.Account.ID, cache.sessionBindings["route-full"])
+		require.Zero(t, concurrencyCache.loadBatchCalls, "账号伪负载不能参与模型路由选择")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
-	t.Run("模型路由-路由账号全满-回退普通选择", func(t *testing.T) {
+	t.Run("模型路由-路由账号伪满不回退普通选择", func(t *testing.T) {
 		groupID := int64(22)
 
 		repo := &mockAccountRepoForPlatform{
@@ -2820,11 +2832,13 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.NotNil(t, result.Account)
-		require.Equal(t, int64(3), result.Account.ID)
-		require.Equal(t, int64(3), cache.sessionBindings["fallback"])
+		require.Contains(t, []int64{1, 2}, result.Account.ID, "账号伪满不能绕过模型路由选择普通账号")
+		require.Equal(t, result.Account.ID, cache.sessionBindings["fallback"])
+		require.Zero(t, concurrencyCache.loadBatchCalls, "账号伪负载不能参与模型路由选择")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
-	t.Run("负载批量失败且无法获取-兜底等待", func(t *testing.T) {
+	t.Run("账号伪负载异常和槽位伪满-仍直接按优先级选择", func(t *testing.T) {
 		repo := &mockAccountRepoForPlatform{
 			accounts: []Account{
 				{ID: 1, Platform: PlatformAnthropic, Priority: 1, Status: StatusActive, Schedulable: true, Concurrency: 5},
@@ -2856,11 +2870,13 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		result, err := svc.SelectAccountWithLoadAwareness(ctx, nil, "", "claude-3-5-sonnet-20241022", nil, "", int64(0))
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.NotNil(t, result.WaitPlan)
+		require.Nil(t, result.WaitPlan, "账号伪满不能触发兜底等待")
 		require.Equal(t, int64(1), result.Account.ID)
+		require.Zero(t, concurrencyCache.loadBatchCalls, "账号伪负载异常不应影响调度")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
-	t.Run("Gemini负载排序-优先OAuth", func(t *testing.T) {
+	t.Run("Gemini路由-优先OAuth且不读取账号负载", func(t *testing.T) {
 		groupID := int64(24)
 
 		repo := &mockAccountRepoForPlatform{
@@ -2910,6 +2926,8 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.NotNil(t, result)
 		require.NotNil(t, result.Account)
 		require.Equal(t, int64(2), result.Account.ID)
+		require.Zero(t, concurrencyCache.loadBatchCalls, "OAuth 偏好不依赖账号负载")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
 	t.Run("模型路由-过滤路径覆盖", func(t *testing.T) {
@@ -3076,7 +3094,7 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.ErrorIs(t, err, ErrClaudeCodeOnly)
 	})
 
-	t.Run("负载可用但无法获取槽位-兜底等待", func(t *testing.T) {
+	t.Run("账号伪满-仍直接按优先级选择", func(t *testing.T) {
 		repo := &mockAccountRepoForPlatform{
 			accounts: []Account{
 				{ID: 1, Platform: PlatformAnthropic, Priority: 1, Status: StatusActive, Schedulable: true, Concurrency: 5},
@@ -3111,11 +3129,13 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		result, err := svc.SelectAccountWithLoadAwareness(ctx, nil, "wait", "claude-3-5-sonnet-20241022", nil, "", int64(0))
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.NotNil(t, result.WaitPlan)
+		require.Nil(t, result.WaitPlan, "账号伪满不能触发兜底等待")
 		require.Equal(t, int64(1), result.Account.ID)
+		require.Zero(t, concurrencyCache.loadBatchCalls, "账号伪负载不能参与调度")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 
-	t.Run("负载信息缺失-使用默认负载", func(t *testing.T) {
+	t.Run("账号负载信息缺失-不影响候选选择", func(t *testing.T) {
 		repo := &mockAccountRepoForPlatform{
 			accounts: []Account{
 				{ID: 1, Platform: PlatformAnthropic, Priority: 1, Status: StatusActive, Schedulable: true, Concurrency: 5},
@@ -3150,7 +3170,10 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.NotNil(t, result.Account)
-		require.Equal(t, int64(2), result.Account.ID)
+		require.Contains(t, []int64{1, 2}, result.Account.ID, "同优先级候选仍可正常选择")
+		require.Equal(t, result.Account.ID, cache.sessionBindings["missing-load"])
+		require.Zero(t, concurrencyCache.loadBatchCalls, "账号负载缺失不能阻断候选选择")
+		require.Zero(t, concurrencyCache.acquireAccountCalls, "账号槽位已停用，不应访问账号槽位缓存")
 	})
 }
 

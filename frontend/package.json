@@ -1,7 +1,7 @@
 {
   "name": "anlapi-frontend",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,7 +22,7 @@
     "@stripe/stripe-js": "^9.0.1",
     "@tanstack/vue-virtual": "^3.13.23",
     "@vueuse/core": "^10.7.0",
-    "axios": "^1.16.0",
+    "axios": "^1.18.1",
     "chart.js": "^4.4.1",
     "dompurify": "^3.4.2",
     "driver.js": "^1.4.0",

@@ -13,13 +13,15 @@ import (
 // SessionBindingContext 全局中间件：将请求的客户端 IP 与 User-Agent 注入
 // request context，供 token 签发路径（登录 / 刷新 / OAuth 回调）读取并写入会话绑定，
 // 同时作为审计日志、会话绑定校验的统一客户端 IP 来源。
-// IP 取值与 API Key IP 限制共用「信任反代传递的客户端 IP」系统开关：
-// 开启时信任反代转发头（CF-Connecting-IP / X-Real-IP / X-Forwarded-For），
-// 关闭时走 trusted_proxies 解析链，避免不可信头伪造绕过绑定。
+// 每个请求进入时会拍下客户端 IP 解析设置：兼容开关开启时才读取原始
+// 转发头，关闭时只使用 Gin 的 server.trusted_proxies 链，避免直连源站
+// 请求伪造 CF-Connecting-IP、X-Real-IP 或 X-Forwarded-For。
 func SessionBindingContext(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		forwardedIPSettings := cfg.ForwardedClientIPSettings()
+		ip.SetForwardedIPSettings(c, forwardedIPSettings.TrustForwardedIP, forwardedIPSettings.Headers)
 		binding := &service.SessionBinding{
-			IP:        ip.GetSecurityClientIP(c, cfg.TrustForwardedIPForAPIKeyACL()),
+			IP:        ip.GetSecurityClientIP(c, forwardedIPSettings.TrustForwardedIP),
 			UserAgent: c.Request.UserAgent(),
 		}
 		c.Request = c.Request.WithContext(service.WithSessionBinding(c.Request.Context(), binding))
@@ -28,8 +30,8 @@ func SessionBindingContext(cfg *config.Config) gin.HandlerFunc {
 }
 
 // requestSessionBinding 返回当前请求的会话指纹，优先取 SessionBindingContext
-// 注入的解析结果（保证与 token 签发路径取值一致）；注入缺失时按 trusted_proxies
-// 链回退兜底（等价于开关关闭时的行为）。
+// 注入的解析结果（保证与 token 签发路径取值一致）；注入缺失时按
+// trusted_proxies 链回退兜底。
 func requestSessionBinding(c *gin.Context) *service.SessionBinding {
 	if binding := service.SessionBindingFromContext(c.Request.Context()); binding != nil {
 		return binding

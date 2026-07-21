@@ -159,6 +159,23 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     expect(createAccountMock.mock.calls[0]?.[0]?.extra?.openai_long_context_billing_enabled).toBe(false)
   })
 
+  it('hides the legacy account concurrency control while keeping a compatible create payload', async () => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'OpenAI')
+    await selectButtonByText(wrapper, 'API Key')
+
+    expect(wrapper.findAll('label').some((label) => label.text() === 'admin.accounts.concurrency')).toBe(false)
+
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('OpenAI account')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('test-api-key')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    const payload = createAccountMock.mock.calls[0]?.[0]
+    expect(payload?.concurrency).toEqual(expect.any(Number))
+    expect(payload?.concurrency).toBeGreaterThan(0)
+  })
+
   it('creates the GPT Image shortcut through the OpenAI API Key flow with locked models', async () => {
     const imageGroup = {
       id: 91,

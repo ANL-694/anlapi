@@ -22,7 +22,6 @@ var validOpsAlertMetricTypes = []string{
 	"upstream_error_rate",
 	"cpu_usage_percent",
 	"memory_usage_percent",
-	"concurrency_queue_depth",
 	"group_available_accounts",
 	"group_available_ratio",
 	"group_rate_limit_ratio",
@@ -251,7 +250,16 @@ func (h *OpsHandler) ListAlertRules(c *gin.Context) {
 		response.ErrorFrom(c, err)
 		return
 	}
-	response.Success(c, rules)
+	visibleRules := make([]*service.OpsAlertRule, 0, len(rules))
+	for _, rule := range rules {
+		if rule == nil {
+			continue
+		}
+		if _, ok := validOpsAlertMetricTypeSet[rule.MetricType]; ok {
+			visibleRules = append(visibleRules, rule)
+		}
+	}
+	response.Success(c, visibleRules)
 }
 
 // CreateAlertRule creates an ops alert rule.

@@ -93,3 +93,19 @@ func TestRunProxyQualityTarget_AllowedStatusWarnForUnauthorized(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, item.HTTPStatus)
 	require.Contains(t, item.Message, "目标可达")
 }
+
+func TestProxyQualityTargetsIncludesGrok(t *testing.T) {
+	var grokTarget *proxyQualityTarget
+	for i := range proxyQualityTargets {
+		if proxyQualityTargets[i].Target == "grok" {
+			grokTarget = &proxyQualityTargets[i]
+			break
+		}
+	}
+
+	require.NotNil(t, grokTarget)
+	require.Equal(t, "https://api.x.ai/v1/models", grokTarget.URL)
+	require.Equal(t, http.MethodGet, grokTarget.Method)
+	_, allowed := grokTarget.AllowedStatuses[http.StatusUnauthorized]
+	require.True(t, allowed)
+}

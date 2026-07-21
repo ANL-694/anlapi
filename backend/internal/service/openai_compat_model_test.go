@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"anlapi/internal/config"
 	"anlapi/internal/pkg/apicompat"
@@ -124,6 +125,47 @@ func TestForwardAsAnthropic_UsesExactFableMessagesDispatchModel(t *testing.T) {
 	require.Equal(t, "gpt-5.6-sol", gjson.GetBytes(upstream.lastBody, "model").String())
 	require.NotContains(t, string(upstream.lastBody), "claude-fable-5")
 	require.Equal(t, "claude-fable-5", gjson.GetBytes(rec.Body.Bytes(), "model").String())
+}
+
+func TestForwardAsAnthropic_GrokUnrelated400DoesNotRetryEncryptedReasoning(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	body := []byte(`{"model":"grok","max_tokens":16,"messages":[{"role":"assistant","content":[{"type":"thinking","thinking":"prior reasoning","signature":"encrypted-reasoning"},{"type":"text","text":"prior answer"}]},{"role":"user","content":"continue"}],"stream":false}`)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	upstream := &httpUpstreamRecorder{resp: &http.Response{
+		StatusCode: http.StatusBadRequest,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body: io.NopCloser(strings.NewReader(
+			`{"error":{"code":"invalid_request_error","message":"Unknown parameter: tools"}}`,
+		)),
+	}}
+	svc := &OpenAIGatewayService{
+		httpUpstream: upstream,
+		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+	}
+	account := &Account{
+		ID:          2,
+		Name:        "grok-api-key",
+		Platform:    PlatformGrok,
+		Type:        AccountTypeAPIKey,
+		Concurrency: 1,
+		Credentials: map[string]any{
+			"api_key":  "test-token",
+			"base_url": "https://api.x.ai/v1",
+		},
+	}
+
+	result, err := svc.ForwardAsAnthropic(context.Background(), c, account, body, "", "grok")
+
+	require.Error(t, err)
+	require.Nil(t, result)
+	require.Len(t, upstream.requests, 1, "无关的 400 不应触发 encrypted_content 清洗重试")
+	require.Len(t, upstream.bodies, 1)
+	require.Contains(t, string(upstream.bodies[0]), `"encrypted_content":"encrypted-reasoning"`)
 }
 
 func TestForwardAsAnthropic_NormalizesRoutingAndEffortForGpt54XHigh(t *testing.T) {
@@ -348,4 +390,33 @@ func TestForwardAsAnthropic_ForcedCodexInstructionsTemplateUsesCachedTemplateCon
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, "cached-prefix\n\nclient-system", gjson.GetBytes(upstream.lastBody, "instructions").String())
+}
+
+func TestHandleAnthropicBufferedStreamingResponseOverridesUpstreamContentType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"text/event-stream"}},
+		Body: io.NopCloser(strings.NewReader(
+			`data: {"type":"response.completed","response":{"id":"resp_buffered_json","object":"response","model":"gpt-5.4","status":"completed","output":[{"type":"message","id":"msg_1","role":"assistant","status":"completed","content":[{"type":"output_text","text":"ok"}]}],"usage":{"input_tokens":15,"output_tokens":6,"total_tokens":21,"input_tokens_details":{"cached_tokens":5}}}}` + "\n\n",
+		)),
+	}
+	cfg := &config.Config{}
+	svc := &OpenAIGatewayService{cfg: cfg, responseHeaderFilter: compileResponseHeaderFilter(cfg)}
+
+	result, err := svc.handleAnthropicBufferedStreamingResponse(resp, c, "claude-sonnet-4-5", "gpt-5.4", "gpt-5.4", time.Now())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, "application/json; charset=utf-8", recorder.Header().Get("Content-Type"))
+
+	var message apicompat.AnthropicResponse
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &message))
+	require.Equal(t, "message", message.Type)
+	require.Equal(t, "resp_buffered_json", message.ID)
+	require.Equal(t, 10, message.Usage.InputTokens)
+	require.Equal(t, 6, message.Usage.OutputTokens)
+	require.Equal(t, 5, message.Usage.CacheReadInputTokens)
 }

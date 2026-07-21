@@ -211,6 +211,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		TurnstileSiteKey:                                       settings.TurnstileSiteKey,
 		TurnstileSecretKeyConfigured:                           settings.TurnstileSecretKeyConfigured,
 		APIKeyACLTrustForwardedIP:                              settings.APIKeyACLTrustForwardedIP,
+		ForwardedClientIPHeaders:                               settings.ForwardedClientIPHeaders,
 		LinuxDoConnectEnabled:                                  settings.LinuxDoConnectEnabled,
 		LinuxDoConnectClientID:                                 settings.LinuxDoConnectClientID,
 		LinuxDoConnectClientSecretConfigured:                   settings.LinuxDoConnectClientSecretConfigured,
@@ -271,7 +272,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DocURL:                                                 settings.DocURL,
 		HomeContent:                                            settings.HomeContent,
 		HomeStatsGroupID:                                       settings.HomeStatsGroupID,
-		SystemImageGenerationGroupID:                            settings.SystemImageGenerationGroupID,
+		SystemImageGenerationGroupID:                           settings.SystemImageGenerationGroupID,
 		HideCcsImportButton:                                    settings.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:                            settings.PurchaseSubscriptionEnabled,
 		PurchaseSubscriptionURL:                                settings.PurchaseSubscriptionURL,
@@ -503,7 +504,8 @@ type UpdateSettingsRequest struct {
 	TurnstileSecretKey string `json:"turnstile_secret_key"`
 
 	// API Key IP 访问控制设置
-	APIKeyACLTrustForwardedIP *bool `json:"api_key_acl_trust_forwarded_ip"`
+	APIKeyACLTrustForwardedIP *bool     `json:"api_key_acl_trust_forwarded_ip"`
+	ForwardedClientIPHeaders  *[]string `json:"forwarded_client_ip_headers"`
 
 	// LinuxDo Connect OAuth 登录
 	LinuxDoConnectEnabled      bool   `json:"linuxdo_connect_enabled"`
@@ -566,22 +568,22 @@ type UpdateSettingsRequest struct {
 	GoogleOAuthFrontendRedirectURL string `json:"google_oauth_frontend_redirect_url"`
 
 	// OEM设置
-	SiteName                    string                `json:"site_name"`
-	SiteLogo                    string                `json:"site_logo"`
-	SiteSubtitle                string                `json:"site_subtitle"`
-	APIBaseURL                  string                `json:"api_base_url"`
-	ContactInfo                 string                `json:"contact_info"`
-	DocURL                      string                `json:"doc_url"`
-	HomeContent                 string                `json:"home_content"`
-	HomeStatsGroupID            int64                 `json:"home_stats_group_id"`
+	SiteName                     string                `json:"site_name"`
+	SiteLogo                     string                `json:"site_logo"`
+	SiteSubtitle                 string                `json:"site_subtitle"`
+	APIBaseURL                   string                `json:"api_base_url"`
+	ContactInfo                  string                `json:"contact_info"`
+	DocURL                       string                `json:"doc_url"`
+	HomeContent                  string                `json:"home_content"`
+	HomeStatsGroupID             int64                 `json:"home_stats_group_id"`
 	SystemImageGenerationGroupID int64                 `json:"system_image_generation_group_id"`
-	HideCcsImportButton         bool                  `json:"hide_ccs_import_button"`
-	PurchaseSubscriptionEnabled *bool                 `json:"purchase_subscription_enabled"`
-	PurchaseSubscriptionURL     *string               `json:"purchase_subscription_url"`
-	TableDefaultPageSize        int                   `json:"table_default_page_size"`
-	TablePageSizeOptions        []int                 `json:"table_page_size_options"`
-	CustomMenuItems             *[]dto.CustomMenuItem `json:"custom_menu_items"`
-	CustomEndpoints             *[]dto.CustomEndpoint `json:"custom_endpoints"`
+	HideCcsImportButton          bool                  `json:"hide_ccs_import_button"`
+	PurchaseSubscriptionEnabled  *bool                 `json:"purchase_subscription_enabled"`
+	PurchaseSubscriptionURL      *string               `json:"purchase_subscription_url"`
+	TableDefaultPageSize         int                   `json:"table_default_page_size"`
+	TablePageSizeOptions         []int                 `json:"table_page_size_options"`
+	CustomMenuItems              *[]dto.CustomMenuItem `json:"custom_menu_items"`
+	CustomEndpoints              *[]dto.CustomEndpoint `json:"custom_endpoints"`
 
 	// 默认配置
 	DefaultConcurrency                       int                                             `json:"default_concurrency"`
@@ -846,6 +848,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	stepUpEnabled := previousSettings.StepUpEnabled
 	if req.StepUpEnabled != nil {
 		stepUpEnabled = *req.StepUpEnabled
+	}
+	forwardedClientIPHeaders := append([]string(nil), previousSettings.ForwardedClientIPHeaders...)
+	if req.ForwardedClientIPHeaders != nil {
+		forwardedClientIPHeaders = append([]string(nil), (*req.ForwardedClientIPHeaders)...)
 	}
 
 	if stepUpEnabled && !previousSettings.StepUpEnabled {
@@ -1555,6 +1561,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.APIKeyACLTrustForwardedIP
 		}(),
+		ForwardedClientIPHeaders:         forwardedClientIPHeaders,
 		LinuxDoConnectEnabled:            req.LinuxDoConnectEnabled,
 		LinuxDoConnectClientID:           req.LinuxDoConnectClientID,
 		LinuxDoConnectClientSecret:       req.LinuxDoConnectClientSecret,
@@ -1647,24 +1654,24 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.GoogleOAuthFrontendRedirectURL
 		}(),
-		SiteName:                    req.SiteName,
-		SiteLogo:                    req.SiteLogo,
-		SiteSubtitle:                req.SiteSubtitle,
-		APIBaseURL:                  req.APIBaseURL,
-		ContactInfo:                 req.ContactInfo,
-		DocURL:                      req.DocURL,
-		HomeContent:                 req.HomeContent,
-		HomeStatsGroupID:            req.HomeStatsGroupID,
+		SiteName:                     req.SiteName,
+		SiteLogo:                     req.SiteLogo,
+		SiteSubtitle:                 req.SiteSubtitle,
+		APIBaseURL:                   req.APIBaseURL,
+		ContactInfo:                  req.ContactInfo,
+		DocURL:                       req.DocURL,
+		HomeContent:                  req.HomeContent,
+		HomeStatsGroupID:             req.HomeStatsGroupID,
 		SystemImageGenerationGroupID: req.SystemImageGenerationGroupID,
-		HideCcsImportButton:         req.HideCcsImportButton,
-		PurchaseSubscriptionEnabled: purchaseEnabled,
-		PurchaseSubscriptionURL:     purchaseURL,
-		TableDefaultPageSize:        req.TableDefaultPageSize,
-		TablePageSizeOptions:        req.TablePageSizeOptions,
-		CustomMenuItems:             customMenuJSON,
-		CustomEndpoints:             customEndpointsJSON,
-		DefaultConcurrency:          req.DefaultConcurrency,
-		DefaultBalance:              req.DefaultBalance,
+		HideCcsImportButton:          req.HideCcsImportButton,
+		PurchaseSubscriptionEnabled:  purchaseEnabled,
+		PurchaseSubscriptionURL:      purchaseURL,
+		TableDefaultPageSize:         req.TableDefaultPageSize,
+		TablePageSizeOptions:         req.TablePageSizeOptions,
+		CustomMenuItems:              customMenuJSON,
+		CustomEndpoints:              customEndpointsJSON,
+		DefaultConcurrency:           req.DefaultConcurrency,
+		DefaultBalance:               req.DefaultBalance,
 		RiskControlEnabled: func() bool {
 			if req.RiskControlEnabled != nil {
 				return *req.RiskControlEnabled
@@ -2091,6 +2098,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		TurnstileSiteKey:                                       updatedSettings.TurnstileSiteKey,
 		TurnstileSecretKeyConfigured:                           updatedSettings.TurnstileSecretKeyConfigured,
 		APIKeyACLTrustForwardedIP:                              updatedSettings.APIKeyACLTrustForwardedIP,
+		ForwardedClientIPHeaders:                               updatedSettings.ForwardedClientIPHeaders,
 		LinuxDoConnectEnabled:                                  updatedSettings.LinuxDoConnectEnabled,
 		LinuxDoConnectClientID:                                 updatedSettings.LinuxDoConnectClientID,
 		LinuxDoConnectClientSecretConfigured:                   updatedSettings.LinuxDoConnectClientSecretConfigured,
@@ -2151,7 +2159,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DocURL:                                                 updatedSettings.DocURL,
 		HomeContent:                                            updatedSettings.HomeContent,
 		HomeStatsGroupID:                                       updatedSettings.HomeStatsGroupID,
-		SystemImageGenerationGroupID:                            updatedSettings.SystemImageGenerationGroupID,
+		SystemImageGenerationGroupID:                           updatedSettings.SystemImageGenerationGroupID,
 		HideCcsImportButton:                                    updatedSettings.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:                            updatedSettings.PurchaseSubscriptionEnabled,
 		PurchaseSubscriptionURL:                                updatedSettings.PurchaseSubscriptionURL,
@@ -2414,6 +2422,10 @@ func preserveOmittedUpdateSettingsFields(req *UpdateSettingsRequest, previous *s
 	}
 	if !fieldProvided(fields, "api_key_acl_trust_forwarded_ip") {
 		req.APIKeyACLTrustForwardedIP = &previous.APIKeyACLTrustForwardedIP
+	}
+	if !fieldProvided(fields, "forwarded_client_ip_headers") {
+		headers := append([]string(nil), previous.ForwardedClientIPHeaders...)
+		req.ForwardedClientIPHeaders = &headers
 	}
 	if !fieldProvided(fields, "linuxdo_connect_enabled") {
 		req.LinuxDoConnectEnabled = previous.LinuxDoConnectEnabled
@@ -2747,6 +2759,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.APIKeyACLTrustForwardedIP != after.APIKeyACLTrustForwardedIP {
 		changed = append(changed, "api_key_acl_trust_forwarded_ip")
+	}
+	if !equalStringSlice(before.ForwardedClientIPHeaders, after.ForwardedClientIPHeaders) {
+		changed = append(changed, "forwarded_client_ip_headers")
 	}
 	if before.LinuxDoConnectEnabled != after.LinuxDoConnectEnabled {
 		changed = append(changed, "linuxdo_connect_enabled")

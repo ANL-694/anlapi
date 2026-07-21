@@ -14,6 +14,46 @@ import (
 	"go.uber.org/zap"
 )
 
+// GrokCountTokens 在本地估算 Anthropic 兼容请求，不选择账号、不占用并发槽，
+// 也不会发起上游请求。
+func (h *OpenAIGatewayHandler) GrokCountTokens(c *gin.Context) {
+	body, err := pkghttputil.ReadRequestBodyWithPrealloc(c.Request)
+	if err != nil {
+		if maxErr, ok := extractMaxBytesError(err); ok {
+			h.anthropicErrorResponse(c, http.StatusRequestEntityTooLarge, "invalid_request_error", buildBodyTooLargeMessage(maxErr.Limit))
+			return
+		}
+		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to read request body")
+		return
+	}
+	if len(body) == 0 {
+		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Request body is empty")
+		return
+	}
+
+	parsedReq, err := service.ParseGatewayRequest(service.NewRequestBodyRef(body), domain.PlatformAnthropic)
+	if err != nil {
+		logRequestBodyParseFailure(requestLogger(c, "handler.openai_gateway.grok_count_tokens"), body, err)
+		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
+		return
+	}
+	if parsedReq.Model == "" {
+		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "model is required")
+		return
+	}
+
+	estimated, err := service.EstimateGrokCountTokens(parsedReq.Body.Bytes())
+	if err != nil {
+		requestLogger(c, "handler.openai_gateway.grok_count_tokens").Warn("grok_count_tokens.local_estimate_failed", zap.Error(err))
+		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
+		return
+	}
+
+	setOpsRequestContext(c, parsedReq.Model, false, parsedReq.Body.Bytes())
+	setOpsEndpointContext(c, "", int16(service.RequestTypeFromLegacy(false, false)))
+	c.JSON(http.StatusOK, gin.H{"input_tokens": estimated})
+}
+
 // CountTokens handles Anthropic-compatible POST /v1/messages/count_tokens for OpenAI groups.
 // It validates billing and routes to an OpenAI token-count bridge without recording usage.
 func (h *OpenAIGatewayHandler) CountTokens(c *gin.Context) {
