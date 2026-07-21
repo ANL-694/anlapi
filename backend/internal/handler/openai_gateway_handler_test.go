@@ -822,7 +822,7 @@ func TestOpenAIResponsesWebSocket_FirstMessageTimeoutUsesConfig(t *testing.T) {
 	require.GreaterOrEqual(t, elapsed, 500*time.Millisecond)
 	require.Less(t, elapsed, 4*time.Second)
 	require.Eventually(t, func() bool {
-		readTimeout, ok := logSink.FieldValueForMessage("openai.websocket_read_first_message_failed", "read_timeout")
+		readTimeout, ok := logSink.LatestFieldValueForMessage("openai.websocket_read_first_message_failed", "read_timeout")
 		return ok && readTimeout == time.Second &&
 			logSink.ContainsMessageAtLevel("openai.websocket_read_first_message_failed", "warn")
 	}, time.Second, 10*time.Millisecond)

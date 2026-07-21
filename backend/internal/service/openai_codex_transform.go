@@ -1172,7 +1172,7 @@ func extractLosslessTextFromContent(content any) (string, bool) {
 			if !ok {
 				return "", false
 			}
-			b.WriteString(text)
+			_, _ = b.WriteString(text)
 		}
 		return b.String(), true
 	default:

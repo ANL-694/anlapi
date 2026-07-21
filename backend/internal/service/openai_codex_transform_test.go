@@ -136,10 +136,15 @@ func TestApplyCodexOAuthTransformBoundsLongCallIDsAndPreservesPairing(t *testing
 
 			applyCodexOAuthTransform(reqBody, false, false)
 
-			input := reqBody["input"].([]any)
-			call := input[0].(map[string]any)
-			output := input[1].(map[string]any)
-			fixedCallID := call["call_id"].(string)
+			input, ok := reqBody["input"].([]any)
+			require.True(t, ok)
+			require.Len(t, input, 2)
+			call, ok := input[0].(map[string]any)
+			require.True(t, ok)
+			output, ok := input[1].(map[string]any)
+			require.True(t, ok)
+			fixedCallID, ok := call["call_id"].(string)
+			require.True(t, ok)
 			require.LessOrEqual(t, len(fixedCallID), codexCallIDMaxLength)
 			require.True(t, strings.HasPrefix(fixedCallID, codexCallIDPrefix))
 			require.Equal(t, fixedCallID, output["call_id"])
@@ -161,9 +166,15 @@ func TestApplyCodexOAuthTransformPreservesLongCallIDsWhenRequested(t *testing.T)
 
 	applyCodexOAuthTransformWithOptions(reqBody, codexOAuthTransformOptions{PreserveToolCallIDs: true})
 
-	input := reqBody["input"].([]any)
-	require.Equal(t, callID, input[0].(map[string]any)["call_id"])
-	require.Equal(t, callID, input[1].(map[string]any)["call_id"])
+	input, ok := reqBody["input"].([]any)
+	require.True(t, ok)
+	require.Len(t, input, 2)
+	call, ok := input[0].(map[string]any)
+	require.True(t, ok)
+	output, ok := input[1].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, callID, call["call_id"])
+	require.Equal(t, callID, output["call_id"])
 }
 
 func TestApplyCodexOAuthTransform_CustomAndMCPToolOutputsPreserveCallID(t *testing.T) {
@@ -1359,9 +1370,12 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 
 		require.True(t, result)
 		require.Equal(t, "First.\n\nSecond and third.\n\nExisting.", reqBody["instructions"])
-		input := reqBody["input"].([]any)
+		input, ok := reqBody["input"].([]any)
+		require.True(t, ok)
 		require.Len(t, input, 1)
-		require.Equal(t, "user", input[0].(map[string]any)["role"])
+		user, ok := input[0].(map[string]any)
+		require.True(t, ok)
+		require.Equal(t, "user", user["role"])
 	})
 
 	t.Run("omit keeps mixed system content as developer", func(t *testing.T) {
@@ -1379,9 +1393,12 @@ func TestExtractSystemMessagesFromInput(t *testing.T) {
 
 		require.True(t, result)
 		require.Equal(t, "Inspect this image.", reqBody["instructions"])
-		input := reqBody["input"].([]any)
+		input, ok := reqBody["input"].([]any)
+		require.True(t, ok)
 		require.Len(t, input, 2)
-		require.Equal(t, "developer", input[0].(map[string]any)["role"])
+		developer, ok := input[0].(map[string]any)
+		require.True(t, ok)
+		require.Equal(t, "developer", developer["role"])
 	})
 }
 

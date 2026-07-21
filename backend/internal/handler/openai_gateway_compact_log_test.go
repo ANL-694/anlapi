@@ -66,10 +66,13 @@ func (s *handlerInMemoryLogSink) ContainsFieldValue(field, substr string) bool {
 	return false
 }
 
-func (s *handlerInMemoryLogSink) FieldValueForMessage(message, field string) (any, bool) {
+func (s *handlerInMemoryLogSink) LatestFieldValueForMessage(message, field string) (any, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, event := range s.events {
+	// A previous httptest server can finish logging after the next test starts.
+	// Read newest-first so a stale event with the same message cannot mask it.
+	for i := len(s.events) - 1; i >= 0; i-- {
+		event := s.events[i]
 		if event == nil || event.Message != message || event.Fields == nil {
 			continue
 		}
