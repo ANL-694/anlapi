@@ -19,7 +19,10 @@
 
       <div class="app-header-actions">
         <LocaleSwitcher class="app-header-action-item shrink-0" />
-        <SubscriptionProgressMini v-if="user" class="app-header-action-item" />
+        <SubscriptionProgressMini
+          v-if="user"
+          class="app-header-action-item app-header-subscription-progress"
+        />
         <AnnouncementBell v-if="user" class="app-header-action-item app-header-announcement" />
         <router-link
           v-if="user"

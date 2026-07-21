@@ -40,6 +40,11 @@ QQ 群：`146499741`
 - 前端控制台基于 Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS 和 Vite。
 - 后端服务基于 Go、Gin、Ent、PostgreSQL、Redis 和模块化服务边界。
 
+## 1.0.5 更新内容
+
+- 管理端并发卡明确改为“用户实时并发”，只呈现当前真实占用与用户并发上限，不再使用“排队”标题造成误解。
+- 修复窄屏顶部操作区横向溢出，同时保留右上角余额；极窄屏仅收起订阅进度小控件。
+
 ## 1.0.4 更新内容
 
 - 对齐 Sub2API v0.1.162 的 OpenAI/Codex、Responses、Anthropic、Grok 媒体、订阅到期和异步生图存储相关改进。

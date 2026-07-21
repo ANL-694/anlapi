@@ -6940,7 +6940,7 @@ const anlEnOverrides = {
         }
       },
       concurrency: {
-        title: 'Concurrency / Queue',
+        title: 'User Concurrency',
         byPlatform: 'By Platform',
         byGroup: 'By Group',
         byAccount: 'By Account',

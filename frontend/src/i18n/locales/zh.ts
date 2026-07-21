@@ -7127,7 +7127,7 @@ const anlZhOverrides = {
         }
       },
       concurrency: {
-        title: '并发 / 排队',
+        title: '用户实时并发',
         byPlatform: '按平台',
         byGroup: '按分组',
         byAccount: '按账号',

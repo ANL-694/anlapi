@@ -863,7 +863,7 @@
     }
 
     .app-header-leading {
-      min-width: 6.25rem;
+      min-width: 5rem;
       gap: 0.375rem;
     }
 
@@ -894,6 +894,10 @@
       padding-right: 0.375rem;
     }
 
+    .app-header-balance-icon {
+      display: none;
+    }
+
     .app-header-balance-label {
       display: none;
     }
@@ -910,6 +914,12 @@
       height: 1.875rem;
       width: 1.875rem;
       font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .app-header-subscription-progress {
+      display: none;
     }
   }
 

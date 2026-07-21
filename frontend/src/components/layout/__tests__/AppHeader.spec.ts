@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 const componentPath = resolve(dirname(fileURLToPath(import.meta.url)), '../AppHeader.vue')
 const componentSource = readFileSync(componentPath, 'utf8')
+const stylePath = resolve(dirname(fileURLToPath(import.meta.url)), '../../../style.css')
+const styleSource = readFileSync(stylePath, 'utf8')
 
 describe('AppHeader balance display', () => {
   it('keeps the signed-in user balance visible before the avatar menu', () => {
@@ -22,5 +24,12 @@ describe('AppHeader balance display', () => {
     expect(componentSource).toContain('${{ formattedBalance }}')
     expect(componentSource).toContain('Number.isFinite(balance)')
     expect(componentSource).toContain('app-header-announcement')
+  })
+
+  it('keeps the compact mobile header inside narrow viewports', () => {
+    expect(componentSource).toContain('app-header-subscription-progress')
+    expect(styleSource).toMatch(/@media \(max-width: 420px\)[\s\S]*?\.app-header-leading[\s\S]*?min-width: 5rem/)
+    expect(styleSource).toMatch(/@media \(max-width: 420px\)[\s\S]*?\.app-header-balance-icon[\s\S]*?display: none/)
+    expect(styleSource).toMatch(/@media \(max-width: 360px\)[\s\S]*?\.app-header-subscription-progress[\s\S]*?display: none/)
   })
 })
