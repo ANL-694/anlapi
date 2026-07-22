@@ -75,7 +75,6 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		return
 	}
 	reqModel := modelResult.String()
-	reqStream := gjson.GetBytes(body, "stream").Bool()
 	requestedModel := reqModel
 	autoDecision := h.gatewayService.ResolveAutoModel(c.Request.Context(), apiKey.GroupID, reqModel, body, service.AutoModelProtocolOpenAIChat)
 	if autoDecision.Matched {
@@ -83,6 +82,17 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		body = h.gatewayService.ReplaceModelInBody(body, reqModel)
 		body = service.StripAutoRouterPluginFromBody(body)
 	}
+	if apiKey.Group != nil && apiKey.Group.Platform == service.PlatformOpenAI {
+		if cappedBody, changed := service.ApplyOpenAIReasoningEffortPolicy(body, apiKey.Group.MaxReasoningEffort, apiKey.Group.ReasoningEffortMappings); changed {
+			body = cappedBody
+		}
+	}
+	streamResult := gjson.GetBytes(body, "stream")
+	if streamResult.Exists() && streamResult.Type != gjson.True && streamResult.Type != gjson.False {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "invalid stream field type")
+		return
+	}
+	reqStream := streamResult.Bool()
 	if service.IsGPTImageGenerationModel(reqModel) {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "This model is not supported on the Chat Completions endpoint")
 		return

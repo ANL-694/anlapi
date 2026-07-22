@@ -989,6 +989,9 @@ routeLoop:
 			c.Set("parsed_request", attemptParsedReq)
 			var result *service.ForwardResult
 			requestCtx := gatewayForwardContext(routeCtx, fs.SwitchCount, h.metadataBridgeEnabled())
+			if fs.ForceCacheBilling {
+				requestCtx = service.WithForceCacheBilling(requestCtx)
+			}
 			// 记录 Forward 前已写入字节数，Forward 后若增加则说明 SSE 内容已发，禁止 failover
 			writerSizeBeforeForward := c.Writer.Size()
 			forwardReq := &gatewayplatform.ForwardRequest{

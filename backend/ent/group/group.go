@@ -130,6 +130,10 @@ const (
 	FieldKiroCacheEmulationRatio = "kiro_cache_emulation_ratio"
 	// FieldKiroEndpointMode holds the string denoting the kiro_endpoint_mode field in the database.
 	FieldKiroEndpointMode = "kiro_endpoint_mode"
+	// FieldMaxReasoningEffort holds the string denoting the max_reasoning_effort field in the database.
+	FieldMaxReasoningEffort = "max_reasoning_effort"
+	// FieldReasoningEffortMappings holds the string denoting the reasoning_effort_mappings field in the database.
+	FieldReasoningEffortMappings = "reasoning_effort_mappings"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
 	// EdgeAPIKeyGroupRoutes holds the string denoting the api_key_group_routes edge name in mutations.
@@ -271,6 +275,8 @@ var Columns = []string{
 	FieldKiroStickySessionTTLSeconds,
 	FieldKiroCacheEmulationRatio,
 	FieldKiroEndpointMode,
+	FieldMaxReasoningEffort,
+	FieldReasoningEffortMappings,
 }
 
 var (
@@ -402,6 +408,12 @@ var (
 	DefaultKiroEndpointMode string
 	// KiroEndpointModeValidator is a validator for the "kiro_endpoint_mode" field. It is called by the builders before save.
 	KiroEndpointModeValidator func(string) error
+	// DefaultMaxReasoningEffort holds the default value on creation for the "max_reasoning_effort" field.
+	DefaultMaxReasoningEffort string
+	// MaxReasoningEffortValidator is a validator for the "max_reasoning_effort" field. It is called by the builders before save.
+	MaxReasoningEffortValidator func(string) error
+	// DefaultReasoningEffortMappings holds the default value on creation for the "reasoning_effort_mappings" field.
+	DefaultReasoningEffortMappings []domain.ReasoningEffortMapping
 )
 
 // OrderOption defines the ordering options for the Group queries.
@@ -675,6 +687,11 @@ func ByKiroCacheEmulationRatio(opts ...sql.OrderTermOption) OrderOption {
 // ByKiroEndpointMode orders the results by the kiro_endpoint_mode field.
 func ByKiroEndpointMode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKiroEndpointMode, opts...).ToFunc()
+}
+
+// ByMaxReasoningEffort orders the results by the max_reasoning_effort field.
+func ByMaxReasoningEffort(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMaxReasoningEffort, opts...).ToFunc()
 }
 
 // ByAPIKeysCount orders the results by api_keys count.

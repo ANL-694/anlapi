@@ -35,7 +35,12 @@
               @click="selectUser(u)"
               class="w-full rounded-md px-3 py-2 text-left hover:bg-[var(--app-surface-muted)]"
             >
-              <span>{{ u.email }}</span>
+              <span>
+                {{ u.email }}
+                <span v-if="u.deleted" class="ml-1 text-xs text-gray-400">
+                  （{{ t('admin.usage.userDeletedBadge') }}）
+                </span>
+              </span>
               <span class="ml-2 text-xs text-gray-400">#{{ u.id }}</span>
             </button>
           </div>
@@ -168,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, toRef, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
 import Select, { type SelectOption } from '@/components/common/Select.vue'
@@ -184,6 +189,7 @@ interface Props {
   startDate: string
   endDate: string
   showActions?: boolean
+  modelOptions?: string[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -209,6 +215,7 @@ const userKeyword = ref('')
 const userResults = ref<SimpleUser[]>([])
 const showUserDropdown = ref(false)
 let userSearchTimeout: ReturnType<typeof setTimeout> | null = null
+let userSearchSequence = 0
 
 const apiKeyKeyword = ref('')
 const apiKeyResults = ref<SimpleApiKey[]>([])
@@ -224,7 +231,14 @@ const accountResults = ref<SimpleAccount[]>([])
 const showAccountDropdown = ref(false)
 let accountSearchTimeout: ReturnType<typeof setTimeout> | null = null
 
-const modelOptions = ref<SelectOption[]>([{ value: null, label: t('admin.usage.allModels') }])
+const fetchedModelOptions = ref<string[]>([])
+const modelOptions = computed<SelectOption[]>(() => [
+  { value: null, label: t('admin.usage.allModels') },
+  ...(props.modelOptions ?? fetchedModelOptions.value).map((model) => ({
+    value: model,
+    label: model
+  }))
+])
 const groupOptions = ref<SelectOption[]>([{ value: null, label: t('admin.usage.allGroups') }])
 
 const requestTypeOptions = ref<SelectOption[]>([
@@ -249,17 +263,34 @@ const billingModeOptions = ref<SelectOption[]>([
 
 const emitChange = () => emit('change')
 
+const clearPendingUserSearch = () => {
+  if (userSearchTimeout) {
+    clearTimeout(userSearchTimeout)
+    userSearchTimeout = null
+  }
+  userSearchSequence += 1
+}
+
 const debounceUserSearch = () => {
-  if (userSearchTimeout) clearTimeout(userSearchTimeout)
+  clearPendingUserSearch()
+  const query = userKeyword.value.trim()
+  if (!query) {
+    userResults.value = []
+    return
+  }
+
+  const sequence = userSearchSequence
   userSearchTimeout = setTimeout(async () => {
-    if (!userKeyword.value) {
-      userResults.value = []
-      return
-    }
+    userSearchTimeout = null
     try {
-      userResults.value = await adminAPI.usage.searchUsers(userKeyword.value)
+      const results = await adminAPI.usage.searchUsers(query)
+      if (sequence === userSearchSequence) {
+        userResults.value = results.sort((a, b) => Number(a.deleted) - Number(b.deleted))
+      }
     } catch {
-      userResults.value = []
+      if (sequence === userSearchSequence) {
+        userResults.value = []
+      }
     }
   }, 300)
 }
@@ -279,6 +310,7 @@ const debounceApiKeySearch = () => {
 }
 
 const selectUser = async (u: SimpleUser) => {
+  clearPendingUserSearch()
   userKeyword.value = u.email
   showUserDropdown.value = false
   filters.value.user_id = u.id
@@ -295,6 +327,7 @@ const selectUser = async (u: SimpleUser) => {
 }
 
 const clearUser = () => {
+  clearPendingUserSearch()
   userKeyword.value = ''
   userResults.value = []
   showUserDropdown.value = false
@@ -394,6 +427,7 @@ watch(
   () => filters.value.user_id,
   (userId) => {
     if (!userId) {
+      clearPendingUserSearch()
       userKeyword.value = ''
       userResults.value = []
     }
@@ -424,32 +458,41 @@ onMounted(async () => {
   document.addEventListener('click', onDocumentClick)
 
   try {
-    const [gs, ms] = await Promise.all([
-      adminAPI.groups.list(1, 1000),
-      adminAPI.dashboard.getModelStats({ start_date: props.startDate, end_date: props.endDate })
-    ])
-
+    const gs = await adminAPI.groups.list(1, 1000)
     groupOptions.value.push(...gs.items.map((g: any) => ({ value: g.id, label: g.name })))
-
-    const uniqueModels = new Set<string>()
-    ms.models?.forEach((s: any) => {
-      if (s.model) {
-        uniqueModels.add(s.model)
-      }
-    })
-    modelOptions.value.push(
-      ...Array.from(uniqueModels)
-        .sort()
-        .map((m) => ({ value: m, label: m }))
-    )
   } catch {
     // Ignore filter option loading errors (page still usable)
+  }
+
+  if (props.modelOptions === undefined) {
+    try {
+      const stats = await adminAPI.dashboard.getModelStats({
+        start_date: props.startDate,
+        end_date: props.endDate
+      })
+      fetchedModelOptions.value = Array.from(
+        new Set<string>(stats.models?.map((item: any) => item.model).filter(Boolean) ?? [])
+      ).sort()
+    } catch {
+      // Ignore filter option loading errors (page still usable)
+    }
   }
 })
 
 onUnmounted(() => {
+  clearPendingUserSearch()
   document.removeEventListener('click', onDocumentClick)
 })
+
+// 供外部(如用户排行下钻)在程序化设置 user_id 后回显选中的用户邮箱
+const setUserKeyword = (email: string) => {
+  clearPendingUserSearch()
+  userKeyword.value = email
+  userResults.value = []
+  showUserDropdown.value = false
+}
+
+defineExpose({ setUserKeyword })
 </script>
 
 <style scoped>

@@ -40,6 +40,14 @@ QQ 群：`146499741`
 - 前端控制台基于 Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS 和 Vite。
 - 后端服务基于 Go、Gin、Ent、PostgreSQL、Redis 和模块化服务边界。
 
+## 1.0.7 更新内容
+
+- 对齐 Sub2API v0.1.163：新增分组级 OpenAI/Codex 推理力度上限与精确映射，并在 HTTP、WebSocket 转发链路统一执行。
+- 补齐 Grok `/responses/compact`、Codex 客户端工具往返、模型级 403 隔离与缓存会话修复。
+- 修复优雅关停时缓冲用量丢失、图像 Token 计费、故障切换计费、调度缓存与配额元数据问题。
+- 新增 Redis ACL 用户名配置，并同步移动端布局、套餐有效期、用量筛选和倍率显示修复。
+- 保留 ANL 的支付、余额、生图专线、OAuth/API Key 隔离和用户级并发策略。
+
 ## 1.0.6 更新内容
 
 - 补齐 Sub2API v0.1.162 的上游计费探测设置与批量探测路由，修复管理端账号页加载设置时返回 404 的问题。

@@ -2069,7 +2069,7 @@ const isExpired = (value: number | null) => {
   return value * 1000 <= Date.now()
 }
 
-// 滚动时关闭操作菜单（不关闭列设置下拉菜单）
+// 表格滚动时关闭行操作菜单。
 const handleScroll = () => {
   menu.show = false
 }

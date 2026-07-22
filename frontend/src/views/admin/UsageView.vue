@@ -70,7 +70,7 @@
         </div>
       </section>
       <section class="usage-records">
-      <UsageFilters v-model="filters" :start-date="startDate" :end-date="endDate" :exporting="exporting" @change="applyFilters" @refresh="refreshData" @reset="resetFilters" @cleanup="openCleanupDialog" @export="exportToExcel">
+      <UsageFilters v-model="filters" :start-date="startDate" :end-date="endDate" :exporting="exporting" :model-options="modelNameOptions" @change="applyFilters" @refresh="refreshData" @reset="resetFilters" @cleanup="openCleanupDialog" @export="exportToExcel">
         <template #after-reset>
           <div class="relative" ref="columnDropdownRef">
             <UiIconButton
@@ -197,6 +197,10 @@ const breakdownFilters = computed(() => {
   if (filters.value.billing_type != null) f.billing_type = filters.value.billing_type
   return f
 })
+
+const modelNameOptions = computed(() =>
+  Array.from(new Set(requestedModelStats.value.map((item) => item.model).filter(Boolean))).sort()
+)
 
 const toFiniteNumber = (value: unknown): number => {
   const parsed = Number(value)
