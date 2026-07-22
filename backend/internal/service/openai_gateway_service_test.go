@@ -33,6 +33,7 @@ type stubOpenAIAccountRepo struct {
 type snapshotUpdateAccountRepo struct {
 	stubOpenAIAccountRepo
 	updateExtraCalls chan map[string]any
+	accountUpdates   chan struct{}
 }
 
 func (r *snapshotUpdateAccountRepo) UpdateExtra(ctx context.Context, id int64, updates map[string]any) error {
@@ -61,6 +62,9 @@ func (r *snapshotUpdateAccountRepo) Update(ctx context.Context, account *Account
 	for i := range r.accounts {
 		if r.accounts[i].ID == account.ID {
 			r.accounts[i] = *account
+			if r.accountUpdates != nil {
+				r.accountUpdates <- struct{}{}
+			}
 			return nil
 		}
 	}
@@ -1915,7 +1919,10 @@ func TestOpenAIValidateUpstreamBaseURLEnabledEnforcesAllowlist(t *testing.T) {
 
 func TestOpenAIUpdateCodexUsageSnapshotFromHeaders(t *testing.T) {
 	repo := &snapshotUpdateAccountRepo{updateExtraCalls: make(chan map[string]any, 1)}
-	svc := &OpenAIGatewayService{accountRepo: repo}
+	svc := &OpenAIGatewayService{
+		accountRepo:           repo,
+		codexSnapshotThrottle: newAccountWriteThrottle(time.Hour),
+	}
 	headers := http.Header{}
 	headers.Set("x-codex-primary-used-percent", "12")
 	headers.Set("x-codex-secondary-used-percent", "34")
@@ -1953,6 +1960,7 @@ func TestOpenAIUpdateCodexUsageSnapshot_AutoRepairsSuspectedFreeAccount(t *testi
 			},
 		}}},
 		updateExtraCalls: make(chan map[string]any, 1),
+		accountUpdates:   make(chan struct{}, 1),
 	}
 	settingSvc := NewSettingService(&openAIAdvancedSchedulerSettingRepoStub{values: map[string]string{
 		SettingKeyOpenAIFreeAccountRepairEnabled:            "true",
@@ -1960,9 +1968,10 @@ func TestOpenAIUpdateCodexUsageSnapshot_AutoRepairsSuspectedFreeAccount(t *testi
 	}}, &config.Config{})
 	accountSvc := &AccountService{accountRepo: repo}
 	svc := &OpenAIGatewayService{
-		accountRepo:    repo,
-		settingService: settingSvc,
-		accountService: accountSvc,
+		accountRepo:           repo,
+		settingService:        settingSvc,
+		accountService:        accountSvc,
+		codexSnapshotThrottle: newAccountWriteThrottle(time.Hour),
 	}
 	headers := http.Header{}
 	headers.Set("x-codex-primary-used-percent", "100")
@@ -1977,13 +1986,16 @@ func TestOpenAIUpdateCodexUsageSnapshot_AutoRepairsSuspectedFreeAccount(t *testi
 	case <-time.After(2 * time.Second):
 		t.Fatal("expected UpdateExtra to be called")
 	}
-	require.Eventually(t, func() bool {
-		account, err := repo.GetByID(context.Background(), accountID)
-		return err == nil &&
-			account.AccountLevel == AccountLevelFree &&
-			account.ShareStatus == AccountShareStatusSuspended &&
-			strings.Contains(account.ErrorMessage, "weekly limit <= 60.00 USD")
-	}, 2*time.Second, 20*time.Millisecond)
+	select {
+	case <-repo.accountUpdates:
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected account repair update")
+	}
+	account, err := repo.GetByID(context.Background(), accountID)
+	require.NoError(t, err)
+	require.Equal(t, AccountLevelFree, account.AccountLevel)
+	require.Equal(t, AccountShareStatusSuspended, account.ShareStatus)
+	require.Contains(t, account.ErrorMessage, "weekly limit <= 60.00 USD")
 }
 
 func TestOpenAIResponsesRequestPathSuffix(t *testing.T) {

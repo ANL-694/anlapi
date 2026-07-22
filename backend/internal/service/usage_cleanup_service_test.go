@@ -68,6 +68,7 @@ type dashboardRepoStub struct {
 	recomputeErr    error
 	recomputeCalls  int
 	recomputeRanges []cleanupDateRange
+	recomputeDone   chan struct{}
 }
 
 type cleanupDateRange struct {
@@ -105,6 +106,9 @@ func (s *dashboardRepoStub) AggregateRange(ctx context.Context, start, end time.
 func (s *dashboardRepoStub) RecomputeRange(ctx context.Context, start, end time.Time) error {
 	s.recomputeCalls++
 	s.recomputeRanges = append(s.recomputeRanges, cleanupDateRange{start: start, end: end})
+	if s.recomputeDone != nil {
+		s.recomputeDone <- struct{}{}
+	}
 	return s.recomputeErr
 }
 
@@ -802,7 +806,10 @@ func TestUsageCleanupServiceExecuteTaskMarkFailedUpdateError(t *testing.T) {
 }
 
 func TestUsageCleanupServiceExecuteTaskDashboardRecomputeError(t *testing.T) {
-	dashboardRepo := &dashboardRepoStub{recomputeErr: errors.New("recompute failed")}
+	dashboardRepo := &dashboardRepoStub{
+		recomputeErr:  errors.New("recompute failed"),
+		recomputeDone: make(chan struct{}, 1),
+	}
 	repo := &cleanupRepoStub{
 		deleteQueue: []cleanupDeleteResponse{
 			{deleted: 0},
@@ -826,11 +833,16 @@ func TestUsageCleanupServiceExecuteTaskDashboardRecomputeError(t *testing.T) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	require.Len(t, repo.markSucceeded, 1)
-	require.Eventually(t, func() bool { return dashboardRepo.recomputeCalls == 1 }, time.Second, 10*time.Millisecond)
+	select {
+	case <-dashboardRepo.recomputeDone:
+	case <-time.After(time.Second):
+		t.Fatal("expected dashboard recompute")
+	}
+	require.Equal(t, 1, dashboardRepo.recomputeCalls)
 }
 
 func TestUsageCleanupServiceExecuteTaskDashboardRecomputeSuccess(t *testing.T) {
-	dashboardRepo := &dashboardRepoStub{}
+	dashboardRepo := &dashboardRepoStub{recomputeDone: make(chan struct{}, 1)}
 	repo := &cleanupRepoStub{
 		deleteQueue: []cleanupDeleteResponse{
 			{deleted: 0},
@@ -854,7 +866,12 @@ func TestUsageCleanupServiceExecuteTaskDashboardRecomputeSuccess(t *testing.T) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	require.Len(t, repo.markSucceeded, 1)
-	require.Eventually(t, func() bool { return dashboardRepo.recomputeCalls == 1 }, time.Second, 10*time.Millisecond)
+	select {
+	case <-dashboardRepo.recomputeDone:
+	case <-time.After(time.Second):
+		t.Fatal("expected dashboard recompute")
+	}
+	require.Equal(t, 1, dashboardRepo.recomputeCalls)
 }
 
 func TestUsageCleanupServiceExecuteTaskCanceled(t *testing.T) {
