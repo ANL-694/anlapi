@@ -338,10 +338,9 @@ func TestApplyGrokCacheIdentityWritesResponsesBodyAndHeader(t *testing.T) {
 	require.False(t, gjson.GetBytes(unscopedBody, "tool_choice").Exists())
 }
 
-func TestGrokFreeMessagesClientToolCacheRequiresExplicitAccountOptIn(t *testing.T) {
+func TestGrokFreeMessagesClientToolCacheDefaultsOnForKnownFree(t *testing.T) {
 	account := healthyGrokOAuthGatewayTestAccount(901, "access-token")
 	account.Credentials["subscription_tier"] = " FREE "
-	account.Extra = map[string]any{grokClientToolCacheOptInExtraKey: true}
 	tests := []struct {
 		name           string
 		toolChoiceJSON string
@@ -373,7 +372,7 @@ func TestGrokFreeMessagesClientToolCacheRequiresExplicitAccountOptIn(t *testing.
 	}
 }
 
-func TestGrokFreeMessagesClientToolCacheDefaultsOffWithMissingAccountSetting(t *testing.T) {
+func TestGrokFreeMessagesClientToolCacheDefaultsWithMissingAccountSetting(t *testing.T) {
 	body := []byte(`{"model":"grok","tools":[{"type":"function","name":"view_image","parameters":{"type":"object"}}],"tool_choice":"auto"}`)
 	tests := []struct {
 		name  string
@@ -393,7 +392,10 @@ func TestGrokFreeMessagesClientToolCacheDefaultsOffWithMissingAccountSetting(t *
 			patched, err := applyGrokFreeMessagesFunctionToolCacheRoute(body, body, account, "isolated-id")
 
 			require.NoError(t, err)
-			require.JSONEq(t, string(body), string(patched))
+			tools := gjson.GetBytes(patched, "tools").Array()
+			require.Len(t, tools, 3)
+			require.Equal(t, "web_search", tools[1].Get("type").String())
+			require.Equal(t, "x_search", tools[2].Get("type").String())
 		})
 	}
 }
@@ -483,7 +485,7 @@ func TestGrokFreeClientToolCacheRequestOptInOverridesAccountOptOut(t *testing.T)
 	require.Equal(t, "x_search", tools[2].Get("type").String())
 }
 
-func TestGrokFreeChatRequestClientToolCacheDefaultsOffWithoutOptIn(t *testing.T) {
+func TestGrokFreeChatRequestClientToolCacheDefaultsOnWithoutClientFingerprint(t *testing.T) {
 	account := healthyGrokOAuthGatewayTestAccount(90140, "access-token")
 	account.Credentials["subscription_tier"] = "free"
 	c := newGrokCacheTestContext(90140)
@@ -493,10 +495,14 @@ func TestGrokFreeChatRequestClientToolCacheDefaultsOffWithoutOptIn(t *testing.T)
 	patched, err := applyGrokFreeRequestToolCacheRoute(c, body, body, account, "isolated-id")
 
 	require.NoError(t, err)
-	require.JSONEq(t, string(body), string(patched))
+	tools := gjson.GetBytes(patched, "tools").Array()
+	require.Len(t, tools, 3)
+	require.Equal(t, "view_image", tools[0].Get("name").String())
+	require.Equal(t, "web_search", tools[1].Get("type").String())
+	require.Equal(t, "x_search", tools[2].Get("type").String())
 }
 
-func TestGrokFreeClientToolCacheClientFingerprintDoesNotOptIn(t *testing.T) {
+func TestGrokFreeClientToolCacheClaudeDesktopResponsesAutoOptIn(t *testing.T) {
 	account := healthyGrokOAuthGatewayTestAccount(90141, "access-token")
 	account.Credentials["subscription_tier"] = "free"
 	body := []byte(`{"model":"grok","tools":[{"type":"function","name":"Read","parameters":{"type":"object"}},{"type":"function","name":"Edit","parameters":{"type":"object"}}],"tool_choice":"auto"}`)
@@ -509,7 +515,12 @@ func TestGrokFreeClientToolCacheClientFingerprintDoesNotOptIn(t *testing.T) {
 	patched, err := applyGrokFreeRequestToolCacheRoute(c, body, body, account, "isolated-id")
 
 	require.NoError(t, err)
-	require.JSONEq(t, string(body), string(patched))
+	tools := gjson.GetBytes(patched, "tools").Array()
+	require.Len(t, tools, 4)
+	require.Equal(t, "Read", tools[0].Get("name").String())
+	require.Equal(t, "Edit", tools[1].Get("name").String())
+	require.Equal(t, "web_search", tools[2].Get("type").String())
+	require.Equal(t, "x_search", tools[3].Get("type").String())
 }
 
 func TestGrokFreeClientToolCacheExplicitRequestOptOut(t *testing.T) {

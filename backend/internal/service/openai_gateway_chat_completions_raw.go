@@ -86,6 +86,21 @@ func (s *OpenAIGatewayService) forwardAsRawChatCompletions(
 	if strings.TrimSpace(token) == "" {
 		return nil, fmt.Errorf("account %d missing %s credential", account.ID, tokenKind)
 	}
+	var bridgeUsage OpenAIUsage
+	if account.Platform == PlatformGrok {
+		bridgedBody, usage, bridged, bridgeErr := s.bridgeGrokComposerImageInputs(ctx, c, account, upstreamBody, token)
+		if bridgeErr != nil {
+			var failoverErr *UpstreamFailoverError
+			if !errors.As(bridgeErr, &failoverErr) && c != nil && c.Writer != nil && !c.Writer.Written() {
+				writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", bridgeErr.Error())
+			}
+			return nil, bridgeErr
+		}
+		if bridged {
+			upstreamBody = bridgedBody
+			addOpenAIUsage(&bridgeUsage, usage)
+		}
+	}
 
 	var targetURL string
 	if account.Platform == PlatformGrok {
@@ -237,9 +252,12 @@ func (s *OpenAIGatewayService) forwardAsRawChatCompletions(
 	} else {
 		result, forwardErr = s.bufferRawChatCompletions(c, resp, originalModel, billingModel, upstreamModel, reasoningEffort, serviceTier, startTime)
 	}
-	if result != nil && account.Platform == PlatformGrok {
-		result.UpstreamEndpoint = grokChatRawEndpoint
-		result.ResponseHeaders = resp.Header.Clone()
+	if result != nil {
+		addOpenAIUsage(&result.Usage, bridgeUsage)
+		if account.Platform == PlatformGrok {
+			result.UpstreamEndpoint = grokChatRawEndpoint
+			result.ResponseHeaders = resp.Header.Clone()
+		}
 	}
 	return result, forwardErr
 }

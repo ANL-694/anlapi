@@ -134,8 +134,9 @@ func ProvideUserHandler(
 	emailCache service.EmailCache,
 	affiliateService *service.AffiliateService,
 	userPlatformQuotaRepo service.UserPlatformQuotaRepository,
+	concurrencyService *service.ConcurrencyService,
 ) *UserHandler {
-	return NewUserHandler(userService, authService, emailService, emailCache, affiliateService, userPlatformQuotaRepo)
+	return NewUserHandler(userService, authService, emailService, emailCache, affiliateService, userPlatformQuotaRepo, concurrencyService)
 }
 
 func ProvideOpenAIGatewayHandler(

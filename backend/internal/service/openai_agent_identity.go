@@ -92,6 +92,44 @@ func ValidateOpenAIAgentIdentityPrivateKey(encoded string) error {
 	return err
 }
 
+func isOpenAIAgentIdentityCredentials(credentials map[string]any) bool {
+	account := &Account{
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeOAuth,
+		Credentials: credentials,
+	}
+	return account.IsOpenAIAgentIdentity()
+}
+
+func ValidateOpenAIAgentIdentityCredentials(credentials map[string]any) error {
+	account := &Account{
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeOAuth,
+		Credentials: credentials,
+	}
+	if !account.IsOpenAIAgentIdentity() {
+		return errors.New("agent identity auth_mode is invalid")
+	}
+	for _, field := range []string{"access_token", "refresh_token", "id_token", "api_key"} {
+		if strings.TrimSpace(account.GetCredential(field)) != "" {
+			return fmt.Errorf("agent identity must not include %s", field)
+		}
+	}
+	if strings.TrimSpace(account.GetCredential("agent_runtime_id")) == "" {
+		return errors.New("agent identity runtime id is missing")
+	}
+	if strings.TrimSpace(account.GetCredential("chatgpt_account_id")) == "" {
+		return errors.New("agent identity account id is missing")
+	}
+	if strings.TrimSpace(account.GetCredential("chatgpt_user_id")) == "" {
+		return errors.New("agent identity user id is missing")
+	}
+	if err := ValidateOpenAIAgentIdentityPrivateKey(account.GetCredential("agent_private_key")); err != nil {
+		return fmt.Errorf("agent identity private key is invalid: %w", err)
+	}
+	return nil
+}
+
 func agentIdentityKeyFromAccount(account *Account) (agentIdentityKey, error) {
 	privateKey, err := agentIdentityPrivateKey(account)
 	if err != nil {

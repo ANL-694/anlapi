@@ -546,7 +546,7 @@ export default {
       ipAddress: 'IP',
       clickToViewBalance: 'Click to view balance history',
       failedToLoadUser: 'Failed to load user info',
-      userDeletedBadge: 'Deleted',
+      userDeletedBadge: '(Deleted)',
       tokenRanking: {
         subtitle: 'Per-user token usage for the current filters and time range',
         rowHint: "Click to view this user's usage details",

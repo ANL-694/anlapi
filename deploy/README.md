@@ -122,8 +122,8 @@ docker compose -f docker-compose.local.yml logs -f anlapi
 
 | Version | Data Storage | Migration | Best For |
 |---------|-------------|-----------|----------|
-| **docker-compose.local.yml** | Local directories (./data, ./postgres_data, ./redis_data) | 鉁?Easy (tar entire directory) | Production, need frequent backups/migration |
-| **docker-compose.yml** | Named volumes (/var/lib/docker/volumes/) | 鈿狅笍 Requires docker commands | Simple setup, don't need migration |
+| **docker-compose.local.yml** | Local directories (./data, ./postgres_data, ./redis_data) | Easy (tar entire directory) | Production, need frequent backups/migration |
+| **docker-compose.yml** | Named volumes (/var/lib/docker/volumes/) | Requires Docker commands | Simple setup, don't need migration |
 
 **Recommendation:** Use `docker-compose.local.yml` (deployed by `docker-deploy.sh`) for easier data management and migration.
 
@@ -151,9 +151,9 @@ When using Docker Compose with `AUTO_SETUP=true`:
 - `schema_migrations` tracks applied migrations (filename + checksum).
 - Migrations are forward-only; rollback requires a DB backup restore or a manual compensating SQL script.
 
-**Verify `users.allowed_groups` 鈫?`user_allowed_groups` backfill**
+**Verify `users.allowed_groups` -> `user_allowed_groups` backfill**
 
-During the incremental GORM鈫扙nt migration, `users.allowed_groups` (legacy `BIGINT[]`) is being replaced by a normalized join table `user_allowed_groups(user_id, group_id)`.
+During the incremental GORM-to-Ent migration, `users.allowed_groups` (legacy `BIGINT[]`) is being replaced by a normalized join table `user_allowed_groups(user_id, group_id)`.
 
 Run this query to compare the legacy data vs the join table:
 
@@ -305,24 +305,24 @@ Requires your own OAuth client credentials.
 1. Go to [Google Cloud Console - Credentials](https://console.cloud.google.com/apis/credentials)
 2. Create a new project or select an existing one
 3. **Enable the Generative Language API:**
-   - Go to "APIs & Services" 鈫?"Library"
+   - Go to "APIs & Services" -> "Library"
    - Search for "Generative Language API"
    - Click "Enable"
 4. **Configure OAuth Consent Screen** (if not done):
-   - Go to "APIs & Services" 鈫?"OAuth consent screen"
+   - Go to "APIs & Services" -> "OAuth consent screen"
    - Choose "External" user type
    - Fill in app name, user support email, developer contact
    - Add scopes: `https://www.googleapis.com/auth/generative-language.retriever` (and optionally `https://www.googleapis.com/auth/cloud-platform`)
    - Add test users (your Google account email)
 5. **Create OAuth 2.0 credentials:**
-   - Go to "APIs & Services" 鈫?"Credentials"
-   - Click "Create Credentials" 鈫?"OAuth client ID"
+   - Go to "APIs & Services" -> "Credentials"
+   - Click "Create Credentials" -> "OAuth client ID"
    - Application type: **Web application** (or **Desktop app**)
    - Name: e.g., "anlapi Gemini"
    - Authorized redirect URIs: Add `http://localhost:1455/auth/callback`
 6. Copy the **Client ID** and **Client Secret**
-7. **鈿狅笍 Publish to Production (IMPORTANT):**
-   - Go to "APIs & Services" 鈫?"OAuth consent screen"
+7. **Publish to Production (IMPORTANT):**
+   - Go to "APIs & Services" -> "OAuth consent screen"
    - Click "PUBLISH APP" to move from Testing to Production
    - **Testing mode limitations:**
      - Only manually added test users can authenticate (max 100 users)

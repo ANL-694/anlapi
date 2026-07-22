@@ -1461,6 +1461,21 @@ func healthyGrokOAuthGatewayTestAccount(id int64, token string) *Account {
 	}
 }
 
+func rawChatCompletionsTestConfig() *config.Config {
+	return &config.Config{
+		Security: config.SecurityConfig{
+			URLAllowlist: config.URLAllowlistConfig{
+				Enabled:           false,
+				AllowInsecureHTTP: true,
+			},
+		},
+	}
+}
+
+func grokInt64PtrForTest(value int64) *int64 {
+	return &value
+}
+
 func TestForwardAsChatCompletionsForGrokStopFallsBackToXAIChatCompletions(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -1910,7 +1925,7 @@ func TestAccountTestServiceGrokAPIKeyUsesXAIResponses(t *testing.T) {
 	c, _ := gin.CreateTestContext(recorder)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/54/test", nil)
 
-	err := svc.testGrokAccountConnection(c, account, "grok")
+	err := svc.testGrokAccountConnection(c, account, "grok", "")
 	require.NoError(t, err)
 	require.Equal(t, "https://api.x.ai/v1/responses", upstream.lastReq.URL.String())
 	require.Equal(t, "Bearer xai-test-key", upstream.lastReq.Header.Get("Authorization"))
@@ -1944,7 +1959,7 @@ func TestAccountTestServiceGrokAPIKeyAllowsConfiguredHTTPWhenGlobalPolicyDoes(t 
 	c, _ := gin.CreateTestContext(recorder)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/55/test", nil)
 
-	err := svc.testGrokAccountConnection(c, account, "grok")
+	err := svc.testGrokAccountConnection(c, account, "grok", "")
 	require.NoError(t, err)
 	require.Equal(t, "http://grok.example.test/v1/responses", upstream.lastReq.URL.String())
 	require.Equal(t, "Bearer third-party-key", upstream.lastReq.Header.Get("Authorization"))

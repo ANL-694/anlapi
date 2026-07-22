@@ -991,7 +991,8 @@ func (h *UserAccountHandler) ImportCredentials(c *gin.Context) {
 	}
 
 	sources, parseErrors := service.ParseAccountCredentialImportContentsWithOptions(req.Contents, service.AccountCredentialImportOptions{
-		KiroConfigImport: req.KiroConfigImport,
+		KiroConfigImport:          req.KiroConfigImport,
+		OpenAIAgentIdentityImport: true,
 	})
 	if len(sources) == 0 && len(parseErrors) == 0 {
 		response.BadRequest(c, "No importable account credentials found")
@@ -1076,6 +1077,12 @@ func (h *UserAccountHandler) createOwnedAccountFromCredentialImportSource(
 		}
 		if req.Name == "" {
 			req.Name = fmt.Sprintf("OpenAI OAuth Account #%d", sequence)
+		}
+	case service.AccountCredentialImportKindOpenAIAgentIdentity:
+		req.Platform = service.PlatformOpenAI
+		req.ExpiresAt = nil
+		if req.Name == "" {
+			req.Name = service.DeriveAccountCredentialImportName(req.Platform, req.Credentials, req.Extra, sequence)
 		}
 	case service.AccountCredentialImportKindClaudeSessionKey:
 		tokenInfo, err := h.oauthService.CookieAuth(ctx, &service.CookieAuthInput{

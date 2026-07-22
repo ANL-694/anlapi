@@ -14,6 +14,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type userConcurrencyReader interface {
+	GetUserConcurrency(ctx context.Context, userID int64) (int, error)
+}
+
 // UserHandler handles user-related requests
 type UserHandler struct {
 	userService           *service.UserService
@@ -22,6 +26,7 @@ type UserHandler struct {
 	emailCache            service.EmailCache
 	affiliateService      *service.AffiliateService
 	userPlatformQuotaRepo service.UserPlatformQuotaRepository
+	userConcurrency       userConcurrencyReader
 }
 
 // NewUserHandler creates a new UserHandler
@@ -41,11 +46,36 @@ func NewUserHandler(
 		affiliateService: affiliateService,
 	}
 	for _, dependency := range dependencies {
-		if value, ok := dependency.(service.UserPlatformQuotaRepository); ok {
+		switch value := dependency.(type) {
+		case service.UserPlatformQuotaRepository:
 			h.userPlatformQuotaRepo = value
+		case userConcurrencyReader:
+			h.userConcurrency = value
 		}
 	}
 	return h
+}
+
+// GetConcurrency returns the current authenticated user's active request count.
+// GET /api/v1/user/concurrency
+func (h *UserHandler) GetConcurrency(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	if h.userConcurrency == nil {
+		response.InternalError(c, "Concurrency service unavailable")
+		return
+	}
+
+	current, err := h.userConcurrency.GetUserConcurrency(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{"current_concurrency": current})
 }
 
 // ChangePasswordRequest represents the change password request payload

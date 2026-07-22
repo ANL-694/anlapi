@@ -47,6 +47,7 @@ func RegisterUserRoutes(
 		user := authenticated.Group("/user")
 		{
 			user.GET("/profile", h.User.GetProfile)
+			user.GET("/concurrency", h.User.GetConcurrency)
 			user.GET("/platform-quotas", h.User.GetMyPlatformQuotas)
 			user.PUT("/password", h.User.ChangePassword)
 			user.PUT("", h.User.UpdateProfile)

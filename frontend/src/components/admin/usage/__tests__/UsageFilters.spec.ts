@@ -5,7 +5,7 @@ import UsageFilters from '../UsageFilters.vue'
 
 // --- i18n messages (only what UsageFilters needs) ---
 const messages: Record<string, string> = {
-  'admin.usage.userDeletedBadge': 'deleted',
+  'admin.usage.userDeletedBadge': '(deleted)',
   'admin.usage.userFilter': 'User',
   'admin.usage.searchUserPlaceholder': 'Search user...',
   'usage.apiKeyFilter': 'API Key',

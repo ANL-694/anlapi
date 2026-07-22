@@ -48,6 +48,8 @@ export default {
     disabled: '已禁用',
 	    total: '总计',
 	    balance: '余额',
+	    concurrency: '并发',
+	    concurrencyUsage: '当前并发：{current}/{limit}',
 	    availableBalance: '可用余额',
 	    frozenBalance: '冻结金额',
 	    totalBalance: '总余额',

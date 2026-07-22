@@ -228,6 +228,34 @@ func TestAcquireUserSlot_IndependentFromAccount(t *testing.T) {
 	require.NotNil(t, result.ReleaseFunc)
 }
 
+func TestGetUserConcurrency_DelegatesToCache(t *testing.T) {
+	cache := &stubConcurrencyCacheForTest{concurrency: 3}
+	svc := NewConcurrencyService(cache)
+
+	current, err := svc.GetUserConcurrency(context.Background(), 100)
+
+	require.NoError(t, err)
+	require.Equal(t, 3, current)
+}
+
+func TestGetUserConcurrency_PropagatesCacheError(t *testing.T) {
+	expectedErr := errors.New("redis unavailable")
+	cache := &stubConcurrencyCacheForTest{concurrencyErr: expectedErr}
+	svc := NewConcurrencyService(cache)
+
+	current, err := svc.GetUserConcurrency(context.Background(), 100)
+
+	require.Zero(t, current)
+	require.ErrorIs(t, err, expectedErr)
+}
+
+func TestGetUserConcurrency_WithoutCacheReturnsZero(t *testing.T) {
+	current, err := (&ConcurrencyService{}).GetUserConcurrency(context.Background(), 100)
+
+	require.NoError(t, err)
+	require.Zero(t, current)
+}
+
 func TestAcquireUserSlot_UnlimitedConcurrency(t *testing.T) {
 	svc := NewConcurrencyService(&stubConcurrencyCacheForTest{})
 

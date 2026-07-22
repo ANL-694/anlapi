@@ -83,6 +83,8 @@ func isDisallowedCredentialSafetyFieldKey(normalizedKey string, opts credentialS
 		"setcookie",
 		"auth_mode",
 		"authmode",
+		"openai_auth_mode",
+		"openaiauthmode",
 		"aws_access_key_id",
 		"awsaccesskeyid",
 		"aws_secret_access_key",

@@ -769,16 +769,35 @@ func validateOwnedAccountSource(platform, accountType string, credentials, extra
 	}
 	switch strings.ToLower(strings.TrimSpace(accountType)) {
 	case AccountTypeOAuth:
-		if !hasNonEmptyStringField(credentials, "access_token") {
-			return ErrOwnedAccountCredentialsInvalid.WithMetadata(map[string]string{
-				"field": "access_token",
-			})
-		}
-		if field, ok := findDisallowedOwnedAccountField(credentials); ok {
-			return ErrOwnedAccountCredentialsNotAllowed.WithMetadata(map[string]string{
-				"section": "credentials",
-				"field":   field,
-			})
+		if isOpenAIAgentIdentityCredentials(credentials) {
+			if strings.ToLower(strings.TrimSpace(platform)) != PlatformOpenAI {
+				return ErrOwnedAccountCredentialsInvalid.WithMetadata(map[string]string{
+					"field": "platform",
+				})
+			}
+			if err := ValidateOpenAIAgentIdentityCredentials(credentials); err != nil {
+				return ErrOwnedAccountCredentialsInvalid.WithMetadata(map[string]string{
+					"field": "agent_identity",
+				})
+			}
+			if field, ok := findDisallowedOwnedAgentIdentityField(credentials); ok {
+				return ErrOwnedAccountCredentialsNotAllowed.WithMetadata(map[string]string{
+					"section": "credentials",
+					"field":   field,
+				})
+			}
+		} else {
+			if !hasNonEmptyStringField(credentials, "access_token") {
+				return ErrOwnedAccountCredentialsInvalid.WithMetadata(map[string]string{
+					"field": "access_token",
+				})
+			}
+			if field, ok := findDisallowedOwnedAccountField(credentials); ok {
+				return ErrOwnedAccountCredentialsNotAllowed.WithMetadata(map[string]string{
+					"section": "credentials",
+					"field":   field,
+				})
+			}
 		}
 		if field, ok := findDisallowedOwnedAccountField(extra); ok {
 			return ErrOwnedAccountCredentialsNotAllowed.WithMetadata(map[string]string{
@@ -818,6 +837,29 @@ func hasNonEmptyStringField(values map[string]any, key string) bool {
 func findDisallowedOwnedAccountField(values map[string]any) (string, bool) {
 	return findDisallowedCredentialContent(values, credentialSafetyOptions{
 		AllowOAuthTokenValues:  true,
+		AllowOAuthMetadataURLs: true,
+	})
+}
+
+func findDisallowedOwnedAgentIdentityField(values map[string]any) (string, bool) {
+	remaining := make(map[string]any, len(values))
+	for key, value := range values {
+		remaining[key] = value
+	}
+	for _, field := range []string{
+		"auth_mode",
+		"agent_runtime_id",
+		"agent_private_key",
+		"task_id",
+		"chatgpt_account_id",
+		"chatgpt_user_id",
+		"chatgpt_account_is_fedramp",
+		"email",
+		"plan_type",
+	} {
+		delete(remaining, field)
+	}
+	return findDisallowedCredentialContent(remaining, credentialSafetyOptions{
 		AllowOAuthMetadataURLs: true,
 	})
 }
@@ -1343,6 +1385,10 @@ func accountDuplicateIdentityKeys(account *Account) []ownedAccountDuplicateKey {
 	case PlatformOpenAI:
 		if account.Type != AccountTypeOAuth {
 			return nil
+		}
+		if account.IsOpenAIAgentIdentity() {
+			add("openai.chatgpt_account_id", account.GetChatGPTAccountID())
+			return keys
 		}
 		if chatgptUserID := account.GetChatGPTUserID(); chatgptUserID != "" {
 			add("openai.chatgpt_user_id", chatgptUserID)

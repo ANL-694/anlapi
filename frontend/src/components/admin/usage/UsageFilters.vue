@@ -38,7 +38,7 @@
               <span>
                 {{ u.email }}
                 <span v-if="u.deleted" class="ml-1 text-xs text-gray-400">
-                  （{{ t('admin.usage.userDeletedBadge') }}）
+                  {{ t('admin.usage.userDeletedBadge') }}
                 </span>
               </span>
               <span class="ml-2 text-xs text-gray-400">#{{ u.id }}</span>

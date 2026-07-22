@@ -194,11 +194,12 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		firstTokenMs = streamResult.firstTokenMs
 		responseID = strings.TrimSpace(streamResult.responseID)
 	} else {
-		nonStreamUsage, _, err := s.handleNonStreamingResponse(ctx, resp, c, account, originalModel, upstreamModel)
+		nonStreamResult, err := s.handleNonStreamingResponse(ctx, resp, c, account, originalModel, upstreamModel)
 		if err != nil {
 			return nil, err
 		}
-		usage = nonStreamUsage
+		usage = nonStreamResult.usage
+		responseID = strings.TrimSpace(nonStreamResult.responseID)
 	}
 
 	if usage == nil {
@@ -225,19 +226,13 @@ func isGrokInvalidEncryptedContentResponse(statusCode int, body []byte) bool {
 		return false
 	}
 
-	topLevelCode := strings.TrimSpace(gjson.GetBytes(body, "code").String())
-	code := topLevelCode
+	code := strings.TrimSpace(gjson.GetBytes(body, "code").String())
 	message := ""
 	errorNode := gjson.GetBytes(body, "error")
 	switch {
 	case errorNode.Type == gjson.String:
 		message = errorNode.String()
 	case errorNode.IsObject():
-		// 保留 ANL 的严格门控：顶层 xAI code 与嵌套 OpenAI envelope
-		// 混用时不做恢复；仅接受没有顶层 code 的官方嵌套形态。
-		if topLevelCode != "" {
-			return false
-		}
 		message = firstNonEmpty(errorNode.Get("message").String(), errorNode.Get("error").String())
 		if code == "" {
 			code = strings.TrimSpace(errorNode.Get("code").String())
@@ -252,7 +247,7 @@ func isGrokInvalidEncryptedContentResponse(statusCode int, body []byte) bool {
 	if strings.EqualFold(code, "invalid_encrypted_content") {
 		return true
 	}
-	if code != "" && !strings.EqualFold(code, "invalid-argument") {
+	if !strings.EqualFold(code, "invalid-argument") && code != "" {
 		return false
 	}
 	if code == "" && !strings.Contains(normalizedMessage, "decrypt") {

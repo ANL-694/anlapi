@@ -21,11 +21,12 @@ const codexManagerOpenAIIssuer = "https://auth.openai.com"
 type AccountCredentialImportKind string
 
 const (
-	AccountCredentialImportKindOAuthCredentials   AccountCredentialImportKind = "oauth_credentials"
-	AccountCredentialImportKindOpenAIRefreshToken AccountCredentialImportKind = "openai_refresh_token"
-	AccountCredentialImportKindClaudeSessionKey   AccountCredentialImportKind = "claude_session_key"
-	AccountCredentialImportKindClaudeWebSession   AccountCredentialImportKind = "claude_web_session"
-	AccountCredentialImportKindKiroConfig         AccountCredentialImportKind = "kiro_config"
+	AccountCredentialImportKindOAuthCredentials    AccountCredentialImportKind = "oauth_credentials"
+	AccountCredentialImportKindOpenAIRefreshToken  AccountCredentialImportKind = "openai_refresh_token"
+	AccountCredentialImportKindOpenAIAgentIdentity AccountCredentialImportKind = "openai_agent_identity"
+	AccountCredentialImportKindClaudeSessionKey    AccountCredentialImportKind = "claude_session_key"
+	AccountCredentialImportKindClaudeWebSession    AccountCredentialImportKind = "claude_web_session"
+	AccountCredentialImportKindKiroConfig          AccountCredentialImportKind = "kiro_config"
 )
 
 type AccountCredentialImportSource struct {
@@ -60,9 +61,10 @@ type AccountCredentialImportResult struct {
 }
 
 type AccountCredentialImportOptions struct {
-	KiroConfigImport  bool
-	ClaudeWebImport   bool
-	ClaudeWebAuthMode string
+	KiroConfigImport          bool
+	ClaudeWebImport           bool
+	ClaudeWebAuthMode         string
+	OpenAIAgentIdentityImport bool
 }
 
 func ParseAccountCredentialImportContents(contents []string) ([]AccountCredentialImportSource, []AccountCredentialImportError) {
@@ -253,6 +255,11 @@ func accountCredentialImportSourceFromMap(item map[string]any, opts AccountCrede
 	}
 	if opts.ClaudeWebImport {
 		if source, handled, err := accountCredentialImportSourceFromClaudeWeb(item, opts.ClaudeWebAuthMode); handled || err != nil {
+			return source, err
+		}
+	}
+	if opts.OpenAIAgentIdentityImport {
+		if source, handled, err := accountCredentialImportSourceFromOpenAIAgentIdentity(item); handled || err != nil {
 			return source, err
 		}
 	}
@@ -531,6 +538,140 @@ func claudeWebCookieValue(cookieHeader, name string) string {
 		}
 	}
 	return ""
+}
+
+func accountCredentialImportSourceFromOpenAIAgentIdentity(item map[string]any) (AccountCredentialImportSource, bool, error) {
+	if len(item) == 0 {
+		return AccountCredentialImportSource{}, false, nil
+	}
+
+	envelope := item
+	wrappedCredentials := false
+	if credentials := importMapField(item, "credentials"); isOpenAIAgentIdentityImportEnvelope(credentials) {
+		envelope = credentials
+		wrappedCredentials = true
+	}
+	if !isOpenAIAgentIdentityImportEnvelope(envelope) {
+		return AccountCredentialImportSource{}, false, nil
+	}
+
+	authMode := importStringField(envelope, "auth_mode", "authMode")
+	if authMode != "" && !strings.EqualFold(authMode, OpenAIAuthModeAgentIdentity) {
+		return AccountCredentialImportSource{}, true, fmt.Errorf("unsupported OpenAI auth_mode: %s", authMode)
+	}
+	if requestedPlatform := importStringField(item, "platform", "provider", "service"); requestedPlatform != "" {
+		if normalizeCredentialImportPlatform(requestedPlatform) != PlatformOpenAI {
+			return AccountCredentialImportSource{}, true, fmt.Errorf("agent identity import requires OpenAI platform")
+		}
+	}
+	if accountType := strings.ToLower(strings.TrimSpace(importStringField(item, "type", "account_type", "accountType"))); accountType != "" && accountType != AccountTypeOAuth {
+		return AccountCredentialImportSource{}, true, fmt.Errorf("agent identity import requires OAuth account type")
+	}
+
+	identity := envelope
+	nestedIdentity := false
+	if rawIdentity, found := importAnyField(envelope, "agent_identity", "agentIdentity"); found {
+		parsedIdentity, ok := rawIdentity.(map[string]any)
+		if !ok {
+			return AccountCredentialImportSource{}, true, fmt.Errorf("agent identity must be an object")
+		}
+		identity = copyImportMap(parsedIdentity)
+		nestedIdentity = true
+	}
+
+	if wrappedCredentials {
+		topLevel := copyImportMap(item)
+		removeImportMapField(topLevel, "credentials")
+		if field, found := findDisallowedCredentialImportField(topLevel); found {
+			return AccountCredentialImportSource{}, true, fmt.Errorf("disallowed credential field: %s", field)
+		}
+	}
+	if nestedIdentity {
+		envelopeForSafety := copyImportMap(envelope)
+		removeImportMapField(envelopeForSafety, "auth_mode")
+		removeImportMapField(envelopeForSafety, "authMode")
+		removeImportMapField(envelopeForSafety, "agent_identity")
+		removeImportMapField(envelopeForSafety, "agentIdentity")
+		if field, found := findDisallowedCredentialImportField(envelopeForSafety); found {
+			return AccountCredentialImportSource{}, true, fmt.Errorf("disallowed credential field: %s", field)
+		}
+	}
+	identityForSafety := copyImportMap(identity)
+	for _, field := range []string{
+		"auth_mode", "authMode",
+		"agent_runtime_id", "agentRuntimeId",
+		"agent_private_key", "agentPrivateKey",
+		"task_id", "taskId",
+		"account_id", "accountId",
+		"chatgpt_account_id", "chatgptAccountId",
+		"chatgpt_user_id", "chatgptUserId",
+		"email", "plan_type", "planType",
+		"chatgpt_account_is_fedramp", "chatgptAccountIsFedramp",
+	} {
+		removeImportMapField(identityForSafety, field)
+	}
+	if field, found := findDisallowedCredentialImportField(identityForSafety); found {
+		return AccountCredentialImportSource{}, true, fmt.Errorf("disallowed credential field: %s", field)
+	}
+	for _, field := range []string{"access_token", "accessToken", "refresh_token", "refreshToken", "id_token", "idToken"} {
+		if _, found := importAnyField(identity, field); found {
+			return AccountCredentialImportSource{}, true, fmt.Errorf("agent identity must not include %s", field)
+		}
+	}
+
+	runtimeID := importStringField(identity, "agent_runtime_id", "agentRuntimeId")
+	privateKey := importStringField(identity, "agent_private_key", "agentPrivateKey")
+	accountID := credentialImportFirstNonEmptyString(
+		importStringField(identity, "account_id", "accountId"),
+		importStringField(identity, "chatgpt_account_id", "chatgptAccountId"),
+	)
+	userID := importStringField(identity, "chatgpt_user_id", "chatgptUserId")
+	credentials := map[string]any{
+		"auth_mode":          OpenAIAuthModeAgentIdentity,
+		"agent_runtime_id":   runtimeID,
+		"agent_private_key":  privateKey,
+		"chatgpt_account_id": accountID,
+		"chatgpt_user_id":    userID,
+	}
+	setImportStringIfMissing(credentials, "task_id", importStringField(identity, "task_id", "taskId"))
+	setImportStringIfMissing(credentials, "email", importStringField(identity, "email"))
+	setImportStringIfMissing(credentials, "plan_type", importStringField(identity, "plan_type", "planType"))
+	if fedRAMP, ok := importAnyField(identity, "chatgpt_account_is_fedramp", "chatgptAccountIsFedramp"); ok {
+		if value, valid := fedRAMP.(bool); valid {
+			credentials["chatgpt_account_is_fedramp"] = value
+		}
+	}
+	if err := ValidateOpenAIAgentIdentityCredentials(credentials); err != nil {
+		return AccountCredentialImportSource{}, true, err
+	}
+
+	extra := importMapField(item, "extra", "metadata")
+	if extra == nil {
+		extra = map[string]any{}
+	}
+	extra["import_source"] = "agent_identity"
+	return AccountCredentialImportSource{
+		Kind: AccountCredentialImportKindOpenAIAgentIdentity,
+		Name: credentialImportFirstNonEmptyString(
+			importStringField(item, "name", "label", "email"),
+			importStringField(identity, "email"),
+		),
+		Notes:       importOptionalStringField(item, "notes", "note", "description"),
+		Platform:    PlatformOpenAI,
+		Credentials: credentials,
+		Extra:       extra,
+	}, true, nil
+}
+
+func isOpenAIAgentIdentityImportEnvelope(values map[string]any) bool {
+	if len(values) == 0 {
+		return false
+	}
+	if strings.EqualFold(importStringField(values, "auth_mode", "authMode"), OpenAIAuthModeAgentIdentity) {
+		return true
+	}
+	_, found := importAnyField(values, "agent_identity", "agentIdentity")
+	return found
 }
 
 func accountCredentialImportSourceFromCodexManagerExport(item map[string]any) (AccountCredentialImportSource, bool, error) {

@@ -224,6 +224,7 @@ const (
 	accountLoadBatchFetchTimeout    = 3 * time.Second
 	maxAccountLoadBatchCacheEntries = 256
 	apiKeyConcurrencyFetchTimeout   = 3 * time.Second
+	userConcurrencyFetchTimeout     = 3 * time.Second
 	apiKeySlotTrackTimeout          = 2 * time.Second
 )
 
@@ -384,6 +385,20 @@ func (s *ConcurrencyService) AcquireUserSlot(ctx context.Context, userID int64, 
 		Acquired:    false,
 		ReleaseFunc: nil,
 	}, nil
+}
+
+// GetUserConcurrency returns the current active request count for one user.
+func (s *ConcurrencyService) GetUserConcurrency(ctx context.Context, userID int64) (int, error) {
+	if s == nil || s.cache == nil || userID <= 0 {
+		return 0, nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	readCtx, cancel := context.WithTimeout(ctx, userConcurrencyFetchTimeout)
+	defer cancel()
+
+	return s.cache.GetUserConcurrency(readCtx, userID)
 }
 
 // TrackAPIKeySlot records one active request slot for an API key without

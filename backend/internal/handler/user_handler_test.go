@@ -25,6 +25,17 @@ type userHandlerRepoStub struct {
 	unbound    []string
 }
 
+type userConcurrencyReaderStub struct {
+	current int
+	err     error
+	userID  int64
+}
+
+func (s *userConcurrencyReaderStub) GetUserConcurrency(_ context.Context, userID int64) (int, error) {
+	s.userID = userID
+	return s.current, s.err
+}
+
 func (s *userHandlerRepoStub) Create(context.Context, *service.User) error { return nil }
 func (s *userHandlerRepoStub) GetByID(context.Context, int64) (*service.User, error) {
 	cloned := *s.user
@@ -169,6 +180,46 @@ func TestUserHandlerUpdateProfileReturnsAvatarURL(t *testing.T) {
 	require.Equal(t, 0, resp.Code)
 	require.Equal(t, "https://cdn.example.com/avatar.png", resp.Data.AvatarURL)
 	require.Equal(t, "handler-avatar", resp.Data.Username)
+}
+
+func TestUserHandlerGetConcurrencyUsesAuthenticatedUser(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	reader := &userConcurrencyReaderStub{current: 3}
+	handler := NewUserHandler(nil, nil, nil, nil, nil, reader)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/user/concurrency", nil)
+	c.Set(string(middleware2.ContextKeyUser), middleware2.AuthSubject{UserID: 42})
+
+	handler.GetConcurrency(c)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Equal(t, int64(42), reader.userID)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			CurrentConcurrency int `json:"current_concurrency"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &resp))
+	require.Equal(t, 0, resp.Code)
+	require.Equal(t, 3, resp.Data.CurrentConcurrency)
+}
+
+func TestUserHandlerGetConcurrencyRequiresAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	reader := &userConcurrencyReaderStub{current: 3}
+	handler := NewUserHandler(nil, nil, nil, nil, nil, reader)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/user/concurrency", nil)
+
+	handler.GetConcurrency(c)
+
+	require.Equal(t, http.StatusUnauthorized, recorder.Code)
+	require.Zero(t, reader.userID)
 }
 
 func TestUserHandlerGetProfileReturnsIdentitySummaries(t *testing.T) {

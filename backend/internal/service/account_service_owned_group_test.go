@@ -849,6 +849,33 @@ func TestValidateOwnedAccountSourceAllowsOAuthMetadataURLs(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestValidateOwnedAccountSourceAllowsStrictOpenAIAgentIdentity(t *testing.T) {
+	err := validateOwnedAccountSource(PlatformOpenAI, AccountTypeOAuth, map[string]any{
+		"auth_mode":          OpenAIAuthModeAgentIdentity,
+		"agent_runtime_id":   "runtime-import",
+		"agent_private_key":  importTestAgentIdentityPrivateKey(t),
+		"chatgpt_account_id": "team-import",
+		"chatgpt_user_id":    "user-import",
+	}, nil)
+
+	require.NoError(t, err)
+}
+
+func TestValidateOwnedAccountSourceRejectsUnsafeAgentIdentityFields(t *testing.T) {
+	credentials := map[string]any{
+		"auth_mode":          OpenAIAuthModeAgentIdentity,
+		"agent_runtime_id":   "runtime-import",
+		"agent_private_key":  importTestAgentIdentityPrivateKey(t),
+		"chatgpt_account_id": "team-import",
+		"chatgpt_user_id":    "user-import",
+		"base_url":           "https://example.invalid/v1",
+	}
+
+	err := validateOwnedAccountSource(PlatformOpenAI, AccountTypeOAuth, credentials, nil)
+
+	require.ErrorIs(t, err, ErrOwnedAccountCredentialsNotAllowed)
+}
+
 func TestValidateOwnedAccountSourceRejectsCustomEndpointURL(t *testing.T) {
 	err := validateOwnedAccountSource(PlatformOpenAI, AccountTypeOAuth, map[string]any{
 		"access_token": "oauth-access-token",
@@ -1317,6 +1344,20 @@ func TestAccountServiceDuplicateIdentityKeys(t *testing.T) {
 		})
 
 		require.Contains(t, keys, ownedAccountDuplicateKey{Name: "openai.chatgpt_account_id", Value: "acct"})
+	})
+
+	t.Run("agent identity separates teams for the same user", func(t *testing.T) {
+		keys := accountDuplicateIdentityKeys(&Account{
+			Platform: PlatformOpenAI,
+			Type:     AccountTypeOAuth,
+			Credentials: map[string]any{
+				"auth_mode":          OpenAIAuthModeAgentIdentity,
+				"chatgpt_account_id": "team-account",
+				"chatgpt_user_id":    "shared-user",
+			},
+		})
+
+		require.Equal(t, []ownedAccountDuplicateKey{{Name: "openai.chatgpt_account_id", Value: "team-account"}}, keys)
 	})
 
 	t.Run("openai uses email before shared account identity when user identity is unavailable", func(t *testing.T) {

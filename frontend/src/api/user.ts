@@ -32,6 +32,15 @@ export async function getProfile(): Promise<User> {
   return data
 }
 
+export interface UserConcurrencyStatus {
+  current_concurrency: number
+}
+
+export async function getConcurrency(): Promise<UserConcurrencyStatus> {
+  const { data } = await apiClient.get<UserConcurrencyStatus>('/user/concurrency')
+  return data
+}
+
 /**
  * Update current user profile
  * @param profile - Profile data to update
@@ -249,6 +258,7 @@ export async function cancelWithdrawal(id: number, reason?: string): Promise<Wit
 
 export const userAPI = {
   getProfile,
+  getConcurrency,
   updateProfile,
   changePassword,
   getPlatformQuotas,

@@ -408,7 +408,7 @@ func TestOpenAIGatewayService_NativeOAuth_NamespaceNonStreamingResponse(t *testi
 		}`)),
 	}
 
-	result, _, err := (&OpenAIGatewayService{cfg: &config.Config{}}).handleNonStreamingResponse(
+	result, err := (&OpenAIGatewayService{cfg: &config.Config{}}).handleNonStreamingResponse(
 		context.Background(), resp, c, &Account{Type: AccountTypeOAuth}, "gpt-5.5", "gpt-5.5",
 	)
 	require.NoError(t, err)

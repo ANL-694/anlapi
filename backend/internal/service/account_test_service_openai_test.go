@@ -13,8 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"anlapi/internal/config"
+	"anlapi/internal/pkg/openai_compat"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 
 	"anlapi/internal/pkg/tlsfingerprint"
 )

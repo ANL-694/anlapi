@@ -24,12 +24,25 @@
           class="app-header-action-item app-header-subscription-progress"
         />
         <AnnouncementBell v-if="user" class="app-header-action-item app-header-announcement" />
+        <div
+          v-if="user"
+          class="app-header-concurrency"
+          role="status"
+          :aria-label="concurrencyDescription"
+          :title="concurrencyDescription"
+        >
+          <span class="app-header-concurrency-icon" aria-hidden="true">
+            <Icon name="bolt" size="sm" />
+          </span>
+          <span class="app-header-concurrency-label">{{ t('common.concurrency') }}</span>
+          <span class="app-header-concurrency-value">{{ formattedConcurrency }}</span>
+        </div>
         <router-link
           v-if="user"
           to="/purchase"
           class="app-header-balance"
-          :aria-label="`${t('dashboard.rechargeBalance')}: $${formattedBalance}`"
-          :title="t('dashboard.rechargeBalance')"
+          :aria-label="`${t('common.balance')}: $${formattedBalance}`"
+          :title="`${t('common.balance')}: $${formattedBalance}`"
         >
           <span class="app-header-balance-icon" aria-hidden="true">
             <Icon name="dollar" size="sm" />
@@ -38,7 +51,6 @@
           <span class="app-header-balance-value">
             ${{ formattedBalance }}
           </span>
-          <span class="app-header-balance-action">{{ t('dashboard.rechargeBalance') }}</span>
         </router-link>
 
         <div v-if="user" class="relative" ref="dropdownRef">
@@ -150,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
@@ -159,6 +171,9 @@ import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { userAPI } from '@/api'
+
+const CONCURRENCY_REFRESH_INTERVAL_MS = 5000
 
 const router = useRouter()
 const route = useRoute()
@@ -173,11 +188,25 @@ const formattedBalance = computed(() => {
   const balance = user.value?.balance
   return typeof balance === 'number' && Number.isFinite(balance) ? balance.toFixed(2) : '0.00'
 })
+const currentConcurrency = ref(0)
+const concurrencyLimit = computed(() => {
+  const limit = user.value?.concurrency
+  return typeof limit === 'number' && Number.isFinite(limit) && limit > 0
+    ? String(Math.floor(limit))
+    : '∞'
+})
+const formattedConcurrency = computed(() => `${currentConcurrency.value}/${concurrencyLimit.value}`)
+const concurrencyDescription = computed(() => t('common.concurrencyUsage', {
+  current: currentConcurrency.value,
+  limit: concurrencyLimit.value
+}))
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const contactInfo = computed(() => appStore.contactInfo)
 const docUrl = computed(() => appStore.docUrl)
 const avatarUrl = computed(() => user.value?.avatar_url?.trim() || '')
+let concurrencyPollTimer: number | null = null
+let concurrencyRequestInFlight = false
 
 // 只在标准模式的管理员下显示新手引导按钮
 const showOnboardingButton = computed(() => {
@@ -253,12 +282,48 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
+async function refreshUserConcurrency() {
+  const userID = user.value?.id
+  if (!userID || document.hidden || concurrencyRequestInFlight) return
+
+  concurrencyRequestInFlight = true
+  try {
+    const status = await userAPI.getConcurrency()
+    const current = Number(status.current_concurrency)
+    if (user.value?.id === userID && Number.isFinite(current) && current >= 0) {
+      currentConcurrency.value = Math.floor(current)
+    }
+  } catch {
+    // Keep the last successful value during transient API or Redis failures.
+  } finally {
+    concurrencyRequestInFlight = false
+  }
+}
+
+function handleVisibilityChange() {
+  if (!document.hidden) void refreshUserConcurrency()
+}
+
+watch(() => user.value?.id, () => {
+  currentConcurrency.value = 0
+  void refreshUserConcurrency()
+})
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  void refreshUserConcurrency()
+  concurrencyPollTimer = window.setInterval(() => {
+    void refreshUserConcurrency()
+  }, CONCURRENCY_REFRESH_INTERVAL_MS)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  if (concurrencyPollTimer !== null) {
+    window.clearInterval(concurrencyPollTimer)
+  }
 })
 </script>
 

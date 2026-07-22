@@ -48,6 +48,8 @@ export default {
     disabled: 'Disabled',
 	    total: 'Total',
 	    balance: 'Balance',
+	    concurrency: 'Concurrency',
+	    concurrencyUsage: 'Current concurrency: {current}/{limit}',
 	    availableBalance: 'Available balance',
 	    frozenBalance: 'Frozen balance',
 	    totalBalance: 'Total balance',
