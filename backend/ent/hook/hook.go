@@ -188,6 +188,18 @@ func (f ChannelMonitorRequestTemplateFunc) Mutate(ctx context.Context, m ent.Mut
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ChannelMonitorRequestTemplateMutation", m)
 }
 
+// The CompositeModelRouteFunc type is an adapter to allow the use of ordinary
+// function as CompositeModelRoute mutator.
+type CompositeModelRouteFunc func(context.Context, *ent.CompositeModelRouteMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CompositeModelRouteFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CompositeModelRouteMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CompositeModelRouteMutation", m)
+}
+
 // The EmailBroadcastFunc type is an adapter to allow the use of ordinary
 // function as EmailBroadcast mutator.
 type EmailBroadcastFunc func(context.Context, *ent.EmailBroadcastMutation) (ent.Value, error)

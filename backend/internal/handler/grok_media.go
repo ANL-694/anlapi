@@ -473,7 +473,7 @@ func recordGrokMediaUsage(
 	upstreamEndpoint := GetUpstreamEndpoint(c, account.Platform)
 	quotaPlatform := service.QuotaPlatform(c.Request.Context(), apiKey)
 	channelUsageFields := service.ChannelUsageFields{
-		OriginalModel:      requestModel,
+		OriginalModel:      clientRequestedModel(c, requestModel),
 		ChannelMappedModel: requestModel,
 	}
 	h.submitOpenAIUsageRecordTask(c.Request.Context(), result, func(ctx context.Context) {

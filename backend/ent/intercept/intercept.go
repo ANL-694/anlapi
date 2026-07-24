@@ -22,6 +22,7 @@ import (
 	"anlapi/ent/channelmonitordailyrollup"
 	"anlapi/ent/channelmonitorhistory"
 	"anlapi/ent/channelmonitorrequesttemplate"
+	"anlapi/ent/compositemodelroute"
 	"anlapi/ent/emailbroadcast"
 	"anlapi/ent/errorpassthroughrule"
 	"anlapi/ent/group"
@@ -517,6 +518,33 @@ func (f TraverseChannelMonitorRequestTemplate) Traverse(ctx context.Context, q e
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.ChannelMonitorRequestTemplateQuery", q)
+}
+
+// The CompositeModelRouteFunc type is an adapter to allow the use of ordinary function as a Querier.
+type CompositeModelRouteFunc func(context.Context, *ent.CompositeModelRouteQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f CompositeModelRouteFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.CompositeModelRouteQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.CompositeModelRouteQuery", q)
+}
+
+// The TraverseCompositeModelRoute type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseCompositeModelRoute func(context.Context, *ent.CompositeModelRouteQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseCompositeModelRoute) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseCompositeModelRoute) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.CompositeModelRouteQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.CompositeModelRouteQuery", q)
 }
 
 // The EmailBroadcastFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -1389,6 +1417,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.ChannelMonitorHistoryQuery, predicate.ChannelMonitorHistory, channelmonitorhistory.OrderOption]{typ: ent.TypeChannelMonitorHistory, tq: q}, nil
 	case *ent.ChannelMonitorRequestTemplateQuery:
 		return &query[*ent.ChannelMonitorRequestTemplateQuery, predicate.ChannelMonitorRequestTemplate, channelmonitorrequesttemplate.OrderOption]{typ: ent.TypeChannelMonitorRequestTemplate, tq: q}, nil
+	case *ent.CompositeModelRouteQuery:
+		return &query[*ent.CompositeModelRouteQuery, predicate.CompositeModelRoute, compositemodelroute.OrderOption]{typ: ent.TypeCompositeModelRoute, tq: q}, nil
 	case *ent.EmailBroadcastQuery:
 		return &query[*ent.EmailBroadcastQuery, predicate.EmailBroadcast, emailbroadcast.OrderOption]{typ: ent.TypeEmailBroadcast, tq: q}, nil
 	case *ent.ErrorPassthroughRuleQuery:

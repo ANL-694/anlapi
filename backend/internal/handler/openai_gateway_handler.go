@@ -130,8 +130,16 @@ func wrapUsageRecordTaskContext(parent context.Context, task service.UsageRecord
 	}
 }
 
-func openAICompatibleRequestPlatform(apiKey *service.APIKey) string {
+func openAICompatibleRequestPlatform(ctx context.Context, apiKey *service.APIKey) string {
 	if apiKey != nil && apiKey.Group != nil {
+		if apiKey.Group.Platform == service.PlatformComposite {
+			if platform, ok := service.ResolvedTargetPlatformForGroup(ctx, apiKey.Group.ID); ok {
+				if platform == service.PlatformGrok {
+					return service.PlatformGrok
+				}
+				return service.PlatformOpenAI
+			}
+		}
 		switch apiKey.Group.Platform {
 		case service.PlatformGrok:
 			return service.PlatformGrok
@@ -290,6 +298,11 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 		return
 	}
 	reqModel := modelResult.String()
+	ensureCompositeTargetPlatform(c, apiKey, reqModel)
+	if !compositeTargetPlatformAllowed(c, apiKey, reqModel, service.PlatformOpenAI, service.PlatformGrok) {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Model is not supported by this endpoint for composite groups")
+		return
+	}
 	requestedModel := reqModel
 	autoDecision := h.gatewayService.ResolveAutoModel(c.Request.Context(), apiKey.GroupID, reqModel, body, service.AutoModelProtocolOpenAIResponses)
 	if autoDecision.Matched {
@@ -411,7 +424,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 	// 仅对 OpenAI 平台生效：Grok 生图走独立的 forwardGrokResponses 路径，不应被过滤。
 	// 使用 IsExplicitImageGenerationIntent 排除被动 image_gen namespace 声明，
 	// 避免 Codex 的被动工具目录使 CC-only 账号被误过滤（#4476）。
-	requestPlatform := openAICompatibleRequestPlatform(apiKey)
+	requestPlatform := openAICompatibleRequestPlatform(c.Request.Context(), apiKey)
 	requiredCapability := service.OpenAIEndpointCapabilityChatCompletions
 	if imageIntent && requestPlatform == service.PlatformOpenAI {
 		requiredCapability = service.OpenAIEndpointCapabilityResponses
@@ -456,7 +469,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 			zap.Int("excluded_account_count", len(failedAccountIDs)),
 			zap.Int64p("group_id", currentAPIKey.GroupID),
 		)
-		requestPlatform = openAICompatibleRequestPlatform(currentAPIKey)
+		requestPlatform = openAICompatibleRequestPlatform(c.Request.Context(), currentAPIKey)
 		selection, scheduleDecision, err := h.gatewayService.SelectAccountWithSchedulerForCapability(
 			routeCtx,
 			currentAPIKey.GroupID,
@@ -848,6 +861,11 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 		return
 	}
 	reqModel := modelResult.String()
+	ensureCompositeTargetPlatform(c, apiKey, reqModel)
+	if !compositeTargetPlatformAllowed(c, apiKey, reqModel, service.PlatformOpenAI, service.PlatformGrok) {
+		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Model is not supported by this endpoint for composite groups")
+		return
+	}
 	reqStream := gjson.GetBytes(body, "stream").Bool()
 	requestedModel := reqModel
 	autoDecision := h.gatewayService.ResolveAutoModel(c.Request.Context(), apiKey.GroupID, reqModel, body, service.AutoModelProtocolAnthropicMessages)
@@ -976,7 +994,7 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 			zap.Int("excluded_account_count", len(failedAccountIDs)),
 			zap.Int64p("group_id", currentAPIKey.GroupID),
 		)
-		requestPlatform := openAICompatibleRequestPlatform(currentAPIKey)
+		requestPlatform := openAICompatibleRequestPlatform(c.Request.Context(), currentAPIKey)
 		selection, scheduleDecision, err := h.gatewayService.SelectAccountWithSchedulerForCapability(
 			routeCtx,
 			currentAPIKey.GroupID,
@@ -1536,10 +1554,37 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 		closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, "invalid JSON payload")
 		return
 	}
-	reqModel := strings.TrimSpace(gjson.GetBytes(firstMessage, "model").String())
-	if reqModel == "" {
+	requestedModel := strings.TrimSpace(gjson.GetBytes(firstMessage, "model").String())
+	if requestedModel == "" {
 		closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, "model is required in first response.create payload")
 		return
+	}
+	reqModel := requestedModel
+	if apiKey.Group != nil && apiKey.Group.Platform == service.PlatformComposite {
+		resolvedKey, compositeDecision, resolveErr := h.gatewayService.ResolveCompositeRouteForAPIKey(
+			ctx,
+			apiKey,
+			requestedModel,
+			service.CompositeRouteEndpointResponses,
+		)
+		if resolveErr != nil {
+			closeOpenAIClientWS(wsConn, coderws.StatusInternalError, "failed to resolve composite model route")
+			return
+		}
+		if !compositeDecision.Matched || (compositeDecision.TargetPlatform != service.PlatformOpenAI && compositeDecision.TargetPlatform != service.PlatformGrok) {
+			closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, "model is not supported by this endpoint for composite groups")
+			return
+		}
+		ctx = service.WithCompositeRouteDecision(ctx, compositeDecision)
+		c.Request = c.Request.WithContext(ctx)
+		if resolvedKey != apiKey {
+			c.Set(string(middleware2.ContextKeyAPIKey), resolvedKey)
+			apiKey = resolvedKey
+		}
+		if upstreamModel := strings.TrimSpace(compositeDecision.UpstreamModel); upstreamModel != "" {
+			reqModel = upstreamModel
+			firstMessage = h.gatewayService.ReplaceModelInBody(firstMessage, upstreamModel)
+		}
 	}
 	previousResponseID := strings.TrimSpace(gjson.GetBytes(firstMessage, "previous_response_id").String())
 	previousResponseIDKind := service.ClassifyOpenAIPreviousResponseIDKind(previousResponseID)
@@ -1549,11 +1594,12 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 	}
 	reqLog = reqLog.With(
 		zap.Bool("ws_ingress", true),
-		zap.String("model", reqModel),
+		zap.String("model", requestedModel),
+		zap.String("routing_model", reqModel),
 		zap.Bool("has_previous_response_id", previousResponseID != ""),
 		zap.String("previous_response_id_kind", previousResponseIDKind),
 	)
-	setOpsRequestContext(c, reqModel, true, firstMessage)
+	setOpsRequestContext(c, requestedModel, true, firstMessage)
 	setOpsEndpointContext(c, "", int16(service.RequestTypeWSV2))
 
 	if decision := h.checkSecurityAuditStage(c, reqLog, apiKey, subject, service.ContentModerationProtocolOpenAIResponses, reqModel, firstMessage, "first_turn"); decision != nil && !decision.AllowNextStage {
@@ -1675,7 +1721,7 @@ attemptLoop:
 				return
 			}
 			var selectErr error
-			requestPlatform := openAICompatibleRequestPlatform(currentAPIKey)
+			requestPlatform := openAICompatibleRequestPlatform(c.Request.Context(), currentAPIKey)
 			requiredTransport := service.OpenAIUpstreamTransportResponsesWebsocketV2Ingress
 			if requestPlatform == service.PlatformGrok {
 				requiredTransport = service.OpenAIUpstreamTransportHTTPSSE
@@ -1903,7 +1949,7 @@ attemptLoop:
 						RequestPayloadHash: requestPayloadHash,
 						APIKeyService:      h.apiKeyService,
 						QuotaPlatform:      quotaPlatform,
-						ChannelUsageFields: channelMappingWS.ToUsageFields(reqModel, result.UpstreamModel),
+						ChannelUsageFields: clientRequestedUsageFields(c, channelMappingWS, reqModel, result.UpstreamModel),
 					}); err != nil {
 						reqLog.Error("openai.websocket_record_usage_failed",
 							zap.Int64("account_id", account.ID),

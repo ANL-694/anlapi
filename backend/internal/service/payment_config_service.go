@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 
@@ -16,26 +17,27 @@ import (
 )
 
 const (
-	SettingPaymentEnabled      = "payment_enabled"
-	SettingMinRechargeAmount   = "MIN_RECHARGE_AMOUNT"
-	SettingMaxRechargeAmount   = "MAX_RECHARGE_AMOUNT"
-	SettingDailyRechargeLimit  = "DAILY_RECHARGE_LIMIT"
-	SettingOrderTimeoutMinutes = "ORDER_TIMEOUT_MINUTES"
-	SettingMaxPendingOrders    = "MAX_PENDING_ORDERS"
-	SettingEnabledPaymentTypes = "ENABLED_PAYMENT_TYPES"
-	SettingLoadBalanceStrategy = "LOAD_BALANCE_STRATEGY"
-	SettingBalancePayDisabled  = "BALANCE_PAYMENT_DISABLED"
-	SettingBalanceRechargeMult = "BALANCE_RECHARGE_MULTIPLIER"
-	SettingRechargeFeeRate     = "RECHARGE_FEE_RATE"
-	SettingProductNamePrefix   = "PRODUCT_NAME_PREFIX"
-	SettingProductNameSuffix   = "PRODUCT_NAME_SUFFIX"
-	SettingHelpImageURL        = "PAYMENT_HELP_IMAGE_URL"
-	SettingHelpText            = "PAYMENT_HELP_TEXT"
-	SettingCancelRateLimitOn   = "CANCEL_RATE_LIMIT_ENABLED"
-	SettingCancelRateLimitMax  = "CANCEL_RATE_LIMIT_MAX"
-	SettingCancelWindowSize    = "CANCEL_RATE_LIMIT_WINDOW"
-	SettingCancelWindowUnit    = "CANCEL_RATE_LIMIT_UNIT"
-	SettingCancelWindowMode    = "CANCEL_RATE_LIMIT_WINDOW_MODE"
+	SettingPaymentEnabled                = "payment_enabled"
+	SettingMinRechargeAmount             = "MIN_RECHARGE_AMOUNT"
+	SettingMaxRechargeAmount             = "MAX_RECHARGE_AMOUNT"
+	SettingDailyRechargeLimit            = "DAILY_RECHARGE_LIMIT"
+	SettingOrderTimeoutMinutes           = "ORDER_TIMEOUT_MINUTES"
+	SettingMaxPendingOrders              = "MAX_PENDING_ORDERS"
+	SettingEnabledPaymentTypes           = "ENABLED_PAYMENT_TYPES"
+	SettingLoadBalanceStrategy           = "LOAD_BALANCE_STRATEGY"
+	SettingBalancePayDisabled            = "BALANCE_PAYMENT_DISABLED"
+	SettingBalanceRechargeMult           = "BALANCE_RECHARGE_MULTIPLIER"
+	SettingRechargeFeeRate               = "RECHARGE_FEE_RATE"
+	SettingProductNamePrefix             = "PRODUCT_NAME_PREFIX"
+	SettingProductNameSuffix             = "PRODUCT_NAME_SUFFIX"
+	SettingHelpImageURL                  = "PAYMENT_HELP_IMAGE_URL"
+	SettingHelpText                      = "PAYMENT_HELP_TEXT"
+	SettingCancelRateLimitOn             = "CANCEL_RATE_LIMIT_ENABLED"
+	SettingCancelRateLimitMax            = "CANCEL_RATE_LIMIT_MAX"
+	SettingCancelWindowSize              = "CANCEL_RATE_LIMIT_WINDOW"
+	SettingCancelWindowUnit              = "CANCEL_RATE_LIMIT_UNIT"
+	SettingCancelWindowMode              = "CANCEL_RATE_LIMIT_WINDOW_MODE"
+	SettingAlipayMobilePrecreateDeepLink = "ALIPAY_MOBILE_PRECREATE_DEEP_LINK"
 
 	SettingPaymentReceiptCodeOSSEnabled              = "payment_receipt_code_oss_enabled"
 	SettingPaymentReceiptCodeOSSEndpoint             = "payment_receipt_code_oss_endpoint"
@@ -89,6 +91,8 @@ type PaymentConfig struct {
 	CancelRateLimitUnit    string `json:"cancel_rate_limit_unit"`
 	CancelRateLimitMode    string `json:"cancel_rate_limit_window_mode"`
 
+	AlipayMobilePrecreateDeepLink bool `json:"alipay_mobile_precreate_deep_link"`
+
 	ReceiptCodeOSS ReceiptCodeOSSConfig `json:"receipt_code_oss"`
 }
 
@@ -131,6 +135,8 @@ type UpdatePaymentConfigRequest struct {
 	CancelRateLimitWindow  *int    `json:"cancel_rate_limit_window"`
 	CancelRateLimitUnit    *string `json:"cancel_rate_limit_unit"`
 	CancelRateLimitMode    *string `json:"cancel_rate_limit_window_mode"`
+
+	AlipayMobilePrecreateDeepLink *bool `json:"alipay_mobile_precreate_deep_link"`
 
 	VisibleMethodAlipaySource  *string `json:"payment_visible_method_alipay_source"`
 	VisibleMethodWxpaySource   *string `json:"payment_visible_method_wxpay_source"`
@@ -255,6 +261,7 @@ func (s *PaymentConfigService) GetPaymentConfig(ctx context.Context) (*PaymentCo
 		SettingHelpImageURL, SettingHelpText,
 		SettingCancelRateLimitOn, SettingCancelRateLimitMax,
 		SettingCancelWindowSize, SettingCancelWindowUnit, SettingCancelWindowMode,
+		SettingAlipayMobilePrecreateDeepLink,
 		SettingPaymentVisibleMethodAlipayEnabled, SettingPaymentVisibleMethodAlipaySource,
 		SettingPaymentVisibleMethodWxpayEnabled, SettingPaymentVisibleMethodWxpaySource,
 		SettingPaymentReceiptCodeOSSEnabled, SettingPaymentReceiptCodeOSSEndpoint,
@@ -296,7 +303,10 @@ func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *Payme
 		CancelRateLimitWindow:  pcParseInt(vals[SettingCancelWindowSize], 1),
 		CancelRateLimitUnit:    vals[SettingCancelWindowUnit],
 		CancelRateLimitMode:    vals[SettingCancelWindowMode],
+
+		AlipayMobilePrecreateDeepLink: vals[SettingAlipayMobilePrecreateDeepLink] == "true",
 	}
+	cfg.AlipayMobilePrecreateDeepLink = pcEnvBoolOverride(SettingAlipayMobilePrecreateDeepLink, cfg.AlipayMobilePrecreateDeepLink)
 	cfg.ReceiptCodeOSS = s.parseReceiptCodeOSSConfig(vals)
 	if cfg.LoadBalanceStrategy == "" {
 		cfg.LoadBalanceStrategy = payment.DefaultLoadBalanceStrategy
@@ -312,6 +322,18 @@ func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *Payme
 		cfg.EnabledTypes = NormalizeVisibleMethods(types)
 	}
 	return cfg
+}
+
+func pcEnvBoolOverride(key string, fallback bool) bool {
+	raw, ok := os.LookupEnv(key)
+	if !ok || strings.TrimSpace(raw) == "" {
+		return fallback
+	}
+	value, err := strconv.ParseBool(strings.TrimSpace(raw))
+	if err != nil {
+		return fallback
+	}
+	return value
 }
 
 func (s *PaymentConfigService) parseReceiptCodeOSSConfig(vals map[string]string) ReceiptCodeOSSConfig {
@@ -428,6 +450,7 @@ func (s *PaymentConfigService) UpdatePaymentConfig(ctx context.Context, req Upda
 		SettingCancelWindowSize:                  formatPositiveInt(req.CancelRateLimitWindow),
 		SettingCancelWindowUnit:                  derefStr(req.CancelRateLimitUnit),
 		SettingCancelWindowMode:                  derefStr(req.CancelRateLimitMode),
+		SettingAlipayMobilePrecreateDeepLink:     formatBoolOrEmpty(req.AlipayMobilePrecreateDeepLink),
 		SettingPaymentVisibleMethodAlipaySource:  derefStr(req.VisibleMethodAlipaySource),
 		SettingPaymentVisibleMethodWxpaySource:   derefStr(req.VisibleMethodWxpaySource),
 		SettingPaymentVisibleMethodAlipayEnabled: formatBoolOrEmpty(req.VisibleMethodAlipayEnabled),

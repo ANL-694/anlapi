@@ -40,6 +40,14 @@ QQ 群：`146499741`
 - 前端控制台基于 Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS 和 Vite。
 - 后端服务基于 Go、Gin、Ent、PostgreSQL、Redis 和模块化服务边界。
 
+## 1.0.8 更新内容
+
+- 对齐 Sub2API v0.1.164 的兼容修复：Codex 批量导入索引、GPT-5.6 具体测试模型、OAuth `input` 规范化和渠道模型名归一化。
+- OpenAI 流式响应异常断开后按共享代理隔离后续调度，正常结束和客户端主动取消不会误隔离。
+- Grok 账号收到 402 后进入冷却；简易模式自动创建的 Grok 默认分组补齐生图能力，保留管理员显式关闭的分组设置。
+- CC Switch 的 Grok Key 导入到 Grok Build；模型限流时间补全日期，并加强浏览器会话字段的审计脱敏。
+- 保留 ANL 的支付、余额、生图专线、OAuth/API Key 隔离和用户级并发策略。本次不直接引入上游的聚合分组、Ollama Cloud 用量和支付宝移动端深链模块。
+
 ## 1.0.7 更新内容
 
 - 对齐 Sub2API v0.1.163：新增分组级 OpenAI/Codex 推理力度上限与精确映射，并在 HTTP、WebSocket 转发链路统一执行。

@@ -567,7 +567,7 @@ export interface PaginationConfig {
 
 // ==================== API Key & Group Types ====================
 
-export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'kiro' | 'custom'
+export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'kiro' | 'custom' | 'composite'
 
 export type SubscriptionType = 'standard' | 'subscription'
 export type GroupScope = 'public' | 'user_private' | 'user_carpool'
@@ -1027,6 +1027,53 @@ export interface UpstreamBillingProbeResult {
   error?: string
 }
 
+export type OllamaCloudUsageStatus = 'ok' | 'unauthorized' | 'failed'
+
+export interface OllamaCloudUsageWindow {
+  used_percent: number
+  reset_at?: string
+  reset_text?: string
+}
+
+export interface OllamaCloudUsageModel {
+  model: string
+  window: 'five_hour' | 'seven_day'
+  requests: number
+}
+
+export interface OllamaCloudUsageData {
+  plan?: string
+  five_hour?: OllamaCloudUsageWindow
+  seven_day?: OllamaCloudUsageWindow
+  balance?: string
+  models?: OllamaCloudUsageModel[]
+}
+
+export interface OllamaCloudUsageSnapshot {
+  status: OllamaCloudUsageStatus
+  data?: OllamaCloudUsageData
+  fetched_at?: string
+  last_attempt_at: string
+  next_refresh_at: string
+  failure_count?: number
+  http_status?: number
+  last_error?: string
+}
+
+export interface OllamaCloudUsageState {
+  account_id: number
+  eligible: boolean
+  configured: boolean
+  auto_refresh_enabled: boolean
+  encryption_key_configured: boolean
+  snapshot?: OllamaCloudUsageSnapshot
+}
+
+export interface OllamaCloudUsageSettings {
+  enabled: boolean
+  interval_minutes: number
+}
+
 export interface Account {
   id: number
   name: string
@@ -1035,6 +1082,7 @@ export interface Account {
   account_level: AccountLevel
   type: AccountType
   credentials?: Record<string, unknown>
+  ollama_cloud_usage?: OllamaCloudUsageState
   // Extra fields including Codex usage, OpenAI compact capability, and model-level rate limits.
   extra?: CodexUsageSnapshot &
     OpenAICompactState & {

@@ -59,6 +59,14 @@ func (h *AsyncImageHandler) Submit(c *gin.Context) {
 	if apiKey.Group != nil {
 		platform = apiKey.Group.Platform
 	}
+	if platform == service.PlatformComposite {
+		resolvedPlatform, resolved := service.ResolvedTargetPlatformForGroup(c.Request.Context(), apiKey.Group.ID)
+		if !resolved {
+			imageTaskJSONError(c, http.StatusBadRequest, "invalid_request_error", "Model is not resolved for this composite image group")
+			return
+		}
+		platform = resolvedPlatform
+	}
 	if platform != service.PlatformOpenAI && platform != service.PlatformGrok {
 		imageTaskJSONError(c, http.StatusNotFound, "not_found_error", "Images API is not supported for this platform")
 		return

@@ -13,6 +13,7 @@ type stubAdminService struct {
 	users                   []service.User
 	apiKeys                 []service.APIKey
 	groups                  []service.Group
+	compositeRoutes         []service.CompositeModelRoute
 	accounts                []service.Account
 	proxies                 []service.Proxy
 	proxyCounts             []service.ProxyWithAccountCount
@@ -329,6 +330,44 @@ func (s *stubAdminService) UpdateGroup(ctx context.Context, id int64, input *ser
 
 func (s *stubAdminService) DeleteGroup(ctx context.Context, id int64) error {
 	return nil
+}
+
+func (s *stubAdminService) ListCompositeRoutes(ctx context.Context, groupID int64) ([]service.CompositeModelRoute, error) {
+	return s.compositeRoutes, nil
+}
+
+func (s *stubAdminService) CreateCompositeRoute(ctx context.Context, groupID int64, input service.CompositeRouteInput) (*service.CompositeModelRoute, error) {
+	route := service.CompositeModelRoute{
+		ID:             int64(len(s.compositeRoutes) + 1),
+		GroupID:        groupID,
+		PublicModel:    input.PublicModel,
+		MatchType:      input.MatchType,
+		TargetPlatform: input.TargetPlatform,
+		UpstreamModel:  input.UpstreamModel,
+		Endpoint:       input.Endpoint,
+		Priority:       input.Priority,
+		Enabled:        input.Enabled,
+		Notes:          input.Notes,
+	}
+	s.compositeRoutes = append(s.compositeRoutes, route)
+	return &route, nil
+}
+
+func (s *stubAdminService) UpdateCompositeRoute(ctx context.Context, groupID, routeID int64, input service.CompositeRouteInput) (*service.CompositeModelRoute, error) {
+	route, err := s.CreateCompositeRoute(ctx, groupID, input)
+	if err != nil {
+		return nil, err
+	}
+	route.ID = routeID
+	return route, nil
+}
+
+func (s *stubAdminService) DeleteCompositeRoute(ctx context.Context, groupID, routeID int64) error {
+	return nil
+}
+
+func (s *stubAdminService) PreviewCompositeRoute(ctx context.Context, groupID int64, input service.CompositeRoutePreviewRequest) (*service.CompositeRouteDecision, error) {
+	return &service.CompositeRouteDecision{GroupID: groupID, PublicModel: input.Model}, nil
 }
 
 func (s *stubAdminService) GetGroupAPIKeys(ctx context.Context, groupID int64, page, pageSize int) ([]service.APIKey, int64, error) {

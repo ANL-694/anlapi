@@ -16,6 +16,7 @@ func ProvideAdminHandlers(
 	groupHandler *admin.GroupHandler,
 	accountHandler *admin.AccountHandler,
 	upstreamBillingProbe *service.UpstreamBillingProbeService,
+	ollamaCloudUsage *service.OllamaCloudUsageService,
 	accountSharePolicyHandler *admin.AccountSharePolicyHandler,
 	carpoolHandler *admin.CarpoolHandler,
 	announcementHandler *admin.AnnouncementHandler,
@@ -56,6 +57,7 @@ func ProvideAdminHandlers(
 	moduleHandler *admin.ModuleHandler,
 ) *AdminHandlers {
 	accountHandler.SetUpstreamBillingProbeService(upstreamBillingProbe)
+	accountHandler.SetOllamaCloudUsageService(ollamaCloudUsage)
 	return &AdminHandlers{
 		Dashboard:              dashboardHandler,
 		User:                   userHandler,

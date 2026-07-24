@@ -2,6 +2,7 @@ import type { GroupPlatform } from '@/types'
 
 export const OPENAI_CC_SWITCH_CODEX_MODEL = 'gpt-5.5'
 export const OPENAI_CC_SWITCH_REASONING_EFFORT = 'xhigh'
+export const GROK_CC_SWITCH_MODEL = 'grok-4.5'
 
 export type CcSwitchClientType = 'claude' | 'gemini'
 
@@ -58,6 +59,11 @@ wire_api = "responses"
 requires_openai_auth = true`
 }
 
+function withV1Endpoint(baseUrl: string): string {
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '')
+  return normalizedBaseUrl.endsWith('/v1') ? normalizedBaseUrl : `${normalizedBaseUrl}/v1`
+}
+
 export function resolveCcSwitchImportConfig(
   platform: GroupPlatform | undefined | null,
   clientType: CcSwitchClientType,
@@ -79,6 +85,12 @@ export function resolveCcSwitchImportConfig(
       return {
         app: 'gemini',
         endpoint: baseUrl
+      }
+    case 'grok':
+      return {
+        app: 'grokbuild',
+        endpoint: withV1Endpoint(baseUrl),
+        model: GROK_CC_SWITCH_MODEL
       }
     default:
       return {

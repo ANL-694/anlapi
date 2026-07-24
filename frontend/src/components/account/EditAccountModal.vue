@@ -1516,6 +1516,12 @@
         </div>
       </div>
 
+      <OllamaCloudUsageSettings
+        v-if="!isUserScope && account?.ollama_cloud_usage?.eligible"
+        :account="account"
+        @updated="handleOllamaCloudUsageUpdated"
+      />
+
       <!-- Anthropic API Key 自动透传开关 -->
       <div
         v-if="account?.platform === 'anthropic' && account?.type === 'apikey'"
@@ -2370,7 +2376,7 @@ import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
 import { accountsAPI } from '@/api/accounts'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
-import type { Account, Proxy, AdminGroup, CheckMixedChannelResponse, OpenAICompactMode, AccountLevel, AccountShareMode, CustomAccountProtocol, GroupPlatform, UpdateAccountRequest } from '@/types'
+import type { Account, Proxy, AdminGroup, CheckMixedChannelResponse, OpenAICompactMode, AccountLevel, AccountShareMode, CustomAccountProtocol, GroupPlatform, UpdateAccountRequest, OllamaCloudUsageState } from '@/types'
 import type { AccountApiScope } from '@/composables/useAccountOAuth'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
@@ -2380,6 +2386,7 @@ import Icon from '@/components/icons/Icon.vue'
 import ProxySelector from '@/components/common/ProxySelector.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import HeaderOverrideEditor from '@/components/account/HeaderOverrideEditor.vue'
+import OllamaCloudUsageSettings from '@/components/account/OllamaCloudUsageSettings.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
 import GrokBaseUrlPresets from '@/components/account/GrokBaseUrlPresets.vue'
@@ -2444,6 +2451,9 @@ const { t } = useI18n()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const isSparkShadow = computed(() => props.account?.parent_account_id != null)
+const handleOllamaCloudUsageUpdated = (state: OllamaCloudUsageState) => {
+  if (props.account) emit('updated', { ...props.account, ollama_cloud_usage: state })
+}
 const accountScope = computed(() => props.accountScope ?? 'admin')
 const isUserScope = computed(() => accountScope.value === 'user')
 const canManageProxy = computed(() => props.allowProxy !== false)

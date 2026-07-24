@@ -411,6 +411,7 @@ type OpenAIGatewayService struct {
 	toolCorrector          *CodexToolCorrector
 	openaiWSResolver       OpenAIWSProtocolResolver
 	resolver               *ModelPricingResolver
+	compositeResolver      *CompositeRouteResolver
 	channelService         *ChannelService
 	balanceNotifyService   *BalanceNotifyService
 	settingService         *SettingService
@@ -420,6 +421,7 @@ type OpenAIGatewayService struct {
 	openaiWSPoolOnce              sync.Once
 	openaiWSStateStoreOnce        sync.Once
 	openaiSchedulerOnce           sync.Once
+	openaiProxyStreamCircuitOnce  sync.Once
 	openaiWSPassthroughDialerOnce sync.Once
 	openaiModelTransientOnce      sync.Once
 	agentIdentityTaskMu           sync.Mutex
@@ -429,6 +431,7 @@ type OpenAIGatewayService struct {
 	openaiWSPassthroughDialer     openAIWSClientDialer
 	openaiAccountStats            *openAIAccountRuntimeStats
 	openaiModelTransient          *openAIAccountModelTransientState
+	openaiProxyStreamCircuit      *openAIProxyStreamCircuit
 
 	openaiWSFallbackUntil               sync.Map // key: int64(accountID), value: time.Time
 	openaiAccountRuntimeBlockUntil      sync.Map // key: int64(accountID), value: time.Time
@@ -466,6 +469,7 @@ func NewOpenAIGatewayService(deps ...any) *OpenAIGatewayService {
 		openAITokenProvider    *OpenAITokenProvider
 		grokTokenProvider      *GrokTokenProvider
 		resolver               *ModelPricingResolver
+		compositeResolver      *CompositeRouteResolver
 		channelService         *ChannelService
 		balanceNotifyService   *BalanceNotifyService
 		settingService         *SettingService
@@ -527,6 +531,8 @@ func NewOpenAIGatewayService(deps ...any) *OpenAIGatewayService {
 			grokTokenProvider = value
 		case *ModelPricingResolver:
 			resolver = value
+		case *CompositeRouteResolver:
+			compositeResolver = value
 		case *ChannelService:
 			channelService = value
 		case *BalanceNotifyService:
@@ -566,6 +572,7 @@ func NewOpenAIGatewayService(deps ...any) *OpenAIGatewayService {
 		toolCorrector:         NewCodexToolCorrector(),
 		openaiWSResolver:      NewOpenAIWSProtocolResolver(cfg),
 		resolver:              resolver,
+		compositeResolver:     compositeResolver,
 		channelService:        channelService,
 		balanceNotifyService:  balanceNotifyService,
 		settingService:        settingService,
@@ -589,6 +596,13 @@ func (s *OpenAIGatewayService) SetCarpoolRepository(repo CarpoolRepository) {
 	if s != nil {
 		s.carpoolRepo = repo
 	}
+}
+
+func (s *OpenAIGatewayService) ResolveCompositeRouteForAPIKey(ctx context.Context, apiKey *APIKey, model, endpoint string) (*APIKey, CompositeRouteDecision, error) {
+	if s == nil || s.compositeResolver == nil {
+		return apiKey, CompositeRouteDecision{}, nil
+	}
+	return s.compositeResolver.ResolveForAPIKey(ctx, apiKey, model, endpoint)
 }
 
 // ResolveChannelMapping resolves channel-level model mapping.
@@ -2328,6 +2342,9 @@ func (s *OpenAIGatewayService) resolveFreshSchedulableOpenAIAccount(ctx context.
 	if !s.isAccountAllowedForSchedulingRequest(ctx, fresh) {
 		return nil
 	}
+	if s.isOpenAIProxyStreamQuarantined(fresh) {
+		return nil
+	}
 	return fresh
 }
 
@@ -2353,6 +2370,9 @@ func (s *OpenAIGatewayService) recheckSelectedOpenAIAccountFromDB(ctx context.Co
 		if !parentHealthyForShadow(account, s.parentAccountLookup(ctx)) || s.isOpenAIAccountRequestRuntimeBlocked(account, requestedModel) {
 			return nil
 		}
+		if s.isOpenAIProxyStreamQuarantined(account) {
+			return nil
+		}
 		return account
 	}
 
@@ -2367,6 +2387,9 @@ func (s *OpenAIGatewayService) recheckSelectedOpenAIAccountFromDB(ctx context.Co
 		return nil
 	}
 	if !parentHealthyForShadow(latest, s.parentAccountLookup(ctx)) || s.isOpenAIAccountRequestRuntimeBlocked(latest, requestedModel) {
+		return nil
+	}
+	if s.isOpenAIProxyStreamQuarantined(latest) {
 		return nil
 	}
 	if !s.isAccountAllowedForSchedulingRequest(ctx, latest) {
@@ -4436,7 +4459,8 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 		}
 	}
 	if err := documentScanner.Err(); err != nil {
-		if sawTerminalEvent && !sawFailedEvent {
+		if (sawDone || sawTerminalEvent) && !sawFailedEvent {
+			s.clearOpenAIProxyStreamDisconnect(account)
 			return resultWithUsage(), nil
 		}
 		if sawFailedEvent {
@@ -4460,6 +4484,7 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 		if clientDisconnected {
 			return resultWithUsage(), fmt.Errorf("stream usage incomplete after disconnect: %w", err)
 		}
+		s.recordOpenAIProxyStreamDisconnect(account, err, upstreamRequestID)
 		logger.LegacyPrintf("service.openai_gateway",
 			"[OpenAI passthrough] 流读取异常中断: account=%d request_id=%s err=%v",
 			account.ID,
@@ -4481,7 +4506,11 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 			return resultWithUsage(),
 				s.newOpenAIStreamFailoverError(c, account, true, upstreamRequestID, nil, "OpenAI stream ended before a terminal event")
 		}
+		s.recordOpenAIProxyStreamDisconnect(account, errors.New("stream ended before terminal event"), upstreamRequestID)
 		return resultWithUsage(), errors.New("stream usage incomplete: missing terminal event")
+	}
+	if (sawDone || sawTerminalEvent) && !sawFailedEvent {
+		s.clearOpenAIProxyStreamDisconnect(account)
 	}
 
 	return resultWithUsage(), nil
@@ -5364,6 +5393,9 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 		if guardFirstOutput && eventInProgress {
 			completeGuardedEvent(true)
 		}
+		if sawTerminalEvent && !sawFailedEvent {
+			s.clearOpenAIProxyStreamDisconnect(account)
+		}
 		if !sawTerminalEvent && !openAIStreamClientOutputStarted(c, clientOutputStarted) && !eventShouldFlush {
 			return resultWithUsage(), s.newOpenAIStreamFailoverError(
 				c,
@@ -5376,6 +5408,9 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 		}
 		flushPending("Client disconnected during final flush, returning collected usage")
 		if !sawTerminalEvent {
+			if openAIStreamClientOutputStarted(c, clientOutputStarted) && !clientDisconnected {
+				s.recordOpenAIProxyStreamDisconnect(account, errors.New("stream ended before terminal event"), upstreamRequestID)
+			}
 			return resultWithUsage(), fmt.Errorf("stream usage incomplete: missing terminal event")
 		}
 		if sawFailedEvent {
@@ -5407,6 +5442,7 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 		}
 		if sawTerminalEvent {
 			if !sawFailedEvent {
+				s.clearOpenAIProxyStreamDisconnect(account)
 				logger.LegacyPrintf("service.openai_gateway", "Upstream scan ended after terminal event: %v", scanErr)
 			}
 			result, err := finalizeStream()
@@ -5433,6 +5469,7 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 		if clientDisconnected {
 			return resultWithUsage(), fmt.Errorf("stream usage incomplete after disconnect: %w", scanErr), true
 		}
+		s.recordOpenAIProxyStreamDisconnect(account, scanErr, upstreamRequestID)
 		sendErrorEvent("stream_read_error")
 		return resultWithUsage(), fmt.Errorf("stream read error: %w", scanErr), true
 	}
@@ -7436,6 +7473,34 @@ func normalizeOpenAIPassthroughOAuthBody(body []byte, compact bool) ([]byte, boo
 		}
 		normalized = next
 		changed = true
+	}
+
+	if inputResult := gjson.GetBytes(normalized, "input"); inputResult.Exists() {
+		switch {
+		case inputResult.Type == gjson.String:
+			text := inputResult.String()
+			var inputValue any
+			if strings.TrimSpace(text) != "" {
+				inputValue = []any{map[string]any{
+					"type": "message", "role": "user", "content": text,
+				}}
+			} else {
+				inputValue = []any{}
+			}
+			next, err := sjson.SetBytes(normalized, "input", inputValue)
+			if err != nil {
+				return body, false, fmt.Errorf("normalize passthrough body input string: %w", err)
+			}
+			normalized = next
+			changed = true
+		case inputResult.Type == gjson.JSON && !inputResult.IsArray():
+			next, err := sjson.SetRawBytes(normalized, "input", []byte("["+inputResult.Raw+"]"))
+			if err != nil {
+				return body, false, fmt.Errorf("normalize passthrough body input object: %w", err)
+			}
+			normalized = next
+			changed = true
+		}
 	}
 
 	if compact {

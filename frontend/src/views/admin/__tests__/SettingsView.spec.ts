@@ -14,6 +14,8 @@ const {
   getStreamTimeoutSettings,
   getRectifierSettings,
   getBetaPolicySettings,
+  getOllamaCloudUsageSettings,
+  updateOllamaCloudUsageSettings,
   getGroups,
   listProxies,
   getProviders,
@@ -34,6 +36,8 @@ const {
   getStreamTimeoutSettings: vi.fn(),
   getRectifierSettings: vi.fn(),
   getBetaPolicySettings: vi.fn(),
+  getOllamaCloudUsageSettings: vi.fn(),
+  updateOllamaCloudUsageSettings: vi.fn(),
   getGroups: vi.fn(),
   listProxies: vi.fn(),
   getProviders: vi.fn(),
@@ -60,6 +64,10 @@ vi.mock("@/api", () => ({
       getStreamTimeoutSettings,
       getRectifierSettings,
       getBetaPolicySettings,
+    },
+    accounts: {
+      getOllamaCloudUsageSettings,
+      updateOllamaCloudUsageSettings,
     },
     groups: {
       getAll: getGroups,
@@ -408,6 +416,7 @@ const baseSettingsResponse = {
   payment_cancel_rate_limit_window: 1,
   payment_cancel_rate_limit_unit: "day",
   payment_cancel_rate_limit_window_mode: "rolling",
+  payment_alipay_mobile_precreate_deep_link: false,
   payment_visible_method_alipay_source: "alipay_direct",
   payment_visible_method_wxpay_source: "invalid-source",
   payment_visible_method_alipay_enabled: true,
@@ -475,6 +484,16 @@ async function openUsersTab(wrapper: ReturnType<typeof mountView>) {
   await flushPromises();
 }
 
+async function openGatewayTab(wrapper: ReturnType<typeof mountView>) {
+  const gatewayTabButton = wrapper
+    .findAll("button")
+    .find((node) => node.text().includes("admin.settings.tabs.gateway"));
+
+  expect(gatewayTabButton).toBeDefined();
+  await gatewayTabButton?.trigger("click");
+  await flushPromises();
+}
+
 describe("admin SettingsView payment visible method controls", () => {
   beforeEach(() => {
     getSettings.mockReset();
@@ -486,6 +505,8 @@ describe("admin SettingsView payment visible method controls", () => {
     getStreamTimeoutSettings.mockReset();
     getRectifierSettings.mockReset();
     getBetaPolicySettings.mockReset();
+    getOllamaCloudUsageSettings.mockReset();
+    updateOllamaCloudUsageSettings.mockReset();
     getGroups.mockReset();
     listProxies.mockReset();
     getProviders.mockReset();
@@ -536,6 +557,11 @@ describe("admin SettingsView payment visible method controls", () => {
     getBetaPolicySettings.mockResolvedValue({
       rules: [],
     });
+    getOllamaCloudUsageSettings.mockResolvedValue({
+      enabled: false,
+      interval_minutes: 60,
+    });
+    updateOllamaCloudUsageSettings.mockImplementation(async (payload) => payload);
     getGroups.mockResolvedValue([]);
     listProxies.mockResolvedValue({
       items: [],
@@ -595,6 +621,28 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_source");
     expect(payload).not.toHaveProperty("payment_visible_method_alipay_enabled");
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_enabled");
+  });
+
+  it("keeps mobile Alipay precreate handoff off by default and submits an explicit opt-in", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openPaymentTab(wrapper);
+
+    const toggle = wrapper.get(
+      '[data-testid="payment-alipay-mobile-precreate-deep-link-toggle"]',
+    );
+    expect((toggle.element as HTMLInputElement).checked).toBe(false);
+
+    await toggle.setValue(true);
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payment_alipay_mobile_precreate_deep_link: true,
+      }),
+    );
   });
 
   it("submits the admin recharge affiliate rebate setting", async () => {
@@ -713,6 +761,31 @@ describe("admin SettingsView payment visible method controls", () => {
       "默认关闭。开启后仅影响本网关在 OpenAI 账号间的实验性调度选择逻辑",
     );
     expect(wrapper.text()).not.toContain("OpenAI 高级调度器");
+  });
+
+  it("loads fail-safe-off Ollama Cloud usage refresh settings and saves an explicit opt-in", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openGatewayTab(wrapper);
+
+    const card = wrapper.get('[data-testid="ollama-cloud-usage-global-settings"]');
+    expect(card.isVisible()).toBe(true);
+    expect(
+      (card.get('[data-testid="ollama-cloud-usage-global-enabled"]').element as HTMLInputElement)
+        .checked,
+    ).toBe(false);
+    expect(card.find('[data-testid="ollama-cloud-usage-global-interval"]').exists()).toBe(false);
+
+    await card.get('[data-testid="ollama-cloud-usage-global-enabled"]').setValue(true);
+    await card.get('[data-testid="ollama-cloud-usage-global-interval"]').setValue(90);
+    await card.get('[data-testid="ollama-cloud-usage-global-save"]').trigger("click");
+    await flushPromises();
+
+    expect(updateOllamaCloudUsageSettings).toHaveBeenCalledWith({
+      enabled: true,
+      interval_minutes: 90,
+    });
   });
 
   it("places and explains rate controls for both scheduling modes", async () => {

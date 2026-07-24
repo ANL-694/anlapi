@@ -155,6 +155,66 @@ describe('decidePaymentLaunch', () => {
     expect(decision.paymentState.qrCode).toBe('https://pay.example.com/qr/session')
   })
 
+  it('launches the Alipay app for a mobile precreate order', () => {
+    const decision = decidePaymentLaunch(createOrderResult({
+      qr_code: 'https://qr.alipay.com/dynamic-order-101',
+      alipay_mobile_precreate_deep_link: true,
+    }), {
+      visibleMethod: 'alipay',
+      orderType: 'balance',
+      isMobile: true,
+    })
+
+    expect(decision.kind).toBe('alipay_deep_link')
+    expect(decision.paymentState.qrCode).toBe('https://qr.alipay.com/dynamic-order-101')
+    expect(decision.paymentState.alipayMobilePrecreateDeepLink).toBe(true)
+    expect(decision.recovery.alipayMobilePrecreateDeepLink).toBe(true)
+  })
+
+  it('keeps the desktop Alipay QR flow when a precreate marker is present', () => {
+    const decision = decidePaymentLaunch(createOrderResult({
+      qr_code: 'https://qr.alipay.com/dynamic-order-102',
+      alipay_mobile_precreate_deep_link: true,
+    }), {
+      visibleMethod: 'alipay',
+      orderType: 'balance',
+      isMobile: false,
+    })
+
+    expect(decision.kind).toBe('qr_waiting')
+    expect(decision.paymentState.alipayMobilePrecreateDeepLink).toBe(true)
+  })
+
+  it('does not apply the Alipay marker to WeChat QR orders', () => {
+    const decision = decidePaymentLaunch(createOrderResult({
+      qr_code: 'weixin://wxpay/bizpayurl?pr=dynamic-order-103',
+      alipay_mobile_precreate_deep_link: true,
+    }), {
+      visibleMethod: 'wxpay',
+      orderType: 'balance',
+      isMobile: true,
+    })
+
+    expect(decision.kind).toBe('qr_waiting')
+  })
+
+  it('keeps the Airwallex route ahead of the Alipay marker branch', () => {
+    const decision = decidePaymentLaunch(createOrderResult({
+      qr_code: 'https://qr.alipay.com/ignored-for-airwallex',
+      client_secret: 'airwallex-secret',
+      intent_id: 'airwallex-intent',
+      alipay_mobile_precreate_deep_link: true,
+    }), {
+      visibleMethod: 'airwallex',
+      orderType: 'balance',
+      isMobile: true,
+      airwallexRouteUrl: '/payment/airwallex',
+    })
+
+    expect(decision.kind).toBe('airwallex_route')
+    expect(decision.paymentState.payUrl).toBe('/payment/airwallex')
+  })
+
   it('returns wechat oauth launch when backend requires in-app authorization', () => {
     const decision = decidePaymentLaunch(createOrderResult({
       result_type: 'oauth_required',
@@ -319,6 +379,36 @@ describe('readPaymentRecoverySnapshot', () => {
 
     expect(restored?.orderId).toBe(44)
     expect(restored?.outTradeNo).toBe('')
+    expect(restored?.alipayMobilePrecreateDeepLink).toBe(false)
+  })
+
+  it('restores the Alipay mobile precreate marker for QR fallback', () => {
+    const restored = readPaymentRecoverySnapshot(JSON.stringify({
+      orderId: 77,
+      amount: 28,
+      qrCode: 'https://qr.alipay.com/dynamic-order-77',
+      expiresAt: '2099-01-01T00:10:00.000Z',
+      paymentType: 'alipay',
+      payUrl: '',
+      outTradeNo: 'sub2_77',
+      clientSecret: '',
+      intentId: '',
+      currency: 'CNY',
+      countryCode: 'CN',
+      paymentEnv: '',
+      payAmount: 28,
+      orderType: 'balance',
+      paymentMode: 'qrcode',
+      resumeToken: 'resume-77',
+      alipayMobilePrecreateDeepLink: true,
+      createdAt: Date.UTC(2099, 0, 1, 0, 0, 0),
+    }), {
+      now: Date.UTC(2099, 0, 1, 0, 1, 0),
+      orderId: 77,
+    })
+
+    expect(restored?.alipayMobilePrecreateDeepLink).toBe(true)
+    expect(restored?.qrCode).toBe('https://qr.alipay.com/dynamic-order-77')
   })
 })
 

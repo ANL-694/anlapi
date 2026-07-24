@@ -41,7 +41,7 @@ func (h *GatewayHandler) GeminiV1BetaListModels(c *gin.Context) {
 	}
 	// 检查平台：优先使用强制平台（/antigravity 路由），否则要求 gemini 分组
 	forcePlatform, hasForcePlatform := middleware.GetForcePlatformFromContext(c)
-	if !hasForcePlatform && (apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini) {
+	if !hasForcePlatform && !isGeminiNativeTargetPlatform(c, apiKey) {
 		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
 		return
 	}
@@ -92,7 +92,7 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 	}
 	// 检查平台：优先使用强制平台（/antigravity 路由），否则要求 gemini 分组
 	forcePlatform, hasForcePlatform := middleware.GetForcePlatformFromContext(c)
-	if !hasForcePlatform && (apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini) {
+	if !hasForcePlatform && !isGeminiNativeTargetPlatform(c, apiKey) {
 		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
 		return
 	}
@@ -104,7 +104,7 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 	}
 
 	// 强制 antigravity 模式：返回 antigravity 模型信息
-	if forcePlatform == service.PlatformAntigravity {
+	if forcePlatform == service.PlatformAntigravity || effectiveAPIKeyPlatform(c, apiKey) == service.PlatformAntigravity {
 		c.JSON(http.StatusOK, antigravity.FallbackGeminiModel(modelName))
 		return
 	}
@@ -185,11 +185,9 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 	)
 
 	// 检查平台：优先使用强制平台（/antigravity 路由，中间件已设置 request.Context），否则要求 gemini 分组
-	if !middleware.HasForcePlatform(c) {
-		if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
-			googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
-			return
-		}
+	if !middleware.HasForcePlatform(c) && !isGeminiNativeTargetPlatform(c, apiKey) {
+		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
+		return
 	}
 
 	modelName, action, err := parseGeminiModelAction(strings.TrimPrefix(c.Param("modelAction"), "/"))
@@ -197,6 +195,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 		googleError(c, http.StatusNotFound, err.Error())
 		return
 	}
+	modelName = resolvedUpstreamModelForAPIKey(c, apiKey, modelName)
 
 	stream := action == "streamGenerateContent"
 	reqLog = reqLog.With(zap.String("model", modelName), zap.String("action", action), zap.Bool("stream", stream))
@@ -577,7 +576,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 				ForceCacheBilling:     forceCacheBilling,
 				APIKeyService:         h.apiKeyService,
 				QuotaPlatform:         quotaPlatform,
-				ChannelUsageFields:    channelMapping.ToUsageFields(reqModel, result.UpstreamModel),
+				ChannelUsageFields:    clientRequestedUsageFields(c, channelMapping, reqModel, result.UpstreamModel),
 			}); err != nil {
 				logger.L().With(
 					zap.String("component", "handler.gemini_v1beta.models"),
@@ -594,6 +593,15 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 			zap.Int("switch_count", fs.SwitchCount),
 		)
 		return
+	}
+}
+
+func isGeminiNativeTargetPlatform(c *gin.Context, apiKey *service.APIKey) bool {
+	switch effectiveAPIKeyPlatform(c, apiKey) {
+	case service.PlatformGemini, service.PlatformAntigravity:
+		return true
+	default:
+		return false
 	}
 }
 

@@ -90,7 +90,7 @@ WITH combined AS (
     'success'::TEXT AS kind,
     ul.created_at AS created_at,
     ul.request_id AS request_id,
-    COALESCE(NULLIF(g.platform, ''), NULLIF(a.platform, ''), '') AS platform,
+    CASE WHEN g.platform = 'composite' THEN COALESCE(NULLIF(a.platform, ''), '') ELSE COALESCE(NULLIF(g.platform, ''), NULLIF(a.platform, ''), '') END AS platform,
     ul.model AS model,
     ul.duration_ms AS duration_ms,
     NULL::INT AS status_code,

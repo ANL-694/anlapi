@@ -82,6 +82,10 @@ func buildContentModerationInput(c *gin.Context, apiKey *service.APIKey, subject
 	}
 	if forcedPlatform, ok := middleware2.GetForcePlatformFromContext(c); ok {
 		input.Provider = strings.TrimSpace(forcedPlatform)
+	} else if apiKey != nil && apiKey.Group != nil && apiKey.Group.Platform == service.PlatformComposite {
+		if resolved, ok := service.ResolvedTargetPlatformForGroup(c.Request.Context(), apiKey.Group.ID); ok {
+			input.Provider = resolved
+		}
 	}
 	if apiKey != nil {
 		input.APIKeyID = apiKey.ID

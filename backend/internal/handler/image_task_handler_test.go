@@ -143,3 +143,43 @@ func TestAsyncImageHandlerDisabledReturns404(t *testing.T) {
 	// No task was created / persisted.
 	require.Empty(t, store.tasks)
 }
+
+func TestAsyncImageHandlerSubmitCompositeUsesResolvedPlatform(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := &asyncImageMemoryStore{tasks: make(map[string]*service.ImageTaskRecord)}
+	tasks := service.NewImageTaskServiceWithUploader(store, nil, time.Hour, time.Minute)
+	executedPlatform := make(chan string, 1)
+	h := &AsyncImageHandler{tasks: tasks}
+	h.execute = func(platform string, c *gin.Context) {
+		executedPlatform <- platform
+		c.JSON(http.StatusOK, gin.H{"created": 123, "data": []gin.H{{"url": "https://example.test/image.png"}}})
+	}
+
+	groupID := int64(8)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		decision := service.CompositeRouteDecision{
+			Matched: true, GroupID: groupID, PublicModel: "image-alias",
+			TargetPlatform: service.PlatformGrok, UpstreamModel: "grok-2-image",
+		}
+		c.Request = c.Request.WithContext(service.WithCompositeRouteDecision(c.Request.Context(), decision))
+		c.Set(string(middleware2.ContextKeyAPIKey), &service.APIKey{
+			ID: 19, UserID: 17, GroupID: &groupID,
+			Group: &service.Group{ID: groupID, Platform: service.PlatformComposite, AllowImageGeneration: true},
+		})
+		c.Next()
+	})
+	router.POST("/v1/images/generations/async", h.Submit)
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/images/generations/async", strings.NewReader(`{"model":"grok-2-image","prompt":"cat"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusAccepted, w.Code)
+	select {
+	case platform := <-executedPlatform:
+		require.Equal(t, service.PlatformGrok, platform)
+	case <-time.After(time.Second):
+		t.Fatal("异步生图任务未执行")
+	}
+}

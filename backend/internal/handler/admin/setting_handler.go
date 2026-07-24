@@ -388,6 +388,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		PaymentCancelRateLimitWindow:                           paymentCfg.CancelRateLimitWindow,
 		PaymentCancelRateLimitUnit:                             paymentCfg.CancelRateLimitUnit,
 		PaymentCancelRateLimitMode:                             paymentCfg.CancelRateLimitMode,
+		PaymentAlipayMobilePrecreateDeepLink:                   paymentCfg.AlipayMobilePrecreateDeepLink,
 
 		ChannelMonitorEnabled:                settings.ChannelMonitorEnabled,
 		ChannelMonitorDefaultIntervalSeconds: settings.ChannelMonitorDefaultIntervalSeconds,
@@ -737,11 +738,12 @@ type UpdateSettingsRequest struct {
 	PaymentReceiptCodeOSSPresignExpireSeconds *int    `json:"payment_receipt_code_oss_presign_expire_seconds"`
 
 	// Cancel rate limit
-	PaymentCancelRateLimitEnabled *bool   `json:"payment_cancel_rate_limit_enabled"`
-	PaymentCancelRateLimitMax     *int    `json:"payment_cancel_rate_limit_max"`
-	PaymentCancelRateLimitWindow  *int    `json:"payment_cancel_rate_limit_window"`
-	PaymentCancelRateLimitUnit    *string `json:"payment_cancel_rate_limit_unit"`
-	PaymentCancelRateLimitMode    *string `json:"payment_cancel_rate_limit_window_mode"`
+	PaymentCancelRateLimitEnabled        *bool   `json:"payment_cancel_rate_limit_enabled"`
+	PaymentCancelRateLimitMax            *int    `json:"payment_cancel_rate_limit_max"`
+	PaymentCancelRateLimitWindow         *int    `json:"payment_cancel_rate_limit_window"`
+	PaymentCancelRateLimitUnit           *string `json:"payment_cancel_rate_limit_unit"`
+	PaymentCancelRateLimitMode           *string `json:"payment_cancel_rate_limit_window_mode"`
+	PaymentAlipayMobilePrecreateDeepLink *bool   `json:"payment_alipay_mobile_precreate_deep_link"`
 
 	// Channel Monitor feature switch
 	ChannelMonitorEnabled                *bool `json:"channel_monitor_enabled"`
@@ -2030,6 +2032,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			CancelRateLimitWindow:              req.PaymentCancelRateLimitWindow,
 			CancelRateLimitUnit:                req.PaymentCancelRateLimitUnit,
 			CancelRateLimitMode:                req.PaymentCancelRateLimitMode,
+			AlipayMobilePrecreateDeepLink:      req.PaymentAlipayMobilePrecreateDeepLink,
 		}
 		if err := h.paymentConfigService.UpdatePaymentConfig(c.Request.Context(), paymentReq); err != nil {
 			response.ErrorFrom(c, err)
@@ -2273,6 +2276,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PaymentCancelRateLimitWindow:                           updatedPaymentCfg.CancelRateLimitWindow,
 		PaymentCancelRateLimitUnit:                             updatedPaymentCfg.CancelRateLimitUnit,
 		PaymentCancelRateLimitMode:                             updatedPaymentCfg.CancelRateLimitMode,
+		PaymentAlipayMobilePrecreateDeepLink:                   updatedPaymentCfg.AlipayMobilePrecreateDeepLink,
 
 		ChannelMonitorEnabled:                updatedSettings.ChannelMonitorEnabled,
 		ChannelMonitorDefaultIntervalSeconds: updatedSettings.ChannelMonitorDefaultIntervalSeconds,
@@ -2313,7 +2317,8 @@ func hasPaymentFields(req UpdateSettingsRequest) bool {
 		req.PaymentReceiptCodeOSSMaxSizeBytes != nil || req.PaymentReceiptCodeOSSPresignExpireSeconds != nil ||
 		req.PaymentCancelRateLimitEnabled != nil ||
 		req.PaymentCancelRateLimitMax != nil || req.PaymentCancelRateLimitWindow != nil ||
-		req.PaymentCancelRateLimitUnit != nil || req.PaymentCancelRateLimitMode != nil
+		req.PaymentCancelRateLimitUnit != nil || req.PaymentCancelRateLimitMode != nil ||
+		req.PaymentAlipayMobilePrecreateDeepLink != nil
 }
 
 func decodeProvidedJSONFields(rawBody []byte) (map[string]struct{}, error) {

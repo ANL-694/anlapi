@@ -282,11 +282,12 @@ type SystemSettings struct {
 	PaymentReceiptCodeOSSPresignExpireSeconds int    `json:"payment_receipt_code_oss_presign_expire_seconds"`
 
 	// Cancel rate limit
-	PaymentCancelRateLimitEnabled bool   `json:"payment_cancel_rate_limit_enabled"`
-	PaymentCancelRateLimitMax     int    `json:"payment_cancel_rate_limit_max"`
-	PaymentCancelRateLimitWindow  int    `json:"payment_cancel_rate_limit_window"`
-	PaymentCancelRateLimitUnit    string `json:"payment_cancel_rate_limit_unit"`
-	PaymentCancelRateLimitMode    string `json:"payment_cancel_rate_limit_window_mode"`
+	PaymentCancelRateLimitEnabled        bool   `json:"payment_cancel_rate_limit_enabled"`
+	PaymentCancelRateLimitMax            int    `json:"payment_cancel_rate_limit_max"`
+	PaymentCancelRateLimitWindow         int    `json:"payment_cancel_rate_limit_window"`
+	PaymentCancelRateLimitUnit           string `json:"payment_cancel_rate_limit_unit"`
+	PaymentCancelRateLimitMode           string `json:"payment_cancel_rate_limit_window_mode"`
+	PaymentAlipayMobilePrecreateDeepLink bool   `json:"payment_alipay_mobile_precreate_deep_link"`
 
 	// Balance low notification
 	BalanceLowNotifyEnabled     bool               `json:"balance_low_notify_enabled"`

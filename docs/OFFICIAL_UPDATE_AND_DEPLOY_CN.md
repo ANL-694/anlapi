@@ -4,60 +4,46 @@
 
 ## 当前基线
 
-本项目已完成一次从二开 `v0.1.119` 到官方 `v0.1.121` 的合并。
+当前 ANL API 版本为 `1.0.8`，已选择性对齐 Sub2API `v0.1.164` 的兼容与安全修复。
 
-当前推荐继续开发和部署的分支是：
-
-```bash
-upgrade/v0.1.121-merge
-```
-
-历史保护分支：
+当前开发和部署主线是：
 
 ```bash
-backup/current-2dev
-custom/current-on-v0.1.119
+main
 ```
 
-后续不要再基于旧 `main` 直接开发。旧 `main` 是没有官方父历史的二开根提交，继续从它合并官方版本会让每次升级都变复杂。
+当前仓库与 Sub2API 官方 tag 没有共同 Git 祖先，禁止在 `main` 上直接执行 `git merge v0.1.x`。直接合并会把两套完整历史当成无关项目拼接，并产生大量无意义冲突。
 
-## 一次性分支整理
+后续更新应以相邻官方 tag 的发布差异为依据，按功能回移到 ANL `main`，并保留支付、生图专线、账号归属与共享、OAuth/API Key 隔离、凭证导入限制和用户级并发策略。
 
-建议把当前已合并官方 `v0.1.121` 的分支固定为长期二开主线。
+## 远程与保护设置
 
-```bash
-git switch upgrade/v0.1.121-merge
-git switch -c custom/main
-```
-
-如果你有自己的私有 Git 仓库，建议推送到私有仓库保存：
-
-```bash
-git remote add origin <你的私有仓库地址>
-git push -u origin custom/main
-```
-
-添加官方仓库为上游源：
-
-```bash
-git remote add upstream https://github.com/Wei-Shaw/sub2api.git
-git fetch upstream --tags --prune
-```
-
-如果 `origin` 或 `upstream` 已存在，不要重复添加，改用：
+当前私有主仓库使用 `origin`，Sub2API 官方仓库使用只读同步远程 `sub2api`。操作前先确认：
 
 ```bash
 git remote -v
-git remote set-url upstream https://github.com/Wei-Shaw/sub2api.git
+git remote set-url sub2api https://github.com/Wei-Shaw/sub2api.git
+git fetch sub2api --tags --prune
 ```
 
-建议开启 Git 冲突复用记录，后续遇到重复冲突时可以减少手工处理：
+建议开启 Git 冲突复用记录，减少后续重复处理同类冲突：
 
 ```bash
 git config rerere.enabled true
 ```
 
-## 每次合并官方新版本
+## 每次同步官方新版本
+
+当前 `main` 使用以下流程：
+
+1. 确认工作区状态，并为未提交改动保留独立快照。
+2. 执行 `git fetch sub2api --tags --prune`，再通过 GitHub Releases API 确认最新正式版本。
+3. 使用 `git diff <上一官方标签>..<新官方标签>` 和发布说明拆分功能、修复、安全变更及迁移。
+4. 逐功能回移到 ANL 代码结构；禁止覆盖 ANL 的支付、账号权限、分组、生图和并发定制。
+5. 对受影响包运行定向测试，再运行后端全量测试、前端类型检查、Lint、Vitest、构建、UTF-8 与乱码扫描。
+6. 只有验证通过后才能提交、推送和进入生产部署流程。
+
+下面的直接 merge 流程只适用于确实保留官方祖先关系的历史分支，当前 `main` 不适用。
 
 以下以官方发布 `v0.1.122` 为例。实际操作时把版本号替换成目标版本。
 

@@ -63,6 +63,11 @@ type AdminService interface {
 	RecoverDuplicateGroup(ctx context.Context, id int64, actorScope, operationKey string) (*Group, error)
 	UpdateGroup(ctx context.Context, id int64, input *UpdateGroupInput) (*Group, error)
 	DeleteGroup(ctx context.Context, id int64) error
+	ListCompositeRoutes(ctx context.Context, groupID int64) ([]CompositeModelRoute, error)
+	CreateCompositeRoute(ctx context.Context, groupID int64, input CompositeRouteInput) (*CompositeModelRoute, error)
+	UpdateCompositeRoute(ctx context.Context, groupID, routeID int64, input CompositeRouteInput) (*CompositeModelRoute, error)
+	DeleteCompositeRoute(ctx context.Context, groupID, routeID int64) error
+	PreviewCompositeRoute(ctx context.Context, groupID int64, input CompositeRoutePreviewRequest) (*CompositeRouteDecision, error)
 	GetGroupAPIKeys(ctx context.Context, groupID int64, page, pageSize int) ([]APIKey, int64, error)
 	GetGroupRateMultipliers(ctx context.Context, groupID int64) ([]UserGroupRateEntry, error)
 	ClearGroupRateMultipliers(ctx context.Context, groupID int64) error
@@ -652,6 +657,8 @@ type adminServiceImpl struct {
 	privacyClientFactory    PrivacyClientFactory
 	privateGroupProvisioner UserPrivateGroupProvisioner
 	affiliateService        adminRechargeAffiliateAccruer
+	compositeRouteRepo      CompositeModelRouteRepository
+	compositeResolver       *CompositeRouteResolver
 }
 
 type adminRechargeAffiliateAccruer interface {
@@ -690,6 +697,8 @@ func NewAdminService(
 	defaultSubAssigner DefaultSubscriptionAssigner,
 	userSubRepo UserSubscriptionRepository,
 	privacyClientFactory PrivacyClientFactory,
+	compositeRouteRepo CompositeModelRouteRepository,
+	compositeResolver *CompositeRouteResolver,
 ) AdminService {
 	return &adminServiceImpl{
 		userRepo:             userRepo,
@@ -712,6 +721,8 @@ func NewAdminService(
 		defaultSubAssigner:   defaultSubAssigner,
 		userSubRepo:          userSubRepo,
 		privacyClientFactory: privacyClientFactory,
+		compositeRouteRepo:   compositeRouteRepo,
+		compositeResolver:    compositeResolver,
 	}
 }
 
@@ -1829,7 +1840,11 @@ func (s *adminServiceImpl) GetGroupModelsListCandidates(ctx context.Context, id 
 		seen[model] = struct{}{}
 	}
 	for _, acc := range accounts {
-		if acc.Platform != platform {
+		if platform == PlatformComposite {
+			if !isConcreteRequestPlatform(acc.Platform) {
+				continue
+			}
+		} else if acc.Platform != platform {
 			continue
 		}
 		for model := range acc.GetModelMapping() {
@@ -1845,6 +1860,154 @@ func (s *adminServiceImpl) GetGroupModelsListCandidates(ctx context.Context, id 
 		}
 	}
 	return candidates, nil
+}
+
+func (s *adminServiceImpl) ListCompositeRoutes(ctx context.Context, groupID int64) ([]CompositeModelRoute, error) {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	if s.compositeRouteRepo == nil {
+		return nil, errors.New("composite route repository is not configured")
+	}
+	return s.compositeRouteRepo.ListByGroup(ctx, groupID, true)
+}
+
+func (s *adminServiceImpl) CreateCompositeRoute(ctx context.Context, groupID int64, input CompositeRouteInput) (*CompositeModelRoute, error) {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	if s.compositeRouteRepo == nil {
+		return nil, errors.New("composite route repository is not configured")
+	}
+	route, err := compositeRouteFromInput(groupID, input)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.compositeRouteRepo.Create(ctx, route); err != nil {
+		return nil, err
+	}
+	return route, nil
+}
+
+func (s *adminServiceImpl) UpdateCompositeRoute(ctx context.Context, groupID, routeID int64, input CompositeRouteInput) (*CompositeModelRoute, error) {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	if s.compositeRouteRepo == nil {
+		return nil, errors.New("composite route repository is not configured")
+	}
+	belongs, err := s.compositeRouteBelongsToGroup(ctx, groupID, routeID)
+	if err != nil {
+		return nil, err
+	}
+	if !belongs {
+		return nil, ErrCompositeRouteNotFound
+	}
+	route, err := compositeRouteFromInput(groupID, input)
+	if err != nil {
+		return nil, err
+	}
+	route.ID = routeID
+	if err := s.compositeRouteRepo.Update(ctx, route); err != nil {
+		return nil, err
+	}
+	return route, nil
+}
+
+func (s *adminServiceImpl) DeleteCompositeRoute(ctx context.Context, groupID, routeID int64) error {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return err
+	}
+	if s.compositeRouteRepo == nil {
+		return errors.New("composite route repository is not configured")
+	}
+	belongs, err := s.compositeRouteBelongsToGroup(ctx, groupID, routeID)
+	if err != nil {
+		return err
+	}
+	if !belongs {
+		return ErrCompositeRouteNotFound
+	}
+	return s.compositeRouteRepo.Delete(ctx, routeID)
+}
+
+func (s *adminServiceImpl) PreviewCompositeRoute(ctx context.Context, groupID int64, input CompositeRoutePreviewRequest) (*CompositeRouteDecision, error) {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	resolver := s.compositeResolver
+	if resolver == nil {
+		resolver = NewCompositeRouteResolver(s.compositeRouteRepo)
+	}
+	decision, err := resolver.Resolve(ctx, groupID, input.Model, input.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	return &decision, nil
+}
+
+func (s *adminServiceImpl) requireCompositeGroup(ctx context.Context, groupID int64) error {
+	group, err := s.groupRepo.GetByIDLite(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil || group.Platform != PlatformComposite {
+		return infraerrors.New(http.StatusBadRequest, "GROUP_NOT_COMPOSITE", "group is not a composite group")
+	}
+	return nil
+}
+
+func (s *adminServiceImpl) compositeRouteBelongsToGroup(ctx context.Context, groupID, routeID int64) (bool, error) {
+	routes, err := s.compositeRouteRepo.ListByGroup(ctx, groupID, true)
+	if err != nil {
+		return false, err
+	}
+	for i := range routes {
+		if routes[i].ID == routeID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func compositeRouteFromInput(groupID int64, input CompositeRouteInput) (*CompositeModelRoute, error) {
+	input = normalizeCompositeRouteInput(input)
+	if input.PublicModel == "" {
+		return nil, infraerrors.New(http.StatusBadRequest, "INVALID_COMPOSITE_ROUTE", "public_model is required")
+	}
+	if !isConcreteRequestPlatform(input.TargetPlatform) {
+		return nil, infraerrors.New(http.StatusBadRequest, "INVALID_COMPOSITE_ROUTE", "target_platform must be anthropic, openai, gemini, antigravity, or grok")
+	}
+	if input.Priority == 0 {
+		input.Priority = 100
+	}
+	return &CompositeModelRoute{
+		GroupID:        groupID,
+		PublicModel:    input.PublicModel,
+		MatchType:      input.MatchType,
+		TargetPlatform: input.TargetPlatform,
+		UpstreamModel:  input.UpstreamModel,
+		Endpoint:       input.Endpoint,
+		Priority:       input.Priority,
+		Enabled:        input.Enabled,
+		Notes:          input.Notes,
+	}, nil
+}
+
+func canCopyAccountsFromGroupPlatform(targetPlatform, sourcePlatform string) bool {
+	if targetPlatform == PlatformComposite {
+		return sourcePlatform == PlatformComposite || isConcreteRequestPlatform(sourcePlatform)
+	}
+	return sourcePlatform == targetPlatform
+}
+
+func groupSupportsOAuthOnlyFilter(platform string) bool {
+	return platform == PlatformOpenAI ||
+		platform == PlatformAntigravity ||
+		platform == PlatformAnthropic ||
+		platform == PlatformGemini ||
+		platform == PlatformGrok ||
+		platform == PlatformComposite
 }
 
 func defaultModelsListCandidateIDs(platform string) []string {
@@ -1988,7 +2151,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 			if err != nil {
 				return nil, fmt.Errorf("source group %d not found: %w", srcGroupID, err)
 			}
-			if srcGroup.Platform != platform {
+			if !canCopyAccountsFromGroupPlatform(platform, srcGroup.Platform) {
 				return nil, fmt.Errorf("source group %d platform mismatch: expected %s, got %s", srcGroupID, platform, srcGroup.Platform)
 			}
 		}
@@ -2442,7 +2605,7 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 			if err != nil {
 				return nil, fmt.Errorf("source group %d not found: %w", srcGroupID, err)
 			}
-			if srcGroup.Platform != group.Platform {
+			if !canCopyAccountsFromGroupPlatform(group.Platform, srcGroup.Platform) {
 				return nil, fmt.Errorf("source group %d platform mismatch: expected %s, got %s", srcGroupID, group.Platform, srcGroup.Platform)
 			}
 		}
@@ -2854,6 +3017,9 @@ func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccou
 	}
 	delete(accountExtra, UpstreamBillingProbeEnabledExtraKey)
 	delete(accountExtra, UpstreamBillingProbeExtraKey)
+	delete(accountExtra, OllamaCloudUsageSessionExtraKey)
+	delete(accountExtra, OllamaCloudUsageAutoRefreshExtraKey)
+	delete(accountExtra, OllamaCloudUsageSnapshotExtraKey)
 
 	// 绑定分组
 	groupIDs := input.GroupIDs
@@ -3003,6 +3169,7 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 		}
 	}
 	previousProbeIdentity := upstreamBillingProbeIdentity(account)
+	previousOllamaUsageIdentity := ollamaCloudUsageIdentity(account)
 	if account.IsCredentialShadow() {
 		if !isAllowedSparkShadowCredentialsUpdate(input.Credentials) {
 			return nil, infraerrors.Newf(http.StatusBadRequest, "SPARK_SHADOW_NO_CREDENTIALS", "spark shadow accounts do not hold auth credentials; only model mapping can be configured on the shadow account")
@@ -3057,7 +3224,10 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 		}
 		delete(normalizedExtra, UpstreamBillingProbeEnabledExtraKey)
 		delete(normalizedExtra, UpstreamBillingProbeExtraKey)
-		// 保留配额用量字段，防止编辑账号时意外重置
+		delete(normalizedExtra, OllamaCloudUsageSessionExtraKey)
+		delete(normalizedExtra, OllamaCloudUsageAutoRefreshExtraKey)
+		delete(normalizedExtra, OllamaCloudUsageSnapshotExtraKey)
+		// 保留配额用量和专用服务受管字段，防止普通账号编辑意外覆盖。
 		for _, key := range []string{
 			"quota_used",
 			"quota_daily_used",
@@ -3067,6 +3237,9 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 			grokBillingExtraKey,
 			UpstreamBillingProbeEnabledExtraKey,
 			UpstreamBillingProbeExtraKey,
+			OllamaCloudUsageSessionExtraKey,
+			OllamaCloudUsageAutoRefreshExtraKey,
+			OllamaCloudUsageSnapshotExtraKey,
 		} {
 			if v, ok := account.Extra[key]; ok {
 				normalizedExtra[key] = v
@@ -3115,6 +3288,17 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 		delete(account.Extra, UpstreamBillingProbeExtraKey)
 		if !isUpstreamBillingProbeAccount(account) {
 			delete(account.Extra, UpstreamBillingProbeEnabledExtraKey)
+		}
+	}
+	if account.Extra != nil {
+		if !IsOllamaCloudUsageAccount(account) {
+			delete(account.Extra, OllamaCloudUsageSessionExtraKey)
+			delete(account.Extra, OllamaCloudUsageAutoRefreshExtraKey)
+			delete(account.Extra, OllamaCloudUsageSnapshotExtraKey)
+		} else if !reflect.DeepEqual(previousOllamaUsageIdentity, ollamaCloudUsageIdentity(account)) {
+			delete(account.Extra, OllamaCloudUsageSessionExtraKey)
+			delete(account.Extra, OllamaCloudUsageAutoRefreshExtraKey)
+			delete(account.Extra, OllamaCloudUsageSnapshotExtraKey)
 		}
 	}
 	// 只在指针非 nil 时更新 Concurrency（支持设置为 0）
@@ -3262,6 +3446,9 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 // BulkUpdateAccounts updates multiple accounts in one request.
 // It merges credentials/extra keys instead of overwriting the whole object.
 func (s *adminServiceImpl) UpdateAccountExtra(ctx context.Context, id int64, updates map[string]any) error {
+	delete(updates, OllamaCloudUsageSessionExtraKey)
+	delete(updates, OllamaCloudUsageAutoRefreshExtraKey)
+	delete(updates, OllamaCloudUsageSnapshotExtraKey)
 	if _, exists := updates[openAILongContextBillingEnabledKey]; exists {
 		account, err := s.accountRepo.GetByID(ctx, id)
 		if err != nil {
@@ -3283,6 +3470,9 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 	}
 	delete(input.Extra, UpstreamBillingProbeEnabledExtraKey)
 	delete(input.Extra, UpstreamBillingProbeExtraKey)
+	delete(input.Extra, OllamaCloudUsageSessionExtraKey)
+	delete(input.Extra, OllamaCloudUsageAutoRefreshExtraKey)
+	delete(input.Extra, OllamaCloudUsageSnapshotExtraKey)
 
 	if len(input.AccountIDs) == 0 && input.Filters != nil {
 		accountIDs, err := s.resolveBulkUpdateTargetIDs(ctx, input.Filters)
@@ -4565,12 +4755,7 @@ func (s *adminServiceImpl) normalizeAccountIDsForGroupBinding(ctx context.Contex
 		return accountIDs, nil
 	}
 
-	requiresOAuthFilter := group.RequireOAuthOnly &&
-		(group.Platform == PlatformOpenAI ||
-			group.Platform == PlatformAntigravity ||
-			group.Platform == PlatformAnthropic ||
-			group.Platform == PlatformGemini ||
-			group.Platform == PlatformGrok)
+	requiresOAuthFilter := group.RequireOAuthOnly && groupSupportsOAuthOnlyFilter(group.Platform)
 	requiredLevel := NormalizeRequiredAccountLevel(group.RequiredAccountLevel)
 	requiresLevelCheck := group.Platform == PlatformOpenAI && requiredLevel != ""
 	if !requiresOAuthFilter && !requiresLevelCheck {

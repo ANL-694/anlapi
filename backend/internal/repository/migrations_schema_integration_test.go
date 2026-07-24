@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"anlapi/migrations"
 	"github.com/stretchr/testify/require"
 )
 
@@ -116,6 +117,47 @@ func TestMigrationsRunner_AuthIdentityAndPaymentSchemaStayAligned(t *testing.T) 
 	requireIndex(t, tx, "payment_orders", "paymentorder_out_trade_no")
 	requirePartialUniqueIndexDefinition(t, tx, "payment_orders", "paymentorder_out_trade_no", "out_trade_no", "WHERE")
 	requireIndexAbsent(t, tx, "payment_orders", "paymentorder_out_trade_no_unique")
+}
+
+func TestAlipayMobilePrecreateMigrationIsIdempotentAndPreservesOptIn(t *testing.T) {
+	ctx := context.Background()
+	tx := testTx(t)
+
+	content, err := migrations.FS.ReadFile("203_alipay_mobile_precreate_deep_link.sql")
+	require.NoError(t, err)
+	_, err = tx.ExecContext(ctx, "DELETE FROM settings WHERE key = 'ALIPAY_MOBILE_PRECREATE_DEEP_LINK'")
+	require.NoError(t, err)
+	_, err = tx.ExecContext(ctx, string(content))
+	require.NoError(t, err)
+
+	var (
+		count int
+		value string
+	)
+	require.NoError(t, tx.QueryRowContext(ctx, `
+		SELECT COUNT(*), MAX(value)
+		FROM settings
+		WHERE key = 'ALIPAY_MOBILE_PRECREATE_DEEP_LINK'
+	`).Scan(&count, &value))
+	require.Equal(t, 1, count)
+	require.Equal(t, "false", value)
+
+	_, err = tx.ExecContext(ctx, `
+		UPDATE settings
+		SET value = 'true'
+		WHERE key = 'ALIPAY_MOBILE_PRECREATE_DEEP_LINK'
+	`)
+	require.NoError(t, err)
+	_, err = tx.ExecContext(ctx, string(content))
+	require.NoError(t, err)
+
+	require.NoError(t, tx.QueryRowContext(ctx, `
+		SELECT COUNT(*), MAX(value)
+		FROM settings
+		WHERE key = 'ALIPAY_MOBILE_PRECREATE_DEEP_LINK'
+	`).Scan(&count, &value))
+	require.Equal(t, 1, count)
+	require.Equal(t, "true", value)
 }
 
 func requireIndex(t *testing.T, tx *sql.Tx, table, index string) {

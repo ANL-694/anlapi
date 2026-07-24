@@ -28,7 +28,14 @@ func QuotaPlatform(ctx context.Context, apiKey *APIKey) string {
 			return forced
 		}
 	}
-	return PlatformFromAPIKey(apiKey)
+	platform := PlatformFromAPIKey(apiKey)
+	if platform != PlatformComposite || apiKey == nil || apiKey.Group == nil {
+		return platform
+	}
+	if resolved, ok := ResolvedTargetPlatformForGroup(ctx, apiKey.Group.ID); ok {
+		return resolved
+	}
+	return ""
 }
 
 // platformQuotaUsageCost 返回应计入余额平台配额的费用。

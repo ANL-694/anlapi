@@ -100,16 +100,17 @@ func GetBasePaymentType(t string) string {
 
 // CreatePaymentRequest holds the parameters for creating a new payment.
 type CreatePaymentRequest struct {
-	OrderID            string // Internal order ID
-	Amount             string // Pay amount in the provider instance currency
-	PaymentType        string // e.g. "alipay", "wxpay", "stripe"
-	Subject            string // Product description
-	NotifyURL          string // Webhook callback URL
-	ReturnURL          string // Browser redirect URL after payment
-	OpenID             string // WeChat JSAPI payer OpenID when available
-	ClientIP           string // Payer's IP address
-	IsMobile           bool   // Whether the request comes from a mobile device
-	InstanceSubMethods string // Comma-separated sub-methods from instance supported_types (for Stripe)
+	OrderID               string // Internal order ID
+	Amount                string // Pay amount in the provider instance currency
+	PaymentType           string // e.g. "alipay", "wxpay", "stripe"
+	Subject               string // Product description
+	NotifyURL             string // Webhook callback URL
+	ReturnURL             string // Browser redirect URL after payment
+	OpenID                string // WeChat JSAPI payer OpenID when available
+	ClientIP              string // Payer's IP address
+	IsMobile              bool   // Whether the request comes from a mobile device
+	AlipayMobilePrecreate bool   // Route official mobile Alipay through alipay.trade.precreate
+	InstanceSubMethods    string // Comma-separated sub-methods from instance supported_types (for Stripe)
 }
 
 // CreatePaymentResultType describes the shape of the create-payment result.

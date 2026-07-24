@@ -35,6 +35,19 @@ func DefaultModelIDsForPlatform(platform string) []string {
 		return xai.DefaultModelIDs()
 	case PlatformKiro:
 		return kiro.DefaultModelIDs()
+	case PlatformComposite:
+		seen := make(map[string]struct{})
+		ids := make([]string, 0)
+		for _, concretePlatform := range []string{PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformAntigravity, PlatformGrok} {
+			for _, id := range DefaultModelIDsForPlatform(concretePlatform) {
+				if _, ok := seen[id]; ok {
+					continue
+				}
+				seen[id] = struct{}{}
+				ids = append(ids, id)
+			}
+		}
+		return ids
 	default:
 		ids := make([]string, 0, len(claude.DefaultModels))
 		for _, model := range claude.DefaultModels {

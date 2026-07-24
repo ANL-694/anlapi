@@ -892,6 +892,8 @@ type GatewayConfig struct {
 	OpenAIScheduler GatewayOpenAISchedulerConfig `mapstructure:"openai_scheduler"`
 	// OpenAIHTTP2: OpenAI HTTP 上游协议策略
 	OpenAIHTTP2 GatewayOpenAIHTTP2Config `mapstructure:"openai_http2"`
+	// OpenAIProxyStreamCircuit: Responses SSE 代理断流熔断策略
+	OpenAIProxyStreamCircuit GatewayOpenAIProxyStreamCircuitConfig `mapstructure:"openai_proxy_stream_circuit"`
 	// HTTP 上游连接池配置（性能优化：支持高并发场景调优）
 	// MaxIdleConns: 所有主机的最大空闲连接总数
 	MaxIdleConns int `mapstructure:"max_idle_conns"`
@@ -972,6 +974,14 @@ type GatewayOpenAIHTTP2Config struct {
 	FallbackErrorThreshold    int  `mapstructure:"fallback_error_threshold"`
 	FallbackWindowSeconds     int  `mapstructure:"fallback_window_seconds"`
 	FallbackTTLSeconds        int  `mapstructure:"fallback_ttl_seconds"`
+}
+
+// GatewayOpenAIProxyStreamCircuitConfig controls the bounded, in-process
+// proxy-ID circuit used for incomplete OpenAI Responses SSE streams.
+type GatewayOpenAIProxyStreamCircuitConfig struct {
+	FailureThreshold int `mapstructure:"failure_threshold"`
+	WindowSeconds    int `mapstructure:"window_seconds"`
+	TTLSeconds       int `mapstructure:"ttl_seconds"`
 }
 
 // UserMessageQueueConfig 用户消息串行队列配置
@@ -2199,6 +2209,9 @@ func setDefaults() {
 	viper.SetDefault("gateway.openai_http2.fallback_error_threshold", 2)
 	viper.SetDefault("gateway.openai_http2.fallback_window_seconds", 60)
 	viper.SetDefault("gateway.openai_http2.fallback_ttl_seconds", 600)
+	viper.SetDefault("gateway.openai_proxy_stream_circuit.failure_threshold", 2)
+	viper.SetDefault("gateway.openai_proxy_stream_circuit.window_seconds", 60)
+	viper.SetDefault("gateway.openai_proxy_stream_circuit.ttl_seconds", 600)
 	viper.SetDefault("gateway.image_nonstream_keepalive_interval", 0)
 	// OpenAI Responses WebSocket（默认开启；可通过 force_http 紧急回滚）
 	viper.SetDefault("gateway.openai_ws.enabled", true)
@@ -3003,6 +3016,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Gateway.OpenAIHTTP2.FallbackTTLSeconds < 0 {
 		return fmt.Errorf("gateway.openai_http2.fallback_ttl_seconds must be non-negative")
+	}
+	if c.Gateway.OpenAIProxyStreamCircuit.FailureThreshold < 0 {
+		return fmt.Errorf("gateway.openai_proxy_stream_circuit.failure_threshold must be non-negative")
+	}
+	if c.Gateway.OpenAIProxyStreamCircuit.WindowSeconds < 0 {
+		return fmt.Errorf("gateway.openai_proxy_stream_circuit.window_seconds must be non-negative")
+	}
+	if c.Gateway.OpenAIProxyStreamCircuit.TTLSeconds < 0 {
+		return fmt.Errorf("gateway.openai_proxy_stream_circuit.ttl_seconds must be non-negative")
 	}
 	if c.Gateway.ImageNonstreamKeepaliveInterval < 0 {
 		return fmt.Errorf("gateway.image_nonstream_keepalive_interval must be non-negative")

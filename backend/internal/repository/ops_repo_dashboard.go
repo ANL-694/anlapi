@@ -984,7 +984,7 @@ func buildUsageWhere(filter *service.OpsDashboardFilter, start, end time.Time, s
 		// drop rows where group_id is NULL.
 		join = "LEFT JOIN groups g ON g.id = ul.group_id LEFT JOIN accounts a ON a.id = ul.account_id"
 		args = append(args, platform)
-		clauses = append(clauses, fmt.Sprintf("COALESCE(NULLIF(g.platform,''), a.platform) = $%d", idx))
+		clauses = append(clauses, fmt.Sprintf("(CASE WHEN g.platform = 'composite' THEN a.platform ELSE COALESCE(NULLIF(g.platform,''), a.platform) END) = $%d", idx))
 		idx++
 	}
 

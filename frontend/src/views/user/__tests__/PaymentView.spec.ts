@@ -1,6 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, shallowMount } from '@vue/test-utils'
 import PaymentView from '../PaymentView.vue'
+import AmountInput from '@/components/payment/AmountInput.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import PaymentStatusPanel from '@/components/payment/PaymentStatusPanel.vue'
 import { PAYMENT_RECOVERY_STORAGE_KEY } from '@/components/payment/paymentFlow'
 
 const routeState = vi.hoisted(() => ({
@@ -146,6 +149,44 @@ function checkoutInfoWithPlansFixture() {
   }
 }
 
+function alipayCheckoutInfoFixture() {
+  return {
+    data: {
+      ...checkoutInfoFixture().data,
+      methods: {
+        alipay: {
+          currency: 'CNY',
+          daily_limit: 0,
+          daily_used: 0,
+          daily_remaining: 0,
+          single_min: 0,
+          single_max: 0,
+          fee_rate: 0,
+          available: true,
+        },
+      },
+      alipay_mobile_precreate_deep_link: true,
+    },
+  }
+}
+
+function mobileAlipayOrderFixture() {
+  return {
+    order_id: 901,
+    amount: 88,
+    pay_amount: 88,
+    fee_rate: 0,
+    expires_at: '2099-01-01T00:10:00.000Z',
+    payment_type: 'alipay',
+    payment_mode: 'qrcode',
+    currency: 'CNY',
+    qr_code: 'https://qr.alipay.com/dynamic-order-901',
+    out_trade_no: 'anl_alipay_901',
+    resume_token: 'resume-alipay-901',
+    alipay_mobile_precreate_deep_link: true,
+  }
+}
+
 function jsapiOrderFixture(resumeToken: string) {
   return {
     order_id: 123,
@@ -209,6 +250,10 @@ describe('PaymentView WeChat JSAPI flow', () => {
     ;(window as Window & { WeixinJSBridge?: { invoke: typeof bridgeInvoke } }).WeixinJSBridge = {
       invoke: bridgeInvoke,
     }
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('resets payment state and redirects to /payment/result after JSAPI reports success', async () => {
@@ -417,5 +462,66 @@ describe('PaymentView WeChat JSAPI flow', () => {
     expect(showWarning).toHaveBeenCalledWith('payment.errors.mobilePaymentFallbackToQr')
     expect(showError).not.toHaveBeenCalled()
     expect(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY)).toContain('weixin://wxpay/bizpayurl?pr=fallback-native')
+  })
+
+  it('passes mobile Alipay state to the status panel and redirects successful payments to the result page', async () => {
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(alipayCheckoutInfoFixture())
+    createOrder.mockResolvedValue(mobileAlipayOrderFixture())
+
+    const wrapper = shallowMount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          UiPage: { template: '<main><slot /></main>' },
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+
+    wrapper.findComponent(AmountInput).vm.$emit('update:modelValue', 88)
+    await flushPromises()
+    const submitButton = wrapper.findAll('button').find(button => button.text().includes('payment.createOrder'))
+    expect(submitButton).toBeDefined()
+    await submitButton!.trigger('click')
+    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm')
+    await flushPromises()
+
+    expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
+      amount: 88,
+      payment_type: 'alipay',
+      order_type: 'balance',
+      is_mobile: true,
+      payment_source: 'hosted_redirect',
+    }))
+    const statusPanel = wrapper.findComponent(PaymentStatusPanel)
+    expect(statusPanel.props()).toMatchObject({
+      orderId: 901,
+      amount: 88,
+      payAmount: 88,
+      qrCode: 'https://qr.alipay.com/dynamic-order-901',
+      currency: 'CNY',
+      outTradeNo: 'anl_alipay_901',
+      mobileAlipayDeepLink: true,
+    })
+    expect(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY)).toContain('resume-alipay-901')
+
+    statusPanel.vm.$emit('settled', 'success')
+    statusPanel.vm.$emit('success')
+    await flushPromises()
+
+    expect(refreshUser).toHaveBeenCalled()
+    expect(routerPush).toHaveBeenCalledWith({
+      path: '/payment/result',
+      query: {
+        order_id: '901',
+        out_trade_no: 'anl_alipay_901',
+        resume_token: 'resume-alipay-901',
+      },
+    })
+    expect(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY)).toBeNull()
+    wrapper.unmount()
   })
 })

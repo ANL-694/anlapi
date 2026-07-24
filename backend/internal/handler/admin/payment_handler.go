@@ -2,6 +2,7 @@ package admin
 
 import (
 	"strconv"
+	"time"
 
 	dbent "anlapi/ent"
 	"anlapi/internal/payment"
@@ -229,7 +230,68 @@ func (h *PaymentHandler) ListPlans(c *gin.Context) {
 		response.ErrorFrom(c, err)
 		return
 	}
-	response.Success(c, plans)
+	groupInfo := h.configService.GetGroupInfoMap(c.Request.Context(), plans)
+	response.Success(c, adminSubscriptionPlansForResponse(plans, groupInfo))
+}
+
+type AdminSubscriptionPlanResult struct {
+	ID              int64     `json:"id"`
+	GroupID         int64     `json:"group_id"`
+	GroupPlatform   string    `json:"group_platform,omitempty"`
+	GroupName       string    `json:"group_name,omitempty"`
+	RateMultiplier  float64   `json:"rate_multiplier,omitempty"`
+	DailyLimitUSD   *float64  `json:"daily_limit_usd,omitempty"`
+	WeeklyLimitUSD  *float64  `json:"weekly_limit_usd,omitempty"`
+	MonthlyLimitUSD *float64  `json:"monthly_limit_usd,omitempty"`
+	ModelScopes     []string  `json:"supported_model_scopes,omitempty"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	Price           float64   `json:"price"`
+	OriginalPrice   *float64  `json:"original_price,omitempty"`
+	Currency        string    `json:"currency,omitempty"`
+	ValidityDays    int       `json:"validity_days"`
+	ValidityUnit    string    `json:"validity_unit"`
+	Features        string    `json:"features"`
+	ProductName     string    `json:"product_name"`
+	ForSale         bool      `json:"for_sale"`
+	SortOrder       int       `json:"sort_order"`
+	CreatedAt       time.Time `json:"created_at,omitempty"`
+	UpdatedAt       time.Time `json:"updated_at,omitempty"`
+}
+
+func adminSubscriptionPlansForResponse(plans []*dbent.SubscriptionPlan, groupInfo map[int64]service.PlanGroupInfo) []AdminSubscriptionPlanResult {
+	result := make([]AdminSubscriptionPlanResult, 0, len(plans))
+	for _, plan := range plans {
+		if plan == nil {
+			continue
+		}
+		info := groupInfo[plan.GroupID]
+		result = append(result, AdminSubscriptionPlanResult{
+			ID:              plan.ID,
+			GroupID:         plan.GroupID,
+			GroupPlatform:   info.Platform,
+			GroupName:       info.Name,
+			RateMultiplier:  info.RateMultiplier,
+			DailyLimitUSD:   info.DailyLimitUSD,
+			WeeklyLimitUSD:  info.WeeklyLimitUSD,
+			MonthlyLimitUSD: info.MonthlyLimitUSD,
+			ModelScopes:     info.ModelScopes,
+			Name:            plan.Name,
+			Description:     plan.Description,
+			Price:           plan.Price,
+			OriginalPrice:   plan.OriginalPrice,
+			Currency:        plan.Currency,
+			ValidityDays:    plan.ValidityDays,
+			ValidityUnit:    plan.ValidityUnit,
+			Features:        plan.Features,
+			ProductName:     plan.ProductName,
+			ForSale:         plan.ForSale,
+			SortOrder:       plan.SortOrder,
+			CreatedAt:       plan.CreatedAt,
+			UpdatedAt:       plan.UpdatedAt,
+		})
+	}
+	return result
 }
 
 // CreatePlan creates a new subscription plan.

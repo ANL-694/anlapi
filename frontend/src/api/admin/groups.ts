@@ -15,6 +15,61 @@ import type {
 
 export type GroupScopeFilter = GroupScope | 'all'
 
+export type CompositeRouteMatchType = 'exact' | 'prefix'
+export type CompositeRouteEndpoint =
+  | 'any'
+  | 'messages'
+  | 'count_tokens'
+  | 'responses'
+  | 'chat_completions'
+  | 'embeddings'
+  | 'images'
+  | 'gemini'
+export type CompositeTargetPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok'
+
+export interface CompositeModelRoute {
+  id: number
+  group_id: number
+  public_model: string
+  match_type: CompositeRouteMatchType
+  target_platform: CompositeTargetPlatform
+  upstream_model: string
+  endpoint: CompositeRouteEndpoint
+  priority: number
+  enabled: boolean
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CompositeRouteInput {
+  public_model: string
+  match_type: CompositeRouteMatchType
+  target_platform: CompositeTargetPlatform
+  upstream_model?: string
+  endpoint: CompositeRouteEndpoint
+  priority: number
+  enabled: boolean
+  notes?: string
+}
+
+export interface CompositeRoutePreviewRequest {
+  model: string
+  endpoint: CompositeRouteEndpoint
+}
+
+export interface CompositeRouteDecision {
+  matched: boolean
+  source: 'route' | 'detector' | string
+  group_id: number
+  public_model: string
+  target_platform: CompositeTargetPlatform | ''
+  upstream_model: string
+  endpoint: CompositeRouteEndpoint
+  route?: CompositeModelRoute
+  reason?: string
+}
+
 /**
  * List all groups with pagination
  * @param page - Page number (default: 1)
@@ -113,6 +168,49 @@ export async function getModelsListCandidates(
     }
   )
   return data.models || []
+}
+
+export async function listCompositeRoutes(id: number): Promise<CompositeModelRoute[]> {
+  const { data } = await apiClient.get<CompositeModelRoute[]>(`/admin/groups/${id}/composite-routes`)
+  return data
+}
+
+export async function createCompositeRoute(
+  id: number,
+  input: CompositeRouteInput
+): Promise<CompositeModelRoute> {
+  const { data } = await apiClient.post<CompositeModelRoute>(`/admin/groups/${id}/composite-routes`, input)
+  return data
+}
+
+export async function updateCompositeRoute(
+  id: number,
+  routeID: number,
+  input: CompositeRouteInput
+): Promise<CompositeModelRoute> {
+  const { data } = await apiClient.put<CompositeModelRoute>(
+    `/admin/groups/${id}/composite-routes/${routeID}`,
+    input
+  )
+  return data
+}
+
+export async function deleteCompositeRoute(id: number, routeID: number): Promise<{ message: string }> {
+  const { data } = await apiClient.delete<{ message: string }>(
+    `/admin/groups/${id}/composite-routes/${routeID}`
+  )
+  return data
+}
+
+export async function previewCompositeRoute(
+  id: number,
+  input: CompositeRoutePreviewRequest
+): Promise<CompositeRouteDecision> {
+  const { data } = await apiClient.post<CompositeRouteDecision>(
+    `/admin/groups/${id}/composite-routes/preview`,
+    input
+  )
+  return data
 }
 
 /**
@@ -453,6 +551,11 @@ export const groupsAPI = {
   getByPlatform,
   getById,
   getModelsListCandidates,
+  listCompositeRoutes,
+  createCompositeRoute,
+  updateCompositeRoute,
+  deleteCompositeRoute,
+  previewCompositeRoute,
   create,
   duplicate,
   update,

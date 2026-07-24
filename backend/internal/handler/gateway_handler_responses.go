@@ -75,6 +75,11 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 		return
 	}
 	reqModel := modelResult.String()
+	ensureCompositeTargetPlatform(c, apiKey, reqModel)
+	if !compositeTargetPlatformResolved(c, apiKey, reqModel) {
+		h.responsesErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Model is not supported by composite groups")
+		return
+	}
 	reqStream := gjson.GetBytes(body, "stream").Bool()
 	requestedModel := reqModel
 	autoDecision := h.gatewayService.ResolveAutoModel(c.Request.Context(), apiKey.GroupID, reqModel, body, service.AutoModelProtocolOpenAIResponses)
@@ -217,7 +222,7 @@ routeLoop:
 					if routeCursor.switchToNext(apiKey.ID, "account_select_failed", reqLog, zap.Error(err)) {
 						continue routeLoop
 					}
-					cls := classifyNoAccountErrorFromGin(c, h.gatewayService, currentAPIKey, reqModel, requestedModel, openAICompatibleRequestPlatform(currentAPIKey))
+					cls := classifyNoAccountErrorFromGin(c, h.gatewayService, currentAPIKey, reqModel, requestedModel, openAICompatibleRequestPlatform(c.Request.Context(), currentAPIKey))
 					if cls.ModelNotFound {
 						h.responsesErrorResponse(c, cls.Status, cls.ErrType, cls.Message)
 						return

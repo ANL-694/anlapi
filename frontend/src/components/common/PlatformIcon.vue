@@ -33,6 +33,10 @@
   <svg v-else-if="platform === 'kiro'" :class="sizeClass" viewBox="0 0 24 24" fill="currentColor">
     <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2h11A2.5 2.5 0 0 1 20 4.5v15a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 19.5v-15Zm4 2v11h2.15v-3.63l1.19-1.27 3.05 4.9H17l-4.13-6.44L16.72 6.5h-2.74l-3.83 4.64V6.5H8Z" />
   </svg>
+  <!-- Composite group logo (stacked routes) -->
+  <svg v-else-if="platform === 'composite'" :class="sizeClass" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2.5 3 7l9 4.5L21 7 12 2.5Zm-7.2 8.8L12 15l7.2-3.7L21 12.2 12 16.7l-9-4.5 1.8-.9Zm0 5L12 20l7.2-3.7L21 17.2 12 21.7l-9-4.5 1.8-.9Z" />
+  </svg>
   <!-- Fallback: generic platform icon -->
   <svg v-else :class="sizeClass" fill="currentColor" viewBox="0 0 24 24">
     <path

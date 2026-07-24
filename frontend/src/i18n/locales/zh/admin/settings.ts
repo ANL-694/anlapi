@@ -326,6 +326,16 @@ export default {
         saved: '上游倍率自动探测设置已保存',
         saveFailed: '保存上游倍率自动探测设置失败'
       },
+      ollamaCloudUsage: {
+        title: 'Ollama Cloud 用量刷新',
+        description: '定期刷新账号在 Ollama 官方设置页展示的用量；默认关闭。',
+        enabled: '启用全局自动刷新',
+        enabledHint: '仅刷新已保存浏览器会话且账号自身也开启自动刷新的账号；手动刷新不受影响。',
+        intervalMinutes: '刷新周期（分钟）',
+        intervalHint: '范围 15–1440 分钟。失败后按有上限的指数退避重试。',
+        saved: 'Ollama Cloud 用量刷新设置已保存',
+        saveFailed: '保存 Ollama Cloud 用量刷新设置失败'
+      },
       gatewayForwarding: {
         title: '请求转发行为',
         description: '控制请求转发到上游 OAuth 账号时的行为',
@@ -580,6 +590,9 @@ export default {
         cancelRateLimitWindowModeFixed: '固定',
         alipayForceQRCode: '支付宝强制二维码支付',
         alipayForceQRCodeHint: '启用后，移动端支付宝用户将统一使用二维码扫码支付，不再跳转至手机网站支付',
+        alipayMobilePrecreateDeepLink: '支付宝移动端当面付唤起',
+        alipayMobilePrecreateDeepLinkHint:
+          '默认关闭。仅对支付宝官方 hosted_redirect 的移动端余额充值和订阅订单生效：改用当面付并尝试唤起支付宝，失败时显示动态二维码；EasyPay、Shop 商城订单和桌面端不受影响',
         helpText: '帮助文本',
         helpImageUrl: '帮助图片链接',
         manageProviders: '管理服务商',

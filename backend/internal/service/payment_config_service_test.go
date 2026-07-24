@@ -73,6 +73,33 @@ func TestPcParseInt(t *testing.T) {
 	}
 }
 
+func TestAlipayMobilePrecreateEnvironmentOverride(t *testing.T) {
+	service := &PaymentConfigService{}
+
+	t.Setenv(SettingAlipayMobilePrecreateDeepLink, "")
+	if service.parsePaymentConfig(map[string]string{}).AlipayMobilePrecreateDeepLink {
+		t.Fatal("expected mobile Alipay precreate to remain disabled by default")
+	}
+	if !service.parsePaymentConfig(map[string]string{SettingAlipayMobilePrecreateDeepLink: "true"}).AlipayMobilePrecreateDeepLink {
+		t.Fatal("expected the stored setting to enable mobile Alipay precreate")
+	}
+
+	t.Setenv(SettingAlipayMobilePrecreateDeepLink, "true")
+	if !service.parsePaymentConfig(map[string]string{SettingAlipayMobilePrecreateDeepLink: "false"}).AlipayMobilePrecreateDeepLink {
+		t.Fatal("expected environment variable to enable mobile Alipay precreate")
+	}
+
+	t.Setenv(SettingAlipayMobilePrecreateDeepLink, "false")
+	if service.parsePaymentConfig(map[string]string{SettingAlipayMobilePrecreateDeepLink: "true"}).AlipayMobilePrecreateDeepLink {
+		t.Fatal("expected environment variable to disable mobile Alipay precreate")
+	}
+
+	t.Setenv(SettingAlipayMobilePrecreateDeepLink, "invalid")
+	if !service.parsePaymentConfig(map[string]string{SettingAlipayMobilePrecreateDeepLink: "true"}).AlipayMobilePrecreateDeepLink {
+		t.Fatal("expected an invalid environment value to fall back to the stored setting")
+	}
+}
+
 func TestParsePaymentConfig(t *testing.T) {
 	t.Parallel()
 

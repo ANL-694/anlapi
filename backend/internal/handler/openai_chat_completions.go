@@ -75,6 +75,11 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		return
 	}
 	reqModel := modelResult.String()
+	ensureCompositeTargetPlatform(c, apiKey, reqModel)
+	if !compositeTargetPlatformAllowed(c, apiKey, reqModel, service.PlatformOpenAI, service.PlatformGrok) {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Model is not supported by this endpoint for composite groups")
+		return
+	}
 	requestedModel := reqModel
 	autoDecision := h.gatewayService.ResolveAutoModel(c.Request.Context(), apiKey.GroupID, reqModel, body, service.AutoModelProtocolOpenAIChat)
 	if autoDecision.Matched {
@@ -181,7 +186,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		}
 
 		c.Set("openai_chat_completions_fallback_model", "")
-		requestPlatform := openAICompatibleRequestPlatform(currentAPIKey)
+		requestPlatform := openAICompatibleRequestPlatform(c.Request.Context(), currentAPIKey)
 		reqLog.Debug("openai_chat_completions.account_selecting",
 			zap.Int("excluded_account_count", len(failedAccountIDs)),
 			zap.Int64p("group_id", currentAPIKey.GroupID),

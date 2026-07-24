@@ -521,6 +521,113 @@ func TestVerifyOrderByOutTradeNoUsesOutTradeNoWhenPaymentTradeNoAlreadyExistsFor
 	require.Equal(t, "upstream-trade-existing", got.PaymentTradeNo)
 }
 
+func TestDuplicatePaymentNotificationDoesNotReprocessCompletedBalanceOrder(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+
+	user, err := client.User.Create().
+		SetEmail("duplicate-payment@example.com").
+		SetPasswordHash("hash").
+		SetUsername("duplicate-payment-user").
+		Save(ctx)
+	require.NoError(t, err)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(80).
+		SetPayAmount(80).
+		SetFeeRate(0).
+		SetRechargeCode("DUPLICATE-PAYMENT-CODE").
+		SetOutTradeNo("anlapi_duplicate_payment").
+		SetPaymentType(payment.TypeAlipay).
+		SetPaymentTradeNo("alipay-original-trade").
+		SetOrderType(payment.OrderTypeBalance).
+		SetStatus(OrderStatusCompleted).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	redeemRepo := &paymentOrderLifecycleRedeemRepo{
+		codesByCode: map[string]*RedeemCode{
+			order.RechargeCode: {
+				ID:     102,
+				Code:   order.RechargeCode,
+				Type:   RedeemTypeBalance,
+				Value:  order.Amount,
+				Status: StatusUnused,
+			},
+		},
+	}
+	svc := &PaymentService{
+		entClient:     client,
+		redeemService: &RedeemService{redeemRepo: redeemRepo},
+	}
+	notification := &payment.PaymentNotification{
+		TradeNo: "alipay-replayed-trade",
+		OrderID: order.OutTradeNo,
+		Amount:  order.PayAmount,
+		Status:  payment.NotificationStatusSuccess,
+	}
+	require.NoError(t, svc.HandlePaymentNotification(ctx, notification, payment.TypeAlipay))
+	require.NoError(t, svc.HandlePaymentNotification(ctx, notification, payment.TypeAlipay))
+
+	reloaded, err := client.PaymentOrder.Get(ctx, order.ID)
+	require.NoError(t, err)
+	require.Equal(t, OrderStatusCompleted, reloaded.Status)
+	require.Equal(t, "alipay-original-trade", reloaded.PaymentTradeNo)
+	require.Empty(t, redeemRepo.useCalls)
+}
+
+func TestPaymentNotificationRejectsAmountMismatchBeforeFulfillment(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+
+	user, err := client.User.Create().
+		SetEmail("payment-amount-mismatch@example.com").
+		SetPasswordHash("hash").
+		SetUsername("payment-amount-mismatch-user").
+		Save(ctx)
+	require.NoError(t, err)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(80).
+		SetPayAmount(80).
+		SetFeeRate(0).
+		SetRechargeCode("PAYMENT-AMOUNT-MISMATCH-CODE").
+		SetOutTradeNo("anlapi_payment_amount_mismatch").
+		SetPaymentType(payment.TypeAlipay).
+		SetPaymentTradeNo("").
+		SetOrderType(payment.OrderTypeBalance).
+		SetStatus(OrderStatusPending).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	svc := &PaymentService{entClient: client}
+	err = svc.HandlePaymentNotification(ctx, &payment.PaymentNotification{
+		TradeNo: "alipay-wrong-amount",
+		OrderID: order.OutTradeNo,
+		Amount:  order.PayAmount - 1,
+		Status:  payment.NotificationStatusSuccess,
+	}, payment.TypeAlipay)
+	require.ErrorContains(t, err, "amount mismatch")
+
+	reloaded, err := client.PaymentOrder.Get(ctx, order.ID)
+	require.NoError(t, err)
+	require.Equal(t, OrderStatusPending, reloaded.Status)
+	require.Empty(t, reloaded.PaymentTradeNo)
+	require.Nil(t, reloaded.PaidAt)
+}
+
 func TestPaymentOrderAllowsRegistryFallbackOnlyForLegacyOrdersWithoutPinnedProviderState(t *testing.T) {
 	t.Parallel()
 

@@ -240,3 +240,15 @@ func (s *PaymentConfigService) resolveEnabledVisibleMethodInstance(
 	}
 	return selectVisibleMethodInstanceByProviderKey(matching, providerKey), nil
 }
+
+func (s *PaymentConfigService) UsesOfficialAlipayVisibleMethod(ctx context.Context) (bool, error) {
+	instance, err := s.resolveEnabledVisibleMethodInstance(ctx, payment.TypeAlipay)
+	if err != nil {
+		return false, err
+	}
+	return isOfficialAlipayProviderInstance(instance), nil
+}
+
+func isOfficialAlipayProviderInstance(instance *dbent.PaymentProviderInstance) bool {
+	return instance != nil && strings.EqualFold(strings.TrimSpace(instance.ProviderKey), payment.TypeAlipay)
+}

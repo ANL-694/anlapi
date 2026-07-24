@@ -681,6 +681,7 @@ type GatewayService struct {
 	debugClaudeMimic       atomic.Bool
 	channelService         *ChannelService
 	resolver               *ModelPricingResolver
+	compositeResolver      *CompositeRouteResolver
 	debugGatewayBodyFile   atomic.Pointer[os.File] // non-nil when SUB2API_DEBUG_GATEWAY_BODY is set
 	tlsFPProfileService    *TLSFingerprintProfileService
 	balanceNotifyService   *BalanceNotifyService
@@ -716,6 +717,7 @@ func NewGatewayService(deps ...any) *GatewayService {
 		tlsFPProfileService    *TLSFingerprintProfileService
 		channelService         *ChannelService
 		resolver               *ModelPricingResolver
+		compositeResolver      *CompositeRouteResolver
 		balanceNotifyService   *BalanceNotifyService
 		userPlatformQuotaRepo  UserPlatformQuotaRepository
 	)
@@ -791,6 +793,8 @@ func NewGatewayService(deps ...any) *GatewayService {
 			channelService = value
 		case *ModelPricingResolver:
 			resolver = value
+		case *CompositeRouteResolver:
+			compositeResolver = value
 		case *BalanceNotifyService:
 			balanceNotifyService = value
 		}
@@ -829,6 +833,7 @@ func NewGatewayService(deps ...any) *GatewayService {
 		tlsFPProfileService:    tlsFPProfileService,
 		channelService:         channelService,
 		resolver:               resolver,
+		compositeResolver:      compositeResolver,
 		balanceNotifyService:   balanceNotifyService,
 		userPlatformQuotaRepo:  userPlatformQuotaRepo,
 	}
@@ -845,6 +850,13 @@ func NewGatewayService(deps ...any) *GatewayService {
 		svc.initDebugGatewayBodyFile(path)
 	}
 	return svc
+}
+
+func (s *GatewayService) ResolveCompositeRouteForAPIKey(ctx context.Context, apiKey *APIKey, model, endpoint string) (*APIKey, CompositeRouteDecision, error) {
+	if s == nil || s.compositeResolver == nil {
+		return apiKey, CompositeRouteDecision{}, nil
+	}
+	return s.compositeResolver.ResolveForAPIKey(ctx, apiKey, model, endpoint)
 }
 
 func (s *GatewayService) SetCarpoolRepository(repo CarpoolRepository) {
@@ -1803,9 +1815,24 @@ func (s *GatewayService) SelectAccountForModelWithExclusions(ctx context.Context
 		if err != nil {
 			return nil, err
 		}
+		if group == nil {
+			return nil, ErrGroupNotFound
+		}
 		groupID = resolvedGroupID
 		ctx = s.withGroupContext(ctx, group)
 		platform = group.Platform
+		if group.Platform == PlatformComposite {
+			decision, ok, err := s.resolveCompositeRouteDecision(ctx, group, requestedModel, CompositeRouteEndpointAny)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				return nil, fmt.Errorf("%w supporting model: %s (composite target platform unknown)", ErrNoAvailableAccounts, requestedModel)
+			}
+			platform = decision.TargetPlatform
+			requestedModel = decision.UpstreamModel
+			ctx = WithCompositeRouteDecision(ctx, decision)
+		}
 	} else {
 		// 无分组时只使用原生 anthropic 平台
 		platform = PlatformAnthropic
@@ -1863,6 +1890,17 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 		return nil, err
 	}
 	ctx = s.withGroupContext(ctx, group)
+	if group != nil && group.Platform == PlatformComposite {
+		decision, ok, resolveErr := s.resolveCompositeRouteDecision(ctx, group, requestedModel, CompositeRouteEndpointAny)
+		if resolveErr != nil {
+			return nil, resolveErr
+		}
+		if !ok {
+			return nil, fmt.Errorf("%w supporting model: %s (composite target platform unknown)", ErrNoAvailableAccounts, requestedModel)
+		}
+		requestedModel = decision.UpstreamModel
+		ctx = WithCompositeRouteDecision(ctx, decision)
+	}
 
 	// Claude Code 限制可能已将 groupID 解析为 fallback group，
 	// 渠道限制预检查必须使用解析后的分组。
@@ -1956,7 +1994,7 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 		}
 	}
 
-	platform, hasForcePlatform, err := s.resolvePlatform(ctx, groupID, group)
+	platform, hasForcePlatform, err := s.resolvePlatform(ctx, groupID, group, requestedModel)
 	if err != nil {
 		return nil, err
 	}
@@ -1990,7 +2028,8 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 
 	// 获取模型路由配置（仅 anthropic 平台）
 	var routingAccountIDs []int64
-	if group != nil && requestedModel != "" && group.Platform == PlatformAnthropic {
+	if group != nil && requestedModel != "" && platform == PlatformAnthropic &&
+		(group.Platform == PlatformAnthropic || group.Platform == PlatformComposite) {
 		routingAccountIDs = group.GetRoutingAccountIDs(requestedModel)
 		if s.debugModelRoutingEnabled() {
 			logger.LegacyPrintf("service.gateway", "[ModelRoutingDebug] context group routing: group_id=%d model=%s enabled=%v rules=%d matched_ids=%v session=%s sticky_account=%d",
@@ -2580,8 +2619,8 @@ func (s *GatewayService) routingAccountIDsForRequest(ctx context.Context, groupI
 		}
 		return nil
 	}
-	// Preserve existing behavior: model routing only applies to anthropic groups.
-	if group.Platform != PlatformAnthropic {
+	// 模型路由只用于最终解析到 Anthropic 的请求；composite 可复用同一组内规则。
+	if platform != PlatformAnthropic || (group.Platform != PlatformAnthropic && group.Platform != PlatformComposite) {
 		if s.debugModelRoutingEnabled() {
 			logger.LegacyPrintf("service.gateway", "[ModelRoutingDebug] skip: non-anthropic group platform: group_id=%d group_platform=%s model=%s", group.ID, group.Platform, requestedModel)
 		}
@@ -2646,18 +2685,38 @@ func (s *GatewayService) checkClaudeCodeRestriction(ctx context.Context, groupID
 	return group, resolvedID, nil
 }
 
-func (s *GatewayService) resolvePlatform(ctx context.Context, groupID *int64, group *Group) (string, bool, error) {
+func (s *GatewayService) resolvePlatform(ctx context.Context, groupID *int64, group *Group, requestedModel string) (string, bool, error) {
 	forcePlatform, hasForcePlatform := ctx.Value(ctxkey.ForcePlatform).(string)
 	if hasForcePlatform && forcePlatform != "" {
 		return forcePlatform, true, nil
 	}
 	if group != nil {
+		if group.Platform == PlatformComposite {
+			decision, ok, err := s.resolveCompositeRouteDecision(ctx, group, requestedModel, CompositeRouteEndpointAny)
+			if err != nil {
+				return "", false, err
+			}
+			if !ok {
+				return "", false, fmt.Errorf("%w supporting model: %s (composite target platform unknown)", ErrNoAvailableAccounts, requestedModel)
+			}
+			return decision.TargetPlatform, false, nil
+		}
 		return group.Platform, false, nil
 	}
 	if groupID != nil {
 		group, err := s.resolveGroupByID(ctx, *groupID)
 		if err != nil {
 			return "", false, err
+		}
+		if group.Platform == PlatformComposite {
+			decision, ok, resolveErr := s.resolveCompositeRouteDecision(ctx, group, requestedModel, CompositeRouteEndpointAny)
+			if resolveErr != nil {
+				return "", false, resolveErr
+			}
+			if !ok {
+				return "", false, fmt.Errorf("%w supporting model: %s (composite target platform unknown)", ErrNoAvailableAccounts, requestedModel)
+			}
+			return decision.TargetPlatform, false, nil
 		}
 		return group.Platform, false, nil
 	}
@@ -9377,13 +9436,18 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 	}
 
 	// 确定计费模型
-	billingModel := forwardResultBillingModel(result.Model, result.UpstreamModel)
+	concreteBillingModel := forwardResultBillingModel(result.Model, result.UpstreamModel)
+	billingModel := concreteBillingModel
 	if input.BillingModelSource == BillingModelSourceChannelMapped && input.ChannelMappedModel != "" {
 		billingModel = input.ChannelMappedModel
 	}
 	if input.BillingModelSource == BillingModelSourceRequested && input.OriginalModel != "" {
 		billingModel = input.OriginalModel
 	}
+	if apiKey.Group != nil && (apiKey.Group.Platform == PlatformComposite || hasCompositeRouteContext(ctx)) {
+		billingModel = s.compositeBillableModel(ctx, apiKey, billingModel, concreteBillingModel)
+	}
+	billingModel = s.billableModelWithFallback(ctx, apiKey, billingModel, result.UpstreamModel, result.Model)
 
 	// 确定 RequestedModel（渠道映射前的原始模型）
 	requestedModel := result.Model
@@ -9443,6 +9507,9 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 	quotaPlatform := input.QuotaPlatform
 	if quotaPlatform == "" {
 		quotaPlatform = PlatformFromAPIKey(apiKey)
+		if quotaPlatform == PlatformComposite && account != nil {
+			quotaPlatform = account.Platform
+		}
 	}
 	_, billingErr := applyUsageBilling(ctx, requestID, usageLog, &postUsageBillingParams{
 		Cost:                       cost,
@@ -9482,6 +9549,53 @@ func (s *GatewayService) calculateRecordUsageCost(
 
 	// Token 计费
 	return s.calculateTokenCost(ctx, result, apiKey, billingModel, multiplier, opts)
+}
+
+func hasCompositeRouteContext(ctx context.Context) bool {
+	_, ok := ResolvedCompositeGroupIDFromContext(ctx)
+	return ok
+}
+
+func (s *GatewayService) compositeBillableModel(ctx context.Context, apiKey *APIKey, billingModel, concreteBillingModel string) string {
+	if concreteBillingModel == "" || billingModel == concreteBillingModel {
+		return billingModel
+	}
+	if s.resolveChannelPricing(ctx, billingModel, apiKey) != nil {
+		return billingModel
+	}
+	logger.LegacyPrintf("service.gateway", "[Billing] composite billing model %q has no explicit channel pricing, billing by concrete model %q", billingModel, concreteBillingModel)
+	return concreteBillingModel
+}
+
+func (s *GatewayService) billableModelWithFallback(ctx context.Context, apiKey *APIKey, billingModel string, fallbacks ...string) string {
+	if s.hasResolvableTokenPricing(ctx, billingModel, apiKey) {
+		return billingModel
+	}
+	for _, fallback := range fallbacks {
+		fallback = strings.TrimSpace(fallback)
+		if fallback == "" || fallback == billingModel {
+			continue
+		}
+		if s.hasResolvableTokenPricing(ctx, fallback, apiKey) {
+			logger.LegacyPrintf("service.gateway", "[Billing] billing model %q has no pricing, falling back to concrete model %q", billingModel, fallback)
+			return fallback
+		}
+	}
+	return billingModel
+}
+
+func (s *GatewayService) hasResolvableTokenPricing(ctx context.Context, model string, apiKey *APIKey) bool {
+	if strings.TrimSpace(model) == "" {
+		return false
+	}
+	if s.resolveChannelPricing(ctx, model, apiKey) != nil {
+		return true
+	}
+	if s.billingService == nil {
+		return false
+	}
+	_, err := s.billingService.GetModelPricing(model)
+	return err == nil
 }
 
 // resolveChannelPricing 检查指定模型是否存在渠道级别定价。
@@ -10488,6 +10602,31 @@ func (s *GatewayService) GetAvailableModels(ctx context.Context, groupID *int64,
 		modelsListCacheStoreTotal.Add(1)
 	}
 	return cloneStringSlice(models)
+}
+
+func (s *GatewayService) GetSchedulablePlatforms(ctx context.Context, groupID *int64) map[string]struct{} {
+	platforms := make(map[string]struct{})
+	if s == nil || s.accountRepo == nil {
+		return platforms
+	}
+
+	var accounts []Account
+	var err error
+	if groupID != nil {
+		accounts, err = s.accountRepo.ListSchedulableByGroupID(ctx, *groupID)
+	} else {
+		accounts, err = s.accountRepo.ListSchedulable(ctx)
+	}
+	if err != nil {
+		return platforms
+	}
+	for _, account := range accounts {
+		platform := strings.TrimSpace(account.Platform)
+		if isConcreteRequestPlatform(platform) {
+			platforms[platform] = struct{}{}
+		}
+	}
+	return platforms
 }
 
 func (s *GatewayService) InvalidateAvailableModelsCache(groupID *int64, platform string) {

@@ -12,6 +12,86 @@ import (
 	infraerrors "anlapi/internal/pkg/errors"
 )
 
+func TestShouldUseAlipayMobilePrecreate(t *testing.T) {
+	t.Parallel()
+
+	enabled := &PaymentConfig{AlipayMobilePrecreateDeepLink: true}
+	officialAlipay := &payment.InstanceSelection{ProviderKey: payment.TypeAlipay}
+	tests := []struct {
+		name string
+		req  CreateOrderRequest
+		cfg  *PaymentConfig
+		sel  *payment.InstanceSelection
+		want bool
+	}{
+		{name: "balance hosted mobile official", req: CreateOrderRequest{IsMobile: true, OrderType: payment.OrderTypeBalance, PaymentSource: PaymentSourceHostedRedirect}, cfg: enabled, sel: officialAlipay, want: true},
+		{name: "subscription default source mobile official", req: CreateOrderRequest{IsMobile: true, OrderType: payment.OrderTypeSubscription}, cfg: enabled, sel: officialAlipay, want: true},
+		{name: "desktop remains wap", req: CreateOrderRequest{OrderType: payment.OrderTypeBalance}, cfg: enabled, sel: officialAlipay},
+		{name: "switch disabled", req: CreateOrderRequest{IsMobile: true, OrderType: payment.OrderTypeBalance}, cfg: &PaymentConfig{}, sel: officialAlipay},
+		{name: "easypay remains unchanged", req: CreateOrderRequest{IsMobile: true, OrderType: payment.OrderTypeBalance}, cfg: enabled, sel: &payment.InstanceSelection{ProviderKey: payment.TypeEasyPay}},
+		{name: "shop remains unchanged", req: CreateOrderRequest{IsMobile: true, OrderType: payment.OrderTypeShop}, cfg: enabled, sel: officialAlipay},
+		{name: "non hosted source remains unchanged", req: CreateOrderRequest{IsMobile: true, OrderType: payment.OrderTypeBalance, PaymentSource: "api"}, cfg: enabled, sel: officialAlipay},
+		{name: "nil config", req: CreateOrderRequest{IsMobile: true, OrderType: payment.OrderTypeBalance}, sel: officialAlipay},
+		{name: "nil selection", req: CreateOrderRequest{IsMobile: true, OrderType: payment.OrderTypeBalance}, cfg: enabled},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			if got := shouldUseAlipayMobilePrecreate(test.req, test.cfg, test.sel); got != test.want {
+				t.Fatalf("shouldUseAlipayMobilePrecreate() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestShouldExposeAlipayMobilePrecreateDeepLink(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name             string
+		precreateEnabled bool
+		qrCode           string
+		want             bool
+	}{
+		{name: "enabled with dynamic qr", precreateEnabled: true, qrCode: "https://qr.alipay.example/dynamic", want: true},
+		{name: "enabled with blank qr", precreateEnabled: true, qrCode: "  "},
+		{name: "disabled with qr", qrCode: "https://qr.alipay.example/dynamic"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			if got := shouldExposeAlipayMobilePrecreateDeepLink(test.precreateEnabled, test.qrCode); got != test.want {
+				t.Fatalf("shouldExposeAlipayMobilePrecreateDeepLink() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestIsOfficialAlipayProviderInstance(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		instance *dbent.PaymentProviderInstance
+		want     bool
+	}{
+		{name: "nil", instance: nil},
+		{name: "official", instance: &dbent.PaymentProviderInstance{ProviderKey: payment.TypeAlipay}, want: true},
+		{name: "normalized official", instance: &dbent.PaymentProviderInstance{ProviderKey: " ALIPAY "}, want: true},
+		{name: "easypay", instance: &dbent.PaymentProviderInstance{ProviderKey: payment.TypeEasyPay}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			if got := isOfficialAlipayProviderInstance(test.instance); got != test.want {
+				t.Fatalf("isOfficialAlipayProviderInstance() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestBuildCreateOrderResponseDefaultsToOrderCreated(t *testing.T) {
 	t.Parallel()
 

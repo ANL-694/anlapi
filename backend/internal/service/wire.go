@@ -124,6 +124,7 @@ func ProvideOpenAIGatewayService(
 	openAITokenProvider *OpenAITokenProvider,
 	grokTokenProvider *GrokTokenProvider,
 	resolver *ModelPricingResolver,
+	compositeResolver *CompositeRouteResolver,
 	channelService *ChannelService,
 	balanceNotifyService *BalanceNotifyService,
 	settingService *SettingService,
@@ -136,7 +137,7 @@ func ProvideOpenAIGatewayService(
 		userSubRepo, userGroupRateRepo, cache, cfg, schedulerSnapshot,
 		concurrencyService, billingService, rateLimitService, billingCacheService,
 		httpUpstream, deferredService, openAITokenProvider, grokTokenProvider,
-		resolver, channelService, balanceNotifyService, settingService, accountService,
+		resolver, compositeResolver, channelService, balanceNotifyService, settingService, accountService,
 		userPlatformQuotaRepo,
 	)
 	svc.SetCarpoolRepository(carpoolRepo)
@@ -875,6 +876,8 @@ func ProvideAdminService(
 	defaultSubAssigner DefaultSubscriptionAssigner,
 	userSubRepo UserSubscriptionRepository,
 	privacyClientFactory PrivacyClientFactory,
+	compositeRouteRepo CompositeModelRouteRepository,
+	compositeResolver *CompositeRouteResolver,
 	privateGroupProvisioner UserPrivateGroupProvisioner,
 	affiliateService *AffiliateService,
 ) AdminService {
@@ -897,6 +900,8 @@ func ProvideAdminService(
 		defaultSubAssigner,
 		userSubRepo,
 		privacyClientFactory,
+		compositeRouteRepo,
+		compositeResolver,
 	)
 	svc = SetAdminUserPrivateGroupProvisioner(svc, privateGroupProvisioner)
 	return SetAdminAffiliateService(svc, affiliateService)
@@ -910,6 +915,7 @@ var ProviderSet = wire.NewSet(
 	ProvideAPIKeyService,
 	ProvideAPIKeyAuthCacheInvalidator,
 	NewGroupService,
+	NewCompositeRouteResolver,
 	ProvideGroupRateScheduleService,
 	ProvideAccountService,
 	ProvideCarpoolService,
@@ -961,6 +967,7 @@ var ProviderSet = wire.NewSet(
 	ProvideAccountUsageService,
 	ProvideAccountTestService,
 	ProvideUpstreamBillingProbeService,
+	ProvideOllamaCloudUsageService,
 	ProvideSettingService,
 	ProvideAvailableChannelAccountModelRepository,
 	NewDataManagementService,

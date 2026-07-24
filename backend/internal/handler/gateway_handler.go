@@ -253,7 +253,12 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 	body = parsedReq.Body.Bytes()
 	reqModel := parsedReq.Model
 	reqStream := parsedReq.Stream
-	requestedModel := reqModel
+	ensureCompositeTargetPlatform(c, apiKey, reqModel)
+	requestedModel := clientRequestedModel(c, reqModel)
+	if !compositeTargetPlatformResolved(c, apiKey, reqModel) {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Model is not supported by composite groups")
+		return
+	}
 	autoDecision := h.gatewayService.ResolveAutoModel(c.Request.Context(), apiKey.GroupID, reqModel, body, service.AutoModelProtocolAnthropicMessages)
 	if autoDecision.Matched {
 		reqModel = autoDecision.ResolvedModel
@@ -1167,7 +1172,7 @@ routeLoop:
 					ForceCacheBilling:  forceCacheBilling,
 					APIKeyService:      h.apiKeyService,
 					QuotaPlatform:      quotaPlatform,
-					ChannelUsageFields: channelMapping.ToUsageFields(reqModel, result.UpstreamModel),
+					ChannelUsageFields: clientRequestedUsageFields(c, channelMapping, reqModel, result.UpstreamModel),
 				}); err != nil {
 					logger.L().With(
 						zap.String("component", "handler.gateway.messages"),
@@ -1209,13 +1214,24 @@ func (h *GatewayHandler) Models(c *gin.Context) {
 		forcedPlatform = strings.TrimSpace(forced)
 		platform = forcedPlatform
 	}
-
 	if routeModels, routePlatform, ok := h.collectAPIKeyRouteModels(c.Request.Context(), apiKey, forcedPlatform); ok {
 		if routePlatform == "" {
 			writeMixedModelsList(c, routeModels)
 			return
 		}
 		writeCustomModelsList(c, routePlatform, routeModels)
+		return
+	}
+	if platform == service.PlatformComposite {
+		autoModels := h.gatewayService.GetAutoModelNames(c.Request.Context(), groupID)
+		availableModels := mergeModelIDs(h.compositeAvailableModels(c.Request.Context(), groupID), autoModels)
+		if apiKey != nil && apiKey.Group != nil && apiKey.Group.CustomModelsListEnabled() {
+			availableModels = filterModelsByCustomList(availableModels, mergeModelIDs(defaultModelIDsForPlatform(service.PlatformComposite), autoModels), apiKey.Group.ModelsListConfig.Models)
+		}
+		if len(availableModels) == 0 {
+			availableModels = mergeModelIDs(defaultModelIDsForPlatform(service.PlatformComposite), autoModels)
+		}
+		writeModelsList(c, service.PlatformComposite, availableModels)
 		return
 	}
 
@@ -1323,7 +1339,11 @@ func (h *GatewayHandler) collectAPIKeyRouteModels(ctx context.Context, apiKey *s
 
 		groupID := group.ID
 		autoModels := h.gatewayService.GetAutoModelNames(ctx, &groupID)
-		groupModels := mergeModelIDs(h.gatewayService.GetAvailableModels(ctx, &groupID, platform), autoModels)
+		groupModels := h.gatewayService.GetAvailableModels(ctx, &groupID, platform)
+		if platform == service.PlatformComposite {
+			groupModels = h.compositeAvailableModels(ctx, &groupID)
+		}
+		groupModels = mergeModelIDs(groupModels, autoModels)
 		fallbackModels := mergeModelIDs(routeDefaultModelIDsForPlatform(platform), autoModels)
 		if group.CustomModelsListEnabled() {
 			groupModels = filterModelsByCustomList(groupModels, fallbackModels, group.ModelsListConfig.Models)
@@ -1349,6 +1369,35 @@ func (h *GatewayHandler) collectAPIKeyRouteModels(ctx context.Context, apiKey *s
 		}
 	}
 	return modelIDs, "", true
+}
+
+func (h *GatewayHandler) compositeAvailableModels(ctx context.Context, groupID *int64) []string {
+	if h == nil || h.gatewayService == nil {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	models := make([]string, 0)
+	schedulablePlatforms := h.gatewayService.GetSchedulablePlatforms(ctx, groupID)
+	for _, platform := range []string{service.PlatformAnthropic, service.PlatformGemini, service.PlatformOpenAI, service.PlatformAntigravity, service.PlatformGrok} {
+		platformModels := h.gatewayService.GetAvailableModels(ctx, groupID, platform)
+		if len(platformModels) == 0 {
+			if _, ok := schedulablePlatforms[platform]; ok {
+				platformModels = defaultModelIDsForPlatform(platform)
+			}
+		}
+		for _, model := range platformModels {
+			model = strings.TrimSpace(model)
+			if model == "" {
+				continue
+			}
+			if _, ok := seen[model]; ok {
+				continue
+			}
+			seen[model] = struct{}{}
+			models = append(models, model)
+		}
+	}
+	return models
 }
 
 func mergeModelIDs(base, extra []string) []string {
@@ -1619,7 +1668,7 @@ func defaultModelIDsForPlatform(platform string) []string {
 
 func routeDefaultModelIDsForPlatform(platform string) []string {
 	switch platform {
-	case service.PlatformAnthropic, service.PlatformOpenAI, service.PlatformGemini, service.PlatformAntigravity, service.PlatformGrok, service.PlatformKiro:
+	case service.PlatformAnthropic, service.PlatformOpenAI, service.PlatformGemini, service.PlatformAntigravity, service.PlatformGrok, service.PlatformKiro, service.PlatformComposite:
 		return defaultModelIDsForPlatform(platform)
 	default:
 		return nil
@@ -2478,6 +2527,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 	body = parsedReq.Body.Bytes()
 	// count_tokens 走 messages 严格校验时，复用已解析请求，避免二次反序列化。
 	SetClaudeCodeClientContext(c, body, parsedReq)
+	ensureCompositeTargetPlatform(c, apiKey, parsedReq.Model)
 	reqLog = reqLog.With(zap.String("model", parsedReq.Model), zap.Bool("stream", parsedReq.Stream))
 	// 在请求上下文中记录 thinking 状态，供 Antigravity 最终模型 key 推导/模型维度限流使用
 	c.Request = c.Request.WithContext(service.WithThinkingEnabled(c.Request.Context(), parsedReq.ThinkingEnabled, h.metadataBridgeEnabled()))
@@ -2485,6 +2535,10 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 	// 验证 model 必填
 	if parsedReq.Model == "" {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "model is required")
+		return
+	}
+	if !compositeTargetPlatformResolved(c, apiKey, parsedReq.Model) {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Model is not supported by composite groups")
 		return
 	}
 

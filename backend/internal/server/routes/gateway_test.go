@@ -87,6 +87,7 @@ func newGatewayRoutesTestRouterWithConfig(cfg *config.Config, platforms ...strin
 		nil,
 		nil,
 		settingSvc,
+		nil,
 		cfg,
 	)
 
@@ -208,6 +209,23 @@ func TestGatewayRoutesGrokCountTokensUsesLocalEstimator(t *testing.T) {
 	}
 }
 
+func TestGatewayRoutesCompositeChatCompletionsWithGrokModelUsesOpenAIGateway(t *testing.T) {
+	router := newGatewayRoutesTestRouter(service.PlatformComposite)
+
+	for _, path := range []string{"/v1/chat/completions", "/chat/completions"} {
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"model":"grok-4.3","messages":[{"role":"user","content":"hi"}]}`))
+		req.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+
+		router.ServeHTTP(response, req)
+
+		require.NotEqual(t, http.StatusNotFound, response.Code, "path=%s", path)
+		require.NotContains(t, response.Body.String(), "not supported")
+		require.NotContains(t, response.Body.String(), "OpenAI-compatible endpoint")
+		require.NotContains(t, response.Body.String(), "composite groups")
+	}
+}
+
 func TestPrivateGroupRouteResolverFiltersRoutesByEndpoint(t *testing.T) {
 	groupID := int64(1)
 	routes := []service.APIKeyGroupRoute{
@@ -234,7 +252,7 @@ func TestPrivateGroupRouteResolverFiltersRoutesByEndpoint(t *testing.T) {
 			name:          "chat completions uses openai-compatible text groups",
 			path:          "/v1/chat/completions",
 			wantPrimary:   2,
-			wantPlatforms: []string{service.PlatformOpenAI, service.PlatformKiro},
+			wantPlatforms: []string{service.PlatformOpenAI, service.PlatformKiro, service.PlatformGrok},
 		},
 		{
 			name:          "responses includes grok-compatible group",

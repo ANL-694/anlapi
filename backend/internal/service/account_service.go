@@ -1048,7 +1048,14 @@ func (s *AccountService) Update(ctx context.Context, id int64, req UpdateAccount
 	}
 
 	if req.Extra != nil {
-		account.Extra = *req.Extra
+		extra := make(map[string]any, len(*req.Extra))
+		for key, value := range *req.Extra {
+			extra[key] = value
+		}
+		delete(extra, OllamaCloudUsageSessionExtraKey)
+		delete(extra, OllamaCloudUsageAutoRefreshExtraKey)
+		delete(extra, OllamaCloudUsageSnapshotExtraKey)
+		account.Extra = extra
 	}
 	if req.AccountLevel != nil {
 		account.AccountLevel = NormalizeAccountLevel(*req.AccountLevel)
@@ -2125,7 +2132,9 @@ func (s *AccountService) validateOwnedAccountGroupBinding(ctx context.Context, o
 			return nil, ErrGroupNotAllowed
 		}
 		groupPlatform := strings.TrimSpace(group.Platform)
-		if groupPlatform == "" || !strings.EqualFold(groupPlatform, accountPlatform) {
+		platformCompatible := strings.EqualFold(groupPlatform, accountPlatform) ||
+			(groupPlatform == PlatformComposite && isConcreteRequestPlatform(accountPlatform))
+		if groupPlatform == "" || !platformCompatible {
 			return nil, ErrOwnedAccountGroupPlatformMismatch
 		}
 		if requiresOAuthOnlyGroupCheck(accountType) && isOAuthOnlyGroup(group) {
@@ -2156,7 +2165,7 @@ func isOAuthOnlyGroup(group *Group) bool {
 		return false
 	}
 	switch group.Platform {
-	case PlatformOpenAI, PlatformAntigravity, PlatformAnthropic, PlatformGemini, PlatformGrok:
+	case PlatformOpenAI, PlatformAntigravity, PlatformAnthropic, PlatformGemini, PlatformGrok, PlatformComposite:
 		return true
 	default:
 		return false

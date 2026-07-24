@@ -1,0 +1,63 @@
+package admin
+
+import (
+	"strings"
+	"testing"
+	"time"
+
+	dbent "anlapi/ent"
+	"anlapi/internal/service"
+)
+
+func TestAdminSubscriptionPlansForResponseIncludesCompositeGroupInfo(t *testing.T) {
+	weekly := 25.0
+	now := time.Now()
+	plans := []*dbent.SubscriptionPlan{
+		{
+			ID:           11,
+			GroupID:      7,
+			Name:         "All models",
+			Description:  "Composite access",
+			Price:        19.99,
+			Currency:     "CNY",
+			ValidityDays: 30,
+			ValidityUnit: "days",
+			Features:     "OpenAI\nClaude\nGemini\nGrok",
+			ProductName:  "ANL API",
+			ForSale:      true,
+			SortOrder:    1,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		},
+	}
+	groupInfo := map[int64]service.PlanGroupInfo{
+		7: {
+			Platform:       service.PlatformComposite,
+			Name:           "Composite group",
+			RateMultiplier: 1.5,
+			WeeklyLimitUSD: &weekly,
+			ModelScopes:    []string{"openai", "claude", "gemini", "grok"},
+		},
+	}
+
+	got := adminSubscriptionPlansForResponse(plans, groupInfo)
+
+	if len(got) != 1 {
+		t.Fatalf("expected one plan, got %d", len(got))
+	}
+	if got[0].GroupPlatform != service.PlatformComposite || got[0].GroupName != "Composite group" {
+		t.Fatalf("expected composite group projection, got %#v", got[0])
+	}
+	if got[0].WeeklyLimitUSD == nil || *got[0].WeeklyLimitUSD != weekly {
+		t.Fatalf("expected weekly limit to be included, got %#v", got[0].WeeklyLimitUSD)
+	}
+	if strings.Join(got[0].ModelScopes, ",") != "openai,claude,gemini,grok" {
+		t.Fatalf("expected model scopes to be preserved, got %#v", got[0].ModelScopes)
+	}
+	if got[0].Currency != "CNY" {
+		t.Fatalf("expected currency to be preserved, got %q", got[0].Currency)
+	}
+	if !got[0].CreatedAt.Equal(now) || !got[0].UpdatedAt.Equal(now) {
+		t.Fatalf("expected timestamps to be preserved, got %v / %v", got[0].CreatedAt, got[0].UpdatedAt)
+	}
+}

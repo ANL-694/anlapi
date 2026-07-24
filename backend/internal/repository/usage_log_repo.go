@@ -2676,7 +2676,7 @@ func (r *usageLogRepository) getUserTodayPlatformUsage(ctx context.Context, user
 	query := `
 		WITH platform_usage AS (
 			SELECT
-				COALESCE(NULLIF(g.platform, ''), NULLIF(a.platform, ''), 'custom') AS platform,
+				CASE WHEN g.platform = 'composite' THEN COALESCE(NULLIF(a.platform, ''), 'custom') ELSE COALESCE(NULLIF(g.platform, ''), NULLIF(a.platform, ''), 'custom') END AS platform,
 				COUNT(*) AS requests,
 				COALESCE(SUM(ul.input_tokens), 0) AS input_tokens,
 				COALESCE(SUM(ul.output_tokens), 0) AS output_tokens,
@@ -2689,7 +2689,7 @@ func (r *usageLogRepository) getUserTodayPlatformUsage(ctx context.Context, user
 			LEFT JOIN groups g ON g.id = ul.group_id
 			LEFT JOIN accounts a ON a.id = ul.account_id
 			WHERE ul.user_id = $1 AND ul.created_at >= $2
-			GROUP BY COALESCE(NULLIF(g.platform, ''), NULLIF(a.platform, ''), 'custom')
+			GROUP BY CASE WHEN g.platform = 'composite' THEN COALESCE(NULLIF(a.platform, ''), 'custom') ELSE COALESCE(NULLIF(g.platform, ''), NULLIF(a.platform, ''), 'custom') END
 		)
 		SELECT
 			platform,

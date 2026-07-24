@@ -18,6 +18,7 @@ import (
 	"anlapi/ent/channelmonitordailyrollup"
 	"anlapi/ent/channelmonitorhistory"
 	"anlapi/ent/channelmonitorrequesttemplate"
+	"anlapi/ent/compositemodelroute"
 	"anlapi/ent/emailbroadcast"
 	"anlapi/ent/errorpassthroughrule"
 	"anlapi/ent/group"
@@ -133,6 +134,7 @@ func checkColumn(t, c string) error {
 			channelmonitordailyrollup.Table:     channelmonitordailyrollup.ValidColumn,
 			channelmonitorhistory.Table:         channelmonitorhistory.ValidColumn,
 			channelmonitorrequesttemplate.Table: channelmonitorrequesttemplate.ValidColumn,
+			compositemodelroute.Table:           compositemodelroute.ValidColumn,
 			emailbroadcast.Table:                emailbroadcast.ValidColumn,
 			errorpassthroughrule.Table:          errorpassthroughrule.ValidColumn,
 			group.Table:                         group.ValidColumn,

@@ -79,11 +79,16 @@
         <template v-if="paymentPhase === 'paying'">
           <PaymentStatusPanel
             :order-id="paymentState.orderId"
+            :amount="paymentState.amount"
+            :pay-amount="paymentState.payAmount"
             :qr-code="paymentState.qrCode"
             :expires-at="paymentState.expiresAt"
             :payment-type="paymentState.paymentType"
             :pay-url="paymentState.payUrl"
             :order-type="paymentState.orderType"
+            :currency="paymentState.currency || selectedCurrency"
+            :out-trade-no="paymentState.outTradeNo"
+            :mobile-alipay-deep-link="paymentState.alipayMobilePrecreateDeepLink"
             @done="onPaymentDone"
             @success="onPaymentSuccess"
             @settled="onPaymentSettled"
@@ -433,6 +438,7 @@ function emptyPaymentState(): PaymentRecoverySnapshot {
     orderType: '',
     paymentMode: '',
     resumeToken: '',
+    alipayMobilePrecreateDeepLink: false,
     createdAt: 0,
   }
 }
@@ -534,12 +540,14 @@ function onPaymentDone() {
   }
 }
 
-function onPaymentSuccess() {
+async function onPaymentSuccess() {
+  const completedPayment = { ...paymentState.value }
   removeRecoverySnapshot()
   authStore.refreshUser()
   if (paymentState.value.orderType === 'subscription') {
     subscriptionStore.fetchActiveSubscriptions(true).catch(() => {})
   }
+  await redirectToPaymentResult(completedPayment)
 }
 
 function onPaymentSettled() {

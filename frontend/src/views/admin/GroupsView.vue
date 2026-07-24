@@ -335,6 +335,16 @@
                 <span class="text-xs">{{ t("common.edit") }}</span>
               </button>
               <button
+                v-if="row.platform === 'composite'"
+                data-testid="group-composite-routes"
+                :title="t('admin.groups.compositeRoutes.manage')"
+                @click="handleCompositeRoutes(row)"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-cyan-600 dark:hover:bg-dark-700 dark:hover:text-cyan-400"
+              >
+                <Icon name="swap" size="sm" />
+                <span class="text-xs">{{ t("admin.groups.compositeRoutes.action") }}</span>
+              </button>
+              <button
                 data-testid="group-duplicate"
                 :title="
                   duplicatingGroupIds.has(row.id)
@@ -1663,27 +1673,27 @@
         <!-- 账号过滤控制 (OpenAI/Antigravity/Anthropic/Gemini) -->
         <div
           v-if="
-            ['openai', 'antigravity', 'anthropic', 'gemini', 'grok'].includes(
+            ['openai', 'antigravity', 'anthropic', 'gemini', 'grok', 'composite'].includes(
               createForm.platform,
             )
           "
           class="border-t border-gray-200 dark:border-dark-400 pt-4 mt-4 space-y-4"
         >
           <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            账号过滤控制
+            {{ t("admin.groups.accountFilters.title") }}
           </h4>
 
           <!-- require_oauth_only toggle -->
           <div class="flex items-center justify-between">
             <div>
               <label class="text-sm text-gray-600 dark:text-gray-400"
-                >仅允许 OAuth 账号</label
+                >{{ t("admin.groups.accountFilters.oauthOnly") }}</label
               >
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {{
                   createForm.require_oauth_only
-                    ? "已启用 — 排除 API Key 类型账号"
-                    : "未启用"
+                    ? t("admin.groups.accountFilters.oauthOnlyEnabled")
+                    : t("admin.groups.accountFilters.disabled")
                 }}
               </p>
             </div>
@@ -1714,13 +1724,13 @@
           <div class="flex items-center justify-between">
             <div>
               <label class="text-sm text-gray-600 dark:text-gray-400"
-                >仅允许隐私保护已设置的账号</label
+                >{{ t("admin.groups.accountFilters.privacySetOnly") }}</label
               >
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {{
                   createForm.require_privacy_set
-                    ? "已启用 — Privacy 未设置的账号将被排除"
-                    : "未启用"
+                    ? t("admin.groups.accountFilters.privacySetOnlyEnabled")
+                    : t("admin.groups.accountFilters.disabled")
                 }}
               </p>
             </div>
@@ -3255,27 +3265,27 @@
         <!-- 账号过滤控制 (OpenAI/Antigravity/Anthropic/Gemini) -->
         <div
           v-if="
-            ['openai', 'antigravity', 'anthropic', 'gemini', 'grok'].includes(
+            ['openai', 'antigravity', 'anthropic', 'gemini', 'grok', 'composite'].includes(
               editForm.platform,
             )
           "
           class="border-t border-gray-200 dark:border-dark-400 pt-4 mt-4 space-y-4"
         >
           <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            账号过滤控制
+            {{ t("admin.groups.accountFilters.title") }}
           </h4>
 
           <!-- require_oauth_only toggle -->
           <div class="flex items-center justify-between">
             <div>
               <label class="text-sm text-gray-600 dark:text-gray-400"
-                >仅允许 OAuth 账号</label
+                >{{ t("admin.groups.accountFilters.oauthOnly") }}</label
               >
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {{
                   editForm.require_oauth_only
-                    ? "已启用 — 排除 API Key 类型账号"
-                    : "未启用"
+                    ? t("admin.groups.accountFilters.oauthOnlyEnabled")
+                    : t("admin.groups.accountFilters.disabled")
                 }}
               </p>
             </div>
@@ -3306,13 +3316,13 @@
           <div class="flex items-center justify-between">
             <div>
               <label class="text-sm text-gray-600 dark:text-gray-400"
-                >仅允许隐私保护已设置的账号</label
+                >{{ t("admin.groups.accountFilters.privacySetOnly") }}</label
               >
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {{
                   editForm.require_privacy_set
-                    ? "已启用 — Privacy 未设置的账号将被排除"
-                    : "未启用"
+                    ? t("admin.groups.accountFilters.privacySetOnlyEnabled")
+                    : t("admin.groups.accountFilters.disabled")
                 }}
               </p>
             </div>
@@ -3722,6 +3732,13 @@
       @close="showRPMOverridesModal = false"
       @success="loadGroups"
     />
+
+    <CompositeRoutesModal
+      :show="showCompositeRoutesModal"
+      :group="compositeRoutesGroup"
+      @close="showCompositeRoutesModal = false"
+      @success="loadGroups"
+    />
   </AppLayout>
 </template>
 
@@ -3747,6 +3764,7 @@ import { UiIconButton } from "@/ui";
 import GroupRateMultipliersModal from "@/components/admin/group/GroupRateMultipliersModal.vue";
 import GroupRateScheduleModal from "@/components/admin/group/GroupRateScheduleModal.vue";
 import GroupRPMOverridesModal from "@/components/admin/group/GroupRPMOverridesModal.vue";
+import CompositeRoutesModal from "@/components/admin/group/CompositeRoutesModal.vue";
 import ReasoningEffortPolicyFields from "@/components/admin/group/ReasoningEffortPolicyFields.vue";
 import { VueDraggable } from "vue-draggable-plus";
 import { createStableObjectKeyResolver } from "@/utils/stableObjectKey";
@@ -3967,6 +3985,7 @@ const platformOptions = computed(() => [
   { value: "grok", label: "Grok" },
   { value: "kiro", label: "Kiro" },
   { value: "custom", label: "Custom" },
+  { value: "composite", label: t("admin.groups.platforms.composite") },
 ]);
 
 const platformFilterOptions = computed(() => [
@@ -3978,6 +3997,7 @@ const platformFilterOptions = computed(() => [
   { value: "grok", label: "Grok" },
   { value: "kiro", label: "Kiro" },
   { value: "custom", label: "Custom" },
+  { value: "composite", label: t("admin.groups.platforms.composite") },
 ]);
 
 const editStatusOptions = computed(() => [
@@ -4083,10 +4103,22 @@ const invalidRequestFallbackOptionsForEdit = computed(() => {
   return options;
 });
 
-// 复制账号的源分组选项（创建时）- 仅包含相同平台且有账号的分组
+const canCopyAccountsFromGroupPlatform = (
+  targetPlatform: GroupPlatform,
+  sourcePlatform: GroupPlatform,
+) =>
+  targetPlatform === "composite"
+    ? ["anthropic", "openai", "gemini", "antigravity", "grok", "composite"].includes(
+        sourcePlatform,
+      )
+    : targetPlatform === sourcePlatform;
+
+// 复制账号的源分组选项（创建时）- composite 可从 concrete/composite 分组复制。
 const copyAccountsGroupOptions = computed(() => {
   const eligibleGroups = groups.value.filter(
-    (g) => g.platform === createForm.platform && (g.account_count || 0) > 0,
+    (g) =>
+      canCopyAccountsFromGroupPlatform(createForm.platform, g.platform) &&
+      (g.account_count || 0) > 0,
   );
   return eligibleGroups.map((g) => ({
     value: g.id,
@@ -4094,12 +4126,12 @@ const copyAccountsGroupOptions = computed(() => {
   }));
 });
 
-// 复制账号的源分组选项（编辑时）- 仅包含相同平台且有账号的分组，排除自身
+// 复制账号的源分组选项（编辑时）- composite 可从 concrete/composite 分组复制，排除自身。
 const copyAccountsGroupOptionsForEdit = computed(() => {
   const currentId = editingGroup.value?.id;
   const eligibleGroups = groups.value.filter(
     (g) =>
-      g.platform === editForm.platform &&
+      canCopyAccountsFromGroupPlatform(editForm.platform, g.platform) &&
       (g.account_count || 0) > 0 &&
       g.id !== currentId,
   );
@@ -4150,6 +4182,8 @@ const showRateSchedulesModal = ref(false);
 const rateSchedulesGroup = ref<AdminGroup | null>(null);
 const showRPMOverridesModal = ref(false);
 const rpmOverridesGroup = ref<AdminGroup | null>(null);
+const showCompositeRoutesModal = ref(false);
+const compositeRoutesGroup = ref<AdminGroup | null>(null);
 const sortableGroups = ref<AdminGroup[]>([]);
 const createMessagesDispatchDefaults = createDefaultMessagesDispatchFormState();
 const editMessagesDispatchDefaults = createDefaultMessagesDispatchFormState();
@@ -5305,6 +5339,11 @@ const handleRPMOverrides = (group: AdminGroup) => {
   showRPMOverridesModal.value = true;
 };
 
+const handleCompositeRoutes = (group: AdminGroup) => {
+  compositeRoutesGroup.value = group;
+  showCompositeRoutesModal.value = true;
+};
+
 const handleDuplicate = async (group: AdminGroup) => {
   if (duplicatingGroupIds.has(group.id)) return;
 
@@ -5393,7 +5432,14 @@ watch(
       newVal,
     );
     createReasoningEffortPolicyRef.value?.resetValidation();
-    if (!["openai", "antigravity", "anthropic", "gemini", "grok"].includes(newVal)) {
+    if (![
+      "openai",
+      "antigravity",
+      "anthropic",
+      "gemini",
+      "grok",
+      "composite",
+    ].includes(newVal)) {
       createForm.require_oauth_only = false;
       createForm.require_privacy_set = false;
     }
@@ -5434,7 +5480,14 @@ watch(
       newVal,
     );
     editReasoningEffortPolicyRef.value?.resetValidation();
-    if (!["openai", "antigravity", "anthropic", "gemini", "grok"].includes(newVal)) {
+    if (![
+      "openai",
+      "antigravity",
+      "anthropic",
+      "gemini",
+      "grok",
+      "composite",
+    ].includes(newVal)) {
       editForm.require_oauth_only = false;
       editForm.require_privacy_set = false;
     }

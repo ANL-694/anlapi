@@ -21,6 +21,7 @@ func RegisterGatewayRoutes(
 	subscriptionService *service.SubscriptionService,
 	opsService *service.OpsService,
 	settingService *service.SettingService,
+	compositeResolver *service.CompositeRouteResolver,
 	cfg *config.Config,
 ) {
 	bodyLimit := middleware.RequestBodyLimit(cfg.Gateway.MaxBodySize)
@@ -28,6 +29,8 @@ func RegisterGatewayRoutes(
 	opsErrorLogger := handler.OpsErrorLoggerMiddleware(opsService)
 	endpointNorm := handler.InboundEndpointMiddleware()
 	privateGroupRouteResolver := privateGroupRouteResolverMiddleware()
+	compositeTarget := compositeTargetPlatformMiddleware(compositeResolver)
+	compositeGeminiTarget := compositeGeminiTargetPlatformMiddleware(compositeResolver)
 
 	// Reject unassigned keys with an error format matching each API protocol.
 	requireGroupAnthropic := middleware.RequireGroupAssignment(settingService, middleware.AnthropicErrorWriter)
@@ -40,10 +43,6 @@ func RegisterGatewayRoutes(
 		default:
 			return false
 		}
-	}
-	isOpenAIGatewayPlatform := func(c *gin.Context) bool {
-		platform := getGroupPlatform(c)
-		return platform == service.PlatformOpenAI || platform == service.PlatformKiro
 	}
 	countTokensHandler := func(c *gin.Context) {
 		switch getGroupPlatform(c) {
@@ -103,14 +102,14 @@ func RegisterGatewayRoutes(
 		unsupportedPlatform(c, "Videos API is not supported for this platform")
 	}
 	videoStatusHandler := func(c *gin.Context) {
-		if getGroupPlatform(c) == service.PlatformGrok {
+		if getGroupPlatform(c) == service.PlatformGrok || getGroupPlatform(c) == service.PlatformComposite {
 			h.OpenAIGateway.GrokVideoStatus(c)
 			return
 		}
 		unsupportedPlatform(c, "Videos API is not supported for this platform")
 	}
 	videoContentHandler := func(c *gin.Context) {
-		if getGroupPlatform(c) == service.PlatformGrok {
+		if getGroupPlatform(c) == service.PlatformGrok || getGroupPlatform(c) == service.PlatformComposite {
 			h.OpenAIGateway.GrokVideoContent(c)
 			return
 		}
@@ -134,6 +133,7 @@ func RegisterGatewayRoutes(
 	gateway.Use(gin.HandlerFunc(apiKeyAuth))
 	gateway.GET("/sub2api/billing", h.Gateway.KeyBillingInfo)
 	gateway.Use(privateGroupRouteResolver)
+	gateway.Use(compositeTarget)
 	gateway.Use(requireGroupAnthropic)
 	{
 		// /v1/messages: auto-route based on group platform
@@ -172,11 +172,7 @@ func RegisterGatewayRoutes(
 		})
 		// OpenAI Chat Completions API: auto-route based on group platform
 		gateway.POST("/chat/completions", func(c *gin.Context) {
-			if getGroupPlatform(c) == service.PlatformGrok {
-				rejectGrokUnsupportedEndpoint(c, "Chat Completions API")
-				return
-			}
-			if isOpenAIGatewayPlatform(c) {
+			if isOpenAIResponsesCompatibleGatewayPlatform(c) {
 				h.OpenAIGateway.ChatCompletions(c)
 				return
 			}
@@ -224,6 +220,7 @@ func RegisterGatewayRoutes(
 	gemini.Use(endpointNorm)
 	gemini.Use(middleware.APIKeyAuthWithSubscriptionGoogle(apiKeyService, subscriptionService, cfg))
 	gemini.Use(privateGroupRouteResolver)
+	gemini.Use(compositeGeminiTarget)
 	gemini.Use(requireGroupGoogle)
 	{
 		gemini.GET("/models", h.Gateway.GeminiV1BetaListModels)
@@ -240,10 +237,10 @@ func RegisterGatewayRoutes(
 		}
 		h.Gateway.Responses(c)
 	}
-	r.POST("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, responsesHandler)
-	r.POST("/responses/*subpath", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, responsesHandler)
-	r.POST("/alpha/search", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.OpenAIGateway.AlphaSearch)
-	r.GET("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, func(c *gin.Context) {
+	r.POST("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, responsesHandler)
+	r.POST("/responses/*subpath", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, responsesHandler)
+	r.POST("/alpha/search", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, h.OpenAIGateway.AlphaSearch)
+	r.GET("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, func(c *gin.Context) {
 		if getGroupPlatform(c) == service.PlatformGrok {
 			rejectGrokUnsupportedEndpoint(c, "Responses WebSocket API")
 			return
@@ -251,9 +248,9 @@ func RegisterGatewayRoutes(
 		h.OpenAIGateway.ResponsesWebSocket(c)
 	})
 	r.GET("/models", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, modelsHandler)
-	r.POST("/messages/count_tokens", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, countTokensHandler)
+	r.POST("/messages/count_tokens", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, countTokensHandler)
 	codexDirect := r.Group("/backend-api/codex")
-	codexDirect.Use(bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic)
+	codexDirect.Use(bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic)
 	{
 		codexDirect.POST("/responses", responsesHandler)
 		codexDirect.POST("/responses/*subpath", responsesHandler)
@@ -268,18 +265,14 @@ func RegisterGatewayRoutes(
 		codexDirect.GET("/models", h.OpenAIGateway.CodexModels)
 	}
 	// OpenAI Chat Completions API alias without the /v1 prefix; route by group platform.
-	r.POST("/chat/completions", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, func(c *gin.Context) {
-		if getGroupPlatform(c) == service.PlatformGrok {
-			rejectGrokUnsupportedEndpoint(c, "Chat Completions API")
-			return
-		}
-		if isOpenAIGatewayPlatform(c) {
+	r.POST("/chat/completions", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, func(c *gin.Context) {
+		if isOpenAIResponsesCompatibleGatewayPlatform(c) {
 			h.OpenAIGateway.ChatCompletions(c)
 			return
 		}
 		h.Gateway.ChatCompletions(c)
 	})
-	r.POST("/embeddings", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, func(c *gin.Context) {
+	r.POST("/embeddings", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, func(c *gin.Context) {
 		if getGroupPlatform(c) != service.PlatformOpenAI {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
@@ -291,16 +284,16 @@ func RegisterGatewayRoutes(
 		}
 		h.OpenAIGateway.Embeddings(c)
 	})
-	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, imagesHandler)
-	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, imagesHandler)
-	r.POST("/images/generations/async", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.AsyncImage.Submit)
-	r.POST("/images/edits/async", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.AsyncImage.Submit)
-	r.GET("/images/tasks/:task_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.AsyncImage.Get)
-	r.POST("/videos/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoGenerationHandler)
-	r.POST("/videos/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoEditHandler)
-	r.POST("/videos/extensions", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoExtensionHandler)
-	r.GET("/videos/:request_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoStatusHandler)
-	r.GET("/videos/:request_id/content", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, videoContentHandler)
+	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, imagesHandler)
+	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, imagesHandler)
+	r.POST("/images/generations/async", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, h.AsyncImage.Submit)
+	r.POST("/images/edits/async", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, h.AsyncImage.Submit)
+	r.GET("/images/tasks/:task_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, h.AsyncImage.Get)
+	r.POST("/videos/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, videoGenerationHandler)
+	r.POST("/videos/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, videoEditHandler)
+	r.POST("/videos/extensions", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, videoExtensionHandler)
+	r.GET("/videos/:request_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, videoStatusHandler)
+	r.GET("/videos/:request_id/content", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, videoContentHandler)
 
 	// Antigravity model list.
 	r.GET("/antigravity/models", gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, requireGroupAnthropic, h.Gateway.AntigravityModels)
@@ -409,34 +402,39 @@ func privateGroupCompatiblePlatforms(c *gin.Context) map[string]struct{} {
 
 	switch {
 	case strings.Contains(path, "/v1beta/models"):
-		return map[string]struct{}{service.PlatformGemini: {}}
+		return map[string]struct{}{service.PlatformGemini: {}, service.PlatformComposite: {}}
 	case strings.Contains(path, "/embeddings"):
-		return map[string]struct{}{service.PlatformOpenAI: {}}
+		return map[string]struct{}{service.PlatformOpenAI: {}, service.PlatformComposite: {}}
 	case strings.Contains(path, "/images/generations"), strings.Contains(path, "/images/edits"):
 		return map[string]struct{}{
-			service.PlatformOpenAI: {},
-			service.PlatformGrok:   {},
+			service.PlatformOpenAI:    {},
+			service.PlatformGrok:      {},
+			service.PlatformComposite: {},
 		}
 	case strings.Contains(path, "/videos/"):
-		return map[string]struct{}{service.PlatformGrok: {}}
+		return map[string]struct{}{service.PlatformGrok: {}, service.PlatformComposite: {}}
 	case strings.Contains(path, "/chat/completions"):
 		return map[string]struct{}{
-			service.PlatformOpenAI: {},
-			service.PlatformKiro:   {},
+			service.PlatformOpenAI:    {},
+			service.PlatformKiro:      {},
+			service.PlatformGrok:      {},
+			service.PlatformComposite: {},
 		}
 	case strings.Contains(path, "/responses"):
 		return map[string]struct{}{
-			service.PlatformOpenAI: {},
-			service.PlatformKiro:   {},
-			service.PlatformGrok:   {},
+			service.PlatformOpenAI:    {},
+			service.PlatformKiro:      {},
+			service.PlatformGrok:      {},
+			service.PlatformComposite: {},
 		}
 	case strings.Contains(path, "/messages"):
-		return map[string]struct{}{service.PlatformAnthropic: {}}
+		return map[string]struct{}{service.PlatformAnthropic: {}, service.PlatformComposite: {}}
 	case path == "/models", strings.Contains(path, "/v1/models"), strings.Contains(path, "/backend-api/codex/models"):
 		return map[string]struct{}{
-			service.PlatformOpenAI: {},
-			service.PlatformKiro:   {},
-			service.PlatformGrok:   {},
+			service.PlatformOpenAI:    {},
+			service.PlatformKiro:      {},
+			service.PlatformGrok:      {},
+			service.PlatformComposite: {},
 		}
 	default:
 		return nil
@@ -448,6 +446,11 @@ func getGroupPlatform(c *gin.Context) string {
 	apiKey, ok := middleware.GetAPIKeyFromContext(c)
 	if !ok || apiKey.Group == nil {
 		return ""
+	}
+	if apiKey.Group.Platform == service.PlatformComposite {
+		if platform, resolved := service.ResolvedTargetPlatformForGroup(c.Request.Context(), apiKey.Group.ID); resolved {
+			return platform
+		}
 	}
 	return apiKey.Group.Platform
 }

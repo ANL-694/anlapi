@@ -501,6 +501,7 @@ func (s *PaymentService) invokeProvider(ctx context.Context, order *dbent.Paymen
 		IsMobile:    req.IsMobile,
 		ReturnURL:   providerReturnURL,
 	}, sel, outTradeNo, payAmountStr, subject)
+	providerReq.AlipayMobilePrecreate = shouldUseAlipayMobilePrecreate(req, cfg, sel)
 	finishProviderCall := servertiming.ObserveDependency(ctx, "payment")
 	pr, err := prov.CreatePayment(ctx, providerReq)
 	finishProviderCall()
@@ -535,7 +536,23 @@ func (s *PaymentService) invokeProvider(ctx context.Context, order *dbent.Paymen
 	}
 	resp := buildCreateOrderResponse(order, req, payAmount, sel, pr, resultType)
 	resp.ResumeToken = resumeToken
+	resp.AlipayMobilePrecreateDeepLink = shouldExposeAlipayMobilePrecreateDeepLink(providerReq.AlipayMobilePrecreate, pr.QRCode)
 	return resp, nil
+}
+
+func shouldExposeAlipayMobilePrecreateDeepLink(precreateEnabled bool, qrCode string) bool {
+	return precreateEnabled && strings.TrimSpace(qrCode) != ""
+}
+
+func shouldUseAlipayMobilePrecreate(req CreateOrderRequest, cfg *PaymentConfig, sel *payment.InstanceSelection) bool {
+	if cfg == nil || !cfg.AlipayMobilePrecreateDeepLink || !req.IsMobile || sel == nil {
+		return false
+	}
+	if req.OrderType != payment.OrderTypeBalance && req.OrderType != payment.OrderTypeSubscription {
+		return false
+	}
+	return NormalizePaymentSource(req.PaymentSource) == PaymentSourceHostedRedirect &&
+		strings.EqualFold(strings.TrimSpace(sel.ProviderKey), payment.TypeAlipay)
 }
 
 func buildProviderReturnURLForSelection(canonicalReturnURL string, orderID int64, outTradeNo, resumeToken string, sel *payment.InstanceSelection) (string, error) {

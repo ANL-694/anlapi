@@ -74,18 +74,26 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 		return
 	}
 	requestModel := parsed.Model
+	ensureCompositeTargetPlatform(c, apiKey, requestModel)
+	clientRequestModel := clientRequestedModel(c, requestModel)
+	routingModel := resolvedUpstreamModelForAPIKey(c, apiKey, requestModel)
+	if !compositeTargetPlatformAllowed(c, apiKey, requestModel, service.PlatformOpenAI) {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Model is not supported by this endpoint for composite groups")
+		return
+	}
 
 	reqLog = reqLog.With(
-		zap.String("model", requestModel),
+		zap.String("model", clientRequestModel),
+		zap.String("routing_model", routingModel),
 		zap.Bool("stream", parsed.Stream),
 		zap.Bool("multipart", parsed.Multipart),
 		zap.String("capability", string(parsed.RequiredCapability)),
 	)
 
 	if parsed.Multipart {
-		setOpsRequestContext(c, requestModel, parsed.Stream, nil)
+		setOpsRequestContext(c, clientRequestModel, parsed.Stream, nil)
 	} else {
-		setOpsRequestContext(c, requestModel, parsed.Stream, body)
+		setOpsRequestContext(c, clientRequestModel, parsed.Stream, body)
 	}
 	setOpsEndpointContext(c, "", int16(service.RequestTypeFromLegacy(parsed.Stream, false)))
 
@@ -138,7 +146,7 @@ routeLoop:
 			h.handleStreamingAwareError(c, status, code, message, streamStarted)
 			return
 		}
-		channelMapping, _ := h.gatewayService.ResolveChannelMappingAndRestrict(routeCtx, currentAPIKey.GroupID, requestModel)
+		channelMapping, _ := h.gatewayService.ResolveChannelMappingAndRestrict(routeCtx, currentAPIKey.GroupID, routingModel)
 		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription, service.QuotaPlatform(routeCtx, currentAPIKey)); err != nil {
 			reqLog.Info("openai.images.billing_eligibility_check_failed",
 				zap.Error(err),
@@ -162,7 +170,7 @@ routeLoop:
 				routeCtx,
 				currentAPIKey.GroupID,
 				sessionHash,
-				requestModel,
+				routingModel,
 				failedAccountIDs,
 				parsed.RequiredCapability,
 			)
@@ -319,7 +327,7 @@ routeLoop:
 					RequestPayloadHash: requestPayloadHash,
 					APIKeyService:      h.apiKeyService,
 					QuotaPlatform:      quotaPlatform,
-					ChannelUsageFields: channelMapping.ToUsageFields(requestModel, result.UpstreamModel),
+					ChannelUsageFields: clientRequestedUsageFields(c, channelMapping, requestModel, result.UpstreamModel),
 				}); err != nil {
 					logger.L().With(
 						zap.String("component", "handler.openai_gateway.images"),

@@ -53,6 +53,7 @@ const (
 	PlatformGrok        = domain.PlatformGrok
 	PlatformKiro        = domain.PlatformKiro
 	PlatformCustom      = domain.PlatformCustom
+	PlatformComposite   = domain.PlatformComposite
 )
 
 // AllowedQuotaPlatforms is the single service-level allowlist for user by

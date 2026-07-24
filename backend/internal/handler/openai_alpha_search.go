@@ -252,7 +252,7 @@ func (h *OpenAIGatewayHandler) recordAlphaSearchUsage(
 			RequestPayloadHash: requestPayloadHash,
 			APIKeyService:      h.apiKeyService,
 			QuotaPlatform:      quotaPlatform,
-			ChannelUsageFields: channelMapping.ToUsageFields(requestedModel, result.UpstreamModel),
+			ChannelUsageFields: clientRequestedUsageFields(c, channelMapping, requestedModel, result.UpstreamModel),
 		}); err != nil {
 			logger.L().With(
 				zap.String("component", "handler.openai_gateway.alpha_search"),
