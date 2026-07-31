@@ -207,6 +207,12 @@ func extractCCReasoningEffortFromBody(body []byte) *string {
 		raw = strings.TrimSpace(gjson.GetBytes(body, "reasoning_effort").String())
 	}
 	if raw == "" {
+		raw = strings.TrimSpace(gjson.GetBytes(body, "providerOptions.openai.reasoningEffort").String())
+	}
+	if raw == "" {
+		raw = strings.TrimSpace(gjson.GetBytes(body, "provider_options.openai.extra_body.reasoning_effort").String())
+	}
+	if raw == "" {
 		return nil
 	}
 	normalized := normalizeOpenAIReasoningEffort(raw)

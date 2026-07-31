@@ -99,6 +99,9 @@ func (s *OpenAIGatewayService) tempUnscheduleOpenAITransportError(ctx context.Co
 	}
 	until := time.Now().Add(openAITransportErrorTempUnschedDuration)
 	reason := "upstream transport error (proxy/network): " + safeErr
+	// 先阻断本进程调度，再尝试持久化；数据库或限流服务不可用时也必须避免
+	// 当前进程继续复用已确认不可达的账号。
+	s.BlockAccountScheduling(account, until, reason)
 	account.TempUnschedulableUntil = &until
 	account.TempUnschedulableReason = reason
 

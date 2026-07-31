@@ -148,11 +148,25 @@ func postUsageBilling(ctx context.Context, p *postUsageBillingParams, deps *bill
 		}
 	} else {
 		if cost.ActualCost > 0 {
-			if err := deps.userRepo.DeductBalance(billingCtx, p.User.ID, cost.ActualCost); err != nil {
-				slog.Error("deduct balance failed", "user_id", p.User.ID, "error", err)
+			var billingErr error
+			if p.User.PreferPointsBilling {
+				if walletRepo, ok := deps.userRepo.(usageBillingWalletAdjuster); ok {
+					_, billingErr = walletRepo.AdjustUsageBillingWallet(billingCtx, p.User.ID, cost.ActualCost, true, nil)
+				}
+			}
+			if billingErr == nil && (!p.User.PreferPointsBilling || !implementsUsageBillingWallet(deps.userRepo)) {
+				billingErr = deps.userRepo.DeductBalance(billingCtx, p.User.ID, cost.ActualCost)
+			}
+			if billingErr != nil {
+				slog.Error("legacy usage billing failed", "user_id", p.User.ID, "error", billingErr)
 			} else if deps.billingCacheService != nil {
 				if err := deps.billingCacheService.InvalidateUserBalance(billingCtx, p.User.ID); err != nil {
 					slog.Warn("invalidate balance cache after legacy deduction failed", "user_id", p.User.ID, "error", err)
+				}
+			}
+			if billingErr == nil {
+				if invalidator, ok := p.APIKeyService.(apiKeyAuthUserCacheInvalidator); ok {
+					invalidator.InvalidateAuthCacheByUserID(billingCtx, p.User.ID)
 				}
 			}
 		}
@@ -201,6 +215,19 @@ func postUsageBilling(ctx context.Context, p *postUsageBillingParams, deps *bill
 	// cache updates. The legacy path does DB writes directly; the finalize path
 	// does cache queue + notifications. Notifications are dispatched separately
 	// by the caller after recording the usage log.
+}
+
+type usageBillingWalletAdjuster interface {
+	AdjustUsageBillingWallet(context.Context, int64, float64, bool, map[string]any) (*UsageBillingApplyResult, error)
+}
+
+type apiKeyAuthUserCacheInvalidator interface {
+	InvalidateAuthCacheByUserID(context.Context, int64)
+}
+
+func implementsUsageBillingWallet(repo UserRepository) bool {
+	_, ok := repo.(usageBillingWalletAdjuster)
+	return ok
 }
 
 func resolveUsageBillingRequestID(ctx context.Context, upstreamRequestID string) string {

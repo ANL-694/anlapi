@@ -214,6 +214,10 @@ func (s *GeminiMessagesCompatService) tryStickySessionHit(
 	if err != nil {
 		return nil
 	}
+	if !IsAccountVisibleToRequestUser(ctx, account) {
+		_ = s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), cacheKey)
+		return nil
+	}
 
 	// 检查账号是否需要清理粘性会话
 	// Check if sticky session should be cleared
@@ -255,6 +259,10 @@ func (s *GeminiMessagesCompatService) isAccountUsableForRequestWithPrecheck(
 	useMixedScheduling bool,
 	precheckResult map[int64]bool,
 ) bool {
+	if !IsAccountVisibleToRequestUser(ctx, account) {
+		return false
+	}
+
 	// 检查模型调度能力
 	// Check model scheduling capability
 	if !account.IsSchedulableForModelWithContext(ctx, requestedModel) {

@@ -559,6 +559,20 @@ func writeOpenAIPassthroughErrorEnvelope(c *gin.Context, downstreamStatus int, u
 	c.Data(downstreamStatus, "application/json; charset=utf-8", body)
 }
 
+func writeOpenAIPassthroughRawError(c *gin.Context, upstreamStatus int, upstreamHeaders http.Header, body []byte) {
+	if c == nil {
+		return
+	}
+	if writeOpenAICompactSSEBridge(c, upstreamStatus, body) {
+		return
+	}
+	writeOpenAIPassthroughErrorHeaders(c.Writer.Header(), upstreamHeaders)
+	if contentType := strings.TrimSpace(upstreamHeaders.Get("Content-Type")); contentType != "" {
+		c.Writer.Header().Set("Content-Type", contentType)
+	}
+	c.Data(upstreamStatus, c.Writer.Header().Get("Content-Type"), body)
+}
+
 func (s *OpenAIGatewayService) handleFailoverErrorResponsePassthrough(
 	ctx context.Context,
 	resp *http.Response,
@@ -663,6 +677,9 @@ func (s *OpenAIGatewayService) handleErrorResponsePassthrough(
 	// 脱敏后的上游消息，而不是抹成通用文案。
 	if isOpenAIContextWindowError(upstreamMsg, body) && upstreamMsg != "" {
 		writeOpenAIPassthroughErrorEnvelope(c, resp.StatusCode, resp.Header, upstreamMsg)
+	} else if !cyberHit && resp.StatusCode >= http.StatusBadRequest && resp.StatusCode < http.StatusInternalServerError &&
+		resp.StatusCode != http.StatusUnauthorized && resp.StatusCode != http.StatusForbidden {
+		writeOpenAIPassthroughRawError(c, resp.StatusCode, resp.Header, body)
 	} else {
 		writeSanitizedOpenAIPassthroughError(c, resp.StatusCode, resp.Header)
 	}

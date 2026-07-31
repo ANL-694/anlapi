@@ -982,20 +982,24 @@ func (s *OpenAIGatewayService) selectAccountWithLoadAwareness(ctx context.Contex
 		// Scheduler snapshots can be temporarily stale (bucket rebuild is throttled);
 		// re-check schedulability here so recently rate-limited/overloaded accounts
 		// are not selected again before the bucket is rebuilt.
-		if !s.isOpenAIAccountEligibleForSchedulingRequest(ctx, acc, platform, requestedModel, false, requiredCapability) {
+		candidate := acc
+		if !s.isOpenAIAccountEligibleForSchedulingRequest(ctx, candidate, platform, requestedModel, false, requiredCapability) {
+			candidate = s.resolveFreshSchedulableOpenAIAccount(ctx, candidate, platform, requestedModel, false, requiredCapability)
+			if candidate == nil {
+				continue
+			}
+		}
+		if !parentHealthyForShadow(candidate, parentLookupL2) {
 			continue
 		}
-		if !parentHealthyForShadow(acc, parentLookupL2) {
+		if s.isOpenAIAccountRequestRuntimeBlocked(candidate, requestedModel) {
 			continue
 		}
-		if s.isOpenAIAccountRequestRuntimeBlocked(acc, requestedModel) {
-			continue
-		}
-		if needsUpstreamCheck && s.isUpstreamModelRestrictedByChannel(ctx, *groupID, acc, requestedModel, requireCompact) {
+		if needsUpstreamCheck && s.isUpstreamModelRestrictedByChannel(ctx, *groupID, candidate, requestedModel, requireCompact) {
 			continue
 		}
 		baseCandidateCount++
-		candidates = append(candidates, acc)
+		candidates = append(candidates, candidate)
 	}
 
 	if len(candidates) == 0 {
@@ -1242,7 +1246,20 @@ func (s *OpenAIGatewayService) resolveFreshSchedulableOpenAIAccount(ctx context.
 	}
 
 	if !s.isOpenAIAccountEligibleForSchedulingRequest(ctx, fresh, platform, requestedModel, requireCompact, requiredCapability) {
-		return nil
+		// 快照可能短暂滞后于数据库中的限流解除状态。仅在快照候选被
+		// eligibility 拒绝时回读数据库，避免把正常调度热路径退化为逐项查库。
+		if s.schedulerSnapshot == nil || s.accountRepo == nil {
+			return nil
+		}
+		latest, err := s.accountRepo.GetByID(ctx, account.ID)
+		if err != nil || latest == nil {
+			return nil
+		}
+		fresh = latest
+		_ = s.schedulerSnapshot.UpdateAccountInCache(ctx, fresh)
+		if !s.isOpenAIAccountEligibleForSchedulingRequest(ctx, fresh, platform, requestedModel, requireCompact, requiredCapability) {
+			return nil
+		}
 	}
 	if !parentHealthyForShadow(fresh, s.parentAccountLookup(ctx)) {
 		return nil

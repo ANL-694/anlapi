@@ -32,20 +32,8 @@ func DefaultModelIDsForPlatform(platform string) []string {
 		}
 		return ids
 	case PlatformAnthropic:
-		ids := make([]string, 0, len(claude.DefaultModels)+len(antigravity.DefaultModels()))
-		seen := make(map[string]struct{})
+		ids := make([]string, 0, len(claude.DefaultModels))
 		for _, model := range claude.DefaultModels {
-			if _, ok := seen[model.ID]; ok {
-				continue
-			}
-			seen[model.ID] = struct{}{}
-			ids = append(ids, model.ID)
-		}
-		for _, model := range antigravity.DefaultModels() {
-			if _, ok := seen[model.ID]; ok {
-				continue
-			}
-			seen[model.ID] = struct{}{}
 			ids = append(ids, model.ID)
 		}
 		return ids

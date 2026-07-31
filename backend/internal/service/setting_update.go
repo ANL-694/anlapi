@@ -509,7 +509,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	if settings.OpenAIFreeAccountRepairWeeklyThresholdUSD < 0 || math.IsNaN(settings.OpenAIFreeAccountRepairWeeklyThresholdUSD) || math.IsInf(settings.OpenAIFreeAccountRepairWeeklyThresholdUSD, 0) {
 		settings.OpenAIFreeAccountRepairWeeklyThresholdUSD = 0
 	}
-	updates[SettingKeyOpenAIFreeAccountRepairWeeklyThresholdUSD] = strconv.FormatFloat(settings.OpenAIFreeAccountRepairWeeklyThresholdUSD, 'f', 8, 64)
+	updates[SettingKeyOpenAIFreeAccountRepairWeeklyThresholdUSD] = strconv.FormatFloat(settings.OpenAIFreeAccountRepairWeeklyThresholdUSD, 'f', -1, 64)
 
 	// 余额、订阅到期与账号限额通知
 	updates[SettingKeyBalanceLowNotifyEnabled] = strconv.FormatBool(settings.BalanceLowNotifyEnabled)
