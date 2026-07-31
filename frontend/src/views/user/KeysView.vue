@@ -357,10 +357,10 @@
               </button>
               <UiIconButton
                 size="sm"
-                :label="t('keys.usage')"
-                @click="viewKeyUsage(row.id)"
+                :label="t('keys.testModel')"
+                @click="openTestModal(row)"
               >
-                <Icon name="chartBar" size="sm" />
+                <Icon name="beaker" size="sm" />
               </UiIconButton>
               <!-- Import to CC Switch Button -->
               <button
@@ -1133,6 +1133,13 @@
       @close="closeUseKeyModal"
     />
 
+    <!-- API Key Model Test Modal -->
+    <ApiKeyTestModal
+      :show="showTestModal"
+      :api-key="selectedKey"
+      @close="closeTestModal"
+    />
+
     <!-- CCS Client Selection Dialog for Antigravity -->
     <BaseDialog
       :show="showCcsClientSelect"
@@ -1251,14 +1258,12 @@
 <script setup lang="ts">
 	import { ref, computed, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
 	import { useI18n } from 'vue-i18n'
-	import { useRouter } from 'vue-router'
 	import { useAppStore } from '@/stores/app'
 	import { useOnboardingStore } from '@/stores/onboarding'
 	import { useClipboard } from '@/composables/useClipboard'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 
 const { t } = useI18n()
-const router = useRouter()
 import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
@@ -1272,6 +1277,7 @@ import { UiIconButton, UiPage } from '@/ui'
 	import SearchInput from '@/components/common/SearchInput.vue'
 	import Icon from '@/components/icons/Icon.vue'
 	import UseKeyModal from '@/components/keys/UseKeyModal.vue'
+	import ApiKeyTestModal from '@/components/keys/ApiKeyTestModal.vue'
 	import EndpointPopover from '@/components/keys/EndpointPopover.vue'
 	import EndpointCards from '@/components/keys/EndpointCards.vue'
 	import GroupBadge from '@/components/common/GroupBadge.vue'
@@ -1369,10 +1375,11 @@ const filterGroupId = ref<string | number>('')
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteDialog = ref(false)
-const showResetQuotaDialog = ref(false)
-const showResetRateLimitDialog = ref(false)
-const showUseKeyModal = ref(false)
-const showCcsClientSelect = ref(false)
+  const showResetQuotaDialog = ref(false)
+  const showResetRateLimitDialog = ref(false)
+  const showUseKeyModal = ref(false)
+  const showTestModal = ref(false)
+  const showCcsClientSelect = ref(false)
 const pendingCcsRow = ref<ApiKey | null>(null)
 const selectedKey = ref<ApiKey | null>(null)
 const copiedKeyId = ref<number | null>(null)
@@ -1770,15 +1777,18 @@ const openUseKeyModal = (key: ApiKey) => {
   showUseKeyModal.value = true
 }
 
-const viewKeyUsage = (keyId: number) => {
-  router.push({
-    path: '/usage',
-    query: { api_key_id: String(keyId) }
-  })
+const openTestModal = (key: ApiKey) => {
+  selectedKey.value = key
+  showTestModal.value = true
 }
 
 const closeUseKeyModal = () => {
   showUseKeyModal.value = false
+  selectedKey.value = null
+}
+
+const closeTestModal = () => {
+  showTestModal.value = false
   selectedKey.value = null
 }
 

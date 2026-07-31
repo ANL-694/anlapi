@@ -1,27 +1,20 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import KeysView from '../KeysView.vue'
 
 const {
-  routerPush,
   list,
   getDashboardApiKeysUsage,
   getAvailable,
   getUserGroupRates,
   getPublicSettings
 } = vi.hoisted(() => ({
-  routerPush: vi.fn(),
   list: vi.fn(),
   getDashboardApiKeysUsage: vi.fn(),
   getAvailable: vi.fn(),
   getUserGroupRates: vi.fn(),
   getPublicSettings: vi.fn()
-}))
-
-vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: routerPush })
 }))
 
 vi.mock('vue-i18n', async () => {
@@ -71,7 +64,13 @@ const DataTableStub = {
   template: '<div><slot v-if="data.length" name="cell-actions" :row="data[0]" /></div>'
 }
 
-describe('KeysView usage navigation', () => {
+const ApiKeyTestModalStub = {
+  name: 'ApiKeyTestModal',
+  props: ['show', 'apiKey'],
+  template: '<div data-test="api-key-test-modal" />'
+}
+
+describe('KeysView model testing entry', () => {
   const apiKey = {
     id: 42,
     key: 'sk-plaintext-must-not-be-routed',
@@ -81,7 +80,6 @@ describe('KeysView usage navigation', () => {
   }
 
   beforeEach(() => {
-    routerPush.mockReset()
     list.mockReset()
     getDashboardApiKeysUsage.mockReset()
     getAvailable.mockReset()
@@ -95,7 +93,7 @@ describe('KeysView usage navigation', () => {
     getPublicSettings.mockResolvedValue({ hide_ccs_import_button: true })
   })
 
-  it('opens usage with only the API key database id', async () => {
+  it('opens the API key model test modal for the selected key', async () => {
     const wrapper = mount(KeysView, {
       global: {
         stubs: {
@@ -113,6 +111,7 @@ describe('KeysView usage navigation', () => {
           SearchInput: true,
           Icon: true,
           UseKeyModal: true,
+          ApiKeyTestModal: ApiKeyTestModalStub,
           EndpointPopover: true,
           EndpointCards: true,
           GroupBadge: true,
@@ -123,18 +122,16 @@ describe('KeysView usage navigation', () => {
 
     try {
       await flushPromises()
-      await nextTick()
 
-      const usageButton = wrapper.get('button[aria-label="keys.usage"]')
-      expect(usageButton.element.parentElement?.querySelector('[role="tooltip"]')?.textContent).toBe('keys.usage')
+      const testButton = wrapper.get('button[aria-label="keys.testModel"]')
+      expect(testButton.element.parentElement?.querySelector('[role="tooltip"]')?.textContent).toBe('keys.testModel')
 
-      await usageButton.trigger('click')
+      await testButton.trigger('click')
 
-      expect(routerPush).toHaveBeenCalledWith({
-        path: '/usage',
-        query: { api_key_id: '42' }
-      })
-      expect(JSON.stringify(routerPush.mock.calls)).not.toContain(apiKey.key)
+      const testModal = wrapper.getComponent(ApiKeyTestModalStub)
+      expect(testModal.props('show')).toBe(true)
+      expect(testModal.props('apiKey')).toMatchObject({ id: 42, name: 'Usage test key' })
+      expect(wrapper.find('button[aria-label="keys.usage"]').exists()).toBe(false)
     } finally {
       wrapper.unmount()
     }
