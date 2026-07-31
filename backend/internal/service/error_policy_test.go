@@ -395,9 +395,14 @@ func TestApplyErrorPolicy(t *testing.T) {
 
 type errorPolicyRepoStub struct {
 	mockAccountRepoForGemini
-	tempCalls    int
-	setErrCalls  int
-	lastErrorMsg string
+	tempCalls           int
+	setErrCalls         int
+	lastErrorMsg        string
+	modelRateLimitCalls []errorPolicyModelRateLimitCall
+}
+
+type errorPolicyModelRateLimitCall struct {
+	scope string
 }
 
 func (r *errorPolicyRepoStub) SetTempUnschedulable(ctx context.Context, id int64, until time.Time, reason string) error {
@@ -408,5 +413,10 @@ func (r *errorPolicyRepoStub) SetTempUnschedulable(ctx context.Context, id int64
 func (r *errorPolicyRepoStub) SetError(ctx context.Context, id int64, errorMsg string) error {
 	r.setErrCalls++
 	r.lastErrorMsg = errorMsg
+	return nil
+}
+
+func (r *errorPolicyRepoStub) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time, reason ...string) error {
+	r.modelRateLimitCalls = append(r.modelRateLimitCalls, errorPolicyModelRateLimitCall{scope: scope})
 	return nil
 }

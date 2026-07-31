@@ -289,7 +289,7 @@ func TestAuthService_Register_AliasDuplicateRejected(t *testing.T) {
 	repo := &userRepoStub{aliasExists: true}
 	service := newAuthService(repo, map[string]string{
 		SettingKeyRegistrationEnabled: "true",
-	}, nil, nil)
+	}, nil)
 
 	_, _, err := service.Register(context.Background(), "some.one+bulk294@gmail.com", "password")
 	require.ErrorIs(t, err, ErrEmailExists)
@@ -301,7 +301,7 @@ func TestAuthService_Register_UsesAliasGuardedCreate(t *testing.T) {
 	repo := &userRepoStub{nextID: 91}
 	service := newAuthService(repo, map[string]string{
 		SettingKeyRegistrationEnabled: "true",
-	}, nil, nil)
+	}, nil)
 
 	_, user, err := service.Register(context.Background(), "newuser@gmail.com", "password")
 	require.NoError(t, err)

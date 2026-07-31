@@ -29,7 +29,7 @@ const BaseDialogStub = defineComponent({
 })
 
 const SelectStub = defineComponent({
-  name: 'Select',
+  name: 'SelectControl',
   props: {
     modelValue: { type: String, default: '' },
     options: { type: Array, default: () => [] },
@@ -114,7 +114,8 @@ describe('ApiKeyTestModal', () => {
   })
 
   it('discovers models and tests the selected model through the API key gateway', async () => {
-    ;(global.fetch as any)
+    const fetchMock = global.fetch as any
+    fetchMock
       .mockResolvedValueOnce(jsonResponse({
         object: 'list',
         data: [

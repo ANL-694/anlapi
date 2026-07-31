@@ -14,9 +14,17 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	infraerrors "anlapi/internal/pkg/errors"
+)
+
+var (
+	ErrNoUpdateAvailable         = infraerrors.Conflict("ALREADY_UP_TO_DATE", "no update available; current version is latest")
+	ErrRollbackVersionNotAllowed = infraerrors.BadRequest("ROLLBACK_VERSION_NOT_ALLOWED", "version is not in the allowed rollback list")
 )
 
 const (
@@ -29,6 +37,11 @@ const (
 
 	// Security: max download size (500MB)
 	maxDownloadSize = 500 * 1024 * 1024
+
+	// Rollback: expose at most the 3 most recent versions older than current.
+	maxRollbackVersions = 3
+	// Fetch a few extra releases so filtering leaves enough candidates.
+	rollbackFetchPageSize = 15
 )
 
 // UpdateCache defines cache operations for update service
@@ -40,6 +53,7 @@ type UpdateCache interface {
 // GitHubReleaseClient 获取 GitHub release 信息的接口
 type GitHubReleaseClient interface {
 	FetchLatestRelease(ctx context.Context, repo string) (*GitHubRelease, error)
+	FetchRecentReleases(ctx context.Context, repo string, perPage int) ([]*GitHubRelease, error)
 	DownloadFile(ctx context.Context, url, dest string, maxSize int64) error
 	FetchChecksumFile(ctx context.Context, url string) ([]byte, error)
 }
@@ -96,7 +110,16 @@ type GitHubRelease struct {
 	Body        string        `json:"body"`
 	PublishedAt string        `json:"published_at"`
 	HTMLURL     string        `json:"html_url"`
+	Draft       bool          `json:"draft"`
+	Prerelease  bool          `json:"prerelease"`
 	Assets      []GitHubAsset `json:"assets"`
+}
+
+// RollbackVersion describes a release version the system can roll back to.
+type RollbackVersion struct {
+	Version     string `json:"version"`
+	PublishedAt string `json:"published_at"`
+	HTMLURL     string `json:"html_url"`
 }
 
 type GitHubAsset struct {
@@ -145,15 +168,21 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 	}
 
 	if !info.HasUpdate {
-		return fmt.Errorf("no update available")
+		return ErrNoUpdateAvailable
 	}
+	return s.applyReleaseAssets(ctx, info.ReleaseInfo.Assets)
+}
 
+// applyReleaseAssets downloads the platform archive from the given release assets,
+// verifies its checksum, and atomically swaps the running binary.
+// It is shared by the latest-update and versioned-rollback paths.
+func (s *UpdateService) applyReleaseAssets(ctx context.Context, releaseAssets []Asset) error {
 	// Find matching archive and checksum for current platform
 	archiveName := s.getArchiveName()
 	var downloadURL string
 	var checksumURL string
 
-	for _, asset := range info.ReleaseInfo.Assets {
+	for _, asset := range releaseAssets {
 		if strings.Contains(asset.Name, archiveName) && !strings.HasSuffix(asset.Name, ".txt") {
 			downloadURL = asset.DownloadURL
 		}
@@ -270,6 +299,90 @@ func (s *UpdateService) Rollback() error {
 	}
 
 	return nil
+}
+
+// ListRollbackVersions returns the newest eligible releases strictly older than
+// the current version. Drafts, prereleases, duplicates, and the current version
+// itself are excluded.
+func (s *UpdateService) ListRollbackVersions(ctx context.Context) ([]RollbackVersion, error) {
+	releases, err := s.fetchRollbackCandidates(ctx)
+	if err != nil {
+		return nil, err
+	}
+	versions := make([]RollbackVersion, 0, len(releases))
+	for _, release := range releases {
+		versions = append(versions, RollbackVersion{
+			Version:     strings.TrimPrefix(release.TagName, "v"),
+			PublishedAt: release.PublishedAt,
+			HTMLURL:     release.HTMLURL,
+		})
+	}
+	return versions, nil
+}
+
+// RollbackToVersion downloads and installs a specific eligible older release.
+func (s *UpdateService) RollbackToVersion(ctx context.Context, version string) error {
+	target := strings.TrimPrefix(strings.TrimSpace(version), "v")
+	if target == "" {
+		return ErrRollbackVersionNotAllowed
+	}
+
+	releases, err := s.fetchRollbackCandidates(ctx)
+	if err != nil {
+		return err
+	}
+	var match *GitHubRelease
+	for _, release := range releases {
+		if strings.TrimPrefix(release.TagName, "v") == target {
+			match = release
+			break
+		}
+	}
+	if match == nil {
+		return ErrRollbackVersionNotAllowed
+	}
+
+	assets := make([]Asset, len(match.Assets))
+	for i, asset := range match.Assets {
+		assets[i] = Asset{
+			Name:        asset.Name,
+			DownloadURL: asset.BrowserDownloadURL,
+			Size:        asset.Size,
+		}
+	}
+	return s.applyReleaseAssets(ctx, assets)
+}
+
+func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubRelease, error) {
+	releases, err := s.githubClient.FetchRecentReleases(ctx, githubRepo, rollbackFetchPageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]bool, len(releases))
+	candidates := make([]*GitHubRelease, 0, maxRollbackVersions)
+	for _, release := range releases {
+		if release == nil || release.Draft || release.Prerelease {
+			continue
+		}
+		version := strings.TrimPrefix(release.TagName, "v")
+		if version == "" || seen[version] || compareVersions(version, s.currentVersion) >= 0 {
+			continue
+		}
+		seen[version] = true
+		candidates = append(candidates, release)
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return compareVersions(
+			strings.TrimPrefix(candidates[i].TagName, "v"),
+			strings.TrimPrefix(candidates[j].TagName, "v"),
+		) > 0
+	})
+	if len(candidates) > maxRollbackVersions {
+		candidates = candidates[:maxRollbackVersions]
+	}
+	return candidates, nil
 }
 
 func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*UpdateInfo, error) {

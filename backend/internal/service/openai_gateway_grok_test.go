@@ -2041,7 +2041,7 @@ func TestAccountTestServiceGrokOAuthPaymentRequiredTemporarilyUnschedulesAccount
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/56/test", nil)
 	before := time.Now()
 
-	err := svc.testGrokAccountConnection(c, account, "grok")
+	err := svc.testGrokAccountConnection(c, account, "grok", "")
 
 	require.Error(t, err)
 	require.Equal(t, 1, repo.tempUnschedCalls)

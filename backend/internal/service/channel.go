@@ -303,7 +303,7 @@ func deepCopyFeaturesConfig(src map[string]any) map[string]any {
 //
 // 通用规则：MinTokens >= 0；MaxTokens 若非 nil 则 > 0 且 > MinTokens；
 // 所有价格字段 >= 0。
-func ValidateIntervals(intervals []PricingInterval, mode BillingMode) error {
+func ValidateIntervals(intervals []PricingInterval, modes ...BillingMode) error {
 	if len(intervals) == 0 {
 		return nil
 	}
@@ -320,6 +320,10 @@ func ValidateIntervals(intervals []PricingInterval, mode BillingMode) error {
 	}
 
 	// per_request / image 模式按 tier_label 匹配，不做 token 区间重叠校验
+	mode := BillingModeToken
+	if len(modes) > 0 {
+		mode = modes[0]
+	}
 	if mode == BillingModePerRequest || mode == BillingModeImage {
 		return nil
 	}

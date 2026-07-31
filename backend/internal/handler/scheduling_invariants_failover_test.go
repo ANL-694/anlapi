@@ -425,7 +425,7 @@ func TestSchedulingInvariant_FailoverSwitchLimit_DefaultValues(t *testing.T) {
 	})
 
 	t.Run("openai默认上限", func(t *testing.T) {
-		oh := NewOpenAIGatewayHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		oh := NewOpenAIGatewayHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		require.Equal(t, 3, oh.maxAccountSwitches, "openai 默认换号上限必须为 3")
 	})
 

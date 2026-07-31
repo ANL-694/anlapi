@@ -778,6 +778,10 @@ type UpdateSettingsRequest struct {
 	// Backend Mode
 	BackendModeEnabled bool `json:"backend_mode_enabled"`
 
+	// codex_cli_only global client lists
+	CodexCLIOnlyBlacklist string `json:"codex_cli_only_blacklist"`
+	CodexCLIOnlyWhitelist string `json:"codex_cli_only_whitelist"`
+
 	// Gateway forwarding behavior
 	EnableFingerprintUnification         *bool   `json:"enable_fingerprint_unification"`
 	EnableMetadataPassthrough            *bool   `json:"enable_metadata_passthrough"`
@@ -958,6 +962,19 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	}
 	preserveOmittedUpdateSettingsFields(&req, previousSettings, providedFields)
 
+	if fieldProvided(providedFields, service.SettingKeyCodexCLIOnlyWhitelist) {
+		if err := service.ValidateCodexWhitelistEntriesJSON(req.CodexCLIOnlyWhitelist); err != nil {
+			response.BadRequest(c, "Invalid codex CLI-only whitelist: "+err.Error())
+			return
+		}
+	}
+	if fieldProvided(providedFields, service.SettingKeyCodexCLIOnlyBlacklist) {
+		if err := service.ValidateCodexClientEntriesJSON(req.CodexCLIOnlyBlacklist); err != nil {
+			response.BadRequest(c, "Invalid codex CLI-only blacklist: "+err.Error())
+			return
+		}
+	}
+
 	sessionBindingEnabled := previousSettings.SessionBindingEnabled
 	if req.SessionBindingEnabled != nil {
 		sessionBindingEnabled = *req.SessionBindingEnabled
@@ -1084,8 +1101,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		req.SMTPUseTLS = previousSettings.SMTPUseTLS
 	}
 
-	// Turnstile 参数验证
-	if req.TurnstileEnabled {
+	// Turnstile 参数验证只在本次请求触及其字段时执行；局部更新不能因为历史
+	// 配置缺少另一半凭据而阻断无关设置的保存。
+	turnstileFieldsProvided := fieldProvided(providedFields, "turnstile_enabled") ||
+		fieldProvided(providedFields, "turnstile_site_key") ||
+		fieldProvided(providedFields, "turnstile_secret_key")
+	if turnstileFieldsProvided && req.TurnstileEnabled {
 		// 检查必填字段
 		if req.TurnstileSiteKey == "" {
 			response.BadRequest(c, "Turnstile Site Key is required when enabled")
@@ -1928,6 +1949,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		MaxClaudeCodeVersion:            req.MaxClaudeCodeVersion,
 		AllowUngroupedKeyScheduling:     req.AllowUngroupedKeyScheduling,
 		BackendModeEnabled:              req.BackendModeEnabled,
+		CodexCLIOnlyBlacklist:           req.CodexCLIOnlyBlacklist,
+		CodexCLIOnlyWhitelist:           req.CodexCLIOnlyWhitelist,
 		OpsMonitoringEnabled: func() bool {
 			if req.OpsMonitoringEnabled != nil {
 				return *req.OpsMonitoringEnabled
@@ -2985,6 +3008,12 @@ func preserveOmittedUpdateSettingsFields(req *UpdateSettingsRequest, previous *s
 	if !fieldProvided(fields, "backend_mode_enabled") {
 		req.BackendModeEnabled = previous.BackendModeEnabled
 	}
+	if !fieldProvided(fields, service.SettingKeyCodexCLIOnlyBlacklist) {
+		req.CodexCLIOnlyBlacklist = previous.CodexCLIOnlyBlacklist
+	}
+	if !fieldProvided(fields, service.SettingKeyCodexCLIOnlyWhitelist) {
+		req.CodexCLIOnlyWhitelist = previous.CodexCLIOnlyWhitelist
+	}
 }
 
 func (h *SettingHandler) auditSettingsUpdate(c *gin.Context, before *service.SystemSettings, after *service.SystemSettings, beforeAuthSourceDefaults *service.AuthSourceDefaultSettings, afterAuthSourceDefaults *service.AuthSourceDefaultSettings, req UpdateSettingsRequest) {
@@ -3517,6 +3546,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.AffiliateEnabled != after.AffiliateEnabled {
 		changed = append(changed, "affiliate_enabled")
 	}
+	if !equalDefaultPlatformQuotas(before.DefaultPlatformQuotas, after.DefaultPlatformQuotas) {
+		changed = append(changed, service.SettingKeyDefaultPlatformQuotas)
+	}
 	changed = appendAuthSourceDefaultChanges(changed, beforeAuthSourceDefaults, afterAuthSourceDefaults)
 	return changed
 }
@@ -3728,6 +3760,14 @@ func equalOptionalFloat64(a, b *float64) bool {
 		return a == nil && b == nil
 	}
 	return *a == *b
+}
+
+func equalNullableFloat(a, b *float64) bool {
+	return equalOptionalFloat(a, b)
+}
+
+func equalPlatformQuotaSettings(a, b map[string]*service.DefaultPlatformQuotaSetting) bool {
+	return equalDefaultPlatformQuotas(a, b)
 }
 
 func equalNotifyEmailEntries(a, b []service.NotifyEmailEntry) bool {

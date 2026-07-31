@@ -641,6 +641,7 @@ type ServerConfig struct {
 	FrontendURL              string    `mapstructure:"frontend_url"`          // 前端基础 URL，用于生成邮件中的外部链接
 	ReadHeaderTimeout        int       `mapstructure:"read_header_timeout"`   // 读取请求头超时（秒）
 	IdleTimeout              int       `mapstructure:"idle_timeout"`          // 空闲连接超时（秒）
+	MaxHeaderBytes           int       `mapstructure:"max_header_bytes"`      // 请求头最大字节数
 	TrustedProxies           []string  `mapstructure:"trusted_proxies"`       // 可信代理列表（CIDR/IP）
 	TrustedProxiesConfigured bool      `mapstructure:"-" json:"-" yaml:"-"`   // 是否显式设置 trusted_proxies
 	MaxRequestBodySize       int64     `mapstructure:"max_request_body_size"` // 全局最大请求体限制

@@ -30,6 +30,7 @@ type stubAdminService struct {
 	updatedProxies                      []*service.UpdateProxyInput
 	testedProxyIDs                      []int64
 	createAccountErr                    error
+	createSparkShadowErr                error
 	updateAccountErr                    error
 	getAccountResult                    *service.Account
 	getUserErr                          error
@@ -492,6 +493,20 @@ func (s *stubAdminService) CreateAccount(ctx context.Context, input *service.Cre
 	}
 	account := service.Account{ID: 300, Name: input.Name, Status: service.StatusActive}
 	return &account, nil
+}
+
+func (s *stubAdminService) CreateShadow(_ context.Context, parentID int64, opts service.ShadowOptions) (*service.Account, error) {
+	if s.createSparkShadowErr != nil {
+		return nil, s.createSparkShadowErr
+	}
+	return &service.Account{
+		ID:              500,
+		Name:            opts.Name,
+		Platform:        service.PlatformOpenAI,
+		Status:          service.StatusActive,
+		ParentAccountID: &parentID,
+		QuotaDimension:  service.QuotaDimensionSpark,
+	}, nil
 }
 
 func (s *stubAdminService) DuplicateAccount(ctx context.Context, id int64, actorScope, operationKey string) (*service.Account, error) {

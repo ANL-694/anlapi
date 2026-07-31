@@ -131,7 +131,7 @@ func ProvideHTTPServer(cfg *config.Config, router *gin.Engine) *http.Server {
 	// 根据配置决定是否启用 H2C
 	if cfg.Server.H2C.Enabled {
 		h2cConfig := cfg.Server.H2C
-		httpHandler = h2c.NewHandler(router, &http2.Server{
+		httpHandler = h2c.NewHandler(httpHandler, &http2.Server{
 			MaxConcurrentStreams:         h2cConfig.MaxConcurrentStreams,
 			IdleTimeout:                  time.Duration(h2cConfig.IdleTimeout) * time.Second,
 			MaxReadFrameSize:             uint32(h2cConfig.MaxReadFrameSize),
@@ -146,10 +146,18 @@ func ProvideHTTPServer(cfg *config.Config, router *gin.Engine) *http.Server {
 			h2cConfig.MaxUploadBufferPerStream,
 		)
 	}
+	var protocols *http.Protocols
+	if cfg.Server.H2C.Enabled {
+		protocols = new(http.Protocols)
+		protocols.SetHTTP1(true)
+		protocols.SetUnencryptedHTTP2(true)
+	}
 
 	return &http.Server{
-		Addr:    cfg.Server.Address(),
-		Handler: httpHandler,
+		Addr:           cfg.Server.Address(),
+		Handler:        httpHandler,
+		Protocols:      protocols,
+		MaxHeaderBytes: cfg.Server.MaxHeaderBytes,
 		// ReadHeaderTimeout: 读取请求头的超时时间，防止慢速请求头攻击
 		ReadHeaderTimeout: time.Duration(cfg.Server.ReadHeaderTimeout) * time.Second,
 		// IdleTimeout: 空闲连接超时时间，释放不活跃的连接资源
