@@ -114,7 +114,7 @@ func TestAuthCacheInvalidationTriggers_CoverSecurityMutationsOnly(t *testing.T) 
 	require.Equal(t, 1, count(), "exclusive-group revocation must enqueue")
 	clear()
 
-	require.NoError(t, apiKeyRepo.DeleteWithAudit(ctx, key.ID))
+	require.NoError(t, apiKeyRepo.Delete(ctx, key.ID))
 	require.Equal(t, 1, count(), "tombstone delete must hash OLD.key exactly once")
 	var stored string
 	require.NoError(t, integrationDB.QueryRowContext(ctx,

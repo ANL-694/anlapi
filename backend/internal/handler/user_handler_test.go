@@ -55,7 +55,7 @@ func (s *userHandlerRepoStub) GetFirstAdmin(context.Context) (*service.User, err
 	cloned := *s.user
 	return &cloned, nil
 }
-func (s *userHandlerRepoStub) Update(_ context.Context, user *service.User) error {
+func (s *userHandlerRepoStub) Update(_ context.Context, user *service.User, _ service.UserUpdateFields) error {
 	cloned := *user
 	s.user = &cloned
 	return nil
@@ -103,6 +103,12 @@ func (s *userHandlerRepoStub) ListWithFilters(context.Context, pagination.Pagina
 }
 func (s *userHandlerRepoStub) UpdateBalance(context.Context, int64, float64) error { return nil }
 func (s *userHandlerRepoStub) DeductBalance(context.Context, int64, float64) error { return nil }
+func (s *userHandlerRepoStub) AdjustBalance(context.Context, int64, float64) (service.BalanceChange, error) {
+	return service.BalanceChange{}, nil
+}
+func (s *userHandlerRepoStub) SetBalance(context.Context, int64, float64) (service.BalanceChange, error) {
+	return service.BalanceChange{}, nil
+}
 func (s *userHandlerRepoStub) UpdateConcurrency(context.Context, int64, int) error { return nil }
 func (s *userHandlerRepoStub) ExistsByEmail(context.Context, string) (bool, error) { return false, nil }
 func (s *userHandlerRepoStub) ExistsByEmailAlias(context.Context, string) (bool, error) {
@@ -653,7 +659,7 @@ func TestUserHandlerUnbindIdentityReturnsUpdatedProfile(t *testing.T) {
 	require.Equal(t, false, linuxdoBinding["bound"])
 }
 
-func TestUserHandlerUnbindIdentityRevokesAllUserSessionsWhenAuthServiceConfigured(t *testing.T) {
+func TestUserHandlerUnbindIdentityRevokesRefreshSessionsWithoutUserRowWrite(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &userHandlerRepoStub{
@@ -698,7 +704,9 @@ func TestUserHandlerUnbindIdentityRevokesAllUserSessionsWhenAuthServiceConfigure
 
 	require.Equal(t, http.StatusOK, recorder.Code)
 	require.Equal(t, []int64{23}, refreshTokenCache.revokedUserIDs)
-	require.Equal(t, int64(5), repo.user.TokenVersion)
+	// The users table has no token_version column; unbinding must not issue an
+	// invalid full-row write just to mutate the in-memory test object.
+	require.Equal(t, int64(4), repo.user.TokenVersion)
 }
 
 func TestUserHandlerUnbindIdentityDoesNotRevokeSessionsWhenNothingWasUnbound(t *testing.T) {

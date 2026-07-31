@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"anlapi/ent/userplatformquota"
+	"anlapi/internal/service"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +21,7 @@ func TestUpsertForUser_NewUserInsertsAllRecords(t *testing.T) {
 	daily := 10.0
 	weekly := 50.0
 	monthly := 200.0
-	records := []UserPlatformQuotaRecord{
+	records := []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &daily, WeeklyLimitUSD: &weekly, MonthlyLimitUSD: &monthly},
 		{UserID: userID, Platform: "openai", DailyLimitUSD: &daily},
 	}
@@ -39,11 +40,11 @@ func TestUpsertForUser_PartialUpdateSoftDeletesMissingPlatforms(t *testing.T) {
 
 	d1 := 10.0
 	d2 := 20.0
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &d1},
 		{UserID: userID, Platform: "openai", DailyLimitUSD: &d1},
 	}))
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &d2},
 		{UserID: userID, Platform: "gemini", DailyLimitUSD: &d1},
 	}))
@@ -69,7 +70,7 @@ func TestUpsertForUser_PreservesUsageAndWindowStart(t *testing.T) {
 	repo := NewUserPlatformQuotaRepository(client)
 
 	d := 10.0
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &d},
 	}))
 
@@ -77,7 +78,7 @@ func TestUpsertForUser_PreservesUsageAndWindowStart(t *testing.T) {
 	require.NoError(t, repo.IncrementUsageWithReset(ctx, userID, "anthropic", 3.5, now))
 
 	newD := 50.0
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &newD},
 	}))
 
@@ -96,17 +97,17 @@ func TestUpsertForUser_ReactivatesSoftDeleted(t *testing.T) {
 	repo := NewUserPlatformQuotaRepository(client)
 
 	d := 10.0
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &d},
 	}))
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{}))
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{}))
 
 	gone, err := repo.GetByUserPlatform(ctx, userID, "anthropic")
 	require.NoError(t, err)
 	require.Nil(t, gone, "anthropic should be soft-deleted (not active)")
 
 	d2 := 20.0
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &d2},
 	}))
 
@@ -135,12 +136,12 @@ func TestUpsertForUser_EmptyClearsAll(t *testing.T) {
 	repo := NewUserPlatformQuotaRepository(client)
 
 	d := 10.0
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &d},
 		{UserID: userID, Platform: "openai", DailyLimitUSD: &d},
 	}))
 
-	require.NoError(t, repo.UpsertForUser(ctx, userID, []UserPlatformQuotaRecord{}))
+	require.NoError(t, repo.UpsertForUser(ctx, userID, []service.UserPlatformQuotaRecord{}))
 
 	got, err := repo.ListByUser(ctx, userID)
 	require.NoError(t, err)

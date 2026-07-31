@@ -32,7 +32,7 @@ func (s *apiKeyAvailableGroupsUserRepoStub) GetByEmail(context.Context, string) 
 func (s *apiKeyAvailableGroupsUserRepoStub) GetFirstAdmin(context.Context) (*User, error) {
 	panic("unexpected GetFirstAdmin call")
 }
-func (s *apiKeyAvailableGroupsUserRepoStub) Update(context.Context, *User) error {
+func (s *apiKeyAvailableGroupsUserRepoStub) Update(context.Context, *User, UserUpdateFields) error {
 	panic("unexpected Update call")
 }
 func (s *apiKeyAvailableGroupsUserRepoStub) Delete(context.Context, int64) error {
@@ -67,6 +67,12 @@ func (s *apiKeyAvailableGroupsUserRepoStub) UpdateBalance(context.Context, int64
 }
 func (s *apiKeyAvailableGroupsUserRepoStub) DeductBalance(context.Context, int64, float64) error {
 	panic("unexpected DeductBalance call")
+}
+func (s *apiKeyAvailableGroupsUserRepoStub) AdjustBalance(context.Context, int64, float64) (BalanceChange, error) {
+	panic("unexpected AdjustBalance call")
+}
+func (s *apiKeyAvailableGroupsUserRepoStub) SetBalance(context.Context, int64, float64) (BalanceChange, error) {
+	panic("unexpected SetBalance call")
 }
 func (s *apiKeyAvailableGroupsUserRepoStub) UpdateConcurrency(context.Context, int64, int) error {
 	panic("unexpected UpdateConcurrency call")

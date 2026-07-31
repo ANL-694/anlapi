@@ -68,7 +68,7 @@ func (s *emailSyncRepoStub) GetFirstAdmin(context.Context) (*User, error) {
 	return nil, fmt.Errorf("unexpected GetFirstAdmin call")
 }
 
-func (s *emailSyncRepoStub) Update(_ context.Context, user *User) error {
+func (s *emailSyncRepoStub) Update(_ context.Context, user *User, _ UserUpdateFields) error {
 	s.updateCalls++
 	s.updated = append(s.updated, user)
 	s.user = user
@@ -112,6 +112,12 @@ func (s *emailSyncRepoStub) UpdateUserLastActiveAt(context.Context, int64, time.
 func (s *emailSyncRepoStub) UpdateBalance(context.Context, int64, float64) error { return nil }
 
 func (s *emailSyncRepoStub) DeductBalance(context.Context, int64, float64) error { return nil }
+func (s *emailSyncRepoStub) AdjustBalance(context.Context, int64, float64) (BalanceChange, error) {
+	return BalanceChange{}, nil
+}
+func (s *emailSyncRepoStub) SetBalance(context.Context, int64, float64) (BalanceChange, error) {
+	return BalanceChange{}, nil
+}
 
 func (s *emailSyncRepoStub) UpdateConcurrency(context.Context, int64, int) error { return nil }
 

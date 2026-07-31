@@ -34,7 +34,7 @@ func TestUserPlatformQuotaRepository_BulkInsertInitial_Idempotent(t *testing.T) 
 	repo := NewUserPlatformQuotaRepository(client)
 
 	daily := 5.0
-	records := []UserPlatformQuotaRecord{
+	records := []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &daily},
 		{UserID: userID, Platform: "openai"},
 	}
@@ -49,7 +49,7 @@ func TestUserPlatformQuotaRepository_BulkInsertInitial_Idempotent(t *testing.T) 
 	require.Len(t, list, 2, "expected 2 records after idempotent insert")
 
 	// 校验 daily_limit_usd 保留
-	var anthropicRec *UserPlatformQuotaRecord
+	var anthropicRec *service.UserPlatformQuotaRecord
 	for i := range list {
 		if list[i].Platform == "anthropic" {
 			anthropicRec = &list[i]
@@ -69,7 +69,7 @@ func TestUserPlatformQuotaRepository_BulkInsertInitial_Empty(t *testing.T) {
 	repo := NewUserPlatformQuotaRepository(client)
 	// 空切片不应报错
 	require.NoError(t, repo.BulkInsertInitial(txCtx, nil))
-	require.NoError(t, repo.BulkInsertInitial(txCtx, []UserPlatformQuotaRecord{}))
+	require.NoError(t, repo.BulkInsertInitial(txCtx, []service.UserPlatformQuotaRecord{}))
 }
 
 // TestUserPlatformQuotaRepository_BulkInsertInitial_GrokAllowed 回归迁移 157：
@@ -85,7 +85,7 @@ func TestUserPlatformQuotaRepository_BulkInsertInitial_GrokAllowed(t *testing.T)
 	repo := NewUserPlatformQuotaRepository(client)
 
 	daily := 9.0
-	records := []UserPlatformQuotaRecord{
+	records := []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "grok", DailyLimitUSD: &daily},
 	}
 	require.NoError(t, repo.BulkInsertInitial(txCtx, records),
@@ -115,7 +115,7 @@ func TestUserPlatformQuotaRepository_GetByUserPlatform(t *testing.T) {
 
 	// 插入后查询
 	daily := 10.0
-	require.NoError(t, repo.BulkInsertInitial(txCtx, []UserPlatformQuotaRecord{
+	require.NoError(t, repo.BulkInsertInitial(txCtx, []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &daily},
 	}))
 
@@ -255,7 +255,7 @@ func TestUserPlatformQuotaRepository_BulkInsertInitial_MultiRow(t *testing.T) {
 	repo := NewUserPlatformQuotaRepository(client)
 
 	d1, d2, d3 := 5.0, 10.0, 15.0
-	records := []UserPlatformQuotaRecord{
+	records := []service.UserPlatformQuotaRecord{
 		{UserID: userID, Platform: "anthropic", DailyLimitUSD: &d1},
 		{UserID: userID, Platform: "openai", DailyLimitUSD: &d2},
 		{UserID: userID, Platform: "gemini", DailyLimitUSD: &d3},
@@ -267,7 +267,7 @@ func TestUserPlatformQuotaRepository_BulkInsertInitial_MultiRow(t *testing.T) {
 	require.Len(t, list, 3, "expected 3 rows, got %d", len(list))
 
 	// 验证 limit 值与传入一致（防占位符串位）
-	byPlatform := map[string]*UserPlatformQuotaRecord{}
+	byPlatform := map[string]*service.UserPlatformQuotaRecord{}
 	for i := range list {
 		byPlatform[list[i].Platform] = &list[i]
 	}
@@ -290,7 +290,7 @@ func TestUserPlatformQuotaRepository_ResetExpiredWindow_NotFoundReturnsSentinel(
 	repo := NewUserPlatformQuotaRepository(client)
 
 	err := repo.ResetExpiredWindow(ctx, 99999, "anthropic", "daily", time.Now())
-	require.True(t, errors.Is(err, ErrUserPlatformQuotaNotFound),
+	require.True(t, errors.Is(err, service.ErrUserPlatformQuotaNotFound),
 		"expected ErrUserPlatformQuotaNotFound, got %v", err)
 }
 
@@ -313,7 +313,7 @@ func TestBatchSnapshotUsage_InsertOverwriteMultiKey(t *testing.T) {
 	monthlyStart := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
 	// ── 第一批：插入 2 行 ──────────────────────────────────────────────────────
-	firstBatch := []UserPlatformQuotaSnapshot{
+	firstBatch := []service.UserPlatformQuotaSnapshot{
 		{
 			UserID:             userID1,
 			Platform:           "anthropic",
@@ -352,7 +352,7 @@ func TestBatchSnapshotUsage_InsertOverwriteMultiKey(t *testing.T) {
 
 	// ── 第二批：对同一 key 传不同值，验证绝对覆盖（非累加）──────────────────
 	now2 := now.Add(5 * time.Minute)
-	secondBatch := []UserPlatformQuotaSnapshot{
+	secondBatch := []service.UserPlatformQuotaSnapshot{
 		{
 			UserID:             userID1,
 			Platform:           "anthropic",

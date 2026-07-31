@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthHandlerRevokeAllSessionsInvalidatesAccessTokens(t *testing.T) {
+func TestAuthHandlerRevokeAllSessionsRevokesRefreshSessionsWithoutUserRowWrite(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &userHandlerRepoStub{
@@ -47,7 +47,9 @@ func TestAuthHandlerRevokeAllSessionsInvalidatesAccessTokens(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, recorder.Code)
 	require.Equal(t, []int64{29}, refreshTokenCache.revokedUserIDs)
-	require.Equal(t, int64(8), repo.user.TokenVersion)
+	// users has no persisted token_version column, so session revocation must not
+	// pretend to invalidate stateless access tokens through an in-memory update.
+	require.Equal(t, int64(7), repo.user.TokenVersion)
 
 	var resp struct {
 		Code int `json:"code"`

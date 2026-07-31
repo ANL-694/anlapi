@@ -2742,7 +2742,7 @@ func (r *oauthPendingFlowUserRepo) GetFirstAdmin(context.Context) (*service.User
 	panic("unexpected GetFirstAdmin call")
 }
 
-func (r *oauthPendingFlowUserRepo) Update(ctx context.Context, user *service.User) error {
+func (r *oauthPendingFlowUserRepo) Update(ctx context.Context, user *service.User, _ service.UserUpdateFields) error {
 	entity, err := r.client.User.UpdateOneID(user.ID).
 		SetEmail(user.Email).
 		SetUsername(user.Username).
@@ -2889,6 +2889,14 @@ func (r *oauthPendingFlowUserRepo) UpdateBalance(context.Context, int64, float64
 
 func (r *oauthPendingFlowUserRepo) DeductBalance(context.Context, int64, float64) error {
 	panic("unexpected DeductBalance call")
+}
+
+func (r *oauthPendingFlowUserRepo) AdjustBalance(context.Context, int64, float64) (service.BalanceChange, error) {
+	panic("unexpected AdjustBalance call")
+}
+
+func (r *oauthPendingFlowUserRepo) SetBalance(context.Context, int64, float64) (service.BalanceChange, error) {
+	panic("unexpected SetBalance call")
 }
 
 func (r *oauthPendingFlowUserRepo) UpdateConcurrency(context.Context, int64, int) error {

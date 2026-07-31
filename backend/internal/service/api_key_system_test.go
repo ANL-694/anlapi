@@ -72,7 +72,7 @@ func (r *systemImageKeyRepoStub) Delete(_ context.Context, id int64) error {
 	return nil
 }
 
-func (r *systemImageKeyRepoStub) Update(_ context.Context, key *APIKey) error {
+func (r *systemImageKeyRepoStub) Update(_ context.Context, key *APIKey, _ APIKeyUpdateFields) error {
 	if key == nil {
 		return ErrAPIKeyNotFound
 	}

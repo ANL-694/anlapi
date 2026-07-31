@@ -25,7 +25,7 @@ func (s *balanceUserRepoStub) GetByID(ctx context.Context, id int64) (*User, err
 	return &clone, nil
 }
 
-func (s *balanceUserRepoStub) Update(ctx context.Context, user *User) error {
+func (s *balanceUserRepoStub) Update(ctx context.Context, user *User, _ UserUpdateFields) error {
 	if s.updateErr != nil {
 		return s.updateErr
 	}
@@ -51,6 +51,44 @@ func (s *balanceUserRepoStub) UpdateBalance(ctx context.Context, id int64, amoun
 		s.updated = append(s.updated, &clone)
 	}
 	return nil
+}
+
+func (s *balanceUserRepoStub) AdjustBalance(ctx context.Context, id int64, delta float64) (BalanceChange, error) {
+	if s.updateErr != nil {
+		return BalanceChange{}, s.updateErr
+	}
+	if s.userRepoStub == nil || s.userRepoStub.user == nil || s.userRepoStub.user.ID != id {
+		return BalanceChange{}, ErrUserNotFound
+	}
+	old := s.userRepoStub.user.Balance
+	change := BalanceChange{Old: old, New: old + delta}
+	if change.New < 0 {
+		return change, ErrBalanceNegative
+	}
+	clone := *s.userRepoStub.user
+	clone.Balance = change.New
+	s.userRepoStub.user = &clone
+	s.updated = append(s.updated, &clone)
+	return change, nil
+}
+
+func (s *balanceUserRepoStub) SetBalance(ctx context.Context, id int64, value float64) (BalanceChange, error) {
+	if s.updateErr != nil {
+		return BalanceChange{}, s.updateErr
+	}
+	if s.userRepoStub == nil || s.userRepoStub.user == nil || s.userRepoStub.user.ID != id {
+		return BalanceChange{}, ErrUserNotFound
+	}
+	old := s.userRepoStub.user.Balance
+	change := BalanceChange{Old: old, New: value}
+	if value < 0 {
+		return change, ErrBalanceNegative
+	}
+	clone := *s.userRepoStub.user
+	clone.Balance = value
+	s.userRepoStub.user = &clone
+	s.updated = append(s.updated, &clone)
+	return change, nil
 }
 
 type balanceRedeemRepoStub struct {

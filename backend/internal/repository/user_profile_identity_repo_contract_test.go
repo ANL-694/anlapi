@@ -482,7 +482,7 @@ func (s *UserProfileIdentityRepoSuite) TestWithUserProfileIdentityTx_AllowsAvata
 		if err != nil {
 			return err
 		}
-		return s.repo.Update(txCtx, model)
+		return s.repo.Update(txCtx, model, service.UserUpdateFields{})
 	})
 	s.Require().NoError(err)
 

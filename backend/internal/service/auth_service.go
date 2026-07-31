@@ -583,7 +583,7 @@ func (s *AuthService) LoginOrRegisterOAuth(ctx context.Context, email, username 
 	// 尽力补全：当用户名为空时，使用第三方返回的用户名回填。
 	if user.Username == "" && username != "" {
 		user.Username = username
-		if err := s.userRepo.Update(ctx, user); err != nil {
+		if err := s.userRepo.Update(ctx, user, UserUpdateFields{Username: true}); err != nil {
 			logger.LegacyPrintf("service.auth", "[Auth] Failed to update username after oauth login: %v", err)
 		}
 	}
@@ -783,7 +783,7 @@ func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 
 	if user.Username == "" && username != "" {
 		user.Username = username
-		if err := s.userRepo.Update(ctx, user); err != nil {
+		if err := s.userRepo.Update(ctx, user, UserUpdateFields{Username: true}); err != nil {
 			logger.LegacyPrintf("service.auth", "[Auth] Failed to update username after oauth login: %v", err)
 		}
 	}
@@ -1459,7 +1459,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, email, token, newPasswo
 	user.PasswordHash = hashedPassword
 	user.TokenVersion++ // Invalidate all existing tokens
 
-	if err := s.userRepo.Update(ctx, user); err != nil {
+	if err := s.userRepo.Update(ctx, user, UserUpdateFields{PasswordHash: true}); err != nil {
 		logger.LegacyPrintf("service.auth", "[Auth] Database error updating password for user %d: %v", user.ID, err)
 		return ErrServiceUnavailable
 	}
@@ -1697,22 +1697,19 @@ func (s *AuthService) RevokeAllUserSessions(ctx context.Context, userID int64) e
 	return s.refreshTokenCache.DeleteUserRefreshTokens(ctx, userID)
 }
 
-// RevokeAllUserTokens invalidates both stateless access tokens and refresh sessions.
-// Access/refresh token verification both depend on TokenVersion, so bumping it provides
-// immediate revocation even if refresh-token cache cleanup later fails.
+// RevokeAllUserTokens revokes all refresh sessions for a user.
+//
+// The users table has no token_version column. Incrementing the in-memory
+// service model would not invalidate stateless access tokens across requests,
+// and writing that stale model back could overwrite unrelated user updates.
+// Password changes invalidate access tokens through the password fingerprint.
 func (s *AuthService) RevokeAllUserTokens(ctx context.Context, userID int64) error {
-	user, err := s.userRepo.GetByID(ctx, userID)
-	if err != nil {
+	if _, err := s.userRepo.GetByID(ctx, userID); err != nil {
 		return fmt.Errorf("get user: %w", err)
 	}
 
-	user.TokenVersion++
-	if err := s.userRepo.Update(ctx, user); err != nil {
-		return fmt.Errorf("update user: %w", err)
-	}
-
 	if err := s.RevokeAllUserSessions(ctx, userID); err != nil {
-		logger.LegacyPrintf("service.auth", "[Auth] Failed to revoke refresh sessions after token invalidation for user %d: %v", userID, err)
+		logger.LegacyPrintf("service.auth", "[Auth] Failed to revoke refresh sessions for user %d: %v", userID, err)
 	}
 	return nil
 }

@@ -55,6 +55,25 @@ const (
 	apiKeyLastUsedFailBackoff = 5 * time.Second
 )
 
+// APIKeyUpdateFields declares which API key columns a repository update may
+// write. Usage counters are maintained by atomic billing paths and must not
+// be restored from a stale API key snapshot during an unrelated edit.
+type APIKeyUpdateFields struct {
+	Name           bool
+	Status         bool
+	Quota          bool
+	GroupID        bool
+	ExpiresAt      bool
+	QuotaUsed      bool
+	RateLimits     bool
+	RateLimitUsage bool
+	IPRules        bool
+}
+
+func (f APIKeyUpdateFields) IsEmpty() bool {
+	return f == APIKeyUpdateFields{}
+}
+
 type APIKeyRepository interface {
 	Create(ctx context.Context, key *APIKey) error
 	GetByID(ctx context.Context, id int64) (*APIKey, error)
@@ -63,7 +82,9 @@ type APIKeyRepository interface {
 	GetByKey(ctx context.Context, key string) (*APIKey, error)
 	// GetByKeyForAuth 认证专用查询，返回最小字段集
 	GetByKeyForAuth(ctx context.Context, key string) (*APIKey, error)
-	Update(ctx context.Context, key *APIKey) error
+	// Update writes only explicitly declared fields; other columns retain their
+	// current database values.
+	Update(ctx context.Context, key *APIKey, fields APIKeyUpdateFields) error
 	Delete(ctx context.Context, id int64) error
 
 	ListByUserID(ctx context.Context, userID int64, params pagination.PaginationParams, filters APIKeyListFilters) ([]APIKey, *pagination.PaginationResult, error)
@@ -701,7 +722,7 @@ func (s *APIKeyService) EnsureSystemImageKey(ctx context.Context, userID int64) 
 				!systemImageKeyRoutesMatch(existing, group.ID) || existing.Status != StatusAPIKeyActive
 			if needsUpdate {
 				bindSystemImageKeyToGroup(existing, group)
-				if err := s.apiKeyRepo.Update(ctx, existing); err != nil {
+				if err := s.apiKeyRepo.Update(ctx, existing, APIKeyUpdateFields{Name: true, GroupID: true, Status: true}); err != nil {
 					return nil, fmt.Errorf("rebind system image api key: %w", err)
 				}
 				s.InvalidateAuthCacheByKey(ctx, existing.Key)
@@ -900,6 +921,8 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 			return nil, ErrSystemAPIKeyImmutable
 		}
 	}
+	var fields APIKeyUpdateFields
+	originalStatus := apiKey.Status
 
 	// 验证 IP 白名单格式
 	if req.IPWhitelist != nil && len(*req.IPWhitelist) > 0 {
@@ -918,6 +941,7 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 	// 更新字段
 	if req.Name != nil {
 		apiKey.Name = *req.Name
+		fields.Name = true
 	}
 
 	if req.GroupID != nil && req.GroupRoutes == nil {
@@ -938,6 +962,7 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 
 		apiKey.GroupID = req.GroupID
 		apiKey.GroupRoutes = defaultAPIKeyGroupRoute(req.GroupID)
+		fields.GroupID = true
 	}
 	if req.GroupRoutes != nil {
 		user, err := s.userRepo.GetByID(ctx, userID)
@@ -967,10 +992,12 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 			apiKey.GroupID = nil
 		}
 		apiKey.GroupRoutes = groupRoutes
+		fields.GroupID = true
 	}
 
 	if req.Status != nil {
 		apiKey.Status = *req.Status
+		fields.Status = true
 		// 如果状态改变，清除Redis缓存
 		if s.cache != nil {
 			_ = s.cache.DeleteCreateAttemptCount(ctx, apiKey.UserID)
@@ -980,6 +1007,7 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 	// Update quota fields
 	if req.Quota != nil {
 		apiKey.Quota = *req.Quota
+		fields.Quota = true
 		// If quota is increased and status was quota_exhausted, reactivate
 		if apiKey.Status == StatusAPIKeyQuotaExhausted && *req.Quota > apiKey.QuotaUsed {
 			apiKey.Status = StatusActive
@@ -987,6 +1015,7 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 	}
 	if req.ResetQuota != nil && *req.ResetQuota {
 		apiKey.QuotaUsed = 0
+		fields.QuotaUsed = true
 		// If resetting quota and status was quota_exhausted, reactivate
 		if apiKey.Status == StatusAPIKeyQuotaExhausted {
 			apiKey.Status = StatusActive
@@ -994,12 +1023,14 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 	}
 	if req.ClearExpiration {
 		apiKey.ExpiresAt = nil
+		fields.ExpiresAt = true
 		// If clearing expiry and status was expired, reactivate
 		if apiKey.Status == StatusAPIKeyExpired {
 			apiKey.Status = StatusActive
 		}
 	} else if req.ExpiresAt != nil {
 		apiKey.ExpiresAt = req.ExpiresAt
+		fields.ExpiresAt = true
 		// If extending expiry and status was expired, reactivate
 		if apiKey.Status == StatusAPIKeyExpired && time.Now().Before(*req.ExpiresAt) {
 			apiKey.Status = StatusActive
@@ -1009,20 +1040,25 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 	// 更新 IP 限制（nil 不修改，空数组清空设置）
 	if req.IPWhitelist != nil {
 		apiKey.IPWhitelist = *req.IPWhitelist
+		fields.IPRules = true
 	}
 	if req.IPBlacklist != nil {
 		apiKey.IPBlacklist = *req.IPBlacklist
+		fields.IPRules = true
 	}
 
 	// Update rate limit configuration
 	if req.RateLimit5h != nil {
 		apiKey.RateLimit5h = *req.RateLimit5h
+		fields.RateLimits = true
 	}
 	if req.RateLimit1d != nil {
 		apiKey.RateLimit1d = *req.RateLimit1d
+		fields.RateLimits = true
 	}
 	if req.RateLimit7d != nil {
 		apiKey.RateLimit7d = *req.RateLimit7d
+		fields.RateLimits = true
 	}
 	resetRateLimit := req.ResetRateLimitUsage != nil && *req.ResetRateLimitUsage
 	if resetRateLimit {
@@ -1032,9 +1068,13 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 		apiKey.Window5hStart = nil
 		apiKey.Window1dStart = nil
 		apiKey.Window7dStart = nil
+		fields.RateLimitUsage = true
+	}
+	if apiKey.Status != originalStatus {
+		fields.Status = true
 	}
 
-	if err := s.apiKeyRepo.Update(ctx, apiKey); err != nil {
+	if err := s.apiKeyRepo.Update(ctx, apiKey, fields); err != nil {
 		return nil, fmt.Errorf("update api key: %w", err)
 	}
 
@@ -1327,7 +1367,7 @@ func (s *APIKeyService) UpdateQuotaUsed(ctx context.Context, apiKeyID int64, cos
 	// If quota is set and now exhausted, update status
 	if apiKey.Quota > 0 && newQuotaUsed >= apiKey.Quota {
 		apiKey.Status = StatusAPIKeyQuotaExhausted
-		if err := s.apiKeyRepo.Update(ctx, apiKey); err != nil {
+		if err := s.apiKeyRepo.Update(ctx, apiKey, APIKeyUpdateFields{Status: true}); err != nil {
 			return nil // Don't fail the request
 		}
 		// Invalidate cache so next request sees the new status
