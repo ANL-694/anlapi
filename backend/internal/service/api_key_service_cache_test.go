@@ -120,10 +120,11 @@ func (s *authRepoStub) GetRateLimitData(ctx context.Context, id int64) (*APIKeyR
 }
 
 type authCacheStub struct {
-	getAuthCache     func(ctx context.Context, key string) (*APIKeyAuthCacheEntry, error)
-	setAuthKeys      []string
-	deleteAuthKeys   []string
-	subscribeHandler func(cacheKey string)
+	getAuthCache       func(ctx context.Context, key string) (*APIKeyAuthCacheEntry, error)
+	setAuthKeys        []string
+	deleteAuthKeys     []string
+	subscribeHandlerMu sync.RWMutex
+	subscribeHandler   func(cacheKey string)
 }
 
 func (s *authCacheStub) GetCreateAttemptCount(ctx context.Context, userID int64) (int, error) {
@@ -168,8 +169,16 @@ func (s *authCacheStub) PublishAuthCacheInvalidation(ctx context.Context, cacheK
 }
 
 func (s *authCacheStub) SubscribeAuthCacheInvalidation(ctx context.Context, handler func(cacheKey string)) error {
+	s.subscribeHandlerMu.Lock()
+	defer s.subscribeHandlerMu.Unlock()
 	s.subscribeHandler = handler
 	return nil
+}
+
+func (s *authCacheStub) getSubscribeHandler() func(cacheKey string) {
+	s.subscribeHandlerMu.RLock()
+	defer s.subscribeHandlerMu.RUnlock()
+	return s.subscribeHandler
 }
 
 func TestAPIKeyService_RevocationSubscriberWorksWithoutL1Cache(t *testing.T) {
@@ -182,9 +191,11 @@ func TestAPIKeyService_RevocationSubscriberWorksWithoutL1Cache(t *testing.T) {
 
 	svc.StartAuthCacheInvalidationSubscriber(context.Background())
 	t.Cleanup(svc.StopAuthCacheInvalidationSubscriber)
-	require.Eventually(t, func() bool { return cache.subscribeHandler != nil }, time.Second, 10*time.Millisecond)
+	require.Eventually(t, func() bool { return cache.getSubscribeHandler() != nil }, time.Second, 10*time.Millisecond)
 	cacheKey := svc.authCacheKey("sk-remote-revoked")
-	cache.subscribeHandler(authCacheRevokeMessagePrefix + cacheKey)
+	handler := cache.getSubscribeHandler()
+	require.NotNil(t, handler)
+	handler(authCacheRevokeMessagePrefix + cacheKey)
 
 	require.True(t, svc.isAuthCacheRevoked(cacheKey))
 	require.Contains(t, cache.deleteAuthKeys, cacheKey)

@@ -1,16 +1,21 @@
 package service
 
 import (
+	"os"
 	"testing"
 	"time"
 
 	"anlapi/internal/pkg/timezone"
 )
 
-func TestPeakMultiplierAtBoundaries(t *testing.T) {
+func TestMain(m *testing.M) {
 	if err := timezone.Init("UTC"); err != nil {
-		t.Fatalf("init timezone: %v", err)
+		panic(err)
 	}
+	os.Exit(m.Run())
+}
+
+func TestPeakMultiplierAtBoundaries(t *testing.T) {
 	group := &Group{
 		SubscriptionType:   SubscriptionTypeSubscription,
 		PeakRateEnabled:    true,
