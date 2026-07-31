@@ -82,7 +82,7 @@ func TestOpenAIGatewayHandlerSubmitUsageRecordTask_WithPool(t *testing.T) {
 	h := &OpenAIGatewayHandler{usageRecordWorkerPool: pool}
 
 	done := make(chan struct{})
-	h.submitUsageRecordTask(func(ctx context.Context) {
+	h.submitUsageRecordTask(context.Background(), func(ctx context.Context) {
 		close(done)
 	})
 
@@ -97,7 +97,7 @@ func TestOpenAIGatewayHandlerSubmitUsageRecordTask_WithoutPoolSyncFallback(t *te
 	h := &OpenAIGatewayHandler{}
 	var called atomic.Bool
 
-	h.submitUsageRecordTask(func(ctx context.Context) {
+	h.submitUsageRecordTask(context.Background(), func(ctx context.Context) {
 		if _, ok := ctx.Deadline(); !ok {
 			t.Fatal("expected deadline in fallback context")
 		}
@@ -110,7 +110,7 @@ func TestOpenAIGatewayHandlerSubmitUsageRecordTask_WithoutPoolSyncFallback(t *te
 func TestOpenAIGatewayHandlerSubmitUsageRecordTask_NilTask(t *testing.T) {
 	h := &OpenAIGatewayHandler{}
 	require.NotPanics(t, func() {
-		h.submitUsageRecordTask(nil)
+		h.submitUsageRecordTask(context.Background(), nil)
 	})
 }
 
@@ -119,12 +119,12 @@ func TestOpenAIGatewayHandlerSubmitUsageRecordTask_WithoutPool_TaskPanicRecovere
 	var called atomic.Bool
 
 	require.NotPanics(t, func() {
-		h.submitUsageRecordTask(func(ctx context.Context) {
+		h.submitUsageRecordTask(context.Background(), func(ctx context.Context) {
 			panic("usage task panic")
 		})
 	})
 
-	h.submitUsageRecordTask(func(ctx context.Context) {
+	h.submitUsageRecordTask(context.Background(), func(ctx context.Context) {
 		called.Store(true)
 	})
 	require.True(t, called.Load(), "panic 后后续任务应仍可执行")

@@ -25,11 +25,13 @@ func ResolvedTargetPlatformFromContext(ctx context.Context) (string, bool) {
 }
 
 func WithCompositeRouteDecision(ctx context.Context, decision CompositeRouteDecision) context.Context {
-	if ctx == nil || !decision.Matched || decision.GroupID <= 0 {
+	if ctx == nil || !decision.Matched {
 		return ctx
 	}
 	ctx = WithResolvedTargetPlatform(ctx, decision.TargetPlatform)
-	ctx = context.WithValue(ctx, ctxkey.ResolvedCompositeGroupID, decision.GroupID)
+	if decision.GroupID > 0 {
+		ctx = context.WithValue(ctx, ctxkey.ResolvedCompositeGroupID, decision.GroupID)
+	}
 	if model := strings.TrimSpace(decision.UpstreamModel); model != "" {
 		ctx = context.WithValue(ctx, ctxkey.ResolvedUpstreamModel, model)
 	}
@@ -56,8 +58,10 @@ func CompositeRouteAppliesToGroup(ctx context.Context, groupID int64) bool {
 }
 
 func ResolvedTargetPlatformForGroup(ctx context.Context, groupID int64) (string, bool) {
-	if !CompositeRouteAppliesToGroup(ctx, groupID) {
-		return "", false
+	if _, scoped := ResolvedCompositeGroupIDFromContext(ctx); scoped {
+		if !CompositeRouteAppliesToGroup(ctx, groupID) {
+			return "", false
+		}
 	}
 	return ResolvedTargetPlatformFromContext(ctx)
 }
@@ -72,8 +76,10 @@ func ResolvedUpstreamModelFromContext(ctx context.Context) (string, bool) {
 }
 
 func ResolvedUpstreamModelForGroup(ctx context.Context, groupID int64) (string, bool) {
-	if !CompositeRouteAppliesToGroup(ctx, groupID) {
-		return "", false
+	if _, scoped := ResolvedCompositeGroupIDFromContext(ctx); scoped {
+		if !CompositeRouteAppliesToGroup(ctx, groupID) {
+			return "", false
+		}
 	}
 	return ResolvedUpstreamModelFromContext(ctx)
 }

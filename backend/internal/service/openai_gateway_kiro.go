@@ -255,9 +255,9 @@ func (s *OpenAIGatewayService) forwardKiroOAuthAsChatCompletions(
 	var result *OpenAIForwardResult
 	var handleErr error
 	if clientStream {
-		result, handleErr = s.handleChatStreamingResponse(&convertedResp, c, originalModel, billingModel, normalizeKiroRuntimeModel(upstreamModel), includeUsage, startTime)
+		result, handleErr = s.handleChatStreamingResponse(&convertedResp, c, account, originalModel, billingModel, normalizeKiroRuntimeModel(upstreamModel), startTime, len(anthropicBody))
 	} else {
-		result, handleErr = s.handleChatBufferedStreamingResponse(&convertedResp, c, originalModel, billingModel, normalizeKiroRuntimeModel(upstreamModel), startTime)
+		result, handleErr = s.handleChatBufferedStreamingResponse(&convertedResp, c, account, originalModel, billingModel, normalizeKiroRuntimeModel(upstreamModel), startTime)
 	}
 	if handleErr == nil && result != nil && reasoningEffort != nil {
 		result.ReasoningEffort = reasoningEffort

@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 const componentPath = resolve(dirname(fileURLToPath(import.meta.url)), '../AppSidebar.vue')
 const componentSource = readFileSync(componentPath, 'utf8')
+const routerSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../../router/index.ts'), 'utf8')
+const statusViewSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../../views/user/HttpStatusCodesView.vue'), 'utf8')
 const stylePath = resolve(dirname(fileURLToPath(import.meta.url)), '../../../style.css')
 const styleSource = readFileSync(stylePath, 'utf8')
 
@@ -35,5 +37,22 @@ describe('AppSidebar collapsed groups', () => {
   it('expands the sidebar instead of ignoring a grouped navigation click', () => {
     expect(componentSource).toContain('appStore.setSidebarCollapsed(false)')
     expect(componentSource).toContain('expandedGroups.value.add(item.path)')
+  })
+})
+
+describe('HTTP status code navigation', () => {
+  it('exposes the user-facing menu item and route', () => {
+    expect(componentSource).toContain("path: '/http-status-codes'")
+    expect(componentSource).toContain("label: t('nav.httpStatusCodes')")
+    expect(routerSource).toContain("path: '/http-status-codes'")
+    expect(routerSource).toContain("name: 'HttpStatusCodes'")
+    expect(routerSource).toContain("requiresAdmin: false")
+  })
+
+  it('keeps status code categories collapsed until clicked', () => {
+    expect(statusViewSource).toContain('const expandedGroups = ref<Set<string>>(new Set())')
+    expect(statusViewSource).toContain('@click="toggleGroup(group.range)"')
+    expect(statusViewSource).toContain('v-if="isGroupExpanded(group.range)"')
+    expect(statusViewSource).toContain(':aria-expanded="isGroupExpanded(group.range)"')
   })
 })

@@ -98,6 +98,8 @@ security:
       - "api.openai.com"
       - "api.anthropic.com"
       - "api.kimi.com"
+      - "api.moonshot.ai"
+      - "api.moonshot.cn"
       - "open.bigmodel.cn"
       - "api.minimaxi.com"
       - "generativelanguage.googleapis.com"
@@ -256,6 +258,14 @@ gateway:
     failure_threshold: 2
     window_seconds: 60
     ttl_seconds: 600
+  # Model used for OpenAI /responses/compact upstream requests (default: gpt-5.4).
+  # OpenAI /responses/compact 上游模型（默认 gpt-5.4）。
+  # Use this to avoid compact failures when newer models are not yet supported by the compact endpoint.
+  # 当 compact 端点暂未支持更新模型时，可通过这里降级规避失败。
+  openai_compact_model: "gpt-5.4"
+  # ChatGPT Frameless Live 单会话硬上限（秒）。
+  live:
+    max_session_duration_seconds: 3600
   # OpenAI Responses WebSocket 配置（默认开启，可按需回滚到 HTTP）
   openai_ws:
     # 新版 WS mode 路由（默认关闭）。关闭时保持当前 legacy 实现行为。
@@ -755,6 +765,17 @@ usage_cleanup:
     # Expiration days for usage_logs archives created by auto cleanup. 0 means never expire.
     # 自动清理前创建的 usage_logs 归档过期天数，0 表示不过期。
     backup_expire_days: 14
+
+# =============================================================================
+# ANL Hub 私有网关（签名密钥请通过 PRIVATE_GATEWAY_SIGNING_KEY 注入）
+# ANL Hub Private Gateway
+# =============================================================================
+private_gateway:
+  enabled: false
+  service_id: ""
+  signing_key: ""
+  # 服务端专属的路由与计费主体 ID；Hub 不会收到对应 API Key。
+  api_key_id: 0
 
 # =============================================================================
 # HTTP 写接口幂等配置

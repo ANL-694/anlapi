@@ -40,6 +40,40 @@ QQ グループ：`146499741`
 - Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS、Vite によるフロントエンドコンソール。
 - Go、Gin、Ent、PostgreSQL、Redis とモジュール化されたサービス境界によるバックエンド。
 
+### OpenAI Realtime / Live の使用例
+
+OpenAI グループで Live を有効にすると、OpenAI 形式のエイリアスから WebRTC セッションを作成できます。このエイリアスは既存の Live リクエスト形式を再利用します。
+
+```bash
+curl -i https://your-domain.example/v1/realtime/sessions \
+  -H "Authorization: Bearer $ANL_API_KEY" \
+  -F 'sdp=<offer.sdp' \
+  -F 'session={"model":"gpt-live"}'
+```
+
+レスポンス本文は SDP answer で、`Location` レスポンスヘッダーに `call_id` が含まれます。同じ API Key で制御用 WebSocket に接続します。
+
+```bash
+wscat -c 'wss://your-domain.example/v1/realtime?call_id=call_123' \
+  -H "Authorization: Bearer $ANL_API_KEY"
+```
+
+既存の `POST /v1/live` と `GET /v1/live/:call_id` も引き続き利用できます。
+
+## 1.0.10 更新内容
+
+- 本番稼働中だった ANL 固有実装、上流互換修正、DB マイグレーション、管理画面機能を、再現可能な Git リリーススナップショットとして固定しました。
+- 新しい API Key アカウントでは、モデル検出が現在のフォームの Base URL と API Key を再利用します。Key はダイアログのメモリ内だけで使われ、閉じると消去されます。
+- Sub2API `v0.1.168` への選択的な追従を継続し、ANL のアカウント分離、決済、災害復旧、監査、ユーザー単位の同時実行制御を維持します。
+
+## 1.0.9 更新内容
+
+- Sub2API v0.1.165 に追従し、OpenAI Live ゲートウェイ、グループ単位の有効化、DB マイグレーション、API、管理画面、使用量種別を追加しました。
+- クライアントが明示したセッション ID を使用量ログに保存し、OpenAI Responses の残留 namespace と不正な再送 item ID を除去します。
+- Ollama Cloud 自動更新を所有者と API Key 単位で分離し、飢餓防止、PostgreSQL 16 の時刻解析、失敗時バックオフを改善しました。
+- 登録メール別名の重複防止、公告プレビュー、モバイルコピー操作、Claude 5 モデル、フロントエンド依存関係の安全修正を取り込みました。
+- ANL 独自のアカウント取込、決済、ゲートウェイ、OAuth 分離、国内 DR、監査、ユーザー単位の同時実行制御を維持します。
+
 ## 1.0.8 更新内容
 
 - Sub2API v0.1.164 の互換性修正として、Codex 一括インポート、GPT-5.6 の具体的なテストモデル、OAuth `input` 正規化、チャネルモデル名正規化を取り込みました。

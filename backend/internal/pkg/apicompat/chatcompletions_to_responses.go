@@ -30,12 +30,17 @@ func ChatCompletionsToResponses(req *ChatCompletionsRequest) (*ResponsesRequest,
 		Model:             req.Model,
 		Instructions:      req.Instructions,
 		Input:             inputJSON,
-		Temperature:       req.Temperature,
-		TopP:              req.TopP,
 		Stream:            true, // upstream always streams
 		Include:           []string{"reasoning.encrypted_content"},
 		ServiceTier:       req.ServiceTier,
 		ParallelToolCalls: req.ParallelToolCalls,
+	}
+
+	// Reasoning models (gpt-5.x) do not accept sampling parameters.
+	// See isReasoningModel in anthropic_to_responses.go.
+	if !isReasoningModel(req.Model) {
+		out.Temperature = req.Temperature
+		out.TopP = req.TopP
 	}
 
 	storeFalse := false
@@ -197,7 +202,7 @@ func chatAssistantToResponses(m ChatMessage) ([]ResponsesInputItem, error) {
 			Type:      "function_call",
 			CallID:    tc.ID,
 			Name:      tc.Function.Name,
-			Arguments: jsonRawString(args),
+			Arguments: args,
 		})
 	}
 
@@ -287,7 +292,7 @@ func chatToolToResponses(m ChatMessage) ([]ResponsesInputItem, error) {
 	return []ResponsesInputItem{{
 		Type:   "function_call_output",
 		CallID: m.ToolCallID,
-		Output: jsonRawString(output),
+		Output: output,
 	}}, nil
 }
 
@@ -305,7 +310,7 @@ func chatFunctionToResponses(m ChatMessage) ([]ResponsesInputItem, error) {
 	return []ResponsesInputItem{{
 		Type:   "function_call_output",
 		CallID: m.Name,
-		Output: jsonRawString(output),
+		Output: output,
 	}}, nil
 }
 
@@ -345,7 +350,14 @@ func marshalChatInputContent(content chatMessageContent) (json.RawMessage, error
 	if content.Text != nil {
 		return json.Marshal(*content.Text)
 	}
-	return json.Marshal(convertChatContentPartsToResponses(content.Parts))
+	parts := convertChatContentPartsToResponses(content.Parts)
+	if len(parts) == 0 {
+		// A nil slice marshals to JSON null, which the upstream Responses API
+		// rejects ("expected an array of objects or string, but got null").
+		// Fall back to an empty string when no usable parts remain.
+		return json.Marshal("")
+	}
+	return json.Marshal(parts)
 }
 
 func convertChatContentPartsToResponses(parts []ChatContentPart) []ResponsesContentPart {

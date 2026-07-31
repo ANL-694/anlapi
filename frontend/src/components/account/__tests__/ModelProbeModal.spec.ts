@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
 import ModelProbeModal from '../ModelProbeModal.vue'
 import { adminAPI } from '@/api/admin'
+import type { SyncUpstreamPreviewParams } from '@/api/admin/accounts'
 
 const discoveredModelCount = 25
 
@@ -36,11 +37,12 @@ const BaseDialogStub = defineComponent({
   template: '<div v-if="show"><slot /><slot name="footer" /></div>'
 })
 
-function mountModal() {
+function mountModal(initialCredentials?: SyncUpstreamPreviewParams) {
   return mount(ModelProbeModal, {
     props: {
       show: true,
-      defaultPlatform: 'openai'
+      defaultPlatform: 'openai',
+      initialCredentials
     },
     global: {
       stubs: {
@@ -68,6 +70,28 @@ describe('ModelProbeModal', () => {
         { model: 'model-1', mode: 'responses', ok: true, status: 200 },
         { model: 'model-2', mode: 'responses', ok: false, status: 404, error: 'not found' }
       ]
+    })
+  })
+
+  it('打开时复用父级账号表单中的探测凭据', async () => {
+    const wrapper = mountModal({
+      platform: 'openai',
+      type: 'apikey',
+      base_url: 'https://relay.example.com/v1',
+      api_key: 'sk-probe-seed'
+    })
+
+    const inputs = wrapper.findAll('input')
+    expect((inputs[0].element as HTMLInputElement).value).toBe('https://relay.example.com/v1')
+    expect((inputs[1].element as HTMLInputElement).value).toBe('sk-probe-seed')
+
+    await findButton(wrapper, 'admin.accounts.modelProbe.discover').trigger('click')
+    await flushPromises()
+
+    expect(adminAPI.accounts.probeModelList).toHaveBeenCalledWith({
+      platform: 'openai',
+      base_url: 'https://relay.example.com/v1',
+      api_key: 'sk-probe-seed'
     })
   })
 

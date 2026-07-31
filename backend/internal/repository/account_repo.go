@@ -1737,6 +1737,7 @@ func (r *accountRepository) SetGrokOAuthErrorIfCredentialsUnchanged(
 			AND a.type = $5
 			AND a.status = $6
 			AND a.credentials = $7::jsonb
+			AND NULLIF(BTRIM(a.credentials->>'refresh_token'), '') IS NULL
 		RETURNING a.id
 		)
 		INSERT INTO scheduler_outbox (event_type, account_id, group_id, payload)
@@ -1784,13 +1785,16 @@ func (r *accountRepository) UpdateGrokOAuthCredentialsIfUnchanged(
 	if err != nil {
 		return false, err
 	}
-	_, accountType, ownerUserID, err := r.loadAccountVaultIdentity(ctx, id)
-	if err != nil {
-		return false, err
-	}
-	preparedCredentials, err := r.prepareOAuthCredentialsForWrite(ctx, id, ownerUserID, accountType, credentials)
-	if err != nil {
-		return false, err
+	preparedCredentials := credentials
+	if r.oauthVaultMode() != service.OAuthCredentialVaultModeLegacy {
+		_, accountType, ownerUserID, err := r.loadAccountVaultIdentity(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		preparedCredentials, err = r.prepareOAuthCredentialsForWrite(ctx, id, ownerUserID, accountType, credentials)
+		if err != nil {
+			return false, err
+		}
 	}
 	credentialsJSON, err := json.Marshal(normalizeJSONMap(preparedCredentials))
 	if err != nil {
@@ -2497,7 +2501,7 @@ func (r *accountRepository) SetOverloaded(ctx context.Context, id int64, until t
 }
 
 func (r *accountRepository) SetTempUnschedulable(ctx context.Context, id int64, until time.Time, reason string) error {
-	_, err := r.sql.ExecContext(ctx, `
+	result, err := r.sql.ExecContext(ctx, `
 		UPDATE accounts
 		SET temp_unschedulable_until = $1,
 			temp_unschedulable_reason = $2,
@@ -2508,6 +2512,13 @@ func (r *accountRepository) SetTempUnschedulable(ctx context.Context, id int64, 
 	`, until, reason, id)
 	if err != nil {
 		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected <= 0 {
+		return nil
 	}
 	if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, &id, nil, nil); err != nil {
 		logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue temp unschedulable failed: account=%d err=%v", id, err)
@@ -3198,7 +3209,14 @@ func (r *accountRepository) queryAccountsByGroup(ctx context.Context, groupID in
 	// 通过 account_groups 中间表查询账号，并按需叠加状态/平台/调度能力过滤。
 	preds := make([]dbpredicate.Account, 0, 6)
 	preds = append(preds, dbaccount.DeletedAtIsNil())
-	if opts.schedulable {
+	requiresOpenAIAccountLevel := len(opts.platforms) == 0
+	for _, platform := range opts.platforms {
+		if platform == service.PlatformOpenAI {
+			requiresOpenAIAccountLevel = true
+			break
+		}
+	}
+	if opts.schedulable && requiresOpenAIAccountLevel {
 		group, err := r.client.Group.Query().
 			Where(dbgroup.IDEQ(groupID), dbgroup.DeletedAtIsNil()).
 			Only(ctx)
@@ -3347,6 +3365,9 @@ type accountProxyFallbackOrigin struct {
 
 func (r *accountRepository) loadProxyFallbackOrigins(ctx context.Context, accountIDs []int64) (map[int64]accountProxyFallbackOrigin, error) {
 	out := make(map[int64]accountProxyFallbackOrigin)
+	if r == nil || r.sql == nil {
+		return out, nil
+	}
 	if err := forEachAccountRepositoryIDBatch(accountIDs, func(batch []int64) error {
 		rows, err := r.sql.QueryContext(ctx, `
 			SELECT a.id, a.proxy_fallback_origin_id, p.name

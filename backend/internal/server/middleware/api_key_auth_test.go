@@ -671,6 +671,36 @@ func TestAPIKeyAuthTouchesLastUsedInStandardMode(t *testing.T) {
 	require.Equal(t, 1, touchCalls)
 }
 
+func TestAPIKeyAuthModelDiscoveryDoesNotRequireBalance(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	group := &service.Group{ID: 9, Status: service.StatusActive, Hydrated: true}
+	user := &service.User{ID: 7, Role: service.RoleUser, Status: service.StatusActive, Balance: 0, Concurrency: 2}
+	apiKey := &service.APIKey{ID: 42, UserID: user.ID, Key: "model-discovery", Status: service.StatusActive, User: user, Group: group}
+	apiKey.GroupID = &group.ID
+
+	apiKeyService := service.NewAPIKeyService(&stubApiKeyRepo{
+		getByKey: func(context.Context, string) (*service.APIKey, error) {
+			clone := *apiKey
+			return &clone, nil
+		},
+	}, nil, nil, nil, nil, nil, &config.Config{RunMode: config.RunModeStandard})
+	router := newAuthTestRouter(apiKeyService, nil, &config.Config{RunMode: config.RunModeStandard})
+
+	for _, test := range []struct {
+		path   string
+		status int
+	}{
+		{path: "/v1/models", status: http.StatusOK},
+		{path: "/t", status: http.StatusForbidden},
+	} {
+		response := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodGet, test.path, nil)
+		request.Header.Set("x-api-key", apiKey.Key)
+		router.ServeHTTP(response, request)
+		require.Equal(t, test.status, response.Code, test.path)
+	}
+}
+
 func newAuthTestRouter(apiKeyService *service.APIKeyService, subscriptionService *service.SubscriptionService, cfg *config.Config) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.HandlerFunc(NewAPIKeyAuthMiddleware(apiKeyService, subscriptionService, cfg)))
@@ -680,7 +710,68 @@ func newAuthTestRouter(apiKeyService *service.APIKeyService, subscriptionService
 	router.GET("/t", ok)
 	router.GET("/v1/usage", ok)
 	router.GET("/v1/sub2api/billing", ok)
+	router.GET("/v1/models", ok)
+	router.POST("/v1/chat/completions", ok)
 	return router
+}
+
+func TestAPIKeyAuthAcceptsPrivateGatewayPreauthenticatedSubject(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	group := &service.Group{ID: 9, Status: service.StatusActive, Hydrated: true}
+	user := &service.User{ID: 7, Role: service.RoleUser, Status: service.StatusActive, Balance: 10, Concurrency: 2}
+	apiKey := &service.APIKey{ID: 42, UserID: user.ID, Status: service.StatusActive, User: user, Group: group}
+	apiKey.GroupID = &group.ID
+
+	apiKeyRepo := &stubApiKeyRepo{
+		getByKey: func(context.Context, string) (*service.APIKey, error) {
+			t.Fatal("service-authenticated request must not look up a credential string")
+			return nil, service.ErrAPIKeyNotFound
+		},
+	}
+	cfg := &config.Config{RunMode: config.RunModeSimple}
+	apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		setPrivateGatewayPreauthenticatedAPIKey(c, apiKey)
+		c.Next()
+	})
+	router.Use(gin.HandlerFunc(NewAPIKeyAuthMiddleware(apiKeyService, nil, cfg)))
+	router.GET("/t", func(c *gin.Context) {
+		authenticated, ok := GetAPIKeyFromContext(c)
+		require.True(t, ok)
+		require.Equal(t, apiKey.ID, authenticated.ID)
+		c.Status(http.StatusNoContent)
+	})
+
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/t", nil))
+	require.Equal(t, http.StatusNoContent, response.Code)
+}
+
+func TestAPIKeyAuthPrivateGatewayPreauthenticatedSubjectBypassesBilling(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	group := &service.Group{ID: 9, Platform: service.PlatformOpenAI, Status: service.StatusActive, Hydrated: true}
+	user := &service.User{ID: 7, Role: service.RoleUser, Status: service.StatusActive, Balance: 0, Concurrency: 2}
+	apiKey := &service.APIKey{ID: 42, UserID: user.ID, Status: service.StatusActive, User: user, Group: group}
+	apiKey.GroupID = &group.ID
+
+	apiKeyService := service.NewAPIKeyService(&stubApiKeyRepo{
+		getByKey: func(context.Context, string) (*service.APIKey, error) {
+			t.Fatal("service-authenticated request must not look up a credential string")
+			return nil, service.ErrAPIKeyNotFound
+		},
+	}, nil, nil, nil, nil, nil, &config.Config{RunMode: config.RunModeStandard})
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		setPrivateGatewayPreauthenticatedAPIKey(c, apiKey)
+		c.Next()
+	})
+	router.Use(gin.HandlerFunc(NewAPIKeyAuthMiddleware(apiKeyService, nil, &config.Config{RunMode: config.RunModeStandard})))
+	router.POST("/v1/chat/completions", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil))
+	require.Equal(t, http.StatusNoContent, response.Code)
 }
 
 type stubApiKeyRepo struct {

@@ -7,22 +7,22 @@
     <div class="affiliate-invite-grid">
       <div class="affiliate-invite-field">
         <span class="affiliate-field-label">{{ t('affiliate.yourCode') }}</span>
-        <div class="affiliate-field-value">
-          <code>{{ code }}</code>
-          <button class="affiliate-copy-button" :title="t('affiliate.copyCode')" @click="emit('copy-code')">
+        <div class="affiliate-field-value flex flex-col items-stretch sm:flex-row sm:items-center">
+          <code class="min-w-0 break-all sm:flex-1 sm:truncate">{{ code }}</code>
+          <button class="affiliate-copy-button w-full sm:w-auto sm:shrink-0" :title="t('affiliate.copyCode')" @click="emit('copy-code')">
             <Icon name="copy" size="sm" />
-            <span class="sr-only">{{ t('affiliate.copyCode') }}</span>
+            <span>{{ t('affiliate.copyCode') }}</span>
           </button>
         </div>
       </div>
 
       <div class="affiliate-invite-field">
         <span class="affiliate-field-label">{{ t('affiliate.inviteLink') }}</span>
-        <div class="affiliate-field-value">
-          <code>{{ inviteLink }}</code>
-          <button class="affiliate-copy-button" :title="t('affiliate.copyLink')" @click="emit('copy-link')">
+        <div class="affiliate-field-value flex flex-col items-stretch sm:flex-row sm:items-center">
+          <code class="min-w-0 break-all sm:flex-1 sm:truncate">{{ inviteLink }}</code>
+          <button class="affiliate-copy-button w-full sm:w-auto sm:shrink-0" :title="t('affiliate.copyLink')" @click="emit('copy-link')">
             <Icon name="copy" size="sm" />
-            <span class="sr-only">{{ t('affiliate.copyLink') }}</span>
+            <span>{{ t('affiliate.copyLink') }}</span>
           </button>
         </div>
       </div>
@@ -95,31 +95,34 @@ const { t } = useI18n()
 .affiliate-field-value {
   display: flex;
   min-width: 0;
-  height: 2.75rem;
-  align-items: center;
+  min-height: 2.75rem;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.5rem;
-  padding: 0 0.4rem 0 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
 }
 
 .affiliate-field-value code {
   min-width: 0;
-  flex: 1;
-  overflow: hidden;
+  overflow: visible;
+  overflow-wrap: anywhere;
   color: var(--ui-text);
   font-size: 0.8125rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .affiliate-copy-button {
   display: inline-flex;
-  width: 2rem;
+  width: 100%;
   height: 2rem;
   flex: 0 0 auto;
   align-items: center;
+  gap: 0.375rem;
   justify-content: center;
+  padding-inline: 0.625rem;
   border-radius: var(--ui-radius-md);
   color: var(--ui-text-secondary);
 }
@@ -148,6 +151,27 @@ const { t } = useI18n()
 
   .affiliate-rules {
     gap: 0.35rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .affiliate-field-value {
+    height: 2.75rem;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 0.4rem 0 0.75rem;
+  }
+
+  .affiliate-field-value code {
+    flex: 1;
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .affiliate-copy-button {
+    width: auto;
   }
 }
 

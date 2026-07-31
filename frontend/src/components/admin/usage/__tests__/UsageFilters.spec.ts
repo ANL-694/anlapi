@@ -28,6 +28,7 @@ const messages: Record<string, string> = {
   'admin.usage.billingModeToken': 'Token',
   'admin.usage.billingModePerRequest': 'Per Request',
   'admin.usage.billingModeImage': 'Image',
+  'admin.usage.billingModeVideo': 'Video',
   'admin.usage.group': 'Group',
   'admin.usage.allGroups': 'All Groups',
   'common.refresh': 'Refresh',
@@ -223,6 +224,18 @@ describe('UsageFilters — user search dropdown', () => {
     pendingSearch.resolve([{ id: 3, email: 'stale@test.com', deleted: false }])
     await flushPromises()
     expect(wrapper.text()).not.toContain('stale@test.com')
+  })
+})
+
+describe('UsageFilters — billing mode options', () => {
+  it('includes video billing', () => {
+    const wrapper = mountFilters()
+
+    const options = (wrapper.vm as any).billingModeOptions as Array<{
+      value: string | null
+      label: string
+    }>
+    expect(options).toContainEqual({ value: 'video', label: 'Video' })
   })
 })
 

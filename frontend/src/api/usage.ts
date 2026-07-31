@@ -7,6 +7,7 @@ import { apiClient } from './client'
 import type {
   UsageLog,
   UsageQueryParams,
+  UsageRequestType,
   UsageStatsResponse,
   PaginatedResponse,
   TrendDataPoint,
@@ -221,12 +222,14 @@ export async function getStats(
  * @param startDate - Start date (YYYY-MM-DD format)
  * @param endDate - End date (YYYY-MM-DD format)
  * @param apiKeyId - Optional API key ID filter
+ * @param requestType - Optional request type filter
  * @returns Usage statistics
  */
 export async function getStatsByDateRange(
   startDate: string,
   endDate: string,
-  apiKeyId?: number
+  apiKeyId?: number,
+  requestType?: UsageRequestType
 ): Promise<UsageStatsResponse> {
   const params: Record<string, unknown> = {
     start_date: startDate,
@@ -235,6 +238,9 @@ export async function getStatsByDateRange(
 
   if (apiKeyId !== undefined) {
     params.api_key_id = apiKeyId
+  }
+  if (requestType) {
+    params.request_type = requestType
   }
 
   const { data } = await apiClient.get<UsageStatsResponse>('/usage/stats', {

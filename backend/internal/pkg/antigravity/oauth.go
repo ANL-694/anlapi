@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -52,6 +53,8 @@ const (
 // defaultUserAgentVersion 可通过环境变量 ANTIGRAVITY_USER_AGENT_VERSION 配置，默认 1.20.5
 var defaultUserAgentVersion = "1.21.9"
 
+var userAgentVersionPattern = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+
 // defaultClientSecret 可通过环境变量 ANTIGRAVITY_OAUTH_CLIENT_SECRET 配置
 var defaultClientSecret = "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"
 
@@ -69,6 +72,18 @@ func init() {
 // GetUserAgent 返回当前配置的 User-Agent
 func GetUserAgent() string {
 	return fmt.Sprintf("antigravity/%s windows/amd64", defaultUserAgentVersion)
+}
+
+func NormalizeUserAgentVersion(version string) string {
+	version = strings.TrimSpace(version)
+	if version == "" || !userAgentVersionPattern.MatchString(version) {
+		return ""
+	}
+	return version
+}
+
+func GetDefaultUserAgentVersion() string {
+	return defaultUserAgentVersion
 }
 
 func getClientSecret() (string, error) {

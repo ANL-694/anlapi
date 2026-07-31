@@ -71,6 +71,30 @@ func TestSetupDefaultAdminConcurrency(t *testing.T) {
 	})
 }
 
+func TestSkipSetupEnabled(t *testing.T) {
+	for _, value := range []string{"true", "TRUE", "1", "yes", " YES "} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv("SKIP_SETUP", value)
+			if !skipSetupEnabled() {
+				t.Fatalf("skipSetupEnabled() = false for %q", value)
+			}
+			t.Setenv("DATA_DIR", t.TempDir())
+			if NeedsSetup() {
+				t.Fatalf("NeedsSetup() = true for %q", value)
+			}
+		})
+	}
+
+	for _, value := range []string{"", "false", "0", "no"} {
+		t.Run("disabled_"+value, func(t *testing.T) {
+			t.Setenv("SKIP_SETUP", value)
+			if skipSetupEnabled() {
+				t.Fatalf("skipSetupEnabled() = true for %q", value)
+			}
+		})
+	}
+}
+
 func TestSetupMigrationTimeout(t *testing.T) {
 	t.Run("uses default timeout when unset", func(t *testing.T) {
 		cfg := &SetupConfig{}

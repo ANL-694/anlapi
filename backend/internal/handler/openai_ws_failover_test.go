@@ -36,13 +36,13 @@ func TestOpenAIWSProxyFailoverError(t *testing.T) {
 			statusCode: http.StatusTooManyRequests,
 		},
 		{
-			name: "partial response cannot be replayed",
+			name: "retry action remains retryable after a write",
 			err: &service.UpstreamFailoverError{
 				StatusCode:               http.StatusBadGateway,
 				NextAccountAction:        service.NextAccountRetry,
 				SafeToFailoverAfterWrite: true,
 			},
-			canRetry:   false,
+			canRetry:   true,
 			statusCode: http.StatusBadGateway,
 		},
 		{
@@ -63,7 +63,9 @@ func TestOpenAIWSProxyFailoverError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			failoverErr, canRetry := openAIWSProxyFailoverError(tt.err)
+			var failoverErr *service.UpstreamFailoverError
+			matched := errors.As(tt.err, &failoverErr)
+			canRetry := matched && failoverErr.ShouldRetryNextAccount()
 			require.Equal(t, tt.canRetry, canRetry)
 			if tt.statusCode == 0 {
 				require.Nil(t, failoverErr)

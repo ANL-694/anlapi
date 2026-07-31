@@ -35,6 +35,11 @@ const messages: Record<string, string> = {
   'usage.billed': 'Billed',
   'usage.allApiKeys': 'All API Keys',
   'usage.apiKeyFilter': 'API Key',
+  'usage.requestTypeFilter': 'Request Type',
+  'usage.allRequestTypes': 'All Request Types',
+  'usage.sync': 'Sync',
+  'usage.stream': 'Stream',
+  'usage.cyber': 'Cyber',
   'usage.model': 'Model',
   'usage.reasoningEffort': 'Reasoning Effort',
   'usage.type': 'Type',
@@ -44,6 +49,8 @@ const messages: Record<string, string> = {
   'usage.duration': 'Duration',
   'usage.time': 'Time',
   'usage.userAgent': 'User Agent',
+  'usage.cacheCreation5mHint': '5-minute cache creation tokens',
+  'usage.cacheCreation1hHint': '1-hour cache creation tokens',
 }
 
 vi.mock('@/api', () => ({
@@ -76,7 +83,7 @@ vi.mock('vue-i18n', async () => {
 
 const AppLayoutStub = { template: '<div><slot /></div>' }
 const TablePageLayoutStub = {
-  template: '<div><slot name="actions" /><slot name="filters" /><slot /></div>',
+  template: '<div><slot name="actions" /><slot name="filters" /><slot name="table" /><slot /></div>',
 }
 
 describe('user UsageView', () => {
@@ -206,6 +213,79 @@ describe('user UsageView', () => {
     expect(text).toContain('$30.0000 / 1M tokens')
   })
 
+  it('labels cache creation TTL tiers without marking rows that have no TTL breakdown', async () => {
+    const usageLog = {
+      request_id: 'req-cache-ttl',
+      model: 'claude-sonnet-4.6',
+      actual_cost: 0.01,
+      total_cost: 0.01,
+      rate_multiplier: 1,
+      input_cost: 0.004,
+      output_cost: 0.004,
+      cache_creation_cost: 0.002,
+      cache_read_cost: 0,
+      input_tokens: 100,
+      output_tokens: 20,
+      cache_creation_tokens: 50,
+      cache_read_tokens: 0,
+      cache_creation_5m_tokens: 0,
+      cache_creation_1h_tokens: 0,
+      reasoning_tokens: 0,
+      image_count: 0,
+      image_size: null,
+      image_input_tokens: 0,
+      image_output_tokens: 0,
+      first_token_ms: null,
+      duration_ms: 100,
+      stream: false,
+      billing_type: 0,
+      cache_ttl_overridden: false,
+      created_at: '2026-03-08T00:00:00Z',
+    }
+
+    query.mockResolvedValue({
+      items: [
+        { ...usageLog, request_id: 'req-cache-5m', cache_creation_5m_tokens: 50 },
+        { ...usageLog, request_id: 'req-cache-1h', cache_creation_1h_tokens: 50 },
+        { ...usageLog, request_id: 'req-cache-unspecified' },
+      ],
+      total: 3,
+      pages: 1,
+    })
+    getStatsByDateRange.mockResolvedValue({
+      total_requests: 3,
+      total_tokens: 510,
+      total_cost: 0.03,
+      average_duration_ms: 100,
+    })
+    list.mockResolvedValue({ items: [] })
+
+    const wrapper = mount(UsageView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          TablePageLayout: TablePageLayoutStub,
+          Pagination: true,
+          EmptyState: true,
+          Select: true,
+          DateRangePicker: true,
+          Icon: true,
+          Teleport: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    const fiveMinuteBadges = wrapper.findAll('[title="5-minute cache creation tokens"]')
+    const oneHourBadges = wrapper.findAll('[title="1-hour cache creation tokens"]')
+
+    expect(fiveMinuteBadges).toHaveLength(1)
+    expect(fiveMinuteBadges[0].text()).toBe('5m')
+    expect(oneHourBadges).toHaveLength(1)
+    expect(oneHourBadges[0].text()).toBe('1h')
+  })
+
   it('exports csv with input and output unit price columns', async () => {
     const exportedLogs = [
       {
@@ -329,8 +409,49 @@ describe('user UsageView', () => {
     expect(list).toHaveBeenCalledWith(1, 100)
     expect(query).toHaveBeenCalledTimes(1)
     expect(query.mock.calls[0][0]).toMatchObject({ api_key_id: 42 })
-    expect(getStatsByDateRange).toHaveBeenCalledWith(expect.any(String), expect.any(String), 42)
+    expect(getStatsByDateRange).toHaveBeenCalledWith(expect.any(String), expect.any(String), 42, undefined)
     expect((wrapper.vm as any).$?.setupState.filters.api_key_id).toBe(42)
+  })
+
+  it('applies the request type filter to usage rows and summary stats', async () => {
+    query.mockResolvedValue({ items: [], total: 0, pages: 0 })
+    getStatsByDateRange.mockResolvedValue({
+      total_requests: 0,
+      total_tokens: 0,
+      total_cost: 0,
+      average_duration_ms: 0,
+    })
+    list.mockResolvedValue({ items: [] })
+
+    const wrapper = mount(UsageView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          TablePageLayout: TablePageLayoutStub,
+          Pagination: true,
+          EmptyState: true,
+          Select: true,
+          DateRangePicker: true,
+          Icon: true,
+          Teleport: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    const setupState = (wrapper.vm as any).$?.setupState
+    setupState.filters.request_type = 'cyber'
+    setupState.applyFilters()
+    await flushPromises()
+
+    expect(query.mock.calls.at(-1)?.[0]).toMatchObject({ request_type: 'cyber' })
+    expect(getStatsByDateRange).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.any(String),
+      undefined,
+      'cyber'
+    )
   })
 
   it.each([
@@ -366,7 +487,7 @@ describe('user UsageView', () => {
 
     expect(query).toHaveBeenCalledTimes(1)
     expect(query.mock.calls[0][0]).toMatchObject({ api_key_id: undefined })
-    expect(getStatsByDateRange).toHaveBeenCalledWith(expect.any(String), expect.any(String), undefined)
+    expect(getStatsByDateRange).toHaveBeenCalledWith(expect.any(String), expect.any(String), undefined, undefined)
     expect(showError).not.toHaveBeenCalled()
   })
 })

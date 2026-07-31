@@ -1,0 +1,32 @@
+# syntax=docker/dockerfile:1.7
+
+ARG GOLANG_IMAGE=golang:1.26.5-alpine
+ARG ALPINE_IMAGE=alpine:3.21
+
+FROM ${GOLANG_IMAGE} AS builder
+
+RUN apk add --no-cache git ca-certificates tzdata
+WORKDIR /app/backend
+COPY backend/go.mod backend/go.sum ./
+RUN --mount=type=cache,id=anlapi-local-gomod,target=/go/pkg/mod go mod download
+COPY backend/ ./
+RUN --mount=type=cache,id=anlapi-local-gomod,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath \
+    -ldflags="-s -w -X main.Commit=local-anlapi-smoke -X main.BuildType=local" \
+    -o /app/anlapi \
+    ./cmd/server
+
+FROM ${ALPINE_IMAGE}
+
+RUN apk add --no-cache ca-certificates tzdata su-exec
+RUN addgroup -g 1000 anlapi && adduser -u 1000 -G anlapi -s /bin/sh -D anlapi
+WORKDIR /app
+COPY --from=builder --chown=anlapi:anlapi /app/anlapi /app/anlapi
+COPY --from=builder --chown=anlapi:anlapi /app/backend/resources /app/resources
+COPY deploy/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh && mkdir -p /app/data && chown anlapi:anlapi /app/data
+
+EXPOSE 8080
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["/app/anlapi"]

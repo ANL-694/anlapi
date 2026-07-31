@@ -83,7 +83,40 @@ func TestFetchCodexModelsManifestAPIKeyConvertsStandardOpenAIModelList(t *testin
 	)
 	require.NoError(t, err)
 	require.Equal(t, `{"models":[{"slug":"gpt-5.6"},{"slug":"gpt-5.6-codex"}]}`, string(manifest.Body))
-	require.Equal(t, `W/"openai-list"`, manifest.ETag)
+	require.Equal(t, codexModelsManifestBodyETag(manifest.Body), manifest.ETag)
+	require.Equal(t, `W/"openai-list"`, manifest.upstreamETag)
+}
+
+func TestAdjustAPIKeyCodexModelsManifest(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{
+			name: "affected models disable responses lite",
+			body: `{"models":[{"slug":"gpt-5.6-sol","use_responses_lite":true,"unknown_model":{"enabled":true}},{"slug":"gpt-5.6-terra","use_responses_lite":true},{"slug":"gpt-5.6-luna","use_responses_lite":true}],"unknown_top":{"version":1}}`,
+			want: `{"models":[{"slug":"gpt-5.6-sol","unknown_model":{"enabled":true},"use_responses_lite":false},{"slug":"gpt-5.6-terra","use_responses_lite":false},{"slug":"gpt-5.6-luna","use_responses_lite":false}],"unknown_top":{"version":1}}`,
+		},
+		{
+			name: "unaffected model unchanged",
+			body: ` {"models":[{"slug":"gpt-5.6-codex","use_responses_lite":true}]} `,
+			want: ` {"models":[{"slug":"gpt-5.6-codex","use_responses_lite":true}]} `,
+		},
+		{
+			name: "false missing and alternate entries unchanged",
+			body: `{"models":[{"slug":"gpt-5.6-sol","use_responses_lite":false},{"slug":"gpt-5.6-terra"},null,"gpt-5.6-luna",{"slug":17,"use_responses_lite":true}]}`,
+			want: `{"models":[{"slug":"gpt-5.6-sol","use_responses_lite":false},{"slug":"gpt-5.6-terra"},null,"gpt-5.6-luna",{"slug":17,"use_responses_lite":true}]}`,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := adjustAPIKeyCodexModelsManifest([]byte(testCase.body))
+			require.NoError(t, err)
+			require.Equal(t, testCase.want, string(got))
+		})
+	}
 }
 
 func TestConvertOpenAIModelListToCodexManifest(t *testing.T) {

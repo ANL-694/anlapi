@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
-    <UiPage width="wide" density="compact">
-      <TablePageLayout>
+    <UiPage width="full" density="compact">
+      <TablePageLayout class="keys-page-layout">
       <template #filters>
         <div class="flex flex-col gap-3">
           <div class="flex flex-wrap items-center gap-3">
@@ -49,17 +49,18 @@
       </template>
 
       <template #table>
-        <DataTable
-          :columns="columns"
-          :data="apiKeys"
-          :loading="loading"
-          :card-rows="true"
-          :sticky-actions-column="true"
-          :server-side-sort="true"
-          default-sort-key="created_at"
-          default-sort-order="desc"
-          @sort="handleSort"
-        >
+        <div class="keys-table-fit">
+          <DataTable
+            class="keys-data-table"
+            :columns="columns"
+            :data="apiKeys"
+            :loading="loading"
+            :card-rows="true"
+            :server-side-sort="true"
+            default-sort-key="created_at"
+            default-sort-order="desc"
+            @sort="handleSort"
+          >
           <template #cell-id="{ value }">
             <span class="font-mono text-xs text-gray-500 dark:text-gray-400">#{{ value }}</span>
           </template>
@@ -173,31 +174,31 @@
           <template #cell-usage="{ row }">
             <div class="text-sm">
               <div class="flex items-center gap-1.5">
-	                <span class="text-[var(--app-muted)]">{{ t('keys.today') }}:</span>
-	                <span class="font-medium text-[var(--app-text)]">
+                <span class="text-[var(--app-muted)]">{{ t('keys.today') }}:</span>
+                <span class="font-medium text-[var(--app-text)]">
                   ${{ (usageStats[row.id]?.today_actual_cost ?? 0).toFixed(4) }}
                 </span>
               </div>
               <div class="mt-0.5 flex items-center gap-1.5">
-	                <span class="text-[var(--app-muted)]">{{ t('keys.total') }}:</span>
-	                <span class="font-medium text-[var(--app-text)]">
+                <span class="text-[var(--app-muted)]">{{ t('keys.total') }}:</span>
+                <span class="font-medium text-[var(--app-text)]">
                   ${{ (usageStats[row.id]?.total_actual_cost ?? 0).toFixed(4) }}
                 </span>
               </div>
               <!-- Quota progress (if quota is set) -->
               <div v-if="row.quota > 0" class="mt-1.5">
                 <div class="flex items-center gap-1.5">
-	                  <span class="text-[var(--app-muted)]">{{ t('keys.quota') }}:</span>
+                  <span class="text-[var(--app-muted)]">{{ t('keys.quota') }}:</span>
                   <span :class="[
                     'font-medium',
                     row.quota_used >= row.quota ? 'text-red-500' :
                     row.quota_used >= row.quota * 0.8 ? 'text-yellow-500' :
-	                    'text-[var(--app-text)]'
+                    'text-[var(--app-text)]'
                   ]">
                     ${{ row.quota_used?.toFixed(2) || '0.00' }} / ${{ row.quota?.toFixed(2) }}
                   </span>
                 </div>
-	                <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[var(--app-surface-muted)]">
+                <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[var(--app-surface-muted)]">
                   <div
                     :class="[
                       'h-full rounded-full transition-all',
@@ -346,37 +347,33 @@
           </template>
 
           <template #cell-actions="{ row }">
-            <div class="flex items-center gap-1">
+            <div class="keys-actions flex items-center gap-1">
               <!-- Use Key Button -->
               <button
                 @click="openUseKeyModal(row)"
-	                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary-hover)]"
+	                :title="t('keys.useKey')"
+	                class="keys-action-button flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary-hover)]"
               >
                 <Icon name="terminal" size="sm" />
-                <span class="text-xs">{{ t('keys.useKey') }}</span>
+                <span class="keys-action-label text-xs">{{ t('keys.useKey') }}</span>
               </button>
-              <UiIconButton
-                size="sm"
-                :label="t('keys.usage')"
-                @click="viewKeyUsage(row.id)"
-              >
-                <Icon name="chartBar" size="sm" />
-              </UiIconButton>
               <!-- Import to CC Switch Button -->
               <button
                 v-if="!publicSettings?.hide_ccs_import_button"
                 @click="importToCcswitch(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary-hover)]"
+	                :title="t('keys.importToCcSwitch')"
+	                class="keys-action-button flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary-hover)]"
               >
                 <Icon name="upload" size="sm" />
-                <span class="text-xs">{{ t('keys.importToCcSwitch') }}</span>
+                <span class="keys-action-label text-xs">{{ t('keys.importToCcSwitch') }}</span>
               </button>
               <!-- Toggle Status Button -->
               <button
                 v-if="!row.is_system_managed"
                 @click="toggleKeyStatus(row)"
+	                :title="row.status === 'active' ? t('keys.disable') : t('keys.enable')"
                 :class="[
-                  'flex flex-col items-center gap-0.5 rounded-lg p-1.5 transition-colors',
+	                  'keys-action-button flex flex-col items-center gap-0.5 rounded-lg p-1.5 transition-colors',
                   row.status === 'active'
 	                    ? 'text-[var(--app-muted)] hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30 dark:hover:text-amber-300'
 	                    : 'text-[var(--app-muted)] hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary-hover)]'
@@ -384,24 +381,26 @@
               >
                 <Icon v-if="row.status === 'active'" name="ban" size="sm" />
                 <Icon v-else name="checkCircle" size="sm" />
-                <span class="text-xs">{{ row.status === 'active' ? t('keys.disable') : t('keys.enable') }}</span>
+                <span class="keys-action-label text-xs">{{ row.status === 'active' ? t('keys.disable') : t('keys.enable') }}</span>
               </button>
               <!-- Edit Button -->
               <button
                 v-if="!row.is_system_managed"
                 @click="editKey(row)"
-	                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-primary-hover)]"
+	                :title="t('common.edit')"
+	                class="keys-action-button flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-primary-hover)]"
               >
                 <Icon name="edit" size="sm" />
-                <span class="text-xs">{{ t('common.edit') }}</span>
+                <span class="keys-action-label text-xs">{{ t('common.edit') }}</span>
               </button>
               <!-- Delete Button -->
               <button
                 @click="confirmDelete(row)"
-	                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:text-red-300"
+	                :title="t('common.delete')"
+	                class="keys-action-button flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:text-red-300"
               >
                 <Icon name="trash" size="sm" />
-                <span class="text-xs">{{ t('common.delete') }}</span>
+                <span class="keys-action-label text-xs">{{ t('common.delete') }}</span>
               </button>
             </div>
           </template>
@@ -414,7 +413,8 @@
               @action="openCreateModal"
             />
           </template>
-        </DataTable>
+          </DataTable>
+        </div>
       </template>
 
       <template #pagination>
@@ -1251,14 +1251,12 @@
 <script setup lang="ts">
 	import { ref, computed, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
 	import { useI18n } from 'vue-i18n'
-	import { useRouter } from 'vue-router'
 	import { useAppStore } from '@/stores/app'
 	import { useOnboardingStore } from '@/stores/onboarding'
 	import { useClipboard } from '@/composables/useClipboard'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 
 const { t } = useI18n()
-const router = useRouter()
 import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
@@ -1326,18 +1324,18 @@ const onboardingStore = useOnboardingStore()
 const { copyToClipboard: clipboardCopy } = useClipboard()
 
 const columns = computed<Column[]>(() => [
-  { key: 'name', label: t('common.name'), sortable: true },
-  { key: 'id', label: t('keys.id'), sortable: true },
-  { key: 'key', label: t('keys.apiKey'), sortable: false },
-  { key: 'group', label: t('keys.group'), sortable: false },
-  { key: 'current_concurrency', label: t('keys.currentConcurrency'), sortable: false },
-  { key: 'usage', label: t('keys.usage'), sortable: false },
-  { key: 'rate_limit', label: t('keys.rateLimitColumn'), sortable: false },
-  { key: 'expires_at', label: t('keys.expiresAt'), sortable: true },
-  { key: 'status', label: t('common.status'), sortable: true },
-  { key: 'last_used_at', label: t('keys.lastUsedAt'), sortable: true },
-  { key: 'created_at', label: t('keys.created'), sortable: true },
-  { key: 'actions', label: t('common.actions'), sortable: false }
+  { key: 'name', label: t('common.name'), sortable: true, class: 'keys-column--name' },
+  { key: 'id', label: t('keys.id'), sortable: true, class: 'keys-column--id' },
+  { key: 'key', label: t('keys.apiKey'), sortable: false, class: 'keys-column--key' },
+  { key: 'group', label: t('keys.group'), sortable: false, class: 'keys-column--group' },
+  { key: 'current_concurrency', label: t('keys.currentConcurrency'), sortable: false, class: 'keys-column--concurrency' },
+  { key: 'usage', label: t('keys.usage'), sortable: false, class: 'keys-column--usage' },
+  { key: 'rate_limit', label: t('keys.rateLimitColumn'), sortable: false, class: 'keys-column--rate-limit' },
+  { key: 'expires_at', label: t('keys.expiresAt'), sortable: true, class: 'keys-column--expires' },
+  { key: 'status', label: t('common.status'), sortable: true, class: 'keys-column--status' },
+  { key: 'last_used_at', label: t('keys.lastUsedAt'), sortable: true, class: 'keys-column--last-used' },
+  { key: 'created_at', label: t('keys.created'), sortable: true, class: 'keys-column--created' },
+  { key: 'actions', label: t('common.actions'), sortable: false, class: 'keys-column--actions' }
 ])
 
 const apiKeys = ref<ApiKey[]>([])
@@ -1716,7 +1714,6 @@ const loadApiKeys = async () => {
     pagination.value.total = response.total
     pagination.value.pages = response.pages
 
-    // Load usage stats for all API keys in the list
     if (response.items.length > 0) {
       const keyIds = response.items.map((k) => k.id)
       try {
@@ -1768,13 +1765,6 @@ const loadPublicSettings = async () => {
 const openUseKeyModal = (key: ApiKey) => {
   selectedKey.value = key
   showUseKeyModal.value = true
-}
-
-const viewKeyUsage = (keyId: number) => {
-  router.push({
-    path: '/usage',
-    query: { api_key_id: String(keyId) }
-  })
 }
 
 const closeUseKeyModal = () => {
@@ -2262,3 +2252,108 @@ onUnmounted(() => {
   if (resetTimer) clearInterval(resetTimer)
 })
 </script>
+
+<style scoped>
+.keys-table-fit {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.keys-page-layout,
+.keys-page-layout :deep(.layout-section-scrollable),
+.keys-page-layout :deep(.table-scroll-container),
+.keys-table-fit,
+.keys-table-fit :deep(.table-wrapper) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.keys-page-layout :deep(.table-scroll-container),
+.keys-table-fit :deep(.table-wrapper) {
+  overflow-x: hidden !important;
+}
+
+.keys-table-fit :deep(.table-wrapper) {
+  width: 100%;
+}
+
+.keys-table-fit :deep(.app-data-table),
+.keys-table-fit :deep(.keys-data-table table) {
+  display: table;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none;
+  table-layout: fixed;
+}
+
+.keys-table-fit :deep(.data-table-header-cell),
+.keys-table-fit :deep(.data-table-cell) {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap !important;
+}
+
+.keys-table-fit :deep(.keys-column--name),
+.keys-table-fit :deep(.keys-column--group),
+.keys-table-fit :deep(.keys-column--usage) {
+  white-space: normal !important;
+}
+
+.keys-table-fit :deep(.keys-column--expires),
+.keys-table-fit :deep(.keys-column--created),
+.keys-table-fit :deep(.keys-column--status) {
+  white-space: nowrap !important;
+}
+
+.keys-table-fit :deep(.data-table-header-cell > *),
+.keys-table-fit :deep(.data-table-cell > *) {
+  min-width: 0 !important;
+  max-width: 100%;
+}
+
+.keys-table-fit :deep(.keys-actions) {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.keys-table-fit :deep(.keys-action-button) {
+  min-width: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .keys-table-fit :deep(.keys-column--id),
+  .keys-table-fit :deep(.keys-column--rate-limit),
+  .keys-table-fit :deep(.keys-column--last-used) {
+    display: none !important;
+  }
+
+  .keys-table-fit :deep(.keys-column--name) { width: 9% !important; }
+  .keys-table-fit :deep(.keys-column--key) { width: 12% !important; }
+  .keys-table-fit :deep(.keys-column--group) { width: 15% !important; }
+  .keys-table-fit :deep(.keys-column--concurrency) { width: 6% !important; }
+  .keys-table-fit :deep(.keys-column--usage) { width: 14% !important; }
+  .keys-table-fit :deep(.keys-column--expires) { width: 8% !important; }
+  .keys-table-fit :deep(.keys-column--status) { width: 6% !important; }
+  .keys-table-fit :deep(.keys-column--created) { width: 10% !important; }
+  .keys-table-fit :deep(.keys-column--actions) { width: 20% !important; }
+}
+
+.keys-table-fit :deep(.keys-action-label) {
+  white-space: nowrap;
+}
+
+@media (max-width: 1599px) {
+  .keys-table-fit :deep(.keys-action-label) {
+    display: none;
+  }
+
+  .keys-table-fit :deep(.keys-action-button) {
+    padding: 0.375rem;
+  }
+}
+</style>

@@ -770,6 +770,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
         { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
       ],
     },
+    { path: '/http-status-codes', label: t('nav.httpStatusCodes'), icon: SignalIcon },
     {
       path: '/self/extras',
       label: t('nav.additionalMenu'),

@@ -13,7 +13,7 @@
 
 > ANL API 是独立维护的项目名称和代码仓库。它基于 [Sub2API](https://github.com/Wei-Shaw/sub2api) 进行二次开发，并不代表上游项目或任何模型供应商的官方产品。
 
-当前版本 `1.0.8` 已选择性对齐 Sub2API `v0.1.164` 的兼容与安全修复，同时保留 ANL 的支付、生图、账号隔离和用户级并发实现。
+当前版本 `1.0.10` 已选择性对齐 Sub2API `v0.1.168` 的兼容与安全修复，同时保留 ANL 的支付、生图、账号隔离和用户级并发实现。
 
 ## 项目定位
 
@@ -29,6 +29,26 @@ ANL API 面向需要统一接入 AI 能力的部署者：管理员在后台配�
 - 支持不同上游类型的统一路由、失败切换和请求/响应处理。
 - 支持 Codex 客户端相关请求；客户端的 `fast` 意图可按兼容路径透传给上游，由上游决定是否支持。
 - 支持长耗时图像任务的异步提交与轮询（需要按 [异步图像任务文档](docs/ASYNC_IMAGE_TASKS.md) 配置对象存储）。
+
+### OpenAI Realtime / Live
+
+为 OpenAI 分组启用 Live 后，可通过 OpenAI 风格别名创建 WebRTC 会话。该别名复用现有 Live 请求格式：
+
+```bash
+curl -i https://your-domain.example/v1/realtime/sessions \
+  -H "Authorization: Bearer $ANL_API_KEY" \
+  -F 'sdp=<offer.sdp' \
+  -F 'session={"model":"gpt-live"}'
+```
+
+响应体为 SDP answer，`Location` 响应头包含 `call_id`。使用同一 API Key 连接控制 WebSocket：
+
+```bash
+wscat -c 'wss://your-domain.example/v1/realtime?call_id=call_123' \
+  -H "Authorization: Bearer $ANL_API_KEY"
+```
+
+原有 `POST /v1/live` 与 `GET /v1/live/:call_id` 路径继续可用。
 
 ### 账号、渠道与分组
 

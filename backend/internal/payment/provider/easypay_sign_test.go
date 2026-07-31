@@ -199,28 +199,30 @@ func TestEasyPayMerchantIdentityMetadata(t *testing.T) {
 	}
 }
 
-func TestEasyPayQueryOrderUsesGetQuery(t *testing.T) {
+func TestEasyPayQueryOrderUsesPostForm(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Fatalf("method = %s, want GET", r.Method)
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %s, want POST", r.Method)
 		}
 		if r.URL.Path != "/api.php" {
 			t.Fatalf("path = %s, want /api.php", r.URL.Path)
 		}
-		q := r.URL.Query()
-		if q.Get("act") != "order" {
-			t.Fatalf("act = %q, want order", q.Get("act"))
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("ParseForm: %v", err)
 		}
-		if q.Get("pid") != "1001" {
-			t.Fatalf("pid = %q, want 1001", q.Get("pid"))
+		if r.PostForm.Get("act") != "order" {
+			t.Fatalf("act = %q, want order", r.PostForm.Get("act"))
 		}
-		if q.Get("key") != "secret" {
-			t.Fatalf("key = %q, want secret", q.Get("key"))
+		if r.PostForm.Get("pid") != "1001" {
+			t.Fatalf("pid = %q, want 1001", r.PostForm.Get("pid"))
 		}
-		if q.Get("out_trade_no") != "ORDER123" {
-			t.Fatalf("out_trade_no = %q, want ORDER123", q.Get("out_trade_no"))
+		if r.PostForm.Get("key") != "secret" {
+			t.Fatalf("key = %q, want secret", r.PostForm.Get("key"))
+		}
+		if r.PostForm.Get("out_trade_no") != "ORDER123" {
+			t.Fatalf("out_trade_no = %q, want ORDER123", r.PostForm.Get("out_trade_no"))
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"code":1,"msg":"succ","status":1,"money":"5.00"}`))
@@ -306,8 +308,14 @@ func TestEasyPayQueryOrderFallsBackToExtensionlessAPI(t *testing.T) {
 		if r.URL.Path != "/api" {
 			t.Fatalf("path = %s, want /api fallback", r.URL.Path)
 		}
-		if r.URL.Query().Get("out_trade_no") != "ORDER123" {
-			t.Fatalf("out_trade_no = %q, want ORDER123", r.URL.Query().Get("out_trade_no"))
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %s, want POST", r.Method)
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("ParseForm: %v", err)
+		}
+		if r.PostForm.Get("out_trade_no") != "ORDER123" {
+			t.Fatalf("out_trade_no = %q, want ORDER123", r.PostForm.Get("out_trade_no"))
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"code":1,"msg":"succ","status":1,"money":"5.00"}`))

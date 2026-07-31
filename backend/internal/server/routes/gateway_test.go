@@ -112,6 +112,23 @@ func TestGatewayRoutesOpenAIResponsesCompactPathIsRegistered(t *testing.T) {
 	}
 }
 
+func TestGatewayRoutesOpenAIRealtimeAliasesAreRegistered(t *testing.T) {
+	router := newGatewayRoutesTestRouter()
+	registered := make(map[string]bool)
+	for _, route := range router.Routes() {
+		registered[route.Method+" "+route.Path] = true
+	}
+
+	for _, route := range []string{
+		"POST /v1/realtime/sessions",
+		"GET /v1/realtime",
+		"POST /v1/live",
+		"GET /v1/live/:call_id",
+	} {
+		require.True(t, registered[route], "%s should be registered", route)
+	}
+}
+
 func TestGatewayRoutesOpenAIAlphaSearchPathsAreRegistered(t *testing.T) {
 	router := newGatewayRoutesTestRouter()
 	registered := make(map[string]bool)
@@ -259,6 +276,30 @@ func TestPrivateGroupRouteResolverFiltersRoutesByEndpoint(t *testing.T) {
 			path:          "/v1/responses",
 			wantPrimary:   2,
 			wantPlatforms: []string{service.PlatformOpenAI, service.PlatformKiro, service.PlatformGrok},
+		},
+		{
+			name:          "live sessions uses openai private group",
+			path:          "/v1/realtime/sessions",
+			wantPrimary:   2,
+			wantPlatforms: []string{service.PlatformOpenAI},
+		},
+		{
+			name:          "live sideband query uses openai private group",
+			path:          "/v1/realtime?call_id=call_123",
+			wantPrimary:   2,
+			wantPlatforms: []string{service.PlatformOpenAI},
+		},
+		{
+			name:          "legacy live uses openai private group",
+			path:          "/v1/live/call_123",
+			wantPrimary:   2,
+			wantPlatforms: []string{service.PlatformOpenAI},
+		},
+		{
+			name:          "codex live calls uses openai private group",
+			path:          "/backend-api/codex/realtime/calls",
+			wantPrimary:   2,
+			wantPlatforms: []string{service.PlatformOpenAI},
 		},
 		{
 			name:          "gemini native uses gemini private group",

@@ -31,11 +31,10 @@ func TestOpsServiceRecordErrorBatch_SanitizesAndBatches(t *testing.T) {
 			UpstreamErrorDetail:  strPtr(detail),
 			UpstreamErrors: []*OpsUpstreamErrorEvent{
 				{
-					AccountID:           -2,
-					UpstreamStatusCode:  429,
-					Message:             " token leaked ",
-					Detail:              `{"refresh_token":"secret"}`,
-					UpstreamRequestBody: `{"api_key":"secret","messages":[{"role":"user","content":"hello"}]}`,
+					AccountID:          -2,
+					UpstreamStatusCode: 429,
+					Message:            " token leaked ",
+					Detail:             `{"refresh_token":"secret"}`,
 				},
 			},
 		},
@@ -128,7 +127,7 @@ func TestOpsServiceRecordErrorPersistsExplicitAccountAuthStatusZero(t *testing.T
 				Reason: string(GrokCredentialReasonRevoked), Message: "Grok OAuth credentials require account action",
 			},
 		},
-	}, nil)
+	})
 
 	require.NoError(t, err)
 	require.NotNil(t, captured)

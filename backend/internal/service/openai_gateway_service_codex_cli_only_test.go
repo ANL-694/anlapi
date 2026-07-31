@@ -103,7 +103,7 @@ func TestLogCodexCLIOnlyDetection_NilSafety(t *testing.T) {
 	})
 }
 
-func TestLogCodexCLIOnlyDetection_OnlyLogsRejected(t *testing.T) {
+func TestLogCodexCLIOnlyDetection_LogsAllowedAndRejected(t *testing.T) {
 	logSink, restore := captureStructuredLog(t)
 	defer restore()
 
@@ -119,7 +119,7 @@ func TestLogCodexCLIOnlyDetection_OnlyLogsRejected(t *testing.T) {
 		Reason:  CodexClientRestrictionReasonNotMatchedUA,
 	}, nil)
 
-	require.False(t, logSink.ContainsFieldValue("reject_reason", CodexClientRestrictionReasonMatchedUA))
+	require.True(t, logSink.ContainsFieldValue("reject_reason", CodexClientRestrictionReasonMatchedUA))
 	require.True(t, logSink.ContainsFieldValue("reject_reason", CodexClientRestrictionReasonNotMatchedUA))
 }
 

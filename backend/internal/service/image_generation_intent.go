@@ -438,6 +438,33 @@ func resolveOpenAIResponsesImageBillingConfig(reqBody map[string]any, fallbackMo
 	return imageModel, sizeTier, nil
 }
 
+func resolveOpenAIResponsesImageBillingConfigDetailed(reqBody map[string]any, fallbackModel string) (OpenAIResponsesImageBillingConfig, error) {
+	imageModel, sizeTier, err := resolveOpenAIResponsesImageBillingConfig(reqBody, fallbackModel)
+	if err != nil {
+		return OpenAIResponsesImageBillingConfig{}, err
+	}
+	inputSize := ""
+	if reqBody != nil {
+		rawTools, _ := reqBody["tools"].([]any)
+		for _, rawTool := range rawTools {
+			toolMap, ok := rawTool.(map[string]any)
+			if !ok || strings.TrimSpace(firstNonEmptyString(toolMap["type"])) != "image_generation" {
+				continue
+			}
+			inputSize = strings.TrimSpace(firstNonEmptyString(toolMap["size"]))
+			break
+		}
+		if inputSize == "" {
+			inputSize = strings.TrimSpace(firstNonEmptyString(reqBody["size"]))
+		}
+	}
+	return OpenAIResponsesImageBillingConfig{
+		Model:     imageModel,
+		SizeTier:  sizeTier,
+		InputSize: inputSize,
+	}, nil
+}
+
 func resolveOpenAIResponsesImageBillingConfigFromBody(body []byte, fallbackModel string) (string, string, error) {
 	imageModel := ""
 	imageSize := ""

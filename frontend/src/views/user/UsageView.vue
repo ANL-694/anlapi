@@ -40,6 +40,15 @@
             </div>
 
             <div class="usage-filter-field">
+              <label>{{ t('usage.requestTypeFilter') }}</label>
+              <Select
+                v-model="filters.request_type"
+                :options="requestTypeOptions"
+                @change="applyFilters"
+              />
+            </div>
+
+            <div class="usage-filter-field">
               <label>{{ t('usage.timeRange') }}</label>
               <DateRangePicker
                 v-model:start-date="startDate"
@@ -183,7 +192,16 @@
                     <span class="font-medium text-amber-600 dark:text-amber-400">{{
                       formatCacheTokens(row.cache_creation_tokens)
                     }}</span>
-                    <span v-if="row.cache_creation_1h_tokens > 0" class="inline-flex items-center rounded px-1 py-px text-[10px] font-medium leading-tight bg-orange-100 text-orange-600 ring-1 ring-inset ring-orange-200 dark:bg-orange-500/20 dark:text-orange-400 dark:ring-orange-500/30">1h</span>
+                    <span
+                      v-if="row.cache_creation_5m_tokens > 0"
+                      :title="t('usage.cacheCreation5mHint')"
+                      class="inline-flex cursor-help items-center rounded bg-amber-100 px-1 py-px text-[10px] font-medium leading-tight text-amber-600 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:ring-amber-500/30"
+                    >5m</span>
+                    <span
+                      v-if="row.cache_creation_1h_tokens > 0"
+                      :title="t('usage.cacheCreation1hHint')"
+                      class="inline-flex cursor-help items-center rounded bg-orange-100 px-1 py-px text-[10px] font-medium leading-tight text-orange-600 ring-1 ring-inset ring-orange-200 dark:bg-orange-500/20 dark:text-orange-400 dark:ring-orange-500/30"
+                    >1h</span>
                     <span v-if="row.cache_ttl_overridden" :title="t('usage.cacheTtlOverriddenHint')" class="inline-flex items-center rounded px-1 py-px text-[10px] font-medium leading-tight bg-rose-100 text-rose-600 ring-1 ring-inset ring-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:ring-rose-500/30 cursor-help">R</span>
                   </div>
                 </div>
@@ -558,6 +576,13 @@ const apiKeyOptions = computed(() => {
   ]
 })
 
+const requestTypeOptions = computed(() => [
+  { value: null, label: t('usage.allRequestTypes') },
+  { value: 'sync', label: t('usage.sync') },
+  { value: 'stream', label: t('usage.stream') },
+  { value: 'cyber', label: t('usage.cyber') }
+])
+
 const epsilon = 1e-9
 
 function formatPointsAmount(value?: number | null) {
@@ -632,6 +657,7 @@ const endDate = ref(formatLocalDate(now))
 
 const filters = ref<UsageQueryParams>({
   api_key_id: undefined,
+  request_type: undefined,
   start_date: undefined,
   end_date: undefined
 })
@@ -697,6 +723,8 @@ const formatUserAgent = (ua: string): string => {
 
 const getRequestTypeLabel = (log: UsageLog): string => {
   const requestType = resolveUsageRequestType(log)
+  if (requestType === 'cyber') return t('usage.cyber')
+  if (requestType === 'live') return t('usage.live')
   if (requestType === 'ws_v2') return t('usage.ws')
   if (requestType === 'stream') return t('usage.stream')
   if (requestType === 'sync') return t('usage.sync')
@@ -705,6 +733,8 @@ const getRequestTypeLabel = (log: UsageLog): string => {
 
 const getRequestTypeBadgeClass = (log: UsageLog): string => {
   const requestType = resolveUsageRequestType(log)
+  if (requestType === 'cyber') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+  if (requestType === 'live') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
   if (requestType === 'ws_v2') return 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
   if (requestType === 'stream') return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
   if (requestType === 'sync') return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
@@ -714,6 +744,8 @@ const getRequestTypeBadgeClass = (log: UsageLog): string => {
 
 const getRequestTypeExportText = (log: UsageLog): string => {
   const requestType = resolveUsageRequestType(log)
+  if (requestType === 'cyber') return 'Cyber'
+  if (requestType === 'live') return 'Live'
   if (requestType === 'ws_v2') return 'WS'
   if (requestType === 'stream') return 'Stream'
   if (requestType === 'sync') return 'Sync'
@@ -804,7 +836,8 @@ const loadUsageStats = async () => {
     const stats = await usageAPI.getStatsByDateRange(
       filters.value.start_date || startDate.value,
       filters.value.end_date || endDate.value,
-      apiKeyId
+      apiKeyId,
+      filters.value.request_type
     )
     usageStats.value = stats
   } catch (error) {
@@ -821,6 +854,7 @@ const applyFilters = () => {
 const resetFilters = () => {
   filters.value = {
     api_key_id: undefined,
+    request_type: undefined,
     start_date: undefined,
     end_date: undefined
   }

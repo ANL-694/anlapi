@@ -5,23 +5,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import KeysView from '../KeysView.vue'
 
 const {
-  routerPush,
   list,
   getDashboardApiKeysUsage,
   getAvailable,
   getUserGroupRates,
   getPublicSettings
 } = vi.hoisted(() => ({
-  routerPush: vi.fn(),
   list: vi.fn(),
   getDashboardApiKeysUsage: vi.fn(),
   getAvailable: vi.fn(),
   getUserGroupRates: vi.fn(),
   getPublicSettings: vi.fn()
-}))
-
-vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: routerPush })
 }))
 
 vi.mock('vue-i18n', async () => {
@@ -63,15 +57,23 @@ vi.mock('@/composables/usePersistedPageSize', () => ({
 
 const DataTableStub = {
   props: {
+    columns: {
+      type: Array,
+      default: () => []
+    },
     data: {
       type: Array,
       default: () => []
+    },
+    cardRows: {
+      type: Boolean,
+      default: false
     }
   },
-  template: '<div><slot v-if="data.length" name="cell-actions" :row="data[0]" /></div>'
+  template: '<div data-test="keys-table" :data-card-rows="String(cardRows)" :data-column-keys="columns.map((column) => column.key).join(\',\')"><slot v-if="data.length" name="cell-actions" :row="data[0]" /></div>'
 }
 
-describe('KeysView usage navigation', () => {
+describe('KeysView list layout', () => {
   const apiKey = {
     id: 42,
     key: 'sk-plaintext-must-not-be-routed',
@@ -81,7 +83,6 @@ describe('KeysView usage navigation', () => {
   }
 
   beforeEach(() => {
-    routerPush.mockReset()
     list.mockReset()
     getDashboardApiKeysUsage.mockReset()
     getAvailable.mockReset()
@@ -89,18 +90,23 @@ describe('KeysView usage navigation', () => {
     getPublicSettings.mockReset()
 
     list.mockResolvedValue({ items: [apiKey], total: 1, pages: 1 })
-    getDashboardApiKeysUsage.mockResolvedValue({ stats: {} })
+    getDashboardApiKeysUsage.mockResolvedValue({
+      stats: { 42: { today_actual_cost: 0, total_actual_cost: 0 } }
+    })
     getAvailable.mockResolvedValue([])
     getUserGroupRates.mockResolvedValue({})
     getPublicSettings.mockResolvedValue({ hide_ccs_import_button: true })
   })
 
-  it('opens usage with only the API key database id', async () => {
+  it('keeps usage in a full-width card table but out of row actions', async () => {
     const wrapper = mount(KeysView, {
       global: {
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
-          UiPage: { template: '<div><slot /></div>' },
+          UiPage: {
+            props: ['width'],
+            template: '<div data-test="keys-page" :data-width="width"><slot /></div>'
+          },
           TablePageLayout: {
             template: '<div><slot name="filters" /><slot name="actions" /><slot name="table" /><slot name="pagination" /></div>'
           },
@@ -125,16 +131,13 @@ describe('KeysView usage navigation', () => {
       await flushPromises()
       await nextTick()
 
-      const usageButton = wrapper.get('button[aria-label="keys.usage"]')
-      expect(usageButton.element.parentElement?.querySelector('[role="tooltip"]')?.textContent).toBe('keys.usage')
+      const keysTable = wrapper.get('[data-test="keys-table"]')
+      expect(wrapper.get('[data-test="keys-page"]').attributes('data-width')).toBe('full')
+      expect(keysTable.attributes('data-card-rows')).toBe('true')
+      expect(keysTable.attributes('data-column-keys')).toContain('usage')
+      expect(getDashboardApiKeysUsage).toHaveBeenCalledWith([42], expect.objectContaining({ signal: expect.any(AbortSignal) }))
 
-      await usageButton.trigger('click')
-
-      expect(routerPush).toHaveBeenCalledWith({
-        path: '/usage',
-        query: { api_key_id: '42' }
-      })
-      expect(JSON.stringify(routerPush.mock.calls)).not.toContain(apiKey.key)
+      expect(wrapper.find('button[aria-label="keys.usage"]').exists()).toBe(false)
     } finally {
       wrapper.unmount()
     }

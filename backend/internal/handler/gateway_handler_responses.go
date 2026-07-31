@@ -80,7 +80,11 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 		h.responsesErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Model is not supported by composite groups")
 		return
 	}
-	reqStream := gjson.GetBytes(body, "stream").Bool()
+	reqStream, validStream := parseOpenAICompatibleStream(body)
+	if !validStream {
+		h.responsesErrorResponse(c, http.StatusBadRequest, "invalid_request_error", invalidStreamFieldTypeMessage)
+		return
+	}
 	requestedModel := reqModel
 	autoDecision := h.gatewayService.ResolveAutoModel(c.Request.Context(), apiKey.GroupID, reqModel, body, service.AutoModelProtocolOpenAIResponses)
 	if autoDecision.Matched {
@@ -111,6 +115,22 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 	}
 
 	subscription, _ := middleware2.GetSubscriptionFromContext(c)
+	routeCursor := newAPIKeyGroupRouteCursor(apiKey)
+	for {
+		routeCandidate, routeOK := routeCursor.current()
+		if !routeOK {
+			h.responsesErrorResponse(c, http.StatusServiceUnavailable, "api_error", "No available API key group routes")
+			return
+		}
+		if routeCandidate.APIKey.Group == nil || !routeCandidate.APIKey.Group.ClaudeCodeOnly {
+			break
+		}
+		if !routeCursor.skipToNext("responses_claude_code_only", reqLog, zap.Int64p("group_id", routeCandidate.APIKey.GroupID)) {
+			h.responsesErrorResponse(c, http.StatusForbidden, "permission_error",
+				"This group is restricted to Claude Code clients (/v1/messages only)")
+			return
+		}
+	}
 
 	service.SetOpsLatencyMs(c, service.OpsAuthLatencyMsKey, time.Since(requestStart).Milliseconds())
 
@@ -162,7 +182,6 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 	sessionHash := h.gatewayService.GenerateSessionHash(parsedReq)
 
 	// 3. Account selection + failover loop
-	routeCursor := newAPIKeyGroupRouteCursor(apiKey)
 	if _, ok := routeCursor.current(); !ok {
 		h.responsesErrorResponse(c, http.StatusServiceUnavailable, "api_error", "No available API key group routes")
 		return
@@ -329,6 +348,7 @@ routeLoop:
 			inboundEndpoint := GetInboundEndpoint(c)
 			upstreamEndpoint := GetUpstreamEndpoint(c, account.Platform)
 			quotaPlatform := service.QuotaPlatform(c.Request.Context(), currentAPIKey)
+			sessionID := service.ExtractClientSessionID(c)
 
 			h.submitUsageRecordTask(func(ctx context.Context) {
 				if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
@@ -344,6 +364,7 @@ routeLoop:
 					RequestPayloadHash: requestPayloadHash,
 					APIKeyService:      h.apiKeyService,
 					QuotaPlatform:      quotaPlatform,
+					SessionID:          sessionID,
 					ChannelUsageFields: service.BuildAutoModelUsageFields(autoDecision, channelMapping, result.UpstreamModel),
 				}); err != nil {
 					reqLog.Error("gateway.responses.record_usage_failed",

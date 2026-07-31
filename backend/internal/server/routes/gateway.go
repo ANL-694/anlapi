@@ -1,11 +1,13 @@
 package routes
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"anlapi/internal/config"
 	"anlapi/internal/handler"
+	"anlapi/internal/pkg/ctxkey"
 	"anlapi/internal/server/middleware"
 	"anlapi/internal/service"
 
@@ -31,6 +33,11 @@ func RegisterGatewayRoutes(
 	privateGroupRouteResolver := privateGroupRouteResolverMiddleware()
 	compositeTarget := compositeTargetPlatformMiddleware(compositeResolver)
 	compositeGeminiTarget := compositeGeminiTargetPlatformMiddleware(compositeResolver)
+	var privateGatewayAPIKeyLoader middleware.PrivateGatewayAPIKeyLoader
+	if apiKeyService != nil {
+		privateGatewayAPIKeyLoader = apiKeyService.GetByID
+	}
+	privateGateway := middleware.NewANLPrivateGateway(cfg.PrivateGateway, privateGatewayAPIKeyLoader)
 
 	// Reject unassigned keys with an error format matching each API protocol.
 	requireGroupAnthropic := middleware.RequireGroupAssignment(settingService, middleware.AnthropicErrorWriter)
@@ -130,8 +137,10 @@ func RegisterGatewayRoutes(
 	gateway.Use(clientRequestID)
 	gateway.Use(opsErrorLogger)
 	gateway.Use(endpointNorm)
+	gateway.Use(privateGateway.Authentication())
 	gateway.Use(gin.HandlerFunc(apiKeyAuth))
 	gateway.GET("/sub2api/billing", h.Gateway.KeyBillingInfo)
+	gateway.Use(privateGateway.Idempotency())
 	gateway.Use(privateGroupRouteResolver)
 	gateway.Use(compositeTarget)
 	gateway.Use(requireGroupAnthropic)
@@ -147,6 +156,10 @@ func RegisterGatewayRoutes(
 		gateway.POST("/messages/count_tokens", countTokensHandler)
 		gateway.GET("/models", modelsHandler)
 		gateway.GET("/usage", h.Gateway.Usage)
+		gateway.POST("/live", h.OpenAIGateway.Live)
+		gateway.GET("/live/:call_id", h.OpenAIGateway.LiveSideband)
+		gateway.POST("/realtime/sessions", h.OpenAIGateway.Live)
+		gateway.GET("/realtime", h.OpenAIGateway.LiveSideband)
 		// OpenAI Responses API: auto-route based on group platform
 		gateway.POST("/responses", func(c *gin.Context) {
 			if isOpenAIResponsesCompatibleGatewayPlatform(c) {
@@ -252,6 +265,8 @@ func RegisterGatewayRoutes(
 	codexDirect := r.Group("/backend-api/codex")
 	codexDirect.Use(bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic)
 	{
+		codexDirect.POST("/realtime/calls", h.OpenAIGateway.Live)
+		codexDirect.GET("/:call_id", h.OpenAIGateway.LiveSideband)
 		codexDirect.POST("/responses", responsesHandler)
 		codexDirect.POST("/responses/*subpath", responsesHandler)
 		codexDirect.POST("/alpha/search", h.OpenAIGateway.AlphaSearch)
@@ -367,6 +382,10 @@ func privateGroupRouteResolverMiddleware() gin.HandlerFunc {
 		resolved.Group = selected.Group
 		resolved.GroupRoutes = filtered
 		c.Set(string(middleware.ContextKeyAPIKey), &resolved)
+		if c.Request != nil && service.IsGroupContextValid(selected.Group) {
+			ctx := context.WithValue(c.Request.Context(), ctxkey.Group, selected.Group)
+			c.Request = c.Request.WithContext(ctx)
+		}
 		c.Next()
 	}
 }
@@ -403,6 +422,11 @@ func privateGroupCompatiblePlatforms(c *gin.Context) map[string]struct{} {
 	switch {
 	case strings.Contains(path, "/v1beta/models"):
 		return map[string]struct{}{service.PlatformGemini: {}, service.PlatformComposite: {}}
+	case strings.Contains(path, "/realtime/calls"),
+		strings.Contains(path, "/v1/realtime/sessions"),
+		path == "/v1/realtime",
+		strings.Contains(path, "/v1/live"):
+		return map[string]struct{}{service.PlatformOpenAI: {}, service.PlatformComposite: {}}
 	case strings.Contains(path, "/embeddings"):
 		return map[string]struct{}{service.PlatformOpenAI: {}, service.PlatformComposite: {}}
 	case strings.Contains(path, "/images/generations"), strings.Contains(path, "/images/edits"):

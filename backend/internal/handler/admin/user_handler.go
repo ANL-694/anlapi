@@ -153,6 +153,9 @@ func (h *UserHandler) List(c *gin.Context) {
 		search = string(runes[:100])
 	}
 	apiKeyGroupID, _ := strconv.ParseInt(strings.TrimSpace(c.Query("api_key_group_id")), 10, 64)
+	if apiKeyGroupID <= 0 {
+		apiKeyGroupID = 0
+	}
 
 	filters := service.UserListFilters{
 		Status:        c.Query("status"),

@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+func (s *APIKeyService) invalidateLocalAuthCache(cacheKey string) {
+	if s != nil && s.authCacheL1 != nil {
+		s.authCacheL1.Del(cacheKey)
+	}
+}
+
 func (s *APIKeyService) authCacheRevocationTTL() time.Duration {
 	ttl := s.authCfg.l2TTL
 	if s.authCfg.l1TTL > ttl {

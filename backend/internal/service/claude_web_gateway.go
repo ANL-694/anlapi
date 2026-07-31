@@ -136,9 +136,9 @@ func (s *GatewayService) forwardClaudeWebAsResponses(
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if clientStream {
-		return s.handleResponsesStreamingResponse(resp, c, originalModel, mappedModel, reasoningEffort, startTime)
+		return s.handleResponsesStreamingResponse(resp, c, originalModel, mappedModel, reasoningEffort, startTime, apicompat.ResponsesClientToolMapping{})
 	}
-	return s.handleResponsesBufferedStreamingResponse(resp, c, originalModel, mappedModel, reasoningEffort, startTime)
+	return s.handleResponsesBufferedStreamingResponse(resp, c, originalModel, mappedModel, reasoningEffort, startTime, apicompat.ResponsesClientToolMapping{})
 }
 
 func startClaudeWebAnthropicStream(ctx context.Context, account *Account, anthropicBody []byte, options claudeWebStreamOptions) (*http.Response, error) {
@@ -256,7 +256,7 @@ func claudeWebConversationKey(ctx context.Context, account *Account, parsed *Par
 	}
 	hint := strings.TrimSpace(parsed.ExplicitSessionID)
 	if hint == "" {
-		hint = strings.TrimSpace(parsed.BodySessionID)
+		hint = strings.TrimSpace(parsed.MetadataUserID)
 	}
 	if hint == "" {
 		return ""
@@ -449,7 +449,7 @@ func collectClaudeWebAnthropicResponse(body io.Reader) (*apicompat.AnthropicResp
 			}
 		case "message_delta":
 			if response != nil && event.Delta != nil {
-				response.StopReason = event.Delta.StopReason
+				response.StopReason = apicompat.AnthropicStopReasonPtr(event.Delta.StopReason)
 				response.StopSequence = event.Delta.StopSequence
 			}
 			if event.Usage != nil {
@@ -469,8 +469,8 @@ func collectClaudeWebAnthropicResponse(body io.Reader) (*apicompat.AnthropicResp
 		CacheCreationInputTokens: usage.CacheCreationInputTokens,
 		CacheReadInputTokens:     usage.CacheReadInputTokens,
 	}
-	if response.StopReason == "" {
-		response.StopReason = "end_turn"
+	if response.StopReason == nil {
+		response.StopReason = apicompat.AnthropicStopReasonPtr("end_turn")
 	}
 	return response, usage, nil
 }

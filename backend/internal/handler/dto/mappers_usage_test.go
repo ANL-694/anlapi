@@ -150,6 +150,29 @@ func TestUsageLogFromService_FallsBackToLegacyModelWhenRequestedModelMissing(t *
 	require.Equal(t, "claude-3", adminDTO.Model)
 }
 
+func TestUsageLogFromService_ExposesSessionIDWithoutLeakingIPAddress(t *testing.T) {
+	t.Parallel()
+
+	sessionID := "session-123"
+	ipAddress := "203.0.113.7"
+	log := &service.UsageLog{
+		RequestID: "req_session",
+		Model:     "gpt-5.4",
+		SessionID: &sessionID,
+		IPAddress: &ipAddress,
+	}
+
+	userJSON, err := json.Marshal(UsageLogFromService(log))
+	require.NoError(t, err)
+	require.Contains(t, string(userJSON), `"session_id":"session-123"`)
+	require.NotContains(t, string(userJSON), "ip_address")
+
+	adminJSON, err := json.Marshal(UsageLogFromServiceAdmin(log))
+	require.NoError(t, err)
+	require.Contains(t, string(adminJSON), `"session_id":"session-123"`)
+	require.Contains(t, string(adminJSON), `"ip_address":"203.0.113.7"`)
+}
+
 func f64Ptr(value float64) *float64 {
 	return &value
 }

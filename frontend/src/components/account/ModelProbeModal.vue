@@ -205,13 +205,18 @@ import Icon from '@/components/icons/Icon.vue'
 import ModelIcon from '@/components/common/ModelIcon.vue'
 import { adminAPI } from '@/api/admin'
 import { extractApiErrorMessage } from '@/utils/apiError'
-import type { ModelProbeModel, ModelProbeSingleResult } from '@/api/admin/accounts'
+import type {
+  ModelProbeModel,
+  ModelProbeSingleResult,
+  SyncUpstreamPreviewParams
+} from '@/api/admin/accounts'
 
 const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   show: boolean
   defaultPlatform?: string
+  initialCredentials?: SyncUpstreamPreviewParams
 }>(), {
   defaultPlatform: 'openai'
 })
@@ -316,9 +321,10 @@ watch(
   () => props.show,
   (visible) => {
     if (!visible) return
-    platform.value = normalizePlatform(props.defaultPlatform)
-    baseUrl.value = ''
-    apiKey.value = ''
+    const initialPlatform = normalizePlatform(props.initialCredentials?.platform || props.defaultPlatform)
+    platform.value = initialPlatform
+    baseUrl.value = props.initialCredentials?.base_url?.trim() || ''
+    apiKey.value = props.initialCredentials?.api_key?.trim() || ''
     mode.value = modeOptions.value[0]?.value || ''
     resetProbeState()
   },
@@ -329,7 +335,7 @@ watch(platform, () => {
   baseUrl.value = ''
   mode.value = modeOptions.value[0]?.value || ''
   resetProbeState()
-})
+}, { flush: 'sync' })
 
 function normalizePlatform(value?: string) {
   const normalized = (value || '').trim().toLowerCase()

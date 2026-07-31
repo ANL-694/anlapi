@@ -101,3 +101,13 @@ func openAIReasoningEffortToClaudeOutputEffort(effort string) string {
 		return ""
 	}
 }
+
+func openAICompatAnthropicReasoningEffort(req *apicompat.AnthropicRequest, upstreamModel, convertedEffort string) string {
+	if req == nil || req.OutputConfig == nil || !strings.EqualFold(strings.TrimSpace(req.OutputConfig.Effort), "max") {
+		return convertedEffort
+	}
+	if normalized := normalizeOpenAIReasoningEffortForModel(req.OutputConfig.Effort, upstreamModel); normalized != "" {
+		return normalized
+	}
+	return convertedEffort
+}

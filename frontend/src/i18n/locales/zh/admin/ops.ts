@@ -274,7 +274,8 @@ export default {
         requestType: '类型',
         requestTypeSync: '同步',
         requestTypeStream: '流式',
-        requestTypeWs: 'WS'
+        requestTypeWs: 'WS',
+        requestTypeLive: 'Live'
       },
       // Error Details Modal
       errorDetails: {
@@ -358,6 +359,7 @@ export default {
         requestTypeSync: '同步',
         requestTypeStream: '流式',
         requestTypeWs: 'WebSocket',
+        requestTypeLive: 'Live',
         modelMapping: '模型映射',
         timings: '时序信息',
         auth: '认证',

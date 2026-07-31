@@ -76,7 +76,7 @@ func buildContentModerationInput(c *gin.Context, apiKey *service.APIKey, subject
 		UserID:    subject.UserID,
 		Endpoint:  GetInboundEndpoint(c),
 		Provider:  contentModerationProvider(apiKey),
-		Model:     strings.TrimSpace(model),
+		Model:     clientRequestedModel(c, model),
 		Protocol:  protocol,
 		Body:      body,
 	}
@@ -86,6 +86,8 @@ func buildContentModerationInput(c *gin.Context, apiKey *service.APIKey, subject
 		if resolved, ok := service.ResolvedTargetPlatformForGroup(c.Request.Context(), apiKey.Group.ID); ok {
 			input.Provider = resolved
 		}
+	} else if resolved, ok := service.ResolvedTargetPlatformFromContext(c.Request.Context()); ok {
+		input.Provider = resolved
 	}
 	if apiKey != nil {
 		input.APIKeyID = apiKey.ID

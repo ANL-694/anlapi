@@ -59,6 +59,7 @@ func TestOpenAIGatewayServiceCodexImageBridgeRespectsGroupPermission(t *testing.
 				)),
 			}}
 			svc := newOpenAIImageGenerationControlTestService(upstream)
+			svc.cfg.Gateway.CodexImageGenerationBridgeEnabled = true
 			c, _ := newOpenAIImageGenerationControlTestContext(allowImages, codexCLIUserAgent)
 			c.Request.Header.Set("Originator", "codex_cli_rs")
 			SetOpenAIClientTransport(c, OpenAIClientTransportHTTP)

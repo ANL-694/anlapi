@@ -41,13 +41,16 @@ func TestResponses2916ToAnthropicObjectArguments(t *testing.T) {
 	var req ResponsesRequest
 	err := json.Unmarshal([]byte(`{
 		"model":"claude-test",
-		"input":[{"type":"function_call","call_id":"call_1","name":"exec","arguments":{"cmd":"ls"}}]
+		"input":[
+			{"type":"function_call","call_id":"call_1","name":"exec","arguments":{"cmd":"ls"}},
+			{"type":"function_call_output","call_id":"call_1","output":"done"}
+		]
 	}`), &req)
 	require.NoError(t, err)
 
 	anth, err := ResponsesToAnthropicRequest(&req)
 	require.NoError(t, err)
-	require.Len(t, anth.Messages, 1)
+	require.Len(t, anth.Messages, 2)
 
 	var blocks []AnthropicContentBlock
 	require.NoError(t, json.Unmarshal(anth.Messages[0].Content, &blocks))
@@ -60,20 +63,25 @@ func TestResponses2916ToAnthropicOutputArray(t *testing.T) {
 	var req ResponsesRequest
 	err := json.Unmarshal([]byte(`{
 		"model":"claude-test",
-		"input":[{"type":"function_call_output","call_id":"call_1","output":[{"type":"output_text","text":"done"}]}]
+		"input":[
+			{"type":"function_call","call_id":"call_1","name":"exec","arguments":"{}"},
+			{"type":"function_call_output","call_id":"call_1","output":[{"type":"output_text","text":"done"}]}
+		]
 	}`), &req)
 	require.NoError(t, err)
 
 	anth, err := ResponsesToAnthropicRequest(&req)
 	require.NoError(t, err)
-	require.Len(t, anth.Messages, 1)
+	require.Len(t, anth.Messages, 2)
 
 	var blocks []AnthropicContentBlock
-	require.NoError(t, json.Unmarshal(anth.Messages[0].Content, &blocks))
+	require.NoError(t, json.Unmarshal(anth.Messages[1].Content, &blocks))
 	require.Len(t, blocks, 1)
-	var content string
+	var content []AnthropicContentBlock
 	require.NoError(t, json.Unmarshal(blocks[0].Content, &content))
-	assert.Equal(t, "done", content)
+	require.Len(t, content, 1)
+	assert.Equal(t, "text", content[0].Type)
+	assert.Equal(t, "done", content[0].Text)
 }
 
 func TestResponses2916InstructionsAndDeveloperBecomeSystem(t *testing.T) {
@@ -120,10 +128,10 @@ func TestResponses2916ToolSchemaAndWebSearch(t *testing.T) {
 	anth, err := ResponsesToAnthropicRequest(req)
 	require.NoError(t, err)
 	require.Len(t, anth.Tools, 2)
-	assert.Empty(t, anth.Tools[1].Type)
+	assert.Equal(t, "web_search_20250305", anth.Tools[1].Type)
 	assert.Equal(t, "web_search", anth.Tools[1].Name)
 	assert.JSONEq(t, `{"type":"object","properties":{}}`, string(anth.Tools[0].InputSchema))
-	assert.JSONEq(t, `{"type":"object","properties":{}}`, string(anth.Tools[1].InputSchema))
+	assert.Empty(t, anth.Tools[1].InputSchema)
 }
 
 func TestResponses2916AnthropicStreamMessageDoneCarriesContent(t *testing.T) {
@@ -187,6 +195,11 @@ func TestResponses2916AnthropicStreamFunctionDoneCarriesCall(t *testing.T) {
 
 func systemText2916(t *testing.T, raw json.RawMessage) string {
 	t.Helper()
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil {
+		return text
+	}
+
 	var parts []ResponsesContentPart
 	require.NoError(t, json.Unmarshal(raw, &parts))
 	var out string

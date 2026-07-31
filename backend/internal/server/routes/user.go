@@ -15,6 +15,7 @@ func RegisterUserRoutes(
 	jwtAuth middleware.JWTAuthMiddleware,
 	auditLog middleware.AuditLogMiddleware,
 	settingService *service.SettingService,
+	panelRateLimiter *middleware.PanelRateLimiter,
 ) {
 	public := v1.Group("/public")
 	{
@@ -34,6 +35,7 @@ func RegisterUserRoutes(
 	authenticated := v1.Group("")
 	authenticated.Use(gin.HandlerFunc(jwtAuth))
 	authenticated.Use(middleware.BackendModeUserGuard(settingService))
+	authenticated.Use(panelRateLimiter.Global())
 	shop := authenticated.Group("/shop")
 	{
 		shop.GET("/draw-progress", h.Shop.ListDrawProgress)
@@ -47,6 +49,7 @@ func RegisterUserRoutes(
 		user := authenticated.Group("/user")
 		{
 			user.GET("/profile", h.User.GetProfile)
+			user.GET("/api-keys/:id/usage/daily", panelRateLimiter.Heavy(), h.Usage.GetMyAPIKeyDailyUsage)
 			user.GET("/concurrency", h.User.GetConcurrency)
 			user.GET("/platform-quotas", h.User.GetMyPlatformQuotas)
 			user.PUT("/password", h.User.ChangePassword)
@@ -84,6 +87,15 @@ func RegisterUserRoutes(
 				totp.POST("/disable", h.Totp.Disable)
 				// 敏感操作二次验证：授予当前会话一段时间的 step-up 权限
 				totp.POST("/step-up", h.Totp.StepUp)
+			}
+
+			passkeys := user.Group("/passkeys")
+			{
+				passkeys.GET("", h.Passkey.List)
+				passkeys.POST("/register/begin", h.Passkey.BeginRegistration)
+				passkeys.POST("/register/finish", h.Passkey.FinishRegistration)
+				passkeys.PATCH("/:id", h.Passkey.Rename)
+				passkeys.DELETE("/:id", h.Passkey.Delete)
 			}
 		}
 
@@ -197,6 +209,7 @@ func RegisterUserRoutes(
 
 		// 使用记录
 		usage := authenticated.Group("/usage")
+		usage.Use(panelRateLimiter.Heavy())
 		{
 			usage.GET("", h.Usage.List)
 			usage.GET("/:id", h.Usage.GetByID)

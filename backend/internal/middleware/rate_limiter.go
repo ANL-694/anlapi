@@ -72,6 +72,34 @@ func NewRateLimiter(redisClient *redis.Client) *RateLimiter {
 	}
 }
 
+type AllowResult struct {
+	Allowed    bool
+	Count      int64
+	RetryAfter time.Duration
+}
+
+func (r *RateLimiter) Allow(ctx context.Context, key string, limit int, window time.Duration) (AllowResult, error) {
+	redisKey := r.prefix + key
+	windowMillis := windowTTLMillis(window)
+
+	count, repaired, err := rateLimitRun(ctx, r.redis, redisKey, windowMillis)
+	if err != nil {
+		return AllowResult{}, err
+	}
+	if repaired {
+		log.Printf("[RateLimit] ttl repaired: key=%s window_ms=%d", redisKey, windowMillis)
+	}
+
+	result := AllowResult{Allowed: count <= int64(limit), Count: count}
+	if !result.Allowed {
+		result.RetryAfter = window
+		if ttl, ttlErr := r.redis.PTTL(ctx, redisKey).Result(); ttlErr == nil && ttl > 0 {
+			result.RetryAfter = ttl
+		}
+	}
+	return result, nil
+}
+
 // Limit 返回速率限制中间件
 // key: 限制类型标识
 // limit: 时间窗口内最大请求数
@@ -89,16 +117,10 @@ func (r *RateLimiter) LimitWithOptions(key string, limit int, window time.Durati
 
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
-		redisKey := r.prefix + key + ":" + ip
-
 		ctx := c.Request.Context()
-
-		windowMillis := windowTTLMillis(window)
-
-		// 使用 Lua 脚本原子操作增加计数并设置过期
-		count, repaired, err := rateLimitRun(ctx, r.redis, redisKey, windowMillis)
+		result, err := r.Allow(ctx, key+":"+ip, limit, window)
 		if err != nil {
-			log.Printf("[RateLimit] redis error: key=%s mode=%s err=%v", redisKey, failureModeLabel(failureMode), err)
+			log.Printf("[RateLimit] redis error: key=%s mode=%s err=%v", r.prefix+key, failureModeLabel(failureMode), err)
 			if failureMode == RateLimitFailClose {
 				abortRateLimit(c)
 				return
@@ -107,12 +129,7 @@ func (r *RateLimiter) LimitWithOptions(key string, limit int, window time.Durati
 			c.Next()
 			return
 		}
-		if repaired {
-			log.Printf("[RateLimit] ttl repaired: key=%s window_ms=%d", redisKey, windowMillis)
-		}
-
-		// 超过限制
-		if count > int64(limit) {
+		if !result.Allowed {
 			abortRateLimit(c)
 			return
 		}

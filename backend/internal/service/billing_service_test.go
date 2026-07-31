@@ -93,6 +93,27 @@ func TestGetModelPricing_FallbackMatchesByFamily(t *testing.T) {
 	}
 }
 
+func TestGetModelPricing_ClaudeSonnet5LimitedTimeFallback(t *testing.T) {
+	svc := newTestBillingService()
+
+	for _, model := range []string{
+		"claude-sonnet-5",
+		"claude-sonnet-5-20260721",
+		"claude-sonnet-5-0-thinking",
+	} {
+		t.Run(model, func(t *testing.T) {
+			pricing, err := svc.GetModelPricing(model)
+			require.NoError(t, err)
+			require.InDelta(t, 2e-6, pricing.InputPricePerToken, 1e-12)
+			require.InDelta(t, 10e-6, pricing.OutputPricePerToken, 1e-12)
+			require.InDelta(t, 2.5e-6, pricing.CacheCreation5mPrice, 1e-12)
+			require.InDelta(t, 4e-6, pricing.CacheCreation1hPrice, 1e-12)
+			require.InDelta(t, 0.2e-6, pricing.CacheReadPricePerToken, 1e-12)
+			require.True(t, pricing.SupportsCacheBreakdown)
+		})
+	}
+}
+
 func TestGetModelPricing_CaseInsensitive(t *testing.T) {
 	svc := newTestBillingService()
 

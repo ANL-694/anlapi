@@ -15,7 +15,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 )
 
-const apiKeyAuthSnapshotVersion = 17 // v17: combine ANL billing/image fields with group reasoning policy
+const apiKeyAuthSnapshotVersion = 18 // v18: combine ANL routing/billing fields with the OpenAI group Live gate
 
 const (
 	authCacheRevokeMessagePrefix  = "revoke:"
@@ -102,32 +102,72 @@ func (s *APIKeyService) StartAuthCacheInvalidationSubscriber(ctx context.Context
 	if s.cache == nil {
 		return
 	}
-	if err := s.cache.SubscribeAuthCacheInvalidation(ctx, func(cacheKey string) {
-		if strings.HasPrefix(cacheKey, authCacheRevokeMessagePrefix) {
-			cacheKey = strings.TrimPrefix(cacheKey, authCacheRevokeMessagePrefix)
-			s.markAuthCacheRevoked(cacheKey)
-			if s.authCacheL1 != nil {
-				s.authCacheL1.Del(cacheKey)
+	s.authInvalidationStart.Do(func() {
+		subscriberCtx, cancel := context.WithCancel(ctx)
+		s.authInvalidationCancel = cancel
+		s.authInvalidationWG.Add(1)
+		go func() {
+			defer s.authInvalidationWG.Done()
+			backoff := time.Second
+			for {
+				err := s.cache.SubscribeAuthCacheInvalidation(subscriberCtx, func(cacheKey string) {
+					if strings.HasPrefix(cacheKey, authCacheRevokeMessagePrefix) {
+						cacheKey = strings.TrimPrefix(cacheKey, authCacheRevokeMessagePrefix)
+						s.markAuthCacheRevoked(cacheKey)
+						if s.authCacheL1 != nil {
+							s.authCacheL1.Del(cacheKey)
+						}
+						_ = s.cache.DeleteAuthCache(subscriberCtx, cacheKey)
+						return
+					}
+					if strings.HasPrefix(cacheKey, authCacheRestoreMessagePrefix) {
+						cacheKey = strings.TrimPrefix(cacheKey, authCacheRestoreMessagePrefix)
+						s.revokedAuthKeys.Delete(cacheKey)
+						if s.authCacheL1 != nil {
+							s.authCacheL1.Del(cacheKey)
+						}
+						_ = s.cache.DeleteAuthCache(subscriberCtx, cacheKey)
+						return
+					}
+					if s.authCacheL1 != nil {
+						s.authCacheL1.Del(cacheKey)
+					}
+				})
+				if subscriberCtx.Err() != nil {
+					return
+				}
+				if err == nil {
+					err = errors.New("auth cache invalidation subscription closed")
+				}
+				slog.Warn("failed to start auth cache invalidation subscriber; retrying", "error", err, "retry_in", backoff)
+				timer := time.NewTimer(backoff)
+				select {
+				case <-subscriberCtx.Done():
+					timer.Stop()
+					return
+				case <-timer.C:
+				}
+				if backoff < 30*time.Second {
+					backoff *= 2
+					if backoff > 30*time.Second {
+						backoff = 30 * time.Second
+					}
+				}
 			}
-			_ = s.cache.DeleteAuthCache(ctx, cacheKey)
-			return
-		}
-		if strings.HasPrefix(cacheKey, authCacheRestoreMessagePrefix) {
-			cacheKey = strings.TrimPrefix(cacheKey, authCacheRestoreMessagePrefix)
-			s.revokedAuthKeys.Delete(cacheKey)
-			if s.authCacheL1 != nil {
-				s.authCacheL1.Del(cacheKey)
-			}
-			_ = s.cache.DeleteAuthCache(ctx, cacheKey)
-			return
-		}
-		if s.authCacheL1 != nil {
-			s.authCacheL1.Del(cacheKey)
-		}
-	}); err != nil {
-		// Log but don't fail - L1 cache will still work, just without cross-instance invalidation
-		slog.Warn("failed to start auth cache invalidation subscriber", "error", err)
+		}()
+	})
+}
+
+func (s *APIKeyService) StopAuthCacheInvalidationSubscriber() {
+	if s == nil {
+		return
 	}
+	s.authInvalidationStop.Do(func() {
+		if s.authInvalidationCancel != nil {
+			s.authInvalidationCancel()
+		}
+		s.authInvalidationWG.Wait()
+	})
 }
 
 func (s *APIKeyService) authCacheKey(key string) string {
@@ -403,6 +443,7 @@ func groupAuthSnapshotFromService(group *Group) *APIKeyAuthGroupSnapshot {
 		MCPXMLInject:                    group.MCPXMLInject,
 		SupportedModelScopes:            group.SupportedModelScopes,
 		AllowMessagesDispatch:           group.AllowMessagesDispatch,
+		AllowLive:                       group.AllowLive,
 		DefaultMappedModel:              group.DefaultMappedModel,
 		MessagesDispatchModelConfig:     group.MessagesDispatchModelConfig,
 		ModelsListConfig:                group.ModelsListConfig,
@@ -462,6 +503,7 @@ func groupFromAuthSnapshot(snapshot *APIKeyAuthGroupSnapshot) *Group {
 		MCPXMLInject:                    snapshot.MCPXMLInject,
 		SupportedModelScopes:            snapshot.SupportedModelScopes,
 		AllowMessagesDispatch:           snapshot.AllowMessagesDispatch,
+		AllowLive:                       snapshot.AllowLive,
 		DefaultMappedModel:              snapshot.DefaultMappedModel,
 		MessagesDispatchModelConfig:     snapshot.MessagesDispatchModelConfig,
 		ModelsListConfig:                snapshot.ModelsListConfig,

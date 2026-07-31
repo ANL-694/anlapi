@@ -364,6 +364,8 @@ export const useAppStore = defineStore('app', () => {
         channel_monitor_enabled: true,
         channel_monitor_default_interval_seconds: 60,
         available_channels_enabled: false,
+        model_plaza_enabled: false,
+        model_plaza_require_auth: false,
         free_models_enabled: false,
         carpool_enabled: false,
         carpool_base_service_fee_usd: 75,

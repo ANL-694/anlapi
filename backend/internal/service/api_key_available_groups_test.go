@@ -16,6 +16,9 @@ type apiKeyAvailableGroupsUserRepoStub struct {
 func (s *apiKeyAvailableGroupsUserRepoStub) Create(context.Context, *User) error {
 	panic("unexpected Create call")
 }
+func (s *apiKeyAvailableGroupsUserRepoStub) CreateWithEmailAliasGuard(context.Context, *User) error {
+	panic("unexpected CreateWithEmailAliasGuard call")
+}
 func (s *apiKeyAvailableGroupsUserRepoStub) GetByID(context.Context, int64) (*User, error) {
 	clone := *s.user
 	return &clone, nil
@@ -70,6 +73,9 @@ func (s *apiKeyAvailableGroupsUserRepoStub) UpdateConcurrency(context.Context, i
 }
 func (s *apiKeyAvailableGroupsUserRepoStub) ExistsByEmail(context.Context, string) (bool, error) {
 	panic("unexpected ExistsByEmail call")
+}
+func (s *apiKeyAvailableGroupsUserRepoStub) ExistsByEmailAlias(context.Context, string) (bool, error) {
+	panic("unexpected ExistsByEmailAlias call")
 }
 func (s *apiKeyAvailableGroupsUserRepoStub) RemoveGroupFromAllowedGroups(context.Context, int64) (int64, error) {
 	panic("unexpected RemoveGroupFromAllowedGroups call")

@@ -56,6 +56,8 @@ const paymentOrdersOutTradeNoUniqueIndex = "paymentorder_out_trade_no_unique"
 const ownedAccountIdentityUniqueMigration = "140_owned_account_identity_unique_notx.sql"
 const latestAPIKeyIPIndexMigration = "174_add_usage_logs_api_key_latest_ip_index_notx.sql"
 const latestAPIKeyIPIndex = "idx_usage_logs_api_key_latest_ip"
+const usersEmailAliasDedupIndexMigration = "190_add_users_email_alias_dedup_index_notx.sql"
+const usersEmailDotStrippedIndex = "idx_users_email_dot_stripped"
 
 var ownedAccountIdentityUniqueIndexes = []string{
 	"idx_accounts_owned_openai_chatgpt_account_id_uniq",
@@ -291,6 +293,8 @@ func prepareNonTransactionalMigration(ctx context.Context, db *sql.DB, name stri
 		return prepareOwnedAccountIdentityUniqueMigration(ctx, db)
 	case latestAPIKeyIPIndexMigration:
 		return dropInvalidIndexIfPresent(ctx, db, latestAPIKeyIPIndex)
+	case usersEmailAliasDedupIndexMigration:
+		return dropInvalidIndexIfPresent(ctx, db, usersEmailDotStrippedIndex)
 	default:
 		return nil
 	}

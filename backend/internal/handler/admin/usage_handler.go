@@ -111,7 +111,11 @@ func (h *UsageHandler) List(c *gin.Context) {
 
 	model := c.Query("model")
 	requestID := strings.TrimSpace(c.Query("request_id"))
-	billingMode := strings.TrimSpace(c.Query("billing_mode"))
+	billingMode, err := service.ParseBillingMode(c.Query("billing_mode"))
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
 
 	var requestType *int16
 	var stream *bool
@@ -244,7 +248,11 @@ func (h *UsageHandler) Stats(c *gin.Context) {
 	}
 
 	model := c.Query("model")
-	billingMode := strings.TrimSpace(c.Query("billing_mode"))
+	billingMode, err := service.ParseBillingMode(c.Query("billing_mode"))
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
 
 	var requestType *int16
 	var stream *bool

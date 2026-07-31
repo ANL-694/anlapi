@@ -452,15 +452,11 @@ func estimateOpenAIInputTokensForInputItems(codec tokenizer.Codec, items []apico
 		if err := countText(item.Name); err != nil {
 			return 0, err
 		}
-		if n, err := countOpenAIInputRawJSONOrString(codec, item.Arguments); err != nil {
+		if err := countText(item.Arguments); err != nil {
 			return 0, err
-		} else {
-			total += n
 		}
-		if n, err := countOpenAIInputRawJSONOrString(codec, item.Output); err != nil {
+		if err := countText(item.Output); err != nil {
 			return 0, err
-		} else {
-			total += n
 		}
 		if err := countText(item.CallID); err != nil {
 			return 0, err
@@ -513,21 +509,6 @@ func estimateOpenAIInputTokensForInputItems(codec tokenizer.Codec, items []apico
 	}
 
 	return total, nil
-}
-
-func countOpenAIInputRawJSONOrString(codec tokenizer.Codec, raw json.RawMessage) (int, error) {
-	if len(bytes.TrimSpace(raw)) == 0 {
-		return 0, nil
-	}
-	var text string
-	if err := json.Unmarshal(raw, &text); err == nil {
-		return codec.Count(strings.TrimSpace(text))
-	}
-	compacted, err := compactOpenAIInputTokensJSON(raw)
-	if err != nil {
-		return 0, err
-	}
-	return codec.Count(compacted)
 }
 
 func estimateOpenAIInputImageText(imageURL string) string {

@@ -533,6 +533,23 @@ func TestSettingService_UpdateSettings_PaymentVisibleMethodsAndAdvancedScheduler
 	require.Equal(t, "4", repo.updates[SettingKeyOpenAIAdvancedSchedulerWeightSessionSticky])
 }
 
+func TestSettingService_UpdateSettings_OpenAIFreeAccountRepair(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		OpenAIFreeAccountRepairEnabled:            true,
+		OpenAIFreeAccountRepairWeeklyThresholdUSD: 12.5,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "true", repo.updates[SettingKeyOpenAIFreeAccountRepairEnabled])
+	require.Equal(t, "12.5", repo.updates[SettingKeyOpenAIFreeAccountRepairWeeklyThresholdUSD])
+
+	parsed := svc.parseSettings(repo.updates)
+	require.True(t, parsed.OpenAIFreeAccountRepairEnabled)
+	require.Equal(t, 12.5, parsed.OpenAIFreeAccountRepairWeeklyThresholdUSD)
+}
+
 func TestSettingService_UpdateSettingsRejectsInvalidOpenAIOAuthSchedulingRateMultiplier(t *testing.T) {
 	repo := &settingUpdateRepoStub{}
 	svc := NewSettingService(repo, &config.Config{})

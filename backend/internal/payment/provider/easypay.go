@@ -213,36 +213,84 @@ func (e *EasyPay) resolveURLs(req payment.CreatePaymentRequest) (string, string)
 }
 
 func (e *EasyPay) QueryOrder(ctx context.Context, tradeNo string) (*payment.QueryOrderResponse, error) {
-	q := url.Values{}
-	q.Set("act", "order")
-	q.Set("pid", e.config["pid"])
-	q.Set("key", e.config["pkey"])
-	q.Set("out_trade_no", tradeNo)
-
-	body, err := e.getWithEndpointFallback(ctx, "/api.php?"+q.Encode(), "/api?"+q.Encode())
+	params := map[string]string{
+		"act":          "order",
+		"pid":          e.config["pid"],
+		"key":          e.config["pkey"],
+		"out_trade_no": tradeNo,
+	}
+	body, _, err := e.postRawWithEndpointFallback(ctx, "/api.php", "/api", params)
 	if err != nil {
 		return nil, fmt.Errorf("easypay query: %w", err)
 	}
-	var resp struct {
-		Code   int    `json:"code"`
-		Msg    string `json:"msg"`
-		Status int    `json:"status"`
-		Money  string `json:"money"`
-	}
+	var resp easyPayQueryResponse
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("easypay parse query: %w", err)
 	}
+	fields := resp.easyPayQueryFields
+	if resp.Data != nil {
+		fields = *resp.Data
+	}
 	status := payment.ProviderStatusPending
-	if resp.Status == easypayStatusPaid {
+	if (resp.Code == nil || easyPayResponseCodeIsSuccess(resp.Code)) && fields.isPaid() {
 		status = payment.ProviderStatusPaid
 	}
-	amount, _ := strconv.ParseFloat(resp.Money, 64)
+	returnedTradeNo := strings.TrimSpace(fields.TradeNo)
+	if returnedTradeNo == "" {
+		returnedTradeNo = tradeNo
+	}
 	return &payment.QueryOrderResponse{
-		TradeNo:  tradeNo,
+		TradeNo:  returnedTradeNo,
 		Status:   status,
-		Amount:   amount,
+		Amount:   fields.amount(),
 		Metadata: e.MerchantIdentityMetadata(),
 	}, nil
+}
+
+type easyPayQueryFields struct {
+	TradeStatus *string         `json:"trade_status"`
+	Status      json.RawMessage `json:"status"`
+	Money       json.RawMessage `json:"money"`
+	TradeNo     string          `json:"trade_no"`
+}
+
+func (f easyPayQueryFields) isPaid() bool {
+	if f.TradeStatus != nil {
+		switch strings.ToUpper(strings.TrimSpace(*f.TradeStatus)) {
+		case "TRADE_SUCCESS", "SUCCESS", "PAID":
+			return true
+		default:
+			return false
+		}
+	}
+	var status int
+	if err := json.Unmarshal(f.Status, &status); err == nil {
+		return status == easypayStatusPaid
+	}
+	var statusText string
+	if err := json.Unmarshal(f.Status, &statusText); err != nil {
+		return false
+	}
+	return strings.TrimSpace(statusText) == strconv.Itoa(easypayStatusPaid)
+}
+
+func (f easyPayQueryFields) amount() float64 {
+	var amountText string
+	if err := json.Unmarshal(f.Money, &amountText); err == nil {
+		amount, _ := strconv.ParseFloat(amountText, 64)
+		return amount
+	}
+	var amount float64
+	if err := json.Unmarshal(f.Money, &amount); err != nil {
+		return 0
+	}
+	return amount
+}
+
+type easyPayQueryResponse struct {
+	Code any `json:"code"`
+	easyPayQueryFields
+	Data *easyPayQueryFields `json:"data"`
 }
 
 func (e *EasyPay) VerifyNotification(_ context.Context, rawBody string, _ map[string]string) (*payment.PaymentNotification, error) {

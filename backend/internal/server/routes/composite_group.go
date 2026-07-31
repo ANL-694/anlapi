@@ -70,13 +70,9 @@ func compositeTargetPlatformMiddleware(resolver *service.CompositeRouteResolver)
 					c.Set(string(middleware.ContextKeyAPIKey), resolvedKey)
 				}
 				c.Request = c.Request.WithContext(requestCtx)
-				if upstreamModel := strings.TrimSpace(decision.UpstreamModel); upstreamModel != "" && upstreamModel != model {
-					if rewritten, rewriteErr := rewriteCompositeRequestModel(c.GetHeader("Content-Type"), body, upstreamModel); rewriteErr == nil {
+				if upstreamModel := strings.TrimSpace(decision.UpstreamModel); upstreamModel != "" && upstreamModel != model && gjson.ValidBytes(body) {
+					if rewritten, rewriteErr := sjson.SetBytes(body, "model", upstreamModel); rewriteErr == nil {
 						body = rewritten
-					} else {
-						c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"type": "invalid_request_error", "message": "Failed to rewrite composite model route"}})
-						c.Abort()
-						return
 					}
 				}
 			}

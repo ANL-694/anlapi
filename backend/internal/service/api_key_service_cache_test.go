@@ -181,7 +181,8 @@ func TestAPIKeyService_RevocationSubscriberWorksWithoutL1Cache(t *testing.T) {
 	require.Nil(t, svc.authCacheL1)
 
 	svc.StartAuthCacheInvalidationSubscriber(context.Background())
-	require.NotNil(t, cache.subscribeHandler)
+	t.Cleanup(svc.StopAuthCacheInvalidationSubscriber)
+	require.Eventually(t, func() bool { return cache.subscribeHandler != nil }, time.Second, 10*time.Millisecond)
 	cacheKey := svc.authCacheKey("sk-remote-revoked")
 	cache.subscribeHandler(authCacheRevokeMessagePrefix + cacheKey)
 

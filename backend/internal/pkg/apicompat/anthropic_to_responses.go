@@ -221,7 +221,7 @@ func anthropicUserToResponses(raw json.RawMessage) ([]ResponsesInputItem, error)
 		out = append(out, ResponsesInputItem{
 			Type:   "function_call_output",
 			CallID: toResponsesCallID(b.ToolUseID),
-			Output: jsonRawString(outputText),
+			Output: outputText,
 		})
 		toolResultImageParts = append(toolResultImageParts, imageParts...)
 	}
@@ -257,8 +257,9 @@ func anthropicUserToResponses(raw json.RawMessage) ([]ResponsesInputItem, error)
 // anthropicAssistantToResponses handles an Anthropic assistant message.
 // Text content → assistant message with output_text parts.
 // tool_use blocks → function_call items.
-// 带 signature 的 thinking 块会还原为 reasoning.encrypted_content；
-// 没有签名的 thinking 仍忽略，避免把普通文本误当成上游密文。
+// thinking blocks with signature → reasoning items (encrypted_content) so
+// multi-turn Grok/Codex prompt cache can reuse prior reasoning prefixes.
+// thinking without signature remains ignored (not accepted as plain text input).
 func anthropicAssistantToResponses(raw json.RawMessage) ([]ResponsesInputItem, error) {
 	// Try plain string.
 	var s string
@@ -278,17 +279,22 @@ func anthropicAssistantToResponses(raw json.RawMessage) ([]ResponsesInputItem, e
 
 	var items []ResponsesInputItem
 
+	// Preserve turn order: reasoning → assistant text → tool calls. xAI/Codex
+	// multi-turn cache and tool continuations expect reasoning before the
+	// assistant message that followed it.
 	for _, b := range blocks {
 		if b.Type != "thinking" {
 			continue
 		}
-		signature := strings.TrimSpace(b.Signature)
-		if signature == "" || strings.HasPrefix(signature, "gAAAA") {
+		sig := strings.TrimSpace(b.Signature)
+		// Only replay provider ciphertext. Skip GPT/Codex-style gAAAA blobs and
+		// empty placeholders — xAI returns 400 on decrypt for foreign signatures.
+		if sig == "" || strings.HasPrefix(sig, "gAAAA") {
 			continue
 		}
 		items = append(items, ResponsesInputItem{
 			Type:             "reasoning",
-			EncryptedContent: signature,
+			EncryptedContent: sig,
 		})
 	}
 
@@ -317,7 +323,7 @@ func anthropicAssistantToResponses(raw json.RawMessage) ([]ResponsesInputItem, e
 			Type:      "function_call",
 			CallID:    fcID,
 			Name:      b.Name,
-			Arguments: jsonRawString(args),
+			Arguments: args,
 		})
 	}
 

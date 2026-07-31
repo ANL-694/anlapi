@@ -99,7 +99,7 @@ func responsesInputItemsContainText(items []apicompat.ResponsesInputItem, needle
 		return false
 	}
 	for _, item := range items {
-		if strings.Contains(string(item.Content), needle) {
+		if valueContainsText(item.Content, needle) {
 			return true
 		}
 	}
@@ -112,9 +112,31 @@ func inputContainsText(input []any, needle string) bool {
 		return false
 	}
 	for _, item := range input {
-		b, err := json.Marshal(item)
-		if err == nil && strings.Contains(string(b), needle) {
+		if valueContainsText(item, needle) {
 			return true
+		}
+	}
+	return false
+}
+
+func valueContainsText(value any, needle string) bool {
+	switch typedValue := value.(type) {
+	case string:
+		return strings.Contains(typedValue, needle)
+	case json.RawMessage:
+		var decoded any
+		return json.Unmarshal(typedValue, &decoded) == nil && valueContainsText(decoded, needle)
+	case []any:
+		for _, item := range typedValue {
+			if valueContainsText(item, needle) {
+				return true
+			}
+		}
+	case map[string]any:
+		for _, item := range typedValue {
+			if valueContainsText(item, needle) {
+				return true
+			}
 		}
 	}
 	return false

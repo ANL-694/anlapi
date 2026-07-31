@@ -42,6 +42,28 @@ const BORDER: Record<Platform, string> = {
 }
 const BORDER_DEFAULT = 'border-gray-200 dark:border-dark-700'
 
+const BORDER_STRONG: Record<Platform, string> = {
+  anthropic: 'border-orange-500/35 dark:border-orange-500/30',
+  openai: 'border-green-500/35 dark:border-green-500/30',
+  antigravity: 'border-purple-500/35 dark:border-purple-500/30',
+  gemini: 'border-blue-500/35 dark:border-blue-500/30',
+  grok: 'border-slate-500/35 dark:border-slate-500/30',
+  kiro: 'border-cyan-500/35 dark:border-cyan-500/30',
+  custom: 'border-stone-500/35 dark:border-stone-500/30',
+}
+const BORDER_STRONG_DEFAULT = 'border-gray-300 dark:border-dark-600'
+
+const ACCENT: Record<Platform, string> = {
+  anthropic: '#f97316',
+  openai: '#22c55e',
+  antigravity: '#a855f7',
+  gemini: '#3b82f6',
+  grok: '#64748b',
+  kiro: '#06b6d4',
+  custom: '#78716c',
+}
+const ACCENT_DEFAULT = '#14b8a6'
+
 // ── Accent bar (gradient) ───────────────────────────────────────────
 const ACCENT_BAR: Record<Platform, string> = {
   anthropic: 'bg-gradient-to-r from-orange-400 to-orange-500',
@@ -153,6 +175,14 @@ export function platformBadgeLightClass(p: string): string {
 
 export function platformBorderClass(p: string): string {
   return isPlatform(p) ? BORDER[p] : BORDER_DEFAULT
+}
+
+export function platformBorderStrongClass(p: string): string {
+  return isPlatform(p) ? BORDER_STRONG[p] : BORDER_STRONG_DEFAULT
+}
+
+export function platformAccentColor(p: string): string {
+  return isPlatform(p) ? ACCENT[p] : ACCENT_DEFAULT
 }
 
 export function platformAccentBarClass(p: string): string {

@@ -78,6 +78,15 @@ func TestApplyOpenAICompatModelNormalization(t *testing.T) {
 	})
 }
 
+func TestOpenAICompatAnthropicReasoningEffortUsesFinalModel(t *testing.T) {
+	req := &apicompat.AnthropicRequest{OutputConfig: &apicompat.AnthropicOutputConfig{Effort: "max"}}
+
+	require.Equal(t, "max", openAICompatAnthropicReasoningEffort(req, "gpt-5.6-sol", "xhigh"))
+	require.Equal(t, "xhigh", openAICompatAnthropicReasoningEffort(req, "gpt-5.5", "xhigh"))
+	require.Equal(t, "max", openAICompatAnthropicReasoningEffort(req, "gpt-5.6-sol", "medium"))
+	require.Equal(t, "medium", openAICompatAnthropicReasoningEffort(nil, "gpt-5.6-sol", "medium"))
+}
+
 func TestForwardAsAnthropic_UsesExactFableMessagesDispatchModel(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)

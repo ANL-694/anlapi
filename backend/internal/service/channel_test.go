@@ -220,7 +220,9 @@ func TestBillingModeIsValid(t *testing.T) {
 		{"token", BillingModeToken, true},
 		{"per_request", BillingModePerRequest, true},
 		{"image", BillingModeImage, true},
+		{"video", BillingModeVideo, true},
 		{"empty", BillingMode(""), true},
+		{"unmetered", BillingModeUnmetered, false},
 		{"unknown", BillingMode("unknown"), false},
 		{"random", BillingMode("xyz"), false},
 	}
@@ -230,6 +232,27 @@ func TestBillingModeIsValid(t *testing.T) {
 			require.Equal(t, tt.want, tt.mode.IsValid())
 		})
 	}
+}
+
+func TestParseBillingMode(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{name: "empty", value: "", want: ""},
+		{name: "video", value: " video ", want: "video"},
+		{name: "unmetered historical usage", value: "UNMETERED", want: "unmetered"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseBillingMode(tt.value)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+
+	_, err := ParseBillingMode("unsupported")
+	require.EqualError(t, err, "invalid billing_mode, allowed values: token, per_request, image, video, unmetered")
 }
 
 // --- Channel.IsActive ---
@@ -481,7 +504,6 @@ func TestSupportedModels_WildcardExpandedFromPricing(t *testing.T) {
 		require.NotContains(t, m.Name, "*")
 	}
 }
-
 
 func TestSupportedModels_MissingPricingKeepsNilPricing(t *testing.T) {
 	ch := &Channel{

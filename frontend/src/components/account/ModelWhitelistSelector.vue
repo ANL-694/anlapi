@@ -144,6 +144,7 @@
     <ModelProbeModal
       :show="showProbeModal"
       :default-platform="primaryPlatform"
+      :initial-credentials="syncCredentials"
       @close="showProbeModal = false"
       @apply="applyProbedModels"
     />

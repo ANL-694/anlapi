@@ -60,10 +60,10 @@ vi.mock('@/utils/apiError', () => ({
 vi.mock('@/components/account/ModelProbeModal.vue', () => ({
   default: {
     name: 'ModelProbeModal',
-    props: ['show', 'defaultPlatform'],
+    props: ['show', 'defaultPlatform', 'initialCredentials'],
     emits: ['close', 'apply'],
     template: `
-      <div v-if="show" data-test="probe-modal">
+      <div v-if="show" data-test="probe-modal" :data-has-initial-credentials="String(Boolean(initialCredentials))">
         <button type="button" @click="$emit('apply', ['gpt-5.4-openai-compact'])">apply-probed</button>
       </div>
     `
@@ -73,10 +73,10 @@ vi.mock('@/components/account/ModelProbeModal.vue', () => ({
 vi.mock('../ModelProbeModal.vue', () => ({
   default: {
     name: 'ModelProbeModal',
-    props: ['show', 'defaultPlatform'],
+    props: ['show', 'defaultPlatform', 'initialCredentials'],
     emits: ['close', 'apply'],
     template: `
-      <div v-if="show" data-test="probe-modal">
+      <div v-if="show" data-test="probe-modal" :data-has-initial-credentials="String(Boolean(initialCredentials))">
         <button type="button" @click="$emit('apply', ['gpt-5.4-openai-compact'])">apply-probed</button>
       </div>
     `
@@ -98,7 +98,13 @@ describe('ModelWhitelistSelector', () => {
     const wrapper = mount(ModelWhitelistSelector, {
       props: {
         modelValue: ['gpt-5.4'],
-        platform: 'openai'
+        platform: 'openai',
+        syncCredentials: {
+          platform: 'openai',
+          type: 'apikey',
+          base_url: 'https://relay.example.com/v1',
+          api_key: 'sk-probe-seed'
+        }
       },
       global: {
         stubs: {
@@ -109,6 +115,7 @@ describe('ModelWhitelistSelector', () => {
     })
 
     await wrapper.findAll('button').find(button => button.text().includes('admin.accounts.modelProbe.openButton'))!.trigger('click')
+    expect(wrapper.get('[data-test="probe-modal"]').attributes('data-has-initial-credentials')).toBe('true')
     await wrapper.get('[data-test="probe-modal"] button').trigger('click')
 
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([['gpt-5.4', 'gpt-5.4-openai-compact']])

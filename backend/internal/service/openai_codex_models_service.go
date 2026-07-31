@@ -38,9 +38,10 @@ const (
 // CodexModelsManifest carries the raw upstream manifest payload plus caching
 // metadata so handlers can pass both through to the client untouched.
 type CodexModelsManifest struct {
-	Body        []byte
-	ETag        string
-	NotModified bool
+	Body         []byte
+	ETag         string
+	upstreamETag string
+	NotModified  bool
 }
 
 type codexModelsManifestUpstreamError struct {
@@ -421,7 +422,7 @@ func (s *OpenAIGatewayService) refreshCachedAPIKeyCodexModelsManifest(ctx contex
 		cached, _ := s.codexModelsManifestCache.get(cacheKey, time.Now())
 		ifNoneMatch := ""
 		if cached != nil {
-			ifNoneMatch = cached.ETag
+			ifNoneMatch = cached.upstreamETag
 		}
 		if ctx == nil {
 			ctx = context.Background()
@@ -507,6 +508,7 @@ func (s *OpenAIGatewayService) fetchCodexModelsManifestUpstream(ctx context.Cont
 			retryable: isRetryableCodexModelsManifestTransportError(err),
 		}
 	}
+	upstreamBody := body
 	if request.useAPIKeyUpstream {
 		body = convertOpenAIModelListToCodexManifest(body)
 	}
@@ -521,7 +523,91 @@ func (s *OpenAIGatewayService) fetchCodexModelsManifestUpstream(ctx context.Cont
 			retryable: true,
 		}
 	}
-	return &CodexModelsManifest{Body: body, ETag: resp.Header.Get("ETag")}, nil
+	if request.useAPIKeyUpstream {
+		body, err = adjustAPIKeyCodexModelsManifest(body)
+		if err != nil {
+			return nil, &codexModelsManifestUpstreamError{
+				err: infraerrors.Newf(
+					http.StatusBadGateway,
+					"OPENAI_CODEX_MODELS_UPSTREAM_INVALID_MANIFEST",
+					"codex models manifest upstream could not be adjusted: %v",
+					err,
+				),
+				retryable: true,
+			}
+		}
+	}
+	etag := resp.Header.Get("ETag")
+	manifest := &CodexModelsManifest{Body: body, ETag: etag}
+	if request.useAPIKeyUpstream {
+		manifest.upstreamETag = etag
+		if !bytes.Equal(body, upstreamBody) {
+			manifest.ETag = codexModelsManifestBodyETag(body)
+		}
+	}
+	return manifest, nil
+}
+
+func codexModelsManifestBodyETag(body []byte) string {
+	sum := sha256.Sum256(body)
+	return fmt.Sprintf(`"%x"`, sum)
+}
+
+var apiKeyCodexModelsWithoutResponsesLite = map[string]struct{}{
+	"gpt-5.6-sol":   {},
+	"gpt-5.6-terra": {},
+	"gpt-5.6-luna":  {},
+}
+
+func adjustAPIKeyCodexModelsManifest(body []byte) ([]byte, error) {
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return nil, fmt.Errorf("decode JSON object: %w", err)
+	}
+	var models []json.RawMessage
+	if err := json.Unmarshal(envelope["models"], &models); err != nil {
+		return nil, fmt.Errorf("decode top-level models array: %w", err)
+	}
+
+	changed := false
+	for index, rawModel := range models {
+		var model map[string]json.RawMessage
+		if err := json.Unmarshal(rawModel, &model); err != nil || model == nil {
+			continue
+		}
+		var slug string
+		if err := json.Unmarshal(model["slug"], &slug); err != nil {
+			continue
+		}
+		if _, targeted := apiKeyCodexModelsWithoutResponsesLite[slug]; !targeted {
+			continue
+		}
+		var useResponsesLite bool
+		if err := json.Unmarshal(model["use_responses_lite"], &useResponsesLite); err != nil || !useResponsesLite {
+			continue
+		}
+		model["use_responses_lite"] = json.RawMessage("false")
+		adjusted, err := json.Marshal(model)
+		if err != nil {
+			return nil, fmt.Errorf("encode model %q: %w", slug, err)
+		}
+		models[index] = adjusted
+		changed = true
+	}
+	if !changed {
+		return body, nil
+	}
+
+	adjustedModels, err := json.Marshal(models)
+	if err != nil {
+		return nil, fmt.Errorf("encode top-level models array: %w", err)
+	}
+	envelope["models"] = adjustedModels
+	adjusted, err := json.Marshal(envelope)
+	if err != nil {
+		return nil, fmt.Errorf("encode JSON object: %w", err)
+	}
+	return adjusted, nil
 }
 
 // convertOpenAIModelListToCodexManifest rewrites a standard OpenAI

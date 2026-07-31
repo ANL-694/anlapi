@@ -40,6 +40,40 @@ QQ 群：`146499741`
 - 前端控制台基于 Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS 和 Vite。
 - 后端服务基于 Go、Gin、Ent、PostgreSQL、Redis 和模块化服务边界。
 
+### OpenAI Realtime / Live 使用示例
+
+为 OpenAI 分组启用 Live 后，可通过 OpenAI 风格别名创建 WebRTC 会话。该别名复用现有 Live 请求格式：
+
+```bash
+curl -i https://your-domain.example/v1/realtime/sessions \
+  -H "Authorization: Bearer $ANL_API_KEY" \
+  -F 'sdp=<offer.sdp' \
+  -F 'session={"model":"gpt-live"}'
+```
+
+响应体为 SDP answer，`Location` 响应头包含 `call_id`。使用同一 API Key 连接控制 WebSocket：
+
+```bash
+wscat -c 'wss://your-domain.example/v1/realtime?call_id=call_123' \
+  -H "Authorization: Bearer $ANL_API_KEY"
+```
+
+原有 `POST /v1/live` 与 `GET /v1/live/:call_id` 路径继续可用。
+
+## 1.0.10 更新内容
+
+- 将此前生产运行的 ANL 定制、上游兼容修复、数据库迁移和管理端能力固化为可复现的 Git 发布快照。
+- 新建 API Key 账号时，模型探测会复用当前表单的 Base URL 和 API Key；Key 仅在弹窗内存中使用，关闭即清空。
+- 继续选择性对齐 Sub2API `v0.1.168`，保留 ANL 的账号隔离、支付、灾备、审计和用户级并发策略。
+
+## 1.0.9 更新内容
+
+- 对齐 Sub2API v0.1.165：新增 OpenAI Live 网关和分组级启用开关，并补齐数据库迁移、API、管理端配置与用量类型。
+- 用量记录可保存客户端显式会话标识；OpenAI Responses 会清理残留命名空间和不合法的回放项 ID。
+- Ollama Cloud 自动刷新按租户和 API Key 隔离，补齐防饥饿调度、PostgreSQL 16 时间解析兼容与失败退避。
+- 注册邮箱别名查重增加数据库约束与并发保护；公告预览、移动端复制控件、Claude 5 模型和前端依赖安全修复同步更新。
+- 保留 ANL 的账号导入、支付、网关、OAuth 隔离、国内灾备、审计和用户级并发策略。
+
 ## 1.0.8 更新内容
 
 - 对齐 Sub2API v0.1.164 的兼容修复：Codex 批量导入索引、GPT-5.6 具体测试模型、OAuth `input` 规范化和渠道模型名归一化。

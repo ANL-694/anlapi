@@ -4,7 +4,10 @@
 // formats can be served through a unified gateway.
 package apicompat
 
-import "encoding/json"
+import (
+	"bytes"
+	"encoding/json"
+)
 
 // ---------------------------------------------------------------------------
 // Anthropic Messages API types
@@ -59,7 +62,9 @@ type AnthropicContentBlock struct {
 	Text string `json:"text,omitempty"`
 
 	// type=thinking
-	Thinking  string `json:"thinking,omitempty"`
+	Thinking string `json:"thinking,omitempty"`
+	// Signature carries provider encrypted reasoning (e.g. xAI encrypted_content)
+	// so multi-turn Claude clients can round-trip it back on subsequent turns.
 	Signature string `json:"signature,omitempty"`
 
 	// type=image
@@ -76,6 +81,28 @@ type AnthropicContentBlock struct {
 	IsError   bool            `json:"is_error,omitempty"`
 }
 
+func (b AnthropicContentBlock) MarshalJSON() ([]byte, error) {
+	type anthropicContentBlock AnthropicContentBlock
+	base := struct {
+		anthropicContentBlock
+	}{anthropicContentBlock: anthropicContentBlock(b)}
+
+	switch b.Type {
+	case "text":
+		return json.Marshal(struct {
+			Text string `json:"text"`
+			anthropicContentBlock
+		}{Text: b.Text, anthropicContentBlock: anthropicContentBlock(b)})
+	case "thinking":
+		return json.Marshal(struct {
+			Thinking string `json:"thinking"`
+			anthropicContentBlock
+		}{Thinking: b.Thinking, anthropicContentBlock: anthropicContentBlock(b)})
+	default:
+		return json.Marshal(base)
+	}
+}
+
 // AnthropicImageSource describes the source data for an image content block.
 type AnthropicImageSource struct {
 	Type      string `json:"type"` // "base64"
@@ -88,7 +115,7 @@ type AnthropicTool struct {
 	Type         string                 `json:"type,omitempty"` // e.g. "web_search_20250305" for server tools
 	Name         string                 `json:"name"`
 	Description  string                 `json:"description,omitempty"`
-	InputSchema  json.RawMessage        `json:"input_schema"` // JSON Schema object
+	InputSchema  json.RawMessage        `json:"input_schema,omitempty"` // JSON Schema object
 	CacheControl *AnthropicCacheControl `json:"cache_control,omitempty"`
 }
 
@@ -100,41 +127,32 @@ type AnthropicCacheControl struct {
 }
 
 // AnthropicResponse is the non-streaming response from POST /v1/messages.
+//
+// StopReason is a pointer so streaming message_start can emit JSON null
+// (official Anthropic wire format). A plain string zero-value would marshal as
+// "" which strict clients treat as invalid mid-stream state.
 type AnthropicResponse struct {
 	ID           string                  `json:"id"`
 	Type         string                  `json:"type"` // "message"
 	Role         string                  `json:"role"` // "assistant"
 	Content      []AnthropicContentBlock `json:"content"`
 	Model        string                  `json:"model"`
-	StopReason   string                  `json:"stop_reason"`
+	StopReason   *string                 `json:"stop_reason"`
 	StopSequence *string                 `json:"stop_sequence,omitempty"`
 	Usage        AnthropicUsage          `json:"usage"`
 }
 
-// MarshalJSON preserves ANL's string StopReason API while emitting the
-// official Anthropic message_start wire value: stop_reason must be null until
-// a terminal event supplies the final reason.
-func (r AnthropicResponse) MarshalJSON() ([]byte, error) {
-	type responseWire struct {
-		ID           string                  `json:"id"`
-		Type         string                  `json:"type"`
-		Role         string                  `json:"role"`
-		Content      []AnthropicContentBlock `json:"content"`
-		Model        string                  `json:"model"`
-		StopReason   *string                 `json:"stop_reason"`
-		StopSequence *string                 `json:"stop_sequence,omitempty"`
-		Usage        AnthropicUsage          `json:"usage"`
-	}
+// AnthropicStopReasonPtr returns a non-nil pointer to s for final stop reasons.
+func AnthropicStopReasonPtr(s string) *string {
+	return &s
+}
 
-	var stopReason *string
-	if r.StopReason != "" {
-		value := r.StopReason
-		stopReason = &value
+// AnthropicStopReasonString returns the stop reason value, or "" when unset/null.
+func AnthropicStopReasonString(p *string) string {
+	if p == nil {
+		return ""
 	}
-	return json.Marshal(responseWire{
-		ID: r.ID, Type: r.Type, Role: r.Role, Content: r.Content, Model: r.Model,
-		StopReason: stopReason, StopSequence: r.StopSequence, Usage: r.Usage,
-	})
+	return *p
 }
 
 // AnthropicUsage holds token counts in Anthropic format.
@@ -202,9 +220,9 @@ type ResponsesRequest struct {
 	TopP               *float64            `json:"top_p,omitempty"`
 	Stream             bool                `json:"stream,omitempty"`
 	Tools              []ResponsesTool     `json:"tools,omitempty"`
-	ParallelToolCalls  *bool               `json:"parallel_tool_calls,omitempty"`
 	Include            []string            `json:"include,omitempty"`
 	Store              *bool               `json:"store,omitempty"`
+	ParallelToolCalls  *bool               `json:"parallel_tool_calls,omitempty"`
 	Reasoning          *ResponsesReasoning `json:"reasoning,omitempty"`
 	Text               *ResponsesText      `json:"text,omitempty"`
 	ToolChoice         json.RawMessage     `json:"tool_choice,omitempty"`
@@ -231,36 +249,60 @@ type ResponsesInputItem struct {
 	// Common
 	Type string `json:"type,omitempty"` // "" for role-based messages
 
-	// Role-based messages (system/user/assistant)
+	// Role-based messages (developer/system/user/assistant)
 	Role    string          `json:"role,omitempty"`
 	Content json.RawMessage `json:"content,omitempty"` // string or []ResponsesContentPart
 
-	// type=reasoning，用于跨轮次回放上游加密推理内容。
+	// type=reasoning (multi-turn replay of encrypted reasoning)
 	EncryptedContent string `json:"encrypted_content,omitempty"`
 
 	// type=function_call
-	CallID string `json:"call_id,omitempty"`
-	Name   string `json:"name,omitempty"`
-	// Arguments is stringified JSON per the OpenAI spec, but Codex and newer
-	// Responses clients may send a raw JSON object. RawMessage accepts both;
-	// callers normalize via normalizeResponsesArguments.
-	Arguments json.RawMessage `json:"arguments,omitempty"`
-	ID        string          `json:"id,omitempty"`
+	CallID    string `json:"call_id,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Arguments string `json:"arguments,omitempty"`
+	ID        string `json:"id,omitempty"`
 
 	// type=function_call_output
-	// Output is a plain string in older clients, but newer Responses clients
-	// may send an array like [{"type":"output_text","text":"..."}].
-	// RawMessage accepts both; callers normalize via extractResponsesOutputText.
-	Output json.RawMessage `json:"output,omitempty"`
+	Output    string `json:"output,omitempty"`
+	outputRaw json.RawMessage
 }
 
-// jsonRawString marshals a Go string into a JSON-string RawMessage.
-func jsonRawString(s string) json.RawMessage {
-	b, err := json.Marshal(s)
-	if err != nil {
-		return json.RawMessage(`""`)
+func (i *ResponsesInputItem) UnmarshalJSON(data []byte) error {
+	type alias ResponsesInputItem
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
 	}
-	return json.RawMessage(b)
+
+	arguments := fields["arguments"]
+	output := fields["output"]
+	delete(fields, "arguments")
+	delete(fields, "output")
+
+	normalized, err := json.Marshal(fields)
+	if err != nil {
+		return err
+	}
+
+	*i = ResponsesInputItem{}
+	if err := json.Unmarshal(normalized, (*alias)(i)); err != nil {
+		return err
+	}
+	if len(arguments) > 0 {
+		i.Arguments = string(normalizeResponsesArguments(arguments))
+	}
+
+	output = bytes.TrimSpace(output)
+	if len(output) == 0 || bytes.Equal(output, []byte("null")) {
+		return nil
+	}
+	if err := json.Unmarshal(output, &i.Output); err == nil {
+		return nil
+	}
+
+	i.outputRaw = append(i.outputRaw[:0], output...)
+	i.Output = string(output)
+	return nil
 }
 
 // ResponsesContentPart is a typed content part in a Responses message.
@@ -544,15 +586,13 @@ type ResponsesOutputTokensDetails struct {
 type ResponsesStreamEvent struct {
 	Type string `json:"type"`
 
-	// response.created / response.completed / response.failed / response.incomplete
+	// response.created / response.completed / response.done / response.failed / response.incomplete
 	Response *ResponsesResponse `json:"response,omitempty"`
-	Usage    *ResponsesUsage    `json:"usage,omitempty"`
+	// 部分 OpenAI 兼容上游会把 usage 放在终止事件顶层，而不是 response.usage。
+	Usage *ResponsesUsage `json:"usage,omitempty"`
 
 	// response.output_item.added / response.output_item.done
 	Item *ResponsesOutput `json:"item,omitempty"`
-
-	// response.content_part.added / response.content_part.done
-	Part *ResponsesContentPart `json:"part,omitempty"`
 
 	// response.output_text.delta / response.output_text.done
 	OutputIndex  int    `json:"output_index,omitempty"`
@@ -572,6 +612,10 @@ type ResponsesStreamEvent struct {
 	// response.reasoning_summary_text.delta / done
 	// Reuses Text/Delta fields above, SummaryIndex identifies which summary part
 	SummaryIndex int `json:"summary_index,omitempty"`
+
+	// response.content_part.added / done and
+	// response.reasoning_summary_part.added / done
+	Part *ResponsesContentPart `json:"part,omitempty"`
 
 	// error event fields
 	Code  string `json:"code,omitempty"`
@@ -697,7 +741,14 @@ type ChatUsage struct {
 	CompletionTokensDetails *ChatTokenDetails `json:"completion_tokens_details,omitempty"`
 }
 
-// ChatTokenDetails provides a breakdown of token usage.
+// ChatTokenDetails provides a breakdown of token usage. The same type is
+// reused for both prompt_tokens_details and completion_tokens_details;
+// unset fields are omitted so each side only emits the fields that apply.
+//
+// Field set mirrors OpenAI's official CompletionUsage schema:
+//   - prompt_tokens_details: cached_tokens, audio_tokens
+//   - completion_tokens_details: reasoning_tokens, audio_tokens,
+//     accepted_prediction_tokens, rejected_prediction_tokens
 type ChatTokenDetails struct {
 	CachedTokens             int `json:"cached_tokens,omitempty"`
 	AudioTokens              int `json:"audio_tokens,omitempty"`

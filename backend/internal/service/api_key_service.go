@@ -48,8 +48,9 @@ var (
 )
 
 const (
-	apiKeyMaxErrorsPerHour = 20
-	apiKeyLastUsedMinTouch = 30 * time.Second
+	MaxAPIKeyCredentialBytes = 128
+	apiKeyMaxErrorsPerHour   = 20
+	apiKeyLastUsedMinTouch   = 30 * time.Second
 	// DB 写失败后的短退避，避免请求路径持续同步重试造成写风暴与高延迟。
 	apiKeyLastUsedFailBackoff = 5 * time.Second
 )
@@ -218,22 +219,27 @@ type RateLimitCacheInvalidator interface {
 }
 
 type APIKeyService struct {
-	apiKeyRepo            APIKeyRepository
-	userRepo              UserRepository
-	groupRepo             GroupRepository
-	userSubRepo           UserSubscriptionRepository
-	userGroupRateRepo     UserGroupRateRepository
-	cache                 APIKeyCache
-	rateLimitCacheInvalid RateLimitCacheInvalidator // optional: invalidate Redis rate limit cache
-	settingService        *SettingService
-	concurrencyService    *ConcurrencyService
-	cfg                   *config.Config
-	authCacheL1           *ristretto.Cache
-	authCfg               apiKeyAuthCacheConfig
-	authGroup             singleflight.Group
-	revokedAuthKeys       sync.Map // auth cache key -> expiration time
-	lastUsedTouchL1       sync.Map // keyID -> nextAllowedAt(time.Time)
-	lastUsedTouchSF       singleflight.Group
+	apiKeyRepo             APIKeyRepository
+	userRepo               UserRepository
+	groupRepo              GroupRepository
+	userSubRepo            UserSubscriptionRepository
+	userGroupRateRepo      UserGroupRateRepository
+	cache                  APIKeyCache
+	rateLimitCacheInvalid  RateLimitCacheInvalidator // optional: invalidate Redis rate limit cache
+	settingService         *SettingService
+	concurrencyService     *ConcurrencyService
+	cfg                    *config.Config
+	authCacheL1            *ristretto.Cache
+	authCfg                apiKeyAuthCacheConfig
+	authGroup              singleflight.Group
+	invalidAuthAbuse       *invalidAuthAbuseLimiter
+	revokedAuthKeys        sync.Map // auth cache key -> expiration time
+	authInvalidationStart  sync.Once
+	authInvalidationStop   sync.Once
+	authInvalidationCancel context.CancelFunc
+	authInvalidationWG     sync.WaitGroup
+	lastUsedTouchL1        sync.Map // keyID -> nextAllowedAt(time.Time)
+	lastUsedTouchSF        singleflight.Group
 }
 
 // NewAPIKeyService 创建API Key服务实例
@@ -256,6 +262,7 @@ func NewAPIKeyService(
 		cfg:               cfg,
 	}
 	svc.initAuthCache(cfg)
+	svc.invalidAuthAbuse = newInvalidAuthAbuseLimiter(cfg)
 	return svc
 }
 
@@ -1244,6 +1251,18 @@ func (s *APIKeyService) SearchAPIKeys(ctx context.Context, userID int64, keyword
 
 // GetUserGroupRates 获取用户的专属分组倍率配置
 // 返回 map[groupID]rateMultiplier
+func (s *APIKeyService) GetUserAllowedGroupIDSet(ctx context.Context, userID int64) (map[int64]struct{}, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+	allowed := make(map[int64]struct{}, len(user.AllowedGroups))
+	for _, groupID := range user.AllowedGroups {
+		allowed[groupID] = struct{}{}
+	}
+	return allowed, nil
+}
+
 func (s *APIKeyService) GetUserGroupRates(ctx context.Context, userID int64) (map[int64]float64, error) {
 	if s.userGroupRateRepo == nil {
 		return nil, nil

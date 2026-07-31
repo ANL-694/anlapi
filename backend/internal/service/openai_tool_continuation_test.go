@@ -8,7 +8,6 @@ import (
 )
 
 func TestNeedsToolContinuationSignals(t *testing.T) {
-	// 覆盖所有触发续链的信号来源，确保判定逻辑完整。
 	cases := []struct {
 		name string
 		body map[string]any
@@ -39,7 +38,6 @@ func TestNeedsToolContinuationSignals(t *testing.T) {
 }
 
 func TestHasFunctionCallOutput(t *testing.T) {
-	// 仅当 input 中存在 function_call_output 才视为续链输出。
 	require.False(t, HasFunctionCallOutput(nil))
 	require.True(t, HasFunctionCallOutput(map[string]any{
 		"input": []any{map[string]any{"type": "function_call_output"}},
@@ -50,7 +48,6 @@ func TestHasFunctionCallOutput(t *testing.T) {
 }
 
 func TestHasToolCallContext(t *testing.T) {
-	// tool_call/function_call 必须包含 call_id，才能作为可关联上下文。
 	require.False(t, HasToolCallContext(nil))
 	require.True(t, HasToolCallContext(map[string]any{
 		"input": []any{map[string]any{"type": "tool_call", "call_id": "call_1"}},
@@ -64,7 +61,6 @@ func TestHasToolCallContext(t *testing.T) {
 }
 
 func TestFunctionCallOutputCallIDs(t *testing.T) {
-	// 仅提取非空 call_id，去重后返回。
 	require.Empty(t, FunctionCallOutputCallIDs(nil))
 	callIDs := FunctionCallOutputCallIDs(map[string]any{
 		"input": []any{
@@ -87,7 +83,6 @@ func TestHasFunctionCallOutputMissingCallID(t *testing.T) {
 }
 
 func TestHasItemReferenceForCallIDs(t *testing.T) {
-	// item_reference 需要覆盖所有 call_id 才视为可关联上下文。
 	require.False(t, HasItemReferenceForCallIDs(nil, []string{"call_1"}))
 	require.False(t, HasItemReferenceForCallIDs(map[string]any{}, []string{"call_1"}))
 	req := map[string]any{
@@ -102,7 +97,6 @@ func TestHasItemReferenceForCallIDs(t *testing.T) {
 }
 
 func TestValidateFunctionCallOutputContextBytesMatchesMapValidation(t *testing.T) {
-	// handler 预校验走 raw JSON 扫描，语义必须与 service 内部 map 校验保持一致。
 	cases := []struct {
 		name string
 		body map[string]any

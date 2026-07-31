@@ -10,32 +10,36 @@ import (
 )
 
 type stubAdminService struct {
-	users                   []service.User
-	apiKeys                 []service.APIKey
-	groups                  []service.Group
-	compositeRoutes         []service.CompositeModelRoute
-	accounts                []service.Account
-	proxies                 []service.Proxy
-	proxyCounts             []service.ProxyWithAccountCount
-	redeems                 []service.RedeemCode
-	boundAuthIdentity       *service.AdminBindAuthIdentityInput
-	boundAuthIdentityFor    int64
-	createdAccounts         []*service.CreateAccountInput
-	createdProxies          []*service.CreateProxyInput
-	updatedProxyIDs         []int64
-	updatedProxies          []*service.UpdateProxyInput
-	testedProxyIDs          []int64
-	createAccountErr        error
-	updateAccountErr        error
-	getAccountResult        *service.Account
-	getUserErr              error
-	updateAccountCalls      int
-	updateAccountExtraCalls int
-	bulkUpdateAccountErr    error
-	setAccountErrorErr      error
-	checkMixedErr           error
-	setAccountErrorCalls    []setAccountErrorCall
-	lastMixedCheck          struct {
+	users                               []service.User
+	apiKeys                             []service.APIKey
+	groups                              []service.Group
+	compositeRoutes                     []service.CompositeModelRoute
+	accounts                            []service.Account
+	accountSchedulerScoreFilterAccounts []service.Account
+	openAISchedulerScorePoolAccounts    []service.Account
+	schedulerScoreFilterCalls           int
+	openAISchedulerScorePoolCalls       int
+	proxies                             []service.Proxy
+	proxyCounts                         []service.ProxyWithAccountCount
+	redeems                             []service.RedeemCode
+	boundAuthIdentity                   *service.AdminBindAuthIdentityInput
+	boundAuthIdentityFor                int64
+	createdAccounts                     []*service.CreateAccountInput
+	createdProxies                      []*service.CreateProxyInput
+	updatedProxyIDs                     []int64
+	updatedProxies                      []*service.UpdateProxyInput
+	testedProxyIDs                      []int64
+	createAccountErr                    error
+	updateAccountErr                    error
+	getAccountResult                    *service.Account
+	getUserErr                          error
+	updateAccountCalls                  int
+	updateAccountExtraCalls             int
+	bulkUpdateAccountErr                error
+	setAccountErrorErr                  error
+	checkMixedErr                       error
+	setAccountErrorCalls                []setAccountErrorCall
+	lastMixedCheck                      struct {
 		accountID int64
 		platform  string
 		groupIDs  []int64
@@ -406,6 +410,41 @@ func (s *stubAdminService) ListAccounts(ctx context.Context, page, pageSize int,
 	s.lastListAccounts.sortOrder = sortOrder
 	s.lastListAccounts.calls++
 	return s.accounts, int64(len(s.accounts)), nil
+}
+
+func (s *stubAdminService) ListAccountsForSchedulerScoreFilter(_ context.Context, _ string, _ string, _ string, _ string, _ int64, _ string) ([]service.Account, error) {
+	s.schedulerScoreFilterCalls++
+	if s.accountSchedulerScoreFilterAccounts != nil {
+		return s.accountSchedulerScoreFilterAccounts, nil
+	}
+	return s.accounts, nil
+}
+
+func (s *stubAdminService) ListOpenAISchedulableAccountsForSchedulerScore(_ context.Context, groupID *int64) ([]service.Account, error) {
+	s.openAISchedulerScorePoolCalls++
+	accounts := s.openAISchedulerScorePoolAccounts
+	if accounts == nil {
+		accounts = s.accounts
+	}
+	out := make([]service.Account, 0, len(accounts))
+	for _, account := range accounts {
+		if account.Platform != service.PlatformOpenAI || !account.IsSchedulable() {
+			continue
+		}
+		if groupID == nil {
+			if len(account.AccountGroups) == 0 && len(account.GroupIDs) == 0 {
+				out = append(out, account)
+			}
+			continue
+		}
+		for _, accountGroup := range account.AccountGroups {
+			if accountGroup.GroupID == *groupID {
+				out = append(out, account)
+				break
+			}
+		}
+	}
+	return out, nil
 }
 
 func (s *stubAdminService) GetAccountQuotaDashboard(ctx context.Context) (*service.AccountQuotaDashboard, error) {

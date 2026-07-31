@@ -27,10 +27,8 @@ import (
 
 const (
 	// These values live in accounts.extra so PR2 does not require a schema migration.
-	UpstreamBillingProbeExtraKey           = "upstream_billing_probe"
-	UpstreamBillingProbeEnabledExtraKey    = "upstream_billing_probe_enabled"
-	SettingKeyUpstreamBillingProbeSettings = "upstream_billing_probe_settings"
-
+	UpstreamBillingProbeExtraKey               = "upstream_billing_probe"
+	UpstreamBillingProbeEnabledExtraKey        = "upstream_billing_probe_enabled"
 	upstreamBillingProbeDefaultIntervalMinutes = 30
 	upstreamBillingProbeMinIntervalMinutes     = 5
 	upstreamBillingProbeMaxIntervalMinutes     = 24 * 60
