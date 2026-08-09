@@ -42,25 +42,22 @@ QQ 群：`146499741`
 
 ## ANL 定制界面
 
-这些界面截图使用演示账号、演示 Key 和示例用量，用于说明 ANL API 在用户端和管理端的定制方向，不包含生产账号、真实凭据或用户数据。
+这些界面截图使用演示数据，用于说明 ANL API 在用户端和管理端的定制方向。截图已做脱敏处理，余额、请求量、Token、价格、模型统计、账号和图表数据均不代表生产环境，不包含真实凭据或用户数据。
 
-### 用户端：API Key、分组与用量
+### 用户端：账户与用量仪表盘
 
-用户可以在一个页面查看 API Key、所属分组、当前并发、用量额度、限速、有效期、状态和常用操作，适合个人或团队管理自己的调用入口。
+用户可以在一个页面查看账户状态、请求用量、Token 使用趋势、模型分布和平台消费概况，适合个人或团队快速了解调用情况。
 
 <p align="center">
-  <img src="assets/screenshots/api-key-management-detail-demo.png" alt="anlapi 用户端 API Key 完整列表演示截图" width="100%">
-</p>
-<p align="center">
-  <img src="assets/screenshots/api-key-management-demo.png" alt="anlapi 用户端 API Key 管理演示截图" width="100%">
+  <img src="assets/screenshots/anlapi-user-dashboard-demo.png" alt="anlapi 用户端账户与用量仪表盘脱敏演示截图" width="100%">
 </p>
 
-### 管理端：模型探测与白名单
+### 管理端：运营与用量仪表盘
 
-管理员可以在账号配置中直接进行模型探测，加载可用模型、选择验证方式并加入白名单，减少重复填写连接信息的操作。
+管理员可以集中查看 API Key、账号、用户、Token、模型分布和请求趋势等运营指标，便于进行渠道、用量和系统运行管理。
 
 <p align="center">
-  <img src="assets/screenshots/model-probe-demo.png" alt="anlapi 管理端模型探测演示截图" width="68%">
+  <img src="assets/screenshots/anlapi-admin-dashboard-demo.png" alt="anlapi 管理端运营与用量仪表盘脱敏演示截图" width="100%">
 </p>
 
 ### OpenAI Realtime / Live 使用示例
