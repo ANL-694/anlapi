@@ -68,7 +68,12 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 		setOpsRequestContext(c, "", false, body)
 	}
 
-	parsed, err := h.gatewayService.ParseOpenAIImagesRequest(c, body)
+	var parsed *service.OpenAIImagesRequest
+	if middleware2.IsPrivateGatewayRequest(c) {
+		parsed, err = h.gatewayService.ParseOpenAIImagesRequestForPrivateGateway(c, body)
+	} else {
+		parsed, err = h.gatewayService.ParseOpenAIImagesRequest(c, body)
+	}
 	if err != nil {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
 		return
@@ -290,6 +295,9 @@ routeLoop:
 				}
 				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(requestModel), false, nil)
 				wroteFallback := h.ensureForwardErrorResponse(c, streamStarted)
+				if wroteFallback && !streamStarted && middleware2.IsPrivateGatewayRequest(c) {
+					middleware2.MarkPrivateGatewayRetryableFailure(c)
+				}
 				fields := []zap.Field{
 					zap.Int64("account_id", account.ID),
 					zap.Bool("fallback_error_response_written", wroteFallback),

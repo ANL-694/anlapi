@@ -179,6 +179,16 @@ func (r *OpenAIImagesRequest) StickySessionSeed() string {
 }
 
 func (s *OpenAIGatewayService) ParseOpenAIImagesRequest(c *gin.Context, body []byte) (*OpenAIImagesRequest, error) {
+	return s.parseOpenAIImagesRequest(c, body, false)
+}
+
+// ParseOpenAIImagesRequestForPrivateGateway accepts the Hub's public image
+// alias until the selected account maps it to a concrete upstream model.
+func (s *OpenAIGatewayService) ParseOpenAIImagesRequestForPrivateGateway(c *gin.Context, body []byte) (*OpenAIImagesRequest, error) {
+	return s.parseOpenAIImagesRequest(c, body, true)
+}
+
+func (s *OpenAIGatewayService) parseOpenAIImagesRequest(c *gin.Context, body []byte, allowModelAlias bool) (*OpenAIImagesRequest, error) {
 	if c == nil || c.Request == nil {
 		return nil, fmt.Errorf("missing request context")
 	}
@@ -218,8 +228,10 @@ func (s *OpenAIGatewayService) ParseOpenAIImagesRequest(c *gin.Context, body []b
 	}
 
 	applyOpenAIImagesDefaults(req)
-	if err := validateOpenAIImagesModel(req.Model); err != nil {
-		return nil, err
+	if !allowModelAlias {
+		if err := validateOpenAIImagesModel(req.Model); err != nil {
+			return nil, err
+		}
 	}
 	if err := validateOpenAIImagesRequest(req); err != nil {
 		return nil, err
@@ -596,21 +608,9 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 	channelMappedModel string,
 ) (*OpenAIForwardResult, error) {
 	startTime := time.Now()
-	requestModel := strings.TrimSpace(parsed.Model)
-	if mapped := strings.TrimSpace(channelMappedModel); mapped != "" {
-		requestModel = mapped
-	}
-	if err := validateOpenAIImagesModel(requestModel); err != nil {
+	publicModel, upstreamModel, err := resolveOpenAIImagesModels(account, parsed, channelMappedModel)
+	if err != nil {
 		return nil, err
-	}
-	upstreamModel := account.GetMappedModel(requestModel)
-	if err := validateOpenAIImagesModel(upstreamModel); err != nil {
-		return nil, err
-	}
-	upstreamValidation := *parsed
-	upstreamValidation.Model = upstreamModel
-	if err := validateOpenAIImagesRequest(&upstreamValidation); err != nil {
-		return nil, fmt.Errorf("upstream model %s is incompatible with the image request: %w", upstreamModel, err)
 	}
 	logger.LegacyPrintf(
 		"service.openai_gateway",
@@ -710,7 +710,7 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 	return &OpenAIForwardResult{
 		RequestID:       resp.Header.Get("x-request-id"),
 		Usage:           usage,
-		Model:           requestModel,
+		Model:           publicModel,
 		UpstreamModel:   upstreamModel,
 		Stream:          parsed.Stream,
 		ResponseHeaders: resp.Header.Clone(),
@@ -719,6 +719,24 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 		ImageCount:      imageCount,
 		ImageSize:       parsed.SizeTier,
 	}, nil
+}
+
+func resolveOpenAIImagesModels(account *Account, parsed *OpenAIImagesRequest, channelMappedModel string) (string, string, error) {
+	publicModel := strings.TrimSpace(parsed.Model)
+	routingModel := publicModel
+	if mapped := strings.TrimSpace(channelMappedModel); mapped != "" {
+		routingModel = mapped
+	}
+	upstreamModel := account.GetMappedModel(routingModel)
+	if err := validateOpenAIImagesModel(upstreamModel); err != nil {
+		return "", "", fmt.Errorf("selected account does not support image generation")
+	}
+	upstreamValidation := *parsed
+	upstreamValidation.Model = upstreamModel
+	if err := validateOpenAIImagesRequest(&upstreamValidation); err != nil {
+		return "", "", fmt.Errorf("selected account is incompatible with the image request: %w", err)
+	}
+	return publicModel, upstreamModel, nil
 }
 
 func (s *OpenAIGatewayService) buildOpenAIImagesRequest(

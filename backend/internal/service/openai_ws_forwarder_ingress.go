@@ -25,6 +25,21 @@ func (s *OpenAIGatewayService) openAIWSIngressInterTurnIdleTimeout() time.Durati
 	return time.Duration(s.cfg.Gateway.OpenAIWS.IngressInterTurnIdleTimeoutSeconds) * time.Second
 }
 
+// newOpenAIWSDownstreamWriteContext binds writes directly to the client
+// lifecycle while excluding the separate ingress-lease cancellation signal.
+// This lets a lease-loss path finish its current client write before
+// ReadOpenAIWSClientMessage sends the retryable close frame.
+func newOpenAIWSDownstreamWriteContext(controlCtx context.Context, hooks *OpenAIWSIngressHooks, timeout time.Duration) (context.Context, context.CancelFunc) {
+	writeParent := controlCtx
+	if hooks != nil && hooks.ClientLifecycleContext != nil {
+		writeParent = hooks.ClientLifecycleContext
+	}
+	if writeParent == nil {
+		writeParent = context.Background()
+	}
+	return context.WithTimeout(writeParent, timeout)
+}
+
 func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 	ctx context.Context,
 	c *gin.Context,
@@ -364,7 +379,7 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 			// the kernel send buffer before any close frame is queued.
 			eventBytes := buildOpenAIFastPolicyBlockedWSEvent(blocked)
 			if eventBytes != nil {
-				writeCtx, cancel := context.WithTimeout(ctx, s.openAIWSWriteTimeout())
+				writeCtx, cancel := newOpenAIWSDownstreamWriteContext(ctx, hooks, s.openAIWSWriteTimeout())
 				_ = clientConn.Write(writeCtx, coderws.MessageText, eventBytes)
 				cancel()
 			}
@@ -391,7 +406,7 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 	}
 
 	writeClientMessage := func(message []byte) error {
-		writeCtx, cancel := context.WithTimeout(ctx, s.openAIWSWriteTimeout())
+		writeCtx, cancel := newOpenAIWSDownstreamWriteContext(ctx, hooks, s.openAIWSWriteTimeout())
 		defer cancel()
 		return clientConn.Write(writeCtx, coderws.MessageText, message)
 	}
@@ -597,7 +612,20 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 		}
 	}
 
-	wsHeaders, _, buildHdrErr := s.buildOpenAIWSHeaders(ctx, c, account, token, wsDecision, isCodexCLI, turnState, strings.TrimSpace(c.GetHeader(openAIWSTurnMetadataHeader)), firstPayload.promptCacheKey)
+	firstRoutingFields := gjson.GetManyBytes(firstPayload.payloadRaw, "model", "service_tier")
+	wsHeaders, _, buildHdrErr := s.buildOpenAIWSHeaders(
+		ctx,
+		c,
+		account,
+		token,
+		wsDecision,
+		isCodexCLI,
+		turnState,
+		strings.TrimSpace(c.GetHeader(openAIWSTurnMetadataHeader)),
+		firstPayload.promptCacheKey,
+		firstRoutingFields[0].String(),
+		firstRoutingFields[1].String(),
+	)
 	if buildHdrErr != nil {
 		return fmt.Errorf("build ws headers: %w", buildHdrErr)
 	}
@@ -1643,10 +1671,23 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 		if parseErr != nil {
 			return parseErr
 		}
+		nextRoutingFields := gjson.GetManyBytes(nextPayload.payloadRaw, "model", "service_tier")
 		if nextPayload.promptCacheKey != "" {
 			// ingress 会话在整个客户端 WS 生命周期内复用同一上游连接；
 			// prompt_cache_key 对握手头的更新仅在未来需要重新建连时生效。
-			updatedHeaders, _, updHdrErr := s.buildOpenAIWSHeaders(ctx, c, account, token, wsDecision, isCodexCLI, turnState, strings.TrimSpace(c.GetHeader(openAIWSTurnMetadataHeader)), nextPayload.promptCacheKey)
+			updatedHeaders, _, updHdrErr := s.buildOpenAIWSHeaders(
+				ctx,
+				c,
+				account,
+				token,
+				wsDecision,
+				isCodexCLI,
+				turnState,
+				strings.TrimSpace(c.GetHeader(openAIWSTurnMetadataHeader)),
+				nextPayload.promptCacheKey,
+				nextRoutingFields[0].String(),
+				nextRoutingFields[1].String(),
+			)
 			if updHdrErr != nil {
 				logOpenAIWSModeInfo("ingress_ws_update_headers_failed account_id=%d err=%v", account.ID, updHdrErr)
 			} else {

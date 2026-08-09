@@ -77,6 +77,10 @@ type openAIWSAcquireRequest struct {
 	ForcePreferredConn bool
 }
 
+type openAIWSHandshakeCompatibilityKey struct {
+	betaFeatures string
+}
+
 type openAIWSConnLease struct {
 	pool      *openAIWSConnPool
 	accountID int64
@@ -241,8 +245,9 @@ type openAIWSConn struct {
 	id string
 	ws openAIWSClientConn
 
-	handshakeHeaders http.Header
-	betaFeatures     string
+	handshakeHeaders       http.Header
+	handshakeCompatibility openAIWSHandshakeCompatibilityKey
+	routingAffinity        string
 
 	leaseCh   chan struct{}
 	closedCh  chan struct{}
@@ -526,8 +531,12 @@ func (c *openAIWSConn) handshakeHeader(name string) string {
 	return strings.TrimSpace(c.handshakeHeaders.Get(strings.TrimSpace(name)))
 }
 
-func (c *openAIWSConn) matchesBetaFeatures(betaFeatures string) bool {
-	return c != nil && c.betaFeatures == betaFeatures
+func (c *openAIWSConn) matchesHandshakeCompatibility(compatibility openAIWSHandshakeCompatibilityKey) bool {
+	return c != nil && c.handshakeCompatibility == compatibility
+}
+
+func (c *openAIWSConn) matchesRoutingAffinity(routingAffinity string) bool {
+	return c != nil && c.routingAffinity == routingAffinity
 }
 
 func (c *openAIWSConn) isPrewarmed() bool {
@@ -839,7 +848,8 @@ func (p *openAIWSConnPool) acquire(ctx context.Context, req openAIWSAcquireReque
 
 retryAcquire:
 	accountID := req.Account.ID
-	betaFeatures := normalizeOpenAIWSBetaFeatures(req.Headers)
+	compatibility := normalizeOpenAIWSHandshakeCompatibility(req.Headers)
+	routingAffinity := normalizeOpenAIWSRoutingAffinity(req.Headers)
 	effectiveMaxConns := p.effectiveMaxConnsByAccount(req.Account)
 	if effectiveMaxConns <= 0 {
 		return nil, errOpenAIWSConnQueueFull
@@ -867,7 +877,7 @@ retryAcquire:
 				return nil, errOpenAIWSPreferredConnUnavailable
 			}
 			preferredConn, ok := ap.conns[preferredConnID]
-			if !ok || !preferredConn.matchesBetaFeatures(betaFeatures) {
+			if !ok || !preferredConn.matchesHandshakeCompatibility(compatibility) {
 				p.recordConnPickDuration(time.Since(pickStartedAt))
 				ap.mu.Unlock()
 				closeOpenAIWSConns(evicted)
@@ -948,7 +958,7 @@ retryAcquire:
 		}
 
 		if preferredConnID != "" {
-			if conn, ok := ap.conns[preferredConnID]; ok && conn.matchesBetaFeatures(betaFeatures) && conn.tryAcquire() {
+			if conn, ok := ap.conns[preferredConnID]; ok && conn.matchesHandshakeCompatibility(compatibility) && conn.tryAcquire() {
 				connPick := time.Since(pickStartedAt)
 				p.recordConnPickDuration(connPick)
 				ap.mu.Unlock()
@@ -970,7 +980,10 @@ retryAcquire:
 			}
 		}
 
-		best := p.pickLeastBusyConnLocked(ap, "", betaFeatures)
+		// Routing hints are advisory at dial time. Prefer an idle connection
+		// created with the same hint, while explicit continuation IDs remain
+		// compatible across hint changes.
+		best := p.pickLeastBusyConnWithRoutingAffinityLocked(ap, compatibility, routingAffinity)
 		if best != nil && best.tryAcquire() {
 			connPick := time.Since(pickStartedAt)
 			p.recordConnPickDuration(connPick)
@@ -992,7 +1005,7 @@ retryAcquire:
 			return lease, nil
 		}
 		for _, conn := range ap.conns {
-			if conn == nil || conn == best || !conn.matchesBetaFeatures(betaFeatures) {
+			if conn == nil || conn == best || !conn.matchesHandshakeCompatibility(compatibility) || !conn.matchesRoutingAffinity(routingAffinity) {
 				continue
 			}
 			if conn.tryAcquire() {
@@ -1019,12 +1032,12 @@ retryAcquire:
 	}
 
 	if !req.ForceNewConn && len(ap.conns)+ap.creating >= effectiveMaxConns {
-		compatible := p.pickLeastBusyConnLocked(ap, "", betaFeatures)
-		if idle := p.pickOldestIdleConnWithDifferentBetaFeaturesLocked(ap, betaFeatures); idle != nil {
+		affine := p.pickLeastBusyConnWithRoutingAffinityLocked(ap, compatibility, routingAffinity)
+		if idle := p.pickOldestIdleConnWithoutHandshakeCompatibilityOrRoutingAffinityLocked(ap, compatibility, routingAffinity); idle != nil {
 			delete(ap.conns, idle.id)
 			evicted = append(evicted, idle)
 			p.metrics.scaleDownTotal.Add(1)
-		} else if compatible == nil {
+		} else if affine == nil && p.pickLeastBusyConnLocked(ap, "", compatibility) == nil {
 			hasConnection := false
 			for _, conn := range ap.conns {
 				if conn != nil {
@@ -1101,7 +1114,7 @@ retryAcquire:
 		return nil, errOpenAIWSConnQueueFull
 	}
 
-	target := p.pickLeastBusyConnLocked(ap, req.PreferredConnID, betaFeatures)
+	target := p.pickLeastBusyConnLocked(ap, req.PreferredConnID, compatibility)
 	connPick := time.Since(pickStartedAt)
 	p.recordConnPickDuration(connPick)
 	if target == nil {
@@ -1174,13 +1187,19 @@ func (p *openAIWSConnPool) pickOldestIdleConnLocked(ap *openAIWSAccountPool) *op
 	return oldest
 }
 
-func (p *openAIWSConnPool) pickOldestIdleConnWithDifferentBetaFeaturesLocked(ap *openAIWSAccountPool, betaFeatures string) *openAIWSConn {
+func (p *openAIWSConnPool) pickOldestIdleConnWithoutHandshakeCompatibilityOrRoutingAffinityLocked(
+	ap *openAIWSAccountPool,
+	compatibility openAIWSHandshakeCompatibilityKey,
+	routingAffinity string,
+) *openAIWSConn {
 	if ap == nil || len(ap.conns) == 0 {
 		return nil
 	}
 	var oldest *openAIWSConn
 	for _, conn := range ap.conns {
-		if conn == nil || conn.matchesBetaFeatures(betaFeatures) || conn.isLeased() || conn.waiters.Load() > 0 || p.isConnPinnedLocked(ap, conn.id) {
+		if conn == nil ||
+			(conn.matchesHandshakeCompatibility(compatibility) && conn.matchesRoutingAffinity(routingAffinity)) ||
+			conn.isLeased() || conn.waiters.Load() > 0 || p.isConnPinnedLocked(ap, conn.id) {
 			continue
 		}
 		if oldest == nil || conn.lastUsedAt().Before(oldest.lastUsedAt()) {
@@ -1331,13 +1350,17 @@ func (p *openAIWSConnPool) cleanupAccountLocked(ap *openAIWSAccountPool, now tim
 	return evicted
 }
 
-func (p *openAIWSConnPool) pickLeastBusyConnLocked(ap *openAIWSAccountPool, preferredConnID, betaFeatures string) *openAIWSConn {
+func (p *openAIWSConnPool) pickLeastBusyConnLocked(
+	ap *openAIWSAccountPool,
+	preferredConnID string,
+	compatibility openAIWSHandshakeCompatibilityKey,
+) *openAIWSConn {
 	if ap == nil || len(ap.conns) == 0 {
 		return nil
 	}
 	preferredConnID = stringsTrim(preferredConnID)
 	if preferredConnID != "" {
-		if conn, ok := ap.conns[preferredConnID]; ok && conn.matchesBetaFeatures(betaFeatures) {
+		if conn, ok := ap.conns[preferredConnID]; ok && conn.matchesHandshakeCompatibility(compatibility) {
 			return conn
 		}
 	}
@@ -1345,7 +1368,37 @@ func (p *openAIWSConnPool) pickLeastBusyConnLocked(ap *openAIWSAccountPool, pref
 	var bestWaiters int32
 	var bestLastUsed time.Time
 	for _, conn := range ap.conns {
-		if conn == nil || !conn.matchesBetaFeatures(betaFeatures) {
+		if conn == nil || !conn.matchesHandshakeCompatibility(compatibility) {
+			continue
+		}
+		waiters := conn.waiters.Load()
+		lastUsed := conn.lastUsedAt()
+		if best == nil ||
+			waiters < bestWaiters ||
+			(waiters == bestWaiters && lastUsed.Before(bestLastUsed)) {
+			best = conn
+			bestWaiters = waiters
+			bestLastUsed = lastUsed
+		}
+	}
+	return best
+}
+
+func (p *openAIWSConnPool) pickLeastBusyConnWithRoutingAffinityLocked(
+	ap *openAIWSAccountPool,
+	compatibility openAIWSHandshakeCompatibilityKey,
+	routingAffinity string,
+) *openAIWSConn {
+	if ap == nil || len(ap.conns) == 0 {
+		return nil
+	}
+	var best *openAIWSConn
+	var bestWaiters int32
+	var bestLastUsed time.Time
+	for _, conn := range ap.conns {
+		if conn == nil ||
+			!conn.matchesHandshakeCompatibility(compatibility) ||
+			!conn.matchesRoutingAffinity(routingAffinity) {
 			continue
 		}
 		waiters := conn.waiters.Load()
@@ -1677,7 +1730,8 @@ func (p *openAIWSConnPool) dialConn(ctx context.Context, req openAIWSAcquireRequ
 	}
 	id := p.nextConnID(req.Account.ID)
 	pooledConn := newOpenAIWSConn(id, req.Account.ID, conn, handshakeHeaders)
-	pooledConn.betaFeatures = normalizeOpenAIWSBetaFeatures(req.Headers)
+	pooledConn.handshakeCompatibility = normalizeOpenAIWSHandshakeCompatibility(req.Headers)
+	pooledConn.routingAffinity = normalizeOpenAIWSRoutingAffinity(req.Headers)
 	return pooledConn, nil
 }
 
@@ -1821,6 +1875,39 @@ func normalizeOpenAIWSBetaFeatures(headers http.Header) string {
 	}
 	sort.Strings(normalized)
 	return strings.Join(normalized, ",")
+}
+
+func normalizeOpenAIWSHandshakeCompatibility(headers http.Header) openAIWSHandshakeCompatibilityKey {
+	return openAIWSHandshakeCompatibilityKey{
+		betaFeatures: normalizeOpenAIWSBetaFeatures(headers),
+	}
+}
+
+func normalizeOpenAIWSRoutingAffinity(headers http.Header) string {
+	canonicalName := http.CanonicalHeaderKey(openAICodexRoutingHintHeader)
+	if values, ok := headers[canonicalName]; ok {
+		for _, value := range values {
+			if value = strings.TrimSpace(value); value != "" {
+				return value
+			}
+		}
+	}
+
+	variantNames := make([]string, 0)
+	for name := range headers {
+		if name != canonicalName && strings.EqualFold(strings.TrimSpace(name), openAICodexRoutingHintHeader) {
+			variantNames = append(variantNames, name)
+		}
+	}
+	sort.Strings(variantNames)
+	for _, name := range variantNames {
+		for _, value := range headers[name] {
+			if value = strings.TrimSpace(value); value != "" {
+				return value
+			}
+		}
+	}
+	return ""
 }
 
 func cloneHeader(src http.Header) http.Header {

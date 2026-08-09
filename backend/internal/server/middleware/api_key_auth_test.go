@@ -876,13 +876,14 @@ func (r *stubApiKeyRepo) GetRateLimitData(ctx context.Context, id int64) (*servi
 }
 
 type stubUserSubscriptionRepo struct {
-	getByID        func(ctx context.Context, id int64) (*service.UserSubscription, error)
-	getActive      func(ctx context.Context, userID, groupID int64) (*service.UserSubscription, error)
-	updateStatus   func(ctx context.Context, subscriptionID int64, status string) error
-	activateWindow func(ctx context.Context, id int64, start time.Time) error
-	resetDaily     func(ctx context.Context, id int64, start time.Time) error
-	resetWeekly    func(ctx context.Context, id int64, start time.Time) error
-	resetMonthly   func(ctx context.Context, id int64, start time.Time) error
+	getByID          func(ctx context.Context, id int64) (*service.UserSubscription, error)
+	getByIDForUpdate func(ctx context.Context, id int64) (*service.UserSubscription, error)
+	getActive        func(ctx context.Context, userID, groupID int64) (*service.UserSubscription, error)
+	updateStatus     func(ctx context.Context, subscriptionID int64, status string) error
+	activateWindow   func(ctx context.Context, id int64, start time.Time) error
+	resetDaily       func(ctx context.Context, id int64, start time.Time) error
+	resetWeekly      func(ctx context.Context, id int64, start time.Time) error
+	resetMonthly     func(ctx context.Context, id int64, start time.Time) error
 }
 
 func (r *stubUserSubscriptionRepo) Create(ctx context.Context, sub *service.UserSubscription) error {
@@ -894,6 +895,13 @@ func (r *stubUserSubscriptionRepo) GetByID(ctx context.Context, id int64) (*serv
 		return r.getByID(ctx, id)
 	}
 	return nil, errors.New("not implemented")
+}
+
+func (r *stubUserSubscriptionRepo) GetByIDForUpdate(ctx context.Context, id int64) (*service.UserSubscription, error) {
+	if r.getByIDForUpdate != nil {
+		return r.getByIDForUpdate(ctx, id)
+	}
+	return r.GetByID(ctx, id)
 }
 
 func (r *stubUserSubscriptionRepo) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.UserSubscription, error) {

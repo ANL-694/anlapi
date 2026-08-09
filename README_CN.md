@@ -40,6 +40,29 @@ QQ 群：`146499741`
 - 前端控制台基于 Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS 和 Vite。
 - 后端服务基于 Go、Gin、Ent、PostgreSQL、Redis 和模块化服务边界。
 
+## ANL 定制界面
+
+这些界面截图使用演示账号、演示 Key 和示例用量，用于说明 ANL API 在用户端和管理端的定制方向，不包含生产账号、真实凭据或用户数据。
+
+### 用户端：API Key、分组与用量
+
+用户可以在一个页面查看 API Key、所属分组、当前并发、用量额度、限速、有效期、状态和常用操作，适合个人或团队管理自己的调用入口。
+
+<p align="center">
+  <img src="assets/screenshots/api-key-management-detail-demo.png" alt="anlapi 用户端 API Key 完整列表演示截图" width="100%">
+</p>
+<p align="center">
+  <img src="assets/screenshots/api-key-management-demo.png" alt="anlapi 用户端 API Key 管理演示截图" width="100%">
+</p>
+
+### 管理端：模型探测与白名单
+
+管理员可以在账号配置中直接进行模型探测，加载可用模型、选择验证方式并加入白名单，减少重复填写连接信息的操作。
+
+<p align="center">
+  <img src="assets/screenshots/model-probe-demo.png" alt="anlapi 管理端模型探测演示截图" width="68%">
+</p>
+
 ### OpenAI Realtime / Live 使用示例
 
 为 OpenAI 分组启用 Live 后，可通过 OpenAI 风格别名创建 WebRTC 会话。该别名复用现有 Live 请求格式：
@@ -60,11 +83,11 @@ wscat -c 'wss://your-domain.example/v1/realtime?call_id=call_123' \
 
 原有 `POST /v1/live` 与 `GET /v1/live/:call_id` 路径继续可用。
 
-## 1.0.10 更新内容
+## 1.0.11 更新内容
 
 - 将此前生产运行的 ANL 定制、上游兼容修复、数据库迁移和管理端能力固化为可复现的 Git 发布快照。
 - 新建 API Key 账号时，模型探测会复用当前表单的 Base URL 和 API Key；Key 仅在弹窗内存中使用，关闭即清空。
-- 继续选择性对齐 Sub2API `v0.1.168`，保留 ANL 的账号隔离、支付、灾备、审计和用户级并发策略。
+- 继续选择性对齐 Sub2API `v0.1.173`，补齐 OAuth 安全、上游路径、Codex 身份与容量降载恢复，同时保留 ANL 的账号隔离、支付、灾备、审计和用户级并发策略。
 
 ## 1.0.9 更新内容
 

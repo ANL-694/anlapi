@@ -910,20 +910,14 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesOAuth(
 	channelMappedModel string,
 ) (*OpenAIForwardResult, error) {
 	startTime := time.Now()
-	requestModel := strings.TrimSpace(parsed.Model)
-	if mapped := strings.TrimSpace(channelMappedModel); mapped != "" {
-		requestModel = mapped
-	}
-	if requestModel == "" {
-		requestModel = "gpt-image-2"
-	}
-	if err := validateOpenAIImagesModel(requestModel); err != nil {
+	publicModel, upstreamModel, err := resolveOpenAIImagesModels(account, parsed, channelMappedModel)
+	if err != nil {
 		return nil, err
 	}
 	logger.LegacyPrintf(
 		"service.openai_gateway",
 		"[OpenAI] Images request routing request_model=%s endpoint=%s account_type=%s uploads=%d",
-		requestModel,
+		upstreamModel,
 		parsed.Endpoint,
 		account.Type,
 		len(parsed.Uploads),
@@ -942,7 +936,7 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesOAuth(
 	} else if s != nil && s.cfg != nil {
 		reasoningEffort = NormalizeOpenAIImagesResponsesReasoningEffort(s.cfg.Gateway.OpenAIImagesResponsesReasoningEffort)
 	}
-	responsesBody, err := buildOpenAIImagesResponsesRequest(parsed, requestModel, reasoningEffort)
+	responsesBody, err := buildOpenAIImagesResponsesRequest(parsed, upstreamModel, reasoningEffort)
 	if err != nil {
 		return nil, err
 	}
@@ -999,14 +993,14 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesOAuth(
 				Kind:               "failover",
 				Message:            upstreamMsg,
 			})
-			shouldDisable := s.handleFailoverSideEffects(upstreamCtx, resp, account, respBody, requestModel)
+			shouldDisable := s.handleFailoverSideEffects(upstreamCtx, resp, account, respBody, upstreamModel)
 			return nil, &UpstreamFailoverError{
 				StatusCode:             resp.StatusCode,
 				ResponseBody:           respBody,
 				RetryableOnSameAccount: !shouldDisable && account.IsPoolMode() && account.IsPoolModeRetryableStatus(resp.StatusCode),
 			}
 		}
-		return s.handleErrorResponse(upstreamCtx, resp, c, account, responsesBody, requestModel)
+		return s.handleErrorResponse(upstreamCtx, resp, c, account, responsesBody, upstreamModel)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -1018,14 +1012,14 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesOAuth(
 	)
 	writerSizeBeforeResponse := OpenAIImagesJSONKeepaliveAdjustedWrittenSize(c)
 	if parsed.Stream {
-		usage, imageCount, imageOutputSizes, firstTokenMs, err = s.handleOpenAIImagesOAuthStreamingResponse(resp, c, startTime, parsed.ResponseFormat, openAIImagesStreamPrefix(parsed), requestModel)
+		usage, imageCount, imageOutputSizes, firstTokenMs, err = s.handleOpenAIImagesOAuthStreamingResponse(resp, c, startTime, parsed.ResponseFormat, openAIImagesStreamPrefix(parsed), publicModel)
 		if err != nil {
-			return nil, s.handleOpenAIImagesOAuthResponseError(upstreamCtx, c, account, requestModel, safeUpstreamURL(upstreamReq.URL.String()), resp, writerSizeBeforeResponse, err)
+			return nil, s.handleOpenAIImagesOAuthResponseError(upstreamCtx, c, account, upstreamModel, safeUpstreamURL(upstreamReq.URL.String()), resp, writerSizeBeforeResponse, err)
 		}
 	} else {
-		usage, imageCount, imageOutputSizes, err = s.handleOpenAIImagesOAuthNonStreamingResponse(resp, c, parsed.ResponseFormat, requestModel)
+		usage, imageCount, imageOutputSizes, err = s.handleOpenAIImagesOAuthNonStreamingResponse(resp, c, parsed.ResponseFormat, publicModel)
 		if err != nil {
-			return nil, s.handleOpenAIImagesOAuthResponseError(upstreamCtx, c, account, requestModel, safeUpstreamURL(upstreamReq.URL.String()), resp, writerSizeBeforeResponse, err)
+			return nil, s.handleOpenAIImagesOAuthResponseError(upstreamCtx, c, account, upstreamModel, safeUpstreamURL(upstreamReq.URL.String()), resp, writerSizeBeforeResponse, err)
 		}
 	}
 	if imageCount <= 0 {
@@ -1034,8 +1028,8 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesOAuth(
 	return &OpenAIForwardResult{
 		RequestID:        resp.Header.Get("x-request-id"),
 		Usage:            usage,
-		Model:            requestModel,
-		UpstreamModel:    requestModel,
+		Model:            publicModel,
+		UpstreamModel:    upstreamModel,
 		Stream:           parsed.Stream,
 		ResponseHeaders:  resp.Header.Clone(),
 		Duration:         time.Since(startTime),

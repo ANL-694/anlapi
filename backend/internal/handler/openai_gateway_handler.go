@@ -1476,7 +1476,8 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 	reqLog.Info("openai.websocket_ingress_started")
 	clientIP := ip.GetClientIP(c)
 	userAgent := strings.TrimSpace(c.GetHeader("User-Agent"))
-	ctx := c.Request.Context()
+	clientLifecycleCtx := c.Request.Context()
+	ctx := clientLifecycleCtx
 	maxIngressConnections := 0
 	if h.cfg != nil {
 		maxIngressConnections = h.cfg.Gateway.OpenAIWS.MaxIngressConnectionsPerAPIKey
@@ -1833,6 +1834,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 		var turnChannelMapping atomic.Pointer[openAIWSTurnChannelMappingSnapshot]
 		turnChannelMapping.Store(&openAIWSTurnChannelMappingSnapshot{turn: 1, mapping: channelMappingWS})
 		hooks := &service.OpenAIWSIngressHooks{
+			ClientLifecycleContext:  clientLifecycleCtx,
 			InitialRequestModel:     reqModel,
 			MaxReasoningEffort:      maxReasoningEffort,
 			ReasoningEffortMappings: reasoningEffortMappings,
@@ -2270,6 +2272,9 @@ func (h *OpenAIGatewayHandler) handleConcurrencyError(c *gin.Context, err error,
 }
 
 func (h *OpenAIGatewayHandler) handleFailoverExhausted(c *gin.Context, failoverErr *service.UpstreamFailoverError, streamStarted bool) {
+	if middleware2.IsPrivateGatewayRequest(c) && shouldMarkPrivateGatewayRetryableFailover(failoverErr, streamStarted) {
+		middleware2.MarkPrivateGatewayRetryableFailure(c)
+	}
 	if failoverErr == nil {
 		h.handleFailoverExhaustedSimple(c, http.StatusBadGateway, streamStarted)
 		return
@@ -2365,6 +2370,13 @@ func isSafeRetryAfter(value string) bool {
 		return false
 	}
 	return !retryAt.After(time.Now().Add(7 * 24 * time.Hour))
+}
+
+func shouldMarkPrivateGatewayRetryableFailover(failoverErr *service.UpstreamFailoverError, streamStarted bool) bool {
+	if streamStarted || failoverErr == nil || failoverErr.IsOpenAIRequestBodyTooLarge() || failoverErr.IsCredentialFailure() {
+		return false
+	}
+	return failoverErr.ShouldRetryNextAccount()
 }
 
 // handleFailoverExhaustedSimple 简化版本，用于没有响应体的情况

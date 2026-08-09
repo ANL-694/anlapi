@@ -388,6 +388,9 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 			if !wroteFallback {
 				wroteFallback = h.ensureForwardErrorResponse(c, streamStarted)
 			}
+			if wroteFallback && !streamStarted && middleware2.IsPrivateGatewayRequest(c) {
+				middleware2.MarkPrivateGatewayRetryableFailure(c)
+			}
 			reqLog.Warn("openai_chat_completions.forward_failed",
 				zap.Int64("account_id", account.ID),
 				zap.Bool("fallback_error_response_written", wroteFallback),

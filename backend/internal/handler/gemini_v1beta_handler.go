@@ -102,6 +102,10 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 		googleError(c, http.StatusBadRequest, "Missing model in URL")
 		return
 	}
+	if !service.IsSafeGeminiModelPathSegment(modelName) {
+		googleError(c, http.StatusBadRequest, "Invalid model in URL")
+		return
+	}
 
 	// 强制 antigravity 模式：返回 antigravity 模型信息
 	if forcePlatform == service.PlatformAntigravity || effectiveAPIKeyPlatform(c, apiKey) == service.PlatformAntigravity {
@@ -195,7 +199,15 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 		googleError(c, http.StatusNotFound, err.Error())
 		return
 	}
+	if !service.IsSafeGeminiModelPathSegment(modelName) {
+		googleError(c, http.StatusBadRequest, "Invalid model in URL")
+		return
+	}
 	modelName = resolvedUpstreamModelForAPIKey(c, apiKey, modelName)
+	if !service.IsSafeGeminiModelPathSegment(modelName) {
+		googleError(c, http.StatusBadRequest, "Invalid mapped model")
+		return
+	}
 
 	stream := action == "streamGenerateContent"
 	reqLog = reqLog.With(zap.String("model", modelName), zap.String("action", action), zap.Bool("stream", stream))

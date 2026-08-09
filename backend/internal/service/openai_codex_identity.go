@@ -2,6 +2,7 @@ package service
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 
 	"anlapi/internal/pkg/openai"
@@ -12,6 +13,58 @@ import (
 // 若请求携带 version 且低于该值，上游直接 404（issue #3901，2026-07 实测）。
 const codexUpstreamMinVersion = "0.144.0"
 
+const codexClientVersionMaxLen = 64
+
+var codexClientVersionPattern = regexp.MustCompile(`^[0-9]+(\.[0-9]+){1,3}(-[0-9A-Za-z.]+)?$`)
+
+// NormalizeCodexClientVersion validates a value before it is placed in
+// User-Agent and version headers.
+func NormalizeCodexClientVersion(version string) string {
+	version = strings.TrimSpace(version)
+	if version == "" || len(version) > codexClientVersionMaxLen || !codexClientVersionPattern.MatchString(version) {
+		return ""
+	}
+	return version
+}
+
+func buildCodexCLIUserAgent(version string) string {
+	if version = NormalizeCodexClientVersion(version); version == "" {
+		return codexCLIUserAgent
+	}
+	return openai.CodexDefaultOriginator + "/" + version + codexCLIUserAgentSuffix
+}
+
+type codexOutboundIdentity struct {
+	userAgent  string
+	originator string
+	version    string
+}
+
+// resolveCodexOutboundIdentity preserves a valid configured Codex fingerprint,
+// but always rebuilds its version from the gateway-owned current version.
+func resolveCodexOutboundIdentity(candidateUA string) codexOutboundIdentity {
+	ua := strings.TrimSpace(candidateUA)
+	if ua == "" {
+		ua = codexCLIUserAgent
+	}
+	originator, pairedUA, ok := openai.PairCodexClientIdentity(ua)
+	if !ok {
+		originator = openai.CodexDefaultOriginator
+		pairedUA = codexCLIUserAgent
+	}
+	if rebuilt := openai.SetCodexUserAgentVersion(pairedUA, codexCLIVersion); rebuilt != "" {
+		pairedUA = rebuilt
+	} else {
+		originator = openai.CodexDefaultOriginator
+		pairedUA = codexCLIUserAgent
+	}
+	return codexOutboundIdentity{
+		userAgent:  pairedUA,
+		originator: originator,
+		version:    codexCLIVersion,
+	}
+}
+
 // ensureCodexIdentityHeaders 补齐 OAuth（ChatGPT 内部接口）出站请求所需的 Codex 身份头。
 // 已有 User-Agent 与 version 保持不变，交给紧随其后的 enforceCodexIdentityHeaders
 // 做官方身份配对与最低版本校正。
@@ -19,14 +72,15 @@ func ensureCodexIdentityHeaders(h http.Header) {
 	if h == nil {
 		return
 	}
+	identity := resolveCodexOutboundIdentity("")
 	if strings.TrimSpace(h.Get("user-agent")) == "" {
-		h.Set("user-agent", codexCLIUserAgent)
+		h.Set("user-agent", identity.userAgent)
 	}
 	if strings.TrimSpace(h.Get("originator")) == "" {
-		h.Set("originator", "codex_cli_rs")
+		h.Set("originator", identity.originator)
 	}
 	if strings.TrimSpace(h.Get("version")) == "" {
-		h.Set("version", codexCLIVersion)
+		h.Set("version", identity.version)
 	}
 	h.Set("OpenAI-Beta", "responses=experimental")
 }
@@ -49,16 +103,18 @@ func applyOpenAICodexProbeHeaders(h http.Header) {
 // ensureCodexIdentityHeaders。
 // 必须在所有 User-Agent 改写（自定义 UA / ForceCodexCLI / 浏览器 UA 兜底）之后调用。
 func enforceCodexIdentityHeaders(h http.Header) {
+	enforceCodexIdentityHeadersWithUA(h, "")
+}
+
+// enforceCodexIdentityHeadersWithUA makes the OAuth outbound identity
+// self-consistent. Client-supplied identities never pass through unchanged;
+// an account override may only contribute an official client fingerprint.
+func enforceCodexIdentityHeadersWithUA(h http.Header, overrideUA string) {
 	if h == nil || h.Get("originator") == "" {
 		return
 	}
-	originator, pairedUA, ok := openai.PairCodexClientIdentity(h.Get("user-agent"))
-	if !ok {
-		originator, pairedUA = "codex_cli_rs", codexCLIUserAgent
-	}
-	h.Set("user-agent", pairedUA)
-	h.Set("originator", originator)
-	if v := strings.TrimSpace(h.Get("version")); v != "" && CompareVersions(v, codexUpstreamMinVersion) < 0 {
-		h.Set("version", codexCLIVersion)
-	}
+	identity := resolveCodexOutboundIdentity(overrideUA)
+	h.Set("user-agent", identity.userAgent)
+	h.Set("originator", identity.originator)
+	h.Set("version", identity.version)
 }

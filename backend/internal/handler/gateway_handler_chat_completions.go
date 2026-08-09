@@ -225,17 +225,19 @@ routeLoop:
 				"This group is restricted to Claude Code clients (/v1/messages only)")
 			return
 		}
-		if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription, service.QuotaPlatform(routeCtx, currentAPIKey)); err != nil {
-			reqLog.Info("gateway.cc.billing_check_failed",
-				zap.Error(err),
-				zap.Int64p("group_id", currentAPIKey.GroupID),
-			)
-			status, code, message, retryAfter := billingErrorDetails(err)
-			if retryAfter > 0 {
-				c.Header("Retry-After", strconv.Itoa(retryAfter))
+		if !middleware2.IsPrivateGatewayRequest(c) {
+			if err := h.billingCacheService.CheckBillingEligibility(routeCtx, currentAPIKey.User, currentAPIKey, currentAPIKey.Group, currentSubscription, service.QuotaPlatform(routeCtx, currentAPIKey)); err != nil {
+				reqLog.Info("gateway.cc.billing_check_failed",
+					zap.Error(err),
+					zap.Int64p("group_id", currentAPIKey.GroupID),
+				)
+				status, code, message, retryAfter := billingErrorDetails(err)
+				if retryAfter > 0 {
+					c.Header("Retry-After", strconv.Itoa(retryAfter))
+				}
+				h.chatCompletionsErrorResponse(c, status, code, message)
+				return
 			}
-			h.chatCompletionsErrorResponse(c, status, code, message)
-			return
 		}
 		fs := NewFailoverState(h.maxAccountSwitches, false)
 
@@ -357,29 +359,31 @@ routeLoop:
 			quotaPlatform := service.QuotaPlatform(c.Request.Context(), currentAPIKey)
 			sessionID := service.ExtractClientSessionID(c)
 
-			h.submitUsageRecordTask(func(ctx context.Context) {
-				if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
-					Result:             result,
-					APIKey:             currentAPIKey,
-					User:               currentAPIKey.User,
-					Account:            account,
-					Subscription:       currentSubscription,
-					InboundEndpoint:    inboundEndpoint,
-					UpstreamEndpoint:   upstreamEndpoint,
-					UserAgent:          userAgent,
-					IPAddress:          clientIP,
-					RequestPayloadHash: requestPayloadHash,
-					APIKeyService:      h.apiKeyService,
-					QuotaPlatform:      quotaPlatform,
-					SessionID:          sessionID,
-					ChannelUsageFields: service.BuildAutoModelUsageFields(autoDecision, channelMapping, result.UpstreamModel),
-				}); err != nil {
-					reqLog.Error("gateway.cc.record_usage_failed",
-						zap.Int64("account_id", account.ID),
-						zap.Error(err),
-					)
-				}
-			})
+			if !middleware2.IsPrivateGatewayRequest(c) {
+				h.submitUsageRecordTask(func(ctx context.Context) {
+					if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
+						Result:             result,
+						APIKey:             currentAPIKey,
+						User:               currentAPIKey.User,
+						Account:            account,
+						Subscription:       currentSubscription,
+						InboundEndpoint:    inboundEndpoint,
+						UpstreamEndpoint:   upstreamEndpoint,
+						UserAgent:          userAgent,
+						IPAddress:          clientIP,
+						RequestPayloadHash: requestPayloadHash,
+						APIKeyService:      h.apiKeyService,
+						QuotaPlatform:      quotaPlatform,
+						SessionID:          sessionID,
+						ChannelUsageFields: service.BuildAutoModelUsageFields(autoDecision, channelMapping, result.UpstreamModel),
+					}); err != nil {
+						reqLog.Error("gateway.cc.record_usage_failed",
+							zap.Int64("account_id", account.ID),
+							zap.Error(err),
+						)
+					}
+				})
+			}
 			return
 		}
 	}
@@ -399,6 +403,9 @@ func (h *GatewayHandler) chatCompletionsErrorResponse(c *gin.Context, status int
 func (h *GatewayHandler) handleCCFailoverExhausted(c *gin.Context, lastErr *service.UpstreamFailoverError, streamStarted bool) {
 	if streamStarted {
 		return
+	}
+	if middleware2.IsPrivateGatewayRequest(c) && shouldMarkPrivateGatewayRetryableFailover(lastErr, streamStarted) {
+		middleware2.MarkPrivateGatewayRetryableFailure(c)
 	}
 	if lastErr != nil {
 		copyFailoverRetryAfter(c, lastErr.ResponseHeaders)

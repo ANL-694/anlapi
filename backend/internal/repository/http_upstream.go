@@ -56,6 +56,10 @@ const (
 	// defaultResponseHeaderTimeout: 默认等待响应头超时时间（5分钟）
 	// LLM 请求可能排队较久，需要较长超时
 	defaultResponseHeaderTimeout = 300 * time.Second
+	// DNS/TCP 建连与 TLS 握手必须有独立上限；响应头超时覆盖不到这两个阶段。
+	defaultUpstreamDialTimeout         = 10 * time.Second
+	defaultUpstreamDialKeepAlive       = 30 * time.Second
+	defaultUpstreamTLSHandshakeTimeout = 10 * time.Second
 	// defaultMaxUpstreamClients: 默认最大客户端缓存数量
 	// 超出后会淘汰最久未使用的客户端
 	defaultMaxUpstreamClients = 5000
@@ -1190,6 +1194,13 @@ func defaultPoolSettings(cfg *config.Config) poolSettings {
 	}
 }
 
+func newUpstreamDialer() *net.Dialer {
+	return &net.Dialer{
+		Timeout:   defaultUpstreamDialTimeout,
+		KeepAlive: defaultUpstreamDialKeepAlive,
+	}
+}
+
 // buildUpstreamTransport 构建上游请求的 Transport
 // 使用配置文件中的连接池参数，支持生产环境调优
 //
@@ -1209,6 +1220,8 @@ func defaultPoolSettings(cfg *config.Config) poolSettings {
 //   - ResponseHeaderTimeout: 等待响应头超时（不影响流式传输）
 func buildUpstreamTransport(settings poolSettings, proxyURL *url.URL, protocolMode string) (*http.Transport, error) {
 	transport := &http.Transport{
+		DialContext:           newUpstreamDialer().DialContext,
+		TLSHandshakeTimeout:   defaultUpstreamTLSHandshakeTimeout,
 		MaxIdleConns:          settings.maxIdleConns,
 		MaxIdleConnsPerHost:   settings.maxIdleConnsPerHost,
 		MaxConnsPerHost:       settings.maxConnsPerHost,

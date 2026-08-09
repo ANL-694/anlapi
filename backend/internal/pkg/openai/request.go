@@ -255,6 +255,73 @@ func canonicalizeCodexOriginator(name string) string {
 	return name
 }
 
+// CodexCLIOriginator is the historical codex-rs default originator.
+const CodexCLIOriginator = "codex_cli_rs"
+
+// CodexDefaultOriginator is the canonical identity used for gateway-owned OAuth traffic.
+const CodexDefaultOriginator = "codex-tui"
+
+// CodexUserAgentVersion returns the full version segment from a Codex-style User-Agent.
+func CodexUserAgentVersion(userAgent string) string {
+	ua := strings.TrimSpace(userAgent)
+	slash := strings.IndexByte(ua, '/')
+	if slash <= 0 {
+		return ""
+	}
+	rest := ua[slash+1:]
+	if space := strings.IndexByte(rest, ' '); space >= 0 {
+		rest = rest[:space]
+	}
+	return strings.TrimSpace(rest)
+}
+
+// SetCodexUserAgentVersion rebuilds the version declaration while preserving
+// the client name and OS/terminal fingerprint.
+func SetCodexUserAgentVersion(userAgent, version string) string {
+	ua := strings.TrimSpace(userAgent)
+	version = strings.TrimSpace(version)
+	if version == "" {
+		return ""
+	}
+	slash := strings.IndexByte(ua, '/')
+	if slash <= 0 {
+		return ""
+	}
+	client := strings.TrimSpace(ua[:slash])
+	if client == "" {
+		return ""
+	}
+	rest := ua[slash+1:]
+	tail := ""
+	if space := strings.IndexByte(rest, ' '); space >= 0 {
+		tail = rest[space:]
+	} else if strings.TrimSpace(rest) == "" {
+		return ""
+	}
+	return rewriteCodexUATrailerVersion(client+"/"+version+tail, version)
+}
+
+func rewriteCodexUATrailerVersion(ua, version string) string {
+	open := strings.LastIndex(ua, "(")
+	if open < 0 {
+		return ua
+	}
+	closeIdx := strings.Index(ua[open+1:], ")")
+	if closeIdx < 0 {
+		return ua
+	}
+	inner := ua[open+1 : open+1+closeIdx]
+	semi := strings.Index(inner, ";")
+	if semi < 0 {
+		return ua
+	}
+	name := strings.TrimSpace(inner[:semi])
+	if name == "" || !IsCodexOfficialClientOriginator(name) {
+		return ua
+	}
+	return ua[:open+1] + name + "; " + version + ua[open+1+closeIdx:]
+}
+
 // codexEngineVersionPattern 提取版本段开头的三段数字 X.Y.Z（忽略 -alpha 等后缀）。
 var codexEngineVersionPattern = regexp.MustCompile(`^(\d+\.\d+\.\d+)`)
 

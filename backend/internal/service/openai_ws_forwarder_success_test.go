@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"anlapi/internal/config"
+	"anlapi/internal/pkg/openai"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -201,6 +202,8 @@ func TestOpenAIGatewayService_BuildOpenAIWSHeadersPreservesCodexIdentity(t *test
 		"token",
 		OpenAIWSProtocolDecision{Transport: OpenAIUpstreamTransportResponsesWebsocketV2},
 		true,
+		"",
+		"",
 		"",
 		"",
 		"",
@@ -557,15 +560,15 @@ func TestOpenAIGatewayService_Forward_WSv2_OAuthOriginatorCompatibility(t *testi
 		wantOriginator string
 		wantUA         string
 	}{
-		{name: "official ua pairs originator", userAgent: "Codex Desktop/1.2.3", wantOriginator: "Codex Desktop", wantUA: "Codex Desktop/1.2.3"},
+		{name: "official ua pairs originator", userAgent: "Codex Desktop/1.2.3", wantOriginator: openai.CodexDefaultOriginator, wantUA: codexCLIUserAgent},
 		{
 			name:           "mismatched originator repaired from ua",
 			userAgent:      "codex-tui/0.140.2 (Mac OS X 14.0; arm64) iTerm (codex-tui; 0.140.2)",
 			originator:     "codex_cli_rs",
-			wantOriginator: "codex-tui",
-			wantUA:         "codex-tui/0.140.2 (Mac OS X 14.0; arm64) iTerm (codex-tui; 0.140.2)",
+			wantOriginator: openai.CodexDefaultOriginator,
+			wantUA:         codexCLIUserAgent,
 		},
-		{name: "official originator without ua falls back to default identity", originator: "codex_vscode", wantOriginator: "codex_cli_rs", wantUA: codexCLIUserAgent},
+		{name: "official originator without ua falls back to default identity", originator: "codex_vscode", wantOriginator: openai.CodexDefaultOriginator, wantUA: codexCLIUserAgent},
 	}
 
 	for _, tt := range tests {
@@ -631,6 +634,7 @@ func TestOpenAIGatewayService_Forward_WSv2_OAuthOriginatorCompatibility(t *testi
 			require.NotNil(t, result)
 			require.Equal(t, tt.wantOriginator, captureDialer.lastHeaders.Get("originator"))
 			require.Equal(t, tt.wantUA, captureDialer.lastHeaders.Get("user-agent"))
+			require.Equal(t, codexCLIVersion, captureDialer.lastHeaders.Get("version"))
 		})
 	}
 }

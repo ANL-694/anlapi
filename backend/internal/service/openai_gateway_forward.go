@@ -45,6 +45,16 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 	if normalized {
 		body = normalizedBody
 	}
+	// 在分流到 passthrough / Codex transform / 原生 ChatCompletions 之前统一修正
+	// 显式为 null 的工具 Schema type，否则 upstream 的 400 会被归一成可重试的 502，
+	// 同一份坏定义在账号池里反复重放。
+	sanitizedToolBody, toolSchemaSanitized, toolSchemaErr := sanitizeOpenAIResponsesToolParameterTypes(body)
+	if toolSchemaErr != nil {
+		return nil, fmt.Errorf("sanitize OpenAI Responses tool parameters: %w", toolSchemaErr)
+	}
+	if toolSchemaSanitized {
+		body = sanitizedToolBody
+	}
 	if account.IsOpenAIOAuth() && isOpenAIResponsesLiteHeader(c.GetHeader(responsesLiteHeader)) {
 		liteBody, changed, liteErr := normalizeOpenAIResponsesLiteToolsPayload(body)
 		if liteErr != nil {
@@ -1054,7 +1064,6 @@ func (s *OpenAIGatewayService) buildUpstreamRequest(ctx context.Context, c *gin.
 			req.Header.Del("OpenAI-Beta")
 			req.Header.Del("originator")
 		} else {
-			req.Header.Set("OpenAI-Beta", "responses=experimental")
 			req.Header.Set("originator", resolveOpenAIUpstreamOriginator(c, isCodexCLI))
 		}
 		apiKeyID := getAPIKeyIDFromContext(c)
@@ -1097,9 +1106,10 @@ func (s *OpenAIGatewayService) buildUpstreamRequest(ctx context.Context, c *gin.
 	// （Chrome/Firefox/Safari/Edge 等），替换为后台配置的 Codex UA，避免 Cloudflare 触发 JS 质询。
 	s.overrideBrowserUserAgent(ctx, account, req)
 
-	// 终态收口：originator 必须与最终 User-Agent 首段配套且为官方身份，否则上游 404（issue #3901）。
+	// 终态收口：OAuth 出站 User-Agent / originator / version 同源自洽，
+	// 并统一使用当前 Codex 版本，避免陈旧身份被上游优先降载。
 	if account.Type == AccountTypeOAuth {
-		enforceCodexIdentityHeaders(req.Header)
+		enforceCodexIdentityHeadersWithUA(req.Header, s.codexIdentityOverrideUA(account))
 	}
 
 	// Ensure required headers exist
@@ -1109,8 +1119,17 @@ func (s *OpenAIGatewayService) buildUpstreamRequest(ctx context.Context, c *gin.
 
 	// 账号级请求头覆写（仅 openai api_key 账号启用时生效；OAuth 路径 no-op）
 	account.ApplyHeaderOverrides(req.Header)
+	setOpenAICodexRoutingHintFromBody(req.Header, account, body)
+	logOpenAIRoutingDiagnosticsFromBody(ctx, account, "http", req.Header, body, "not_applicable")
 
 	return req, nil
+}
+
+func (s *OpenAIGatewayService) codexIdentityOverrideUA(account *Account) string {
+	if account == nil || (s != nil && s.cfg != nil && s.cfg.Gateway.ForceCodexCLI) {
+		return ""
+	}
+	return account.GetOpenAIUserAgent()
 }
 
 // overrideBrowserUserAgent 检查请求的最终 user-agent，若为浏览器 UA 则替换为后台配置的 Codex UA。

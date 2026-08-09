@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -58,6 +60,8 @@ const latestAPIKeyIPIndexMigration = "174_add_usage_logs_api_key_latest_ip_index
 const latestAPIKeyIPIndex = "idx_usage_logs_api_key_latest_ip"
 const usersEmailAliasDedupIndexMigration = "190_add_users_email_alias_dedup_index_notx.sql"
 const usersEmailDotStrippedIndex = "idx_users_email_dot_stripped"
+const opsRetryReplayCleanupMigration = "208_remove_ops_retry_replay.sql"
+const applyOpsRetryReplayCleanupEnv = "ANLAPI_APPLY_MIGRATION_208"
 
 var ownedAccountIdentityUniqueIndexes = []string{
 	"idx_accounts_owned_openai_chatgpt_account_id_uniq",
@@ -225,6 +229,10 @@ func applyMigrationsFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 		if !errors.Is(rowErr, sql.ErrNoRows) {
 			return fmt.Errorf("check migration %s: %w", name, rowErr)
 		}
+		if shouldDeferMigration(name) {
+			log.Printf("deferred destructive migration %s; set %s=true during an approved maintenance window to apply it", name, applyOpsRetryReplayCleanupEnv)
+			continue
+		}
 
 		nonTx, err := validateMigrationExecutionMode(name, content)
 		if err != nil {
@@ -283,6 +291,18 @@ func applyMigrationsFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 	}
 
 	return nil
+}
+
+func shouldDeferMigration(name string) bool {
+	if name != opsRetryReplayCleanupMigration {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(applyOpsRetryReplayCleanupEnv))) {
+	case "1", "true", "yes", "on":
+		return false
+	default:
+		return true
+	}
 }
 
 func prepareNonTransactionalMigration(ctx context.Context, db *sql.DB, name string) error {

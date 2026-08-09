@@ -139,6 +139,24 @@ func TestOpenAIGatewayServiceParseOpenAIImagesRequest_RejectsFractionalIntegers(
 	}
 }
 
+func TestOpenAIGatewayServiceParseOpenAIImagesRequestForPrivateGateway_AcceptsMappedAliasOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	body := []byte(`{"model":"anl-image","prompt":"draw"}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/images/generations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = req
+
+	parsed, err := (&OpenAIGatewayService{}).ParseOpenAIImagesRequest(ctx, body)
+	require.Nil(t, parsed)
+	require.ErrorContains(t, err, "requires an image model")
+
+	parsed, err = (&OpenAIGatewayService{}).ParseOpenAIImagesRequestForPrivateGateway(ctx, body)
+	require.NoError(t, err)
+	require.Equal(t, "anl-image", parsed.Model)
+}
+
 func TestValidateOpenAIImagesRequest_EditInputLimits(t *testing.T) {
 	base := func() *OpenAIImagesRequest {
 		return &OpenAIImagesRequest{

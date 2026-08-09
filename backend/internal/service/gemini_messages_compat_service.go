@@ -2713,13 +2713,17 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 	if path == "" || !strings.HasPrefix(path, "/") {
 		return nil, errors.New("invalid path")
 	}
+	safePath, ok := sanitizedUpstreamPathSuffix(path)
+	if !ok {
+		return nil, errors.New("invalid upstream path")
+	}
 
 	baseURL := account.GetGeminiBaseURL(geminicli.AIStudioBaseURL)
 	normalizedBaseURL, err := s.validateUpstreamBaseURL(baseURL)
 	if err != nil {
 		return nil, err
 	}
-	fullURL := strings.TrimRight(normalizedBaseURL, "/") + path
+	fullURL := strings.TrimRight(normalizedBaseURL, "/") + safePath
 
 	var proxyURL string
 	if account.ProxyID != nil && account.Proxy != nil {

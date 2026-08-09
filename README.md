@@ -13,7 +13,7 @@
 
 > ANL API 是独立维护的项目名称和代码仓库。它基于 [Sub2API](https://github.com/Wei-Shaw/sub2api) 进行二次开发，并不代表上游项目或任何模型供应商的官方产品。
 
-当前版本 `1.0.10` 已选择性对齐 Sub2API `v0.1.168` 的兼容与安全修复，同时保留 ANL 的支付、生图、账号隔离和用户级并发实现。
+当前版本 `1.0.11` 已选择性对齐 Sub2API `v0.1.173` 的兼容、安全与 Codex 稳定性修复，同时保留 ANL 的支付、生图、账号隔离和用户级并发实现。
 
 ## 项目定位
 
@@ -69,6 +69,29 @@ wscat -c 'wss://your-domain.example/v1/realtime?call_id=call_123' \
 - 用户、账号、渠道、分组、API Key、订阅、支付和用量管理。
 - 图像相关账号和分组的管理入口，以及请求审计、风险控制和系统设置。
 - 支持按部署需要启用支付、邮件、对象存储、内容审查和 OAuth 等可选模块。
+
+## ANL 定制界面
+
+这些界面截图使用演示账号、演示 Key 和示例用量，用于说明 ANL API 在用户端和管理端的定制方向，不包含生产账号、真实凭据或用户数据。
+
+### 用户端：API Key、分组与用量
+
+用户可以在一个页面查看 API Key、所属分组、当前并发、用量额度、限速、有效期、状态和常用操作，适合个人或团队管理自己的调用入口。
+
+<p align="center">
+  <img src="assets/screenshots/api-key-management-detail-demo.png" alt="anlapi 用户端 API Key 完整列表演示截图" width="100%">
+</p>
+<p align="center">
+  <img src="assets/screenshots/api-key-management-demo.png" alt="anlapi 用户端 API Key 管理演示截图" width="100%">
+</p>
+
+### 管理端：模型探测与白名单
+
+管理员可以在账号配置中直接进行模型探测，加载可用模型、选择验证方式并加入白名单，减少重复填写连接信息的操作。
+
+<p align="center">
+  <img src="assets/screenshots/model-probe-demo.png" alt="anlapi 管理端模型探测演示截图" width="68%">
+</p>
 
 ## 技术栈
 

@@ -25,6 +25,7 @@ func RegisterGatewayRoutes(
 	settingService *service.SettingService,
 	compositeResolver *service.CompositeRouteResolver,
 	cfg *config.Config,
+	privateGatewayState ...service.PrivateGatewayStateRepository,
 ) {
 	bodyLimit := middleware.RequestBodyLimit(cfg.Gateway.MaxBodySize)
 	clientRequestID := middleware.ClientRequestID()
@@ -37,7 +38,11 @@ func RegisterGatewayRoutes(
 	if apiKeyService != nil {
 		privateGatewayAPIKeyLoader = apiKeyService.GetByID
 	}
-	privateGateway := middleware.NewANLPrivateGateway(cfg.PrivateGateway, privateGatewayAPIKeyLoader)
+	var state service.PrivateGatewayStateRepository
+	if len(privateGatewayState) > 0 {
+		state = privateGatewayState[0]
+	}
+	privateGateway := middleware.NewANLPrivateGatewayWithState(cfg.PrivateGateway, privateGatewayAPIKeyLoader, state)
 
 	// Reject unassigned keys with an error format matching each API protocol.
 	requireGroupAnthropic := middleware.RequireGroupAssignment(settingService, middleware.AnthropicErrorWriter)
@@ -130,6 +135,18 @@ func RegisterGatewayRoutes(
 			},
 		})
 	}
+	guardResponsesSubpath := func(next gin.HandlerFunc) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			if !service.IsForwardableOpenAIResponsesRequestPath(c) {
+				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalPolicyDenied)
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"error": gin.H{"type": "not_found_error", "message": "Unsupported responses subpath"},
+				})
+				return
+			}
+			next(c)
+		}
+	}
 
 	// Claude/OpenAI compatible API gateway.
 	gateway := r.Group("/v1")
@@ -140,6 +157,7 @@ func RegisterGatewayRoutes(
 	gateway.Use(privateGateway.Authentication())
 	gateway.Use(gin.HandlerFunc(apiKeyAuth))
 	gateway.GET("/sub2api/billing", h.Gateway.KeyBillingInfo)
+	gateway.GET("/sub2api/idempotency/:key", privateGateway.Status())
 	gateway.Use(privateGateway.Idempotency())
 	gateway.Use(privateGroupRouteResolver)
 	gateway.Use(compositeTarget)
@@ -168,13 +186,13 @@ func RegisterGatewayRoutes(
 			}
 			h.Gateway.Responses(c)
 		})
-		gateway.POST("/responses/*subpath", func(c *gin.Context) {
+		gateway.POST("/responses/*subpath", guardResponsesSubpath(func(c *gin.Context) {
 			if isOpenAIResponsesCompatibleGatewayPlatform(c) {
 				h.OpenAIGateway.Responses(c)
 				return
 			}
 			h.Gateway.Responses(c)
-		})
+		}))
 		gateway.POST("/alpha/search", h.OpenAIGateway.AlphaSearch)
 		gateway.GET("/responses", func(c *gin.Context) {
 			if getGroupPlatform(c) == service.PlatformGrok {
@@ -251,7 +269,7 @@ func RegisterGatewayRoutes(
 		h.Gateway.Responses(c)
 	}
 	r.POST("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, responsesHandler)
-	r.POST("/responses/*subpath", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, responsesHandler)
+	r.POST("/responses/*subpath", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, guardResponsesSubpath(responsesHandler))
 	r.POST("/alpha/search", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, h.OpenAIGateway.AlphaSearch)
 	r.GET("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), privateGroupRouteResolver, compositeTarget, requireGroupAnthropic, func(c *gin.Context) {
 		if getGroupPlatform(c) == service.PlatformGrok {
@@ -268,7 +286,7 @@ func RegisterGatewayRoutes(
 		codexDirect.POST("/realtime/calls", h.OpenAIGateway.Live)
 		codexDirect.GET("/:call_id", h.OpenAIGateway.LiveSideband)
 		codexDirect.POST("/responses", responsesHandler)
-		codexDirect.POST("/responses/*subpath", responsesHandler)
+		codexDirect.POST("/responses/*subpath", guardResponsesSubpath(responsesHandler))
 		codexDirect.POST("/alpha/search", h.OpenAIGateway.AlphaSearch)
 		codexDirect.GET("/responses", func(c *gin.Context) {
 			if getGroupPlatform(c) == service.PlatformGrok {

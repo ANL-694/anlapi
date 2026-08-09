@@ -46,6 +46,36 @@ func TestOpenAIBodyLimitFailoverExhausted_ReturnsRedactedResponsesSSE(t *testing
 	require.NotContains(t, body, "must-not-leak")
 }
 
+func TestShouldMarkPrivateGatewayRetryableFailover(t *testing.T) {
+	tests := []struct {
+		name          string
+		failoverErr   *service.UpstreamFailoverError
+		streamStarted bool
+		want          bool
+	}{
+		{name: "missing failure"},
+		{name: "body limit", failoverErr: bodyLimitFailoverTestError()},
+		{name: "credential failure", failoverErr: &service.UpstreamFailoverError{
+			Stage:             service.GatewayFailureStageAccountAuth,
+			NextAccountAction: service.NextAccountStop,
+		}},
+		{name: "semantic stream already started", failoverErr: &service.UpstreamFailoverError{
+			StatusCode:        http.StatusServiceUnavailable,
+			NextAccountAction: service.NextAccountRetry,
+		}, streamStarted: true},
+		{name: "retryable inference exhaustion", failoverErr: &service.UpstreamFailoverError{
+			StatusCode:        http.StatusServiceUnavailable,
+			NextAccountAction: service.NextAccountRetry,
+		}, want: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.want, shouldMarkPrivateGatewayRetryableFailover(test.failoverErr, test.streamStarted))
+		})
+	}
+}
+
 func bodyLimitFailoverTestError() *service.UpstreamFailoverError {
 	return &service.UpstreamFailoverError{
 		StatusCode:        http.StatusRequestEntityTooLarge,

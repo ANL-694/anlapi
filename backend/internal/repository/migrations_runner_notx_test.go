@@ -372,6 +372,63 @@ func TestApplyMigrationsFS_TransactionalMigration(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestApplyMigrationsFS_DefersOpsRetryReplayCleanupByDefault(t *testing.T) {
+	t.Setenv(applyOpsRetryReplayCleanupEnv, "")
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	prepareMigrationsBootstrapExpectations(mock)
+	mock.ExpectQuery("SELECT checksum FROM schema_migrations WHERE filename = \\$1").
+		WithArgs(opsRetryReplayCleanupMigration).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectExec("SELECT pg_advisory_unlock\\(\\$1\\)").
+		WithArgs(migrationsAdvisoryLockID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	fsys := fstest.MapFS{
+		opsRetryReplayCleanupMigration: &fstest.MapFile{
+			Data: []byte("DROP TABLE IF EXISTS ops_retry_attempts CASCADE;"),
+		},
+	}
+
+	err = applyMigrationsFS(context.Background(), db, fsys)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestApplyMigrationsFS_AppliesOpsRetryReplayCleanupWhenEnabled(t *testing.T) {
+	t.Setenv(applyOpsRetryReplayCleanupEnv, "true")
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	prepareMigrationsBootstrapExpectations(mock)
+	mock.ExpectQuery("SELECT checksum FROM schema_migrations WHERE filename = \\$1").
+		WithArgs(opsRetryReplayCleanupMigration).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectBegin()
+	mock.ExpectExec("DROP TABLE IF EXISTS ops_retry_attempts CASCADE").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("INSERT INTO schema_migrations \\(filename, checksum\\) VALUES \\(\\$1, \\$2\\)").
+		WithArgs(opsRetryReplayCleanupMigration, sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	mock.ExpectExec("SELECT pg_advisory_unlock\\(\\$1\\)").
+		WithArgs(migrationsAdvisoryLockID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	fsys := fstest.MapFS{
+		opsRetryReplayCleanupMigration: &fstest.MapFile{
+			Data: []byte("DROP TABLE IF EXISTS ops_retry_attempts CASCADE;"),
+		},
+	}
+
+	err = applyMigrationsFS(context.Background(), db, fsys)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func prepareMigrationsBootstrapExpectations(mock sqlmock.Sqlmock) {
 	mock.ExpectQuery("SELECT pg_try_advisory_lock\\(\\$1\\)").
 		WithArgs(migrationsAdvisoryLockID).

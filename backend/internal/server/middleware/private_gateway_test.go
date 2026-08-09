@@ -47,6 +47,24 @@ func newPrivateGatewayTestRuntime() *ANLPrivateGateway {
 	)
 }
 
+func newPrivateGatewayTestRuntimeWithState(state service.PrivateGatewayStateRepository) *ANLPrivateGateway {
+	return newPrivateGatewayTestRuntimeWithClock(state, func() time.Time { return privateGatewayTestNow })
+}
+
+func newPrivateGatewayTestRuntimeWithClock(state service.PrivateGatewayStateRepository, now func() time.Time) *ANLPrivateGateway {
+	return newANLPrivateGatewayWithRuntimeAndState(
+		privateGatewayTestConfig(),
+		func(_ context.Context, id int64) (*service.APIKey, error) {
+			if id != 42 {
+				return nil, service.ErrAPIKeyNotFound
+			}
+			return &service.APIKey{ID: id}, nil
+		},
+		now,
+		state,
+	)
+}
+
 func TestANLPrivateGatewayAuthenticationAcceptsContractRoutesAndRestoresBody(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	for i, route := range []struct {
@@ -303,6 +321,72 @@ func TestANLPrivateGatewayIdempotencyReplayConflictAndRequiredKey(t *testing.T) 
 	})
 }
 
+func TestANLPrivateGatewayIdempotencyKeyContract(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("accepts Hub maximum and replays once", func(t *testing.T) {
+		gateway := newPrivateGatewayTestRuntime()
+		var calls atomic.Int32
+		router := gin.New()
+		router.Use(gateway.Authentication(), gateway.Idempotency())
+		router.POST("/v1/chat/completions", func(c *gin.Context) {
+			calls.Add(1)
+			c.JSON(http.StatusOK, gin.H{"id": "chatcmpl-max-key", "usage": gin.H{"total_tokens": 4}})
+		})
+		router.GET("/v1/sub2api/idempotency/:key", gateway.Status())
+
+		key := strings.Repeat("k", 160)
+		require.Equal(t, strings.Repeat("k", 16), normalizePrivateGatewayIdempotencyKey(strings.Repeat("k", 16)))
+		body := []byte(`{"model":"gpt-5.6-terra"}`)
+		for attempt := 0; attempt < 2; attempt++ {
+			req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+			req.Header.Set("Idempotency-Key", key)
+			signPrivateGatewayTestRequest(req, body, fmt.Sprintf("%032x", 0x170+attempt), privateGatewayTestNow)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, req)
+			require.Equal(t, http.StatusOK, response.Code)
+			if attempt == 1 {
+				require.Equal(t, "true", response.Header().Get(privateGatewayIdempotencyReplayHeader))
+			}
+		}
+		require.Equal(t, int32(1), calls.Load())
+
+		statusRequest := httptest.NewRequest(http.MethodGet, "/v1/sub2api/idempotency/"+key, nil)
+		signPrivateGatewayTestRequest(statusRequest, nil, "00000000000000000000000000000172", privateGatewayTestNow)
+		statusResponse := httptest.NewRecorder()
+		router.ServeHTTP(statusResponse, statusRequest)
+		require.Equal(t, http.StatusOK, statusResponse.Code)
+		var receipt map[string]any
+		require.NoError(t, json.Unmarshal(statusResponse.Body.Bytes(), &receipt))
+		require.Equal(t, "pending", receipt["billing_status"])
+		require.Equal(t, "reported", receipt["usage_status"])
+		require.NotContains(t, receipt, "charged_amount")
+		require.NotContains(t, receipt, "currency")
+	})
+
+	t.Run("rejects keys outside Hub contract", func(t *testing.T) {
+		gateway := newPrivateGatewayTestRuntime()
+		var calls atomic.Int32
+		router := gin.New()
+		router.Use(gateway.Authentication(), gateway.Idempotency())
+		router.POST("/v1/chat/completions", func(c *gin.Context) {
+			calls.Add(1)
+			c.Status(http.StatusNoContent)
+		})
+
+		for index, key := range []string{strings.Repeat("k", 15), strings.Repeat("k", 161), strings.Repeat("k", 15) + "!"} {
+			body := []byte(`{"model":"gpt-5.6-terra"}`)
+			req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+			req.Header.Set("Idempotency-Key", key)
+			signPrivateGatewayTestRequest(req, body, fmt.Sprintf("%032x", 0x180+index), privateGatewayTestNow)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, req)
+			requirePrivateGatewayErrorCode(t, response, http.StatusBadRequest, "INVALID_REQUEST")
+		}
+		require.Zero(t, calls.Load())
+	})
+}
+
 func TestANLPrivateGatewayIdempotencyRejectsConcurrentDuplicate(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	gateway := newPrivateGatewayTestRuntime()
@@ -340,6 +424,358 @@ func TestANLPrivateGatewayIdempotencyRejectsConcurrentDuplicate(t *testing.T) {
 	require.Equal(t, http.StatusOK, (<-firstDone).Code)
 }
 
+func TestANLPrivateGatewayReplayCaptureTwoMiBBoundary(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("replays response below two MiB", func(t *testing.T) {
+		gateway := newPrivateGatewayTestRuntime()
+		var calls atomic.Int32
+		body := bytes.Repeat([]byte("x"), (2<<20)-1)
+		router := gin.New()
+		router.Use(gateway.Authentication(), gateway.Idempotency())
+		router.POST("/v1/chat/completions", func(c *gin.Context) {
+			calls.Add(1)
+			c.Data(http.StatusOK, "application/octet-stream", body)
+		})
+
+		for attempt := 0; attempt < 2; attempt++ {
+			req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader([]byte(`{"model":"gpt-5.6-terra"}`)))
+			req.Header.Set("Idempotency-Key", "idem-two-mib-replay")
+			signPrivateGatewayTestRequest(req, []byte(`{"model":"gpt-5.6-terra"}`), fmt.Sprintf("%032x", 0x90+attempt), privateGatewayTestNow)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, req)
+			require.Equal(t, http.StatusOK, response.Code)
+			require.Equal(t, body, response.Body.Bytes())
+			if attempt == 1 {
+				require.Equal(t, "true", response.Header().Get(privateGatewayIdempotencyReplayHeader))
+			}
+		}
+		require.Equal(t, int32(1), calls.Load())
+	})
+
+	t.Run("marks response above two MiB unknown", func(t *testing.T) {
+		gateway := newPrivateGatewayTestRuntime()
+		body := bytes.Repeat([]byte("x"), (2<<20)+1)
+		router := gin.New()
+		router.Use(gateway.Authentication(), gateway.Idempotency())
+		router.POST("/v1/chat/completions", func(c *gin.Context) {
+			c.Data(http.StatusOK, "application/octet-stream", body)
+		})
+
+		requestBody := []byte(`{"model":"gpt-5.6-terra"}`)
+		firstReq := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(requestBody))
+		firstReq.Header.Set("Idempotency-Key", "idem-two-mib-overflow")
+		signPrivateGatewayTestRequest(firstReq, requestBody, "00000000000000000000000000000091", privateGatewayTestNow)
+		firstResponse := httptest.NewRecorder()
+		router.ServeHTTP(firstResponse, firstReq)
+		require.Equal(t, http.StatusOK, firstResponse.Code)
+
+		secondReq := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(requestBody))
+		secondReq.Header.Set("Idempotency-Key", "idem-two-mib-overflow")
+		signPrivateGatewayTestRequest(secondReq, requestBody, "00000000000000000000000000000092", privateGatewayTestNow)
+		secondResponse := httptest.NewRecorder()
+		router.ServeHTTP(secondResponse, secondReq)
+		requirePrivateGatewayErrorCode(t, secondResponse, http.StatusConflict, "IDEMPOTENCY_OUTCOME_UNKNOWN")
+	})
+}
+
+func TestANLPrivateGatewaySharedStateSurvivesNewGatewayInstance(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	state := newPrivateGatewayMemoryState(func() time.Time { return privateGatewayTestNow })
+	first := newPrivateGatewayTestRuntimeWithState(state)
+	second := newPrivateGatewayTestRuntimeWithState(state)
+
+	var calls atomic.Int32
+	newRouter := func(gateway *ANLPrivateGateway) *gin.Engine {
+		router := gin.New()
+		router.Use(gateway.Authentication(), gateway.Idempotency())
+		router.POST("/v1/chat/completions", func(c *gin.Context) {
+			calls.Add(1)
+			c.JSON(http.StatusCreated, gin.H{"id": "shared-replay", "usage": gin.H{"total_tokens": 9}})
+		})
+		return router
+	}
+
+	body := []byte(`{"model":"gpt-5.6-terra"}`)
+	firstRouter := newRouter(first)
+	firstReq := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+	firstReq.Header.Set("Idempotency-Key", "shared-instance-key")
+	signPrivateGatewayTestRequest(firstReq, body, "00000000000000000000000000000101", privateGatewayTestNow)
+	firstResponse := httptest.NewRecorder()
+	firstRouter.ServeHTTP(firstResponse, firstReq)
+	require.Equal(t, http.StatusCreated, firstResponse.Code)
+
+	secondRouter := newRouter(second)
+	secondReq := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+	secondReq.Header.Set("Idempotency-Key", "shared-instance-key")
+	signPrivateGatewayTestRequest(secondReq, body, "00000000000000000000000000000102", privateGatewayTestNow)
+	secondResponse := httptest.NewRecorder()
+	secondRouter.ServeHTTP(secondResponse, secondReq)
+	require.Equal(t, http.StatusCreated, secondResponse.Code)
+	require.Equal(t, "true", secondResponse.Header().Get(privateGatewayIdempotencyReplayHeader))
+	require.Equal(t, firstResponse.Body.Bytes(), secondResponse.Body.Bytes())
+	require.Equal(t, int32(1), calls.Load())
+}
+
+func TestANLPrivateGatewayExpiredProcessingBecomesOutcomeUnknown(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	state := newPrivateGatewayMemoryState(func() time.Time { return privateGatewayTestNow })
+	gateway := newPrivateGatewayTestRuntimeWithState(state)
+	body := []byte(`{"model":"gpt-5.6-terra"}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+	requestContext := privateGatewayRequestContext{
+		serviceID:  "anl-hub-test",
+		bodySHA256: func() string { sum := sha256.Sum256(body); return hex.EncodeToString(sum[:]) }(),
+	}
+	lockedUntil := privateGatewayTestNow.Add(-time.Second)
+	expiresAt := privateGatewayTestNow.Add(privateGatewayIdempotencyTTL)
+	record := &service.IdempotencyRecord{
+		Scope:              privateGatewayIdempotencyScope(requestContext.serviceID, req, "stale-idempotency-key"),
+		IdempotencyKeyHash: service.HashIdempotencyKey("stale-idempotency-key"),
+		RequestFingerprint: privateGatewayIdempotencyFingerprint(requestContext, req),
+		Status:             service.IdempotencyStatusProcessing,
+		LockedUntil:        &lockedUntil,
+		ExpiresAt:          expiresAt,
+	}
+	owner, err := state.CreateProcessing(context.Background(), record)
+	require.NoError(t, err)
+	require.True(t, owner)
+
+	router := gin.New()
+	router.Use(gateway.Authentication(), gateway.Idempotency())
+	var calls atomic.Int32
+	router.POST("/v1/chat/completions", func(c *gin.Context) { calls.Add(1); c.Status(http.StatusOK) })
+	req.Header.Set("Idempotency-Key", "stale-idempotency-key")
+	signPrivateGatewayTestRequest(req, body, "00000000000000000000000000000103", privateGatewayTestNow)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, req)
+	requirePrivateGatewayErrorCode(t, response, http.StatusConflict, "IDEMPOTENCY_OUTCOME_UNKNOWN")
+	require.Zero(t, calls.Load())
+
+	loaded, err := state.GetByScopeAndKeyHash(context.Background(), record.Scope, record.IdempotencyKeyHash)
+	require.NoError(t, err)
+	require.Equal(t, service.PrivateGatewayIdempotencyStatusOutcomeUnknown, loaded.Status)
+}
+
+func TestANLPrivateGatewayClientDisconnectDoesNotDeleteProcessingRecord(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	state := newPrivateGatewayMemoryState(func() time.Time { return privateGatewayTestNow })
+	gateway := newPrivateGatewayTestRuntimeWithState(state)
+	router := gin.New()
+	router.Use(gateway.Authentication(), gateway.Idempotency())
+	var calls atomic.Int32
+	router.POST("/v1/chat/completions", func(c *gin.Context) {
+		calls.Add(1)
+		ctx, cancel := context.WithCancel(c.Request.Context())
+		cancel()
+		c.Request = c.Request.WithContext(ctx)
+		c.JSON(http.StatusOK, gin.H{"id": "unknown"})
+	})
+
+	body := []byte(`{"model":"gpt-5.6-terra"}`)
+	for attempt := 0; attempt < 2; attempt++ {
+		req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+		req.Header.Set("Idempotency-Key", "disconnect-idempotency-key")
+		signPrivateGatewayTestRequest(req, body, fmt.Sprintf("%032x", 0x104+attempt), privateGatewayTestNow)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		if attempt == 0 {
+			require.Equal(t, http.StatusOK, response.Code)
+		} else {
+			requirePrivateGatewayErrorCode(t, response, http.StatusConflict, "IDEMPOTENCY_OUTCOME_UNKNOWN")
+		}
+	}
+	require.Equal(t, int32(1), calls.Load())
+}
+
+func TestANLPrivateGatewayRetryableFailureUsesSameKeyAfterBackoff(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	now := privateGatewayTestNow
+	clock := func() time.Time { return now }
+	state := newPrivateGatewayMemoryState(clock)
+	gateway := newPrivateGatewayTestRuntimeWithClock(state, clock)
+	router := gin.New()
+	router.Use(gateway.Authentication(), gateway.Idempotency())
+	var calls atomic.Int32
+	router.POST("/v1/chat/completions", func(c *gin.Context) {
+		if calls.Add(1) == 1 {
+			MarkPrivateGatewayRetryableFailure(c)
+			abortPrivateGatewayError(c, http.StatusServiceUnavailable, "UPSTREAM_TEMPORARY", "Upstream is temporarily unavailable")
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"id": "chatcmpl-retried", "usage": gin.H{"total_tokens": 7}})
+	})
+
+	body := []byte(`{"model":"gpt-5.6-terra"}`)
+	request := func(nonce string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+		req.Header.Set("Idempotency-Key", "retryable-idempotency-key")
+		signPrivateGatewayTestRequest(req, body, nonce, now)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		return response
+	}
+
+	first := request("00000000000000000000000000000111")
+	requirePrivateGatewayErrorCode(t, first, http.StatusServiceUnavailable, "UPSTREAM_TEMPORARY")
+	second := request("00000000000000000000000000000112")
+	requirePrivateGatewayErrorCode(t, second, http.StatusConflict, "IDEMPOTENCY_RETRY_BACKOFF")
+	require.Equal(t, int32(1), calls.Load())
+
+	now = now.Add(privateGatewayProcessingTTL + time.Second)
+	third := request("00000000000000000000000000000113")
+	require.Equal(t, http.StatusOK, third.Code)
+	require.Equal(t, int32(2), calls.Load())
+}
+
+func TestANLPrivateGatewayFallbackUsageReceiptIsExactlyOnceForSameKey(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	state := newPrivateGatewayMemoryState(func() time.Time { return privateGatewayTestNow })
+	gateway := newPrivateGatewayTestRuntimeWithState(state)
+	var preOutputFailures atomic.Int32
+	var fallbackAttempts atomic.Int32
+	router := gin.New()
+	router.Use(gateway.Authentication(), gateway.Idempotency())
+	router.POST("/v1/chat/completions", func(c *gin.Context) {
+		preOutputFailures.Add(1)
+		fallbackAttempts.Add(1)
+		c.Header("Content-Type", "text/event-stream")
+		_, err := c.Writer.Write([]byte("data: {\"id\":\"fallback-first-output\",\"usage\":{\"total_tokens\":3}}\n\ndata: [DONE]\n\n"))
+		require.NoError(t, err)
+	})
+	router.GET("/v1/sub2api/idempotency/:key", gateway.Status())
+
+	body := []byte(`{"model":"gpt-5.6-terra","stream":true}`)
+	request := func(nonce string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+		req.Header.Set("Idempotency-Key", "first-output-fallback-key")
+		signPrivateGatewayTestRequest(req, body, nonce, privateGatewayTestNow)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		return response
+	}
+
+	first := request("00000000000000000000000000000141")
+	require.Equal(t, http.StatusOK, first.Code)
+	require.Contains(t, first.Body.String(), "fallback-first-output")
+	require.Equal(t, int32(1), preOutputFailures.Load())
+	require.Equal(t, int32(1), fallbackAttempts.Load())
+
+	replay := request("00000000000000000000000000000142")
+	require.Equal(t, http.StatusOK, replay.Code)
+	require.Equal(t, "true", replay.Header().Get(privateGatewayIdempotencyReplayHeader))
+	require.Equal(t, first.Body.Bytes(), replay.Body.Bytes())
+	require.Equal(t, int32(1), preOutputFailures.Load())
+	require.Equal(t, int32(1), fallbackAttempts.Load())
+
+	for attempt := 0; attempt < 2; attempt++ {
+		statusRequest := httptest.NewRequest(http.MethodGet, "/v1/sub2api/idempotency/first-output-fallback-key", nil)
+		signPrivateGatewayTestRequest(statusRequest, nil, fmt.Sprintf("%032x", 0x143+attempt), privateGatewayTestNow)
+		statusResponse := httptest.NewRecorder()
+		router.ServeHTTP(statusResponse, statusRequest)
+		require.Equal(t, http.StatusOK, statusResponse.Code)
+
+		var receipt struct {
+			Status      string         `json:"status"`
+			Billing     string         `json:"billing_status"`
+			UsageStatus string         `json:"usage_status"`
+			Usage       map[string]any `json:"usage"`
+		}
+		require.NoError(t, json.Unmarshal(statusResponse.Body.Bytes(), &receipt))
+		require.Equal(t, service.IdempotencyStatusSucceeded, receipt.Status)
+		require.Equal(t, "pending", receipt.Billing)
+		require.Equal(t, "reported", receipt.UsageStatus)
+		require.Equal(t, float64(3), receipt.Usage["total_tokens"])
+	}
+	require.Equal(t, int32(1), preOutputFailures.Load())
+	require.Equal(t, int32(1), fallbackAttempts.Load())
+}
+
+func TestANLPrivateGatewayStopsFallbackAfterFirstSemanticStreamOutput(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	state := newPrivateGatewayMemoryState(func() time.Time { return privateGatewayTestNow })
+	gateway := newPrivateGatewayTestRuntimeWithState(state)
+	var primaryAttempts atomic.Int32
+	var fallbackAttempts atomic.Int32
+	router := gin.New()
+	router.Use(gateway.Authentication(), gateway.Idempotency())
+	router.POST("/v1/chat/completions", func(c *gin.Context) {
+		primaryAttempts.Add(1)
+		c.Header("Content-Type", "text/event-stream")
+		_, err := c.Writer.Write([]byte("data: {\"id\":\"primary-first-output\"}\n\n"))
+		require.NoError(t, err)
+	})
+
+	body := []byte(`{"model":"gpt-5.6-terra","stream":true}`)
+	request := func(nonce string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+		req.Header.Set("Idempotency-Key", "first-output-no-fallback-key")
+		signPrivateGatewayTestRequest(req, body, nonce, privateGatewayTestNow)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		return response
+	}
+
+	first := request("00000000000000000000000000000151")
+	require.Equal(t, http.StatusOK, first.Code)
+	require.Contains(t, first.Body.String(), "primary-first-output")
+	require.Equal(t, int32(1), primaryAttempts.Load())
+	require.Zero(t, fallbackAttempts.Load())
+
+	second := request("00000000000000000000000000000152")
+	requirePrivateGatewayErrorCode(t, second, http.StatusConflict, "IDEMPOTENCY_OUTCOME_UNKNOWN")
+	require.Equal(t, int32(1), primaryAttempts.Load())
+	require.Zero(t, fallbackAttempts.Load())
+}
+
+func TestANLPrivateGatewayPanicBecomesOutcomeUnknown(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	state := newPrivateGatewayMemoryState(func() time.Time { return privateGatewayTestNow })
+	gateway := newPrivateGatewayTestRuntimeWithState(state)
+	router := gin.New()
+	router.Use(gin.Recovery(), gateway.Authentication(), gateway.Idempotency())
+	var calls atomic.Int32
+	router.POST("/v1/chat/completions", func(c *gin.Context) {
+		calls.Add(1)
+		panic("synthetic handler panic")
+	})
+
+	body := []byte(`{"model":"gpt-5.6-terra"}`)
+	for attempt := 0; attempt < 2; attempt++ {
+		req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+		req.Header.Set("Idempotency-Key", "panic-idempotency-key")
+		signPrivateGatewayTestRequest(req, body, fmt.Sprintf("%032x", 0x120+attempt), privateGatewayTestNow)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		if attempt == 0 {
+			require.Equal(t, http.StatusInternalServerError, response.Code)
+		} else {
+			requirePrivateGatewayErrorCode(t, response, http.StatusConflict, "IDEMPOTENCY_OUTCOME_UNKNOWN")
+		}
+	}
+	require.Equal(t, int32(1), calls.Load())
+}
+
+func TestPrivateGatewayStoredResponseIncludesUsageAndStreamTerminal(t *testing.T) {
+	response := privateGatewayHTTPResponse{
+		status:    http.StatusOK,
+		header:    http.Header{"Content-Type": []string{"text/event-stream"}},
+		body:      []byte("data: {\"id\":\"chunk-1\",\"usage\":null}\n\ndata: {\"id\":\"chunk-2\",\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":3,\"total_tokens\":5}}\n\ndata: [DONE]\n\n"),
+		errorCode: "",
+	}
+	require.True(t, privateGatewayStreamHasUsageAndTerminal(response.body))
+	require.False(t, privateGatewayStreamHasUsageAndTerminal([]byte("data: {\"usage\":{\"total_tokens\":5}}\n\n")))
+	require.False(t, privateGatewayStreamHasUsageAndTerminal([]byte("data: {\"id\":\"chunk-1\"}\n\ndata: [DONE]\n\n")))
+	response.usage = privateGatewayExtractUsage(response.body)
+	stored, err := encodePrivateGatewayStoredResponse(response)
+	require.NoError(t, err)
+	decoded, err := decodePrivateGatewayStoredResponse(&stored)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5}`, string(decoded.usage))
+	require.Equal(t, "text/event-stream", decoded.header.Get("Content-Type"))
+	require.Equal(t, response.body, decoded.body)
+}
+
 func signPrivateGatewayTestRequest(req *http.Request, body []byte, nonce string, timestamp time.Time) {
 	cfg := privateGatewayTestConfig()
 	bodyDigest := sha256.Sum256(body)
@@ -360,6 +796,43 @@ func signPrivateGatewayTestRequest(req *http.Request, body []byte, nonce string,
 	req.Header.Set(privateGatewayNonceHeader, nonce)
 	req.Header.Set(privateGatewayBodySHA256Header, hex.EncodeToString(bodyDigest[:]))
 	req.Header.Set(privateGatewaySignatureHeader, hex.EncodeToString(mac.Sum(nil)))
+}
+
+func TestANLPrivateGatewayStatusReturnsStoredUsageForOriginalOutputRoute(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	gateway := newPrivateGatewayTestRuntime()
+	router := gin.New()
+	router.Use(gateway.Authentication())
+	router.POST("/v1/chat/completions", gateway.Idempotency(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"id": "chatcmpl-status", "usage": gin.H{"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3}})
+	})
+	router.GET("/v1/sub2api/idempotency/:key", gateway.Status())
+
+	body := []byte(`{"model":"gpt-5.6-terra"}`)
+	request := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+	request.Header.Set("Idempotency-Key", "status-usage-key")
+	signPrivateGatewayTestRequest(request, body, "00000000000000000000000000000131", privateGatewayTestNow)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	statusRequest := httptest.NewRequest(http.MethodGet, "/v1/sub2api/idempotency/status-usage-key", nil)
+	signPrivateGatewayTestRequest(statusRequest, nil, "00000000000000000000000000000132", privateGatewayTestNow)
+	statusResponse := httptest.NewRecorder()
+	router.ServeHTTP(statusResponse, statusRequest)
+	require.Equal(t, http.StatusOK, statusResponse.Code)
+	var payload struct {
+		Status      string         `json:"status"`
+		Billing     string         `json:"billing_status"`
+		UsageStatus string         `json:"usage_status"`
+		Usage       map[string]any `json:"usage"`
+		TotalTokens float64        `json:"-"`
+	}
+	require.NoError(t, json.Unmarshal(statusResponse.Body.Bytes(), &payload))
+	require.Equal(t, service.IdempotencyStatusSucceeded, payload.Status)
+	require.Equal(t, "pending", payload.Billing)
+	require.Equal(t, "reported", payload.UsageStatus)
+	require.Equal(t, float64(3), payload.Usage["total_tokens"])
 }
 
 func strconvFormatPrivateGatewayTestTimestamp(value time.Time) string {
