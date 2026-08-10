@@ -647,6 +647,10 @@ export default {
         testModeCompact: 'Compact 探测',
         modelRestrictionDisabledByPassthrough: '已开启自动透传：模型白名单/映射不会生效。',
       },
+      deepseek: {
+        baseUrlHint: '已预填 DeepSeek 官方 API 地址；系统按官方 OpenAI 兼容接口自动选择 Chat Completions 或 Responses 路由。',
+        apiKeyHint: '您的 DeepSeek 开放平台 API Key'
+      },
       grok: {
         baseUrlHint: 'Grok OAuth 账号会转发到官方 xAI API Base URL。',
         apiKeyHint: 'Grok 订阅支持使用 OAuth refresh token；API Key 账号不在本次范围内。'

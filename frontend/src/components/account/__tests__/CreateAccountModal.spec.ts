@@ -152,6 +152,53 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     showErrorMock.mockReset()
   })
 
+  it('creates the DeepSeek shortcut as an OpenAI-compatible API Key account', async () => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'DeepSeek')
+    await flushPromises()
+
+    const baseUrlInput = wrapper.get('[data-testid="account-api-key-base-url"]')
+    const apiKeyInput = wrapper.get('[data-testid="account-api-key-value"]')
+    expect((baseUrlInput.element as HTMLInputElement).value).toBe('https://api.deepseek.com')
+    expect(baseUrlInput.attributes('autocomplete')).toBe('url')
+    expect(apiKeyInput.attributes('autocomplete')).toBe('new-password')
+    expect(wrapper.find('[data-testid="openai-account-type-api-key"]').exists()).toBe(false)
+
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('DeepSeek official')
+    await apiKeyInput.setValue('sk-deepseek-test')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(createAccountMock).toHaveBeenCalledTimes(1)
+    expect(createAccountMock.mock.calls[0]?.[0]).toMatchObject({
+      platform: 'openai',
+      type: 'apikey',
+      credentials: {
+        base_url: 'https://api.deepseek.com',
+        api_key: 'sk-deepseek-test',
+        model_mapping: {
+          'deepseek-v4-flash': 'deepseek-v4-flash',
+          'deepseek-v4-pro': 'deepseek-v4-pro',
+        },
+      },
+    })
+  })
+
+  it('restores the official OpenAI defaults after leaving the DeepSeek shortcut', async () => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'DeepSeek')
+    await flushPromises()
+    await selectButtonByText(wrapper, 'OpenAI')
+    await flushPromises()
+
+    await wrapper.get('[data-testid="openai-account-type-api-key"]').trigger('click')
+    await flushPromises()
+
+    expect((wrapper.get('[data-testid="account-api-key-base-url"]').element as HTMLInputElement).value)
+      .toBe('https://api.openai.com')
+    expect(wrapper.find('[data-testid="openai-account-type-api-key"]').exists()).toBe(true)
+  })
+
   it('sends false explicitly for normal OpenAI account creation by default', async () => {
     await submitApiKeyAccount('openai')
 

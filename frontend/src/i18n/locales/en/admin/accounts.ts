@@ -592,6 +592,10 @@ export default {
         testModeCompact: 'Compact probe',
         modelRestrictionDisabledByPassthrough: 'Automatic passthrough is enabled: model whitelist/mapping will not take effect.',
       },
+      deepseek: {
+        baseUrlHint: 'The official DeepSeek API URL is prefilled. The gateway automatically selects Chat Completions or Responses through the official OpenAI-compatible API.',
+        apiKeyHint: 'Your DeepSeek platform API Key'
+      },
       grok: {
         baseUrlHint: 'Grok OAuth accounts forward to the official xAI API base URL.',
         apiKeyHint: 'Grok subscription support uses OAuth refresh tokens; API keys are out of scope for this account type.'

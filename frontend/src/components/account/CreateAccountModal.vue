@@ -42,6 +42,7 @@
     <form
       v-if="step === 1"
       id="create-account-form"
+      autocomplete="off"
       @submit.prevent="handleSubmit"
       class="space-y-5"
     >
@@ -104,10 +105,10 @@
       <!-- Platform Selection - Segmented Control Style -->
       <div>
         <label class="input-label">{{ t('admin.accounts.platform') }}</label>
-        <div class="mt-2 grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 sm:grid-cols-3 lg:grid-cols-7 dark:bg-dark-700" data-tour="account-form-platform">
+        <div class="mt-2 grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 dark:bg-dark-700" data-tour="account-form-platform">
           <button
             type="button"
-            @click="form.platform = 'anthropic'"
+            @click="selectPlatform('anthropic')"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
               form.platform === 'anthropic'
@@ -120,10 +121,10 @@
           </button>
           <button
             type="button"
-            @click="form.platform = 'openai'"
+            @click="selectPlatform('openai')"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
-              form.platform === 'openai'
+              form.platform === 'openai' && !isDeepSeekPreset
                 ? 'bg-white text-green-600 shadow-sm dark:bg-dark-600 dark:text-green-400'
                 : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
             ]"
@@ -145,7 +146,24 @@
           </button>
           <button
             type="button"
-            @click="form.platform = 'gemini'"
+            data-testid="deepseek-platform-option"
+            @click="selectDeepSeekPlatform()"
+            :class="[
+              'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
+              isDeepSeekPreset
+                ? 'bg-white text-sky-700 shadow-sm dark:bg-dark-600 dark:text-sky-300'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+            ]"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.5 13.5c3.5-1 5.25-3.5 6.5-7.5 1.5 4.5 4.5 7.5 10.5 8.5-3.5 3-8.5 4-13 1.5" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 19c3.5 1 7 .5 9.5-1.5" />
+            </svg>
+            DeepSeek
+          </button>
+          <button
+            type="button"
+            @click="selectPlatform('gemini')"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
               form.platform === 'gemini'
@@ -170,7 +188,7 @@
           </button>
           <button
             type="button"
-            @click="form.platform = 'antigravity'"
+            @click="selectPlatform('antigravity')"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
               form.platform === 'antigravity'
@@ -183,7 +201,7 @@
           </button>
           <button
             type="button"
-            @click="form.platform = 'grok'"
+            @click="selectPlatform('grok')"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
               form.platform === 'grok'
@@ -196,7 +214,7 @@
           </button>
           <button
             type="button"
-            @click="form.platform = 'kiro'"
+            @click="selectPlatform('kiro')"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
               form.platform === 'kiro'
@@ -210,7 +228,7 @@
           <button
             v-if="!isUserScope"
             type="button"
-            @click="form.platform = 'custom'"
+            @click="selectPlatform('custom')"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
               form.platform === 'custom'
@@ -359,7 +377,7 @@
       </div>
 
       <!-- Account Type Selection (OpenAI) -->
-      <div v-if="form.platform === 'openai'">
+      <div v-if="form.platform === 'openai' && !isDeepSeekPreset">
         <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
         <div :class="['mt-2 grid gap-3', isUserScope ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3']" data-tour="account-form-type">
           <button
@@ -465,7 +483,7 @@
         </div>
       </div>
 
-      <div v-if="form.platform === 'openai'">
+      <div v-if="form.platform === 'openai' && !isDeepSeekPreset">
         <label class="input-label">{{ t('admin.accounts.accountLevel.label') }}</label>
         <Select
           v-model="form.account_level"
@@ -1431,7 +1449,11 @@
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
           <input
             v-model="apiKeyBaseUrl"
-            type="text"
+            type="url"
+            name="upstream_base_url"
+            autocomplete="url"
+            inputmode="url"
+            spellcheck="false"
             class="input"
             data-testid="account-api-key-base-url"
             :placeholder="apiKeyBaseUrlPlaceholder"
@@ -1448,8 +1470,11 @@
           <input
             v-model="apiKeyValue"
             type="password"
+            name="upstream_api_key"
+            autocomplete="new-password"
             required
             class="input font-mono"
+            data-testid="account-api-key-value"
             :placeholder="apiKeySecretPlaceholder"
           />
           <p v-if="apiKeyHint" class="input-hint">{{ apiKeyHint }}</p>
@@ -1560,7 +1585,7 @@
             <div v-if="modelRestrictionMode === 'whitelist'">
               <ModelWhitelistSelector
                 v-model="allowedModels"
-                :platform="form.platform"
+                :platform="isDeepSeekPreset ? 'deepseek' : form.platform"
                 :sync-credentials="syncPreviewCredentials"
               />
               <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -3002,7 +3027,7 @@
 
       <!-- OpenAI 自动透传开关（OAuth/API Key） -->
       <div
-        v-if="form.platform === 'openai' && !isUserScope && !isOpenAIImageAPIKeyMode"
+        v-if="form.platform === 'openai' && !isDeepSeekPreset && !isUserScope && !isOpenAIImageAPIKeyMode"
         class="border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="flex items-center justify-between">
@@ -3032,7 +3057,7 @@
 
       <!-- OpenAI WS Mode 三态（off/ctx_pool/passthrough） -->
       <div
-        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isUserScope && !isOpenAIImageAPIKeyMode"
+        v-if="form.platform === 'openai' && !isDeepSeekPreset && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isUserScope && !isOpenAIImageAPIKeyMode"
         class="border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="flex items-center justify-between">
@@ -3121,7 +3146,7 @@
       </div>
 
       <div
-        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isOpenAIImageAPIKeyMode"
+        v-if="form.platform === 'openai' && !isDeepSeekPreset && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isOpenAIImageAPIKeyMode"
         class="border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="flex items-center justify-between gap-4">
@@ -3184,7 +3209,7 @@
 
       <!-- OpenAI Compact 能力配置 -->
       <div
-        v-if="form.platform === 'openai' && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isUserScope && !isOpenAIImageAPIKeyMode"
+        v-if="form.platform === 'openai' && !isDeepSeekPreset && (accountCategory === 'oauth-based' || accountCategory === 'apikey') && !isUserScope && !isOpenAIImageAPIKeyMode"
         class="border-t border-gray-200 pt-4 dark:border-dark-600 space-y-4"
       >
         <div class="flex items-center justify-between">
@@ -3670,7 +3695,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import {
@@ -3775,6 +3800,9 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 
 const OPENAI_OFFICIAL_BASE_URL = 'https://api.openai.com'
+const DEEPSEEK_OFFICIAL_BASE_URL = 'https://api.deepseek.com'
+const DEEPSEEK_OFFICIAL_MODELS = ['deepseek-v4-flash', 'deepseek-v4-pro'] as const
+const isDeepSeekPreset = ref(false)
 const GPT_IMAGE_MODELS = getModelsByPlatform('openai').filter((model) => model.startsWith('gpt-image-'))
 
 const oauthStepTitle = computed(() => {
@@ -3789,6 +3817,7 @@ const oauthStepTitle = computed(() => {
 // Platform-specific hints for API Key type
 const baseUrlHint = computed(() => {
   if (isOpenAIImageAPIKeyMode.value) return t('admin.accounts.openai.imageApiKeyBaseUrlHint')
+  if (isDeepSeekPreset.value) return t('admin.accounts.deepseek.baseUrlHint')
   if (form.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (form.platform === 'grok') return t('admin.accounts.grok.baseUrlHint')
@@ -3798,6 +3827,7 @@ const baseUrlHint = computed(() => {
 })
 
 const apiKeyHint = computed(() => {
+  if (isDeepSeekPreset.value) return t('admin.accounts.deepseek.apiKeyHint')
   if (form.platform === 'openai') return t('admin.accounts.openai.apiKeyHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.apiKeyHint')
   if (form.platform === 'grok') return t('admin.accounts.grok.apiKeyHint')
@@ -3807,6 +3837,7 @@ const apiKeyHint = computed(() => {
 })
 
 const apiKeyBaseUrlPlaceholder = computed(() => {
+  if (isDeepSeekPreset.value) return DEEPSEEK_OFFICIAL_BASE_URL
   if (form.platform === 'openai') return OPENAI_OFFICIAL_BASE_URL
   if (form.platform === 'gemini') return 'https://generativelanguage.googleapis.com'
   if (form.platform === 'grok') return 'https://api.x.ai/v1'
@@ -3816,6 +3847,7 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
 })
 
 const apiKeySecretPlaceholder = computed(() => {
+  if (isDeepSeekPreset.value) return 'sk-...'
   if (form.platform === 'gemini') return 'AIza...'
   if (form.platform === 'custom') return 'sk-...'
   if (form.platform === 'kiro') return 'sk-...'
@@ -4227,7 +4259,7 @@ const geminiHelpLinks = {
 }
 
 // Computed: current preset mappings based on platform
-const presetMappings = computed(() => getPresetMappingsByPlatform(form.platform))
+const presetMappings = computed(() => getPresetMappingsByPlatform(isDeepSeekPreset.value ? 'deepseek' : form.platform))
 const getKiroDefaultModelMappings = (): ModelMapping[] =>
   getPresetMappingsByPlatform('kiro').map(({ from, to }) => ({ from, to }))
 const tempUnschedPresets = computed(() => [
@@ -4279,9 +4311,49 @@ const form = reactive({
   expires_at: null as number | null
 })
 
+const getDefaultAllowedModels = () =>
+  isDeepSeekPreset.value
+    ? [...DEEPSEEK_OFFICIAL_MODELS]
+    : [...getModelsByPlatform(form.platform)]
+
+const selectPlatform = async (platform: AccountPlatform) => {
+  const wasDeepSeekPreset = isDeepSeekPreset.value
+  isDeepSeekPreset.value = false
+  form.platform = platform
+
+  if (wasDeepSeekPreset && platform === 'openai') {
+    await nextTick()
+    accountCategory.value = 'oauth-based'
+    form.type = 'oauth'
+    apiKeyBaseUrl.value = OPENAI_OFFICIAL_BASE_URL
+    modelRestrictionMode.value = 'whitelist'
+    allowedModels.value = [...getModelsByPlatform('openai')]
+    modelMappings.value = []
+  }
+}
+
+const selectDeepSeekPlatform = async () => {
+  form.platform = 'openai'
+  isDeepSeekPreset.value = true
+  await nextTick()
+
+  accountCategory.value = 'apikey'
+  form.type = 'apikey'
+  openAIAPIKeyMode.value = 'standard'
+  openAIAPIKeyBaseUrlBeforeImageMode.value = null
+  openaiPassthroughEnabled.value = false
+  openaiAPIKeyResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
+  apiKeyBaseUrl.value = DEEPSEEK_OFFICIAL_BASE_URL
+  modelRestrictionMode.value = 'whitelist'
+  allowedModels.value = [...DEEPSEEK_OFFICIAL_MODELS]
+  modelMappings.value = []
+  openAICompactModelMappings.value = []
+}
+
 const isOpenAIImageAPIKeyMode = computed(() =>
   !isUserScope.value &&
   form.platform === 'openai' &&
+  !isDeepSeekPreset.value &&
   accountCategory.value === 'apikey' &&
   openAIAPIKeyMode.value === 'image'
 )
@@ -4455,7 +4527,7 @@ watch(
         codexCLIOnlyEnabled.value = false
       }
       // Modal opened - fill related models
-      allowedModels.value = [...getModelsByPlatform(form.platform)]
+      allowedModels.value = getDefaultAllowedModels()
       // Antigravity: 默认使用映射模式并填充默认映射
       if (form.platform === 'antigravity') {
         antigravityModelRestrictionMode.value = 'mapping'
@@ -4715,10 +4787,10 @@ const handleSelectGeminiOAuthType = (oauthType: 'code_assist' | 'google_one' | '
 
 // Auto-fill related models when switching to whitelist mode or changing platform
 watch(
-  [modelRestrictionMode, () => form.platform],
+  [modelRestrictionMode, () => form.platform, isDeepSeekPreset],
   ([newMode]) => {
     if (newMode === 'whitelist') {
-      allowedModels.value = [...getModelsByPlatform(form.platform)]
+      allowedModels.value = getDefaultAllowedModels()
     }
   }
 )
@@ -5073,6 +5145,7 @@ const resetForm = () => {
   form.name = ''
   form.notes = ''
   form.platform = 'anthropic'
+  isDeepSeekPreset.value = false
   form.type = 'oauth'
   form.share_mode = 'private'
   form.account_level = 'unknown'
@@ -5547,8 +5620,10 @@ const handleSubmit = async () => {
 
   // Determine default base URL based on platform
   const defaultBaseUrl =
-    form.platform === 'openai'
-      ? 'https://api.openai.com'
+    isDeepSeekPreset.value
+      ? DEEPSEEK_OFFICIAL_BASE_URL
+      : form.platform === 'openai'
+      ? OPENAI_OFFICIAL_BASE_URL
       : form.platform === 'gemini'
         ? 'https://generativelanguage.googleapis.com'
         : form.platform === 'grok'
