@@ -734,11 +734,29 @@ type ChatChoice struct {
 
 // ChatUsage holds token counts in Chat Completions format.
 type ChatUsage struct {
-	PromptTokens            int               `json:"prompt_tokens"`
-	CompletionTokens        int               `json:"completion_tokens"`
-	TotalTokens             int               `json:"total_tokens"`
+	PromptTokens          int `json:"prompt_tokens"`
+	CompletionTokens      int `json:"completion_tokens"`
+	TotalTokens           int `json:"total_tokens"`
+	PromptCacheHitTokens  int `json:"prompt_cache_hit_tokens,omitempty"`
+	PromptCacheMissTokens int `json:"prompt_cache_miss_tokens,omitempty"`
+
 	PromptTokensDetails     *ChatTokenDetails `json:"prompt_tokens_details,omitempty"`
 	CompletionTokensDetails *ChatTokenDetails `json:"completion_tokens_details,omitempty"`
+}
+
+func chatUsagePromptAndCacheTokens(usage *ChatUsage) (promptTokens, cacheReadTokens int) {
+	if usage == nil {
+		return 0, 0
+	}
+	promptTokens = usage.PromptTokens
+	cacheReadTokens = usage.PromptCacheHitTokens
+	if cacheReadTokens == 0 && usage.PromptTokensDetails != nil {
+		cacheReadTokens = usage.PromptTokensDetails.CachedTokens
+	}
+	if promptTokens == 0 && (usage.PromptCacheHitTokens > 0 || usage.PromptCacheMissTokens > 0) {
+		promptTokens = usage.PromptCacheHitTokens + usage.PromptCacheMissTokens
+	}
+	return promptTokens, cacheReadTokens
 }
 
 // ChatTokenDetails provides a breakdown of token usage. The same type is

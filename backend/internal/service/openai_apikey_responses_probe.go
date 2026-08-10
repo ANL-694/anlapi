@@ -66,6 +66,9 @@ func selectResponsesProbeModel(account *Account) string {
 		candidates = append(candidates, upstream)
 	}
 	if len(candidates) == 0 {
+		if openai_compat.IsOfficialDeepSeekBaseURL(account.GetOpenAIBaseURL()) {
+			return openai_compat.DeepSeekV4FlashModel
+		}
 		return openai.DefaultTestModel
 	}
 	sort.Strings(candidates)

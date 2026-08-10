@@ -10,12 +10,17 @@
 // 探测并落标。
 //
 // 设计取舍：
-//   - 不维护静态 host 白名单——避免新增厂商时必须改代码（讨论沉淀于
-//     pensieve/short-term/knowledge/upstream-capability-detection-design-tradeoffs）
+//   - 通用兼容上游以账号探测为主，不维护大而脆弱的厂商 host 白名单；仅对官方文档
+//     明确存在模型级端点差异的上游做窄例外
 //   - 标记缺失时默认 true（即"走 Responses"），保持与重构前老代码完全一致的存量
 //     账号行为（"现状即证据"原则；详见
 //     pensieve/short-term/maxims/preserve-existing-runtime-behavior-when-replacing-logic-in-stateful-systems）
 package openai_compat
+
+import (
+	"net/url"
+	"strings"
+)
 
 // AccountResponsesSupport 描述账号上游对 OpenAI Responses API 的支持状态。
 //
@@ -44,6 +49,9 @@ const (
 )
 
 const ExtraKeyResponsesMode = "openai_responses_mode"
+
+const DeepSeekV4FlashModel = "deepseek-v4-flash"
+const DeepSeekV4ProModel = "deepseek-v4-pro"
 
 // ExtraKeyResponsesSupported 是 accounts.extra JSON 中存储探测结果的键名。
 // 值类型为 bool：true=支持、false=不支持、键缺失=未探测。
@@ -101,4 +109,44 @@ func ResolveResponsesSupport(extra map[string]any) AccountResponsesSupport {
 // （详见 internal/service/openai_gateway_chat_completions_raw.go）。
 func ShouldUseResponsesAPI(extra map[string]any) bool {
 	return ResolveResponsesSupport(extra) != ResponsesSupportNo
+}
+
+// ShouldUseResponsesAPIForModel applies model-level capability differences on
+// top of the account-level probe result. Manual force modes always win.
+//
+// DeepSeek's official API currently exposes Responses for V4 Flash but not V4
+// Pro. Other hosts and models retain the account-level probe behavior.
+func ShouldUseResponsesAPIForModel(extra map[string]any, baseURL, model string) bool {
+	if extra != nil {
+		if mode, ok := extra[ExtraKeyResponsesMode].(string); ok {
+			switch NormalizeResponsesSupportMode(mode) {
+			case ResponsesSupportModeForceResponses:
+				return true
+			case ResponsesSupportModeForceChatCompletions:
+				return false
+			}
+		}
+	}
+
+	if IsOfficialDeepSeekBaseURL(baseURL) {
+		switch strings.ToLower(strings.TrimSpace(model)) {
+		case DeepSeekV4FlashModel:
+			return true
+		case DeepSeekV4ProModel:
+			return false
+		}
+	}
+
+	return ShouldUseResponsesAPI(extra)
+}
+
+// IsOfficialDeepSeekBaseURL reports whether baseURL targets DeepSeek's official
+// API host. Hostname parsing avoids suffix-confusion such as
+// api.deepseek.com.evil.example.
+func IsOfficialDeepSeekBaseURL(baseURL string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return false
+	}
+	return strings.EqualFold(parsed.Hostname(), "api.deepseek.com")
 }

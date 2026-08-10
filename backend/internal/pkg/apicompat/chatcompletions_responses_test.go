@@ -53,6 +53,23 @@ func TestUsageConversionsPreserveCacheWriteTokens(t *testing.T) {
 	require.Equal(t, 200, roundTrip.InputTokensDetails.CacheWriteTokens)
 }
 
+func TestChatUsageToResponsesUsagePreservesDeepSeekCacheTokens(t *testing.T) {
+	var usage ChatUsage
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"prompt_tokens":1000,
+		"completion_tokens":50,
+		"total_tokens":1050,
+		"prompt_cache_hit_tokens":900,
+		"prompt_cache_miss_tokens":100
+	}`), &usage))
+
+	converted := ChatUsageToResponsesUsage(&usage)
+	require.NotNil(t, converted)
+	require.Equal(t, 1000, converted.InputTokens)
+	require.NotNil(t, converted.InputTokensDetails)
+	require.Equal(t, 900, converted.InputTokensDetails.CachedTokens)
+}
+
 func TestResponsesUsageNestedCacheWritePresenceOverridesTopLevelAlias(t *testing.T) {
 	tests := []struct {
 		name       string

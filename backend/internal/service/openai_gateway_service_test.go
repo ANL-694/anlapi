@@ -2447,6 +2447,43 @@ func TestParseSSEUsage_SelectiveParsing(t *testing.T) {
 	require.Equal(t, 4, usage.CacheReadInputTokens)
 }
 
+func TestOpenAIUsageFromGJSON_DeepSeekPromptCacheTokens(t *testing.T) {
+	tests := []struct {
+		name      string
+		payload   string
+		wantInput int
+		wantHit   int
+	}{
+		{
+			name:      "top-level cache fields",
+			payload:   `{"prompt_tokens":1000,"completion_tokens":25,"prompt_cache_hit_tokens":900,"prompt_cache_miss_tokens":100}`,
+			wantInput: 1000,
+			wantHit:   900,
+		},
+		{
+			name:      "derive prompt total when provider omits prompt_tokens",
+			payload:   `{"completion_tokens":25,"prompt_cache_hit_tokens":900,"prompt_cache_miss_tokens":100}`,
+			wantInput: 1000,
+			wantHit:   900,
+		},
+		{
+			name:      "deepseek top-level field wins over generic nested alias",
+			payload:   `{"prompt_tokens":1000,"completion_tokens":25,"prompt_cache_hit_tokens":900,"prompt_cache_miss_tokens":100,"prompt_tokens_details":{"cached_tokens":700}}`,
+			wantInput: 1000,
+			wantHit:   900,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			usage, ok := openAIUsageFromGJSON(gjson.Parse(tt.payload))
+			require.True(t, ok)
+			require.Equal(t, tt.wantInput, usage.InputTokens)
+			require.Equal(t, tt.wantHit, usage.CacheReadInputTokens)
+		})
+	}
+}
+
 func TestExtractCodexFinalResponse_SampleReplay(t *testing.T) {
 	body := strings.Join([]string{
 		`event: message`,

@@ -45,6 +45,26 @@ func TestStream_ReasoningOpensItemBeforeDelta(t *testing.T) {
 	}
 }
 
+func TestStream_DeepSeekCacheUsagePreserved(t *testing.T) {
+	events := collectStreamEvents(t, []string{
+		`{"choices":[{"index":0,"delta":{"content":"hello"}}]}`,
+		`{"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":1000,"completion_tokens":50,"total_tokens":1050,"prompt_cache_hit_tokens":900,"prompt_cache_miss_tokens":100}}`,
+	})
+
+	for _, event := range events {
+		if event.Type != "response.completed" {
+			continue
+		}
+		require.NotNil(t, event.Response)
+		require.NotNil(t, event.Response.Usage)
+		require.Equal(t, 1000, event.Response.Usage.InputTokens)
+		require.NotNil(t, event.Response.Usage.InputTokensDetails)
+		require.Equal(t, 900, event.Response.Usage.InputTokensDetails.CachedTokens)
+		return
+	}
+	t.Fatal("response.completed event missing")
+}
+
 func TestStream_ReasoningOnlySynthesizesVisibleText(t *testing.T) {
 	events := collectStreamEvents(t, []string{
 		`{"choices":[{"index":0,"delta":{"role":"assistant","content":null,"reasoning_content":""}}]}`,

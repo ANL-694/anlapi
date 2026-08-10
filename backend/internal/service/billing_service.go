@@ -364,6 +364,22 @@ func (s *BillingService) initFallbackPricing() {
 		CacheReadPricePerTokenPriority: 0.3e-6,
 		SupportsCacheBreakdown:         false,
 	}
+
+	// DeepSeek V4 official API pricing: cache hits are billed separately from
+	// uncached prompt input. deepseek-chat / deepseek-reasoner compatibility
+	// aliases resolve to the Flash rate in getFallbackPricing below.
+	s.fallbackPrices["deepseek-v4-flash"] = &ModelPricing{
+		InputPricePerToken:     0.14e-6,
+		OutputPricePerToken:    0.28e-6,
+		CacheReadPricePerToken: 0.0028e-6,
+		SupportsCacheBreakdown: false,
+	}
+	s.fallbackPrices["deepseek-v4-pro"] = &ModelPricing{
+		InputPricePerToken:     0.435e-6,
+		OutputPricePerToken:    0.87e-6,
+		CacheReadPricePerToken: 0.003625e-6,
+		SupportsCacheBreakdown: false,
+	}
 	s.fallbackPrices["kimi-k3"] = &ModelPricing{
 		InputPricePerToken:     3e-6,
 		OutputPricePerToken:    15e-6,

@@ -429,6 +429,48 @@ func TestChatCompletionsResponseToAnthropic_CacheTokens(t *testing.T) {
 	require.Equal(t, 10, out.Usage.CacheCreationInputTokens)
 }
 
+func TestChatCompletionsResponseToAnthropic_DeepSeekCacheTokens(t *testing.T) {
+	resp := &ChatCompletionsResponse{
+		ID:    "chatcmpl-deepseek-cache",
+		Model: "deepseek-v4-pro",
+		Choices: []ChatChoice{{
+			Index:        0,
+			Message:      ChatMessage{Role: "assistant", Content: json.RawMessage(`"hi"`)},
+			FinishReason: "stop",
+		}},
+		Usage: &ChatUsage{
+			PromptTokens:          1000,
+			CompletionTokens:      50,
+			TotalTokens:           1050,
+			PromptCacheHitTokens:  900,
+			PromptCacheMissTokens: 100,
+		},
+	}
+
+	out := ChatCompletionsResponseToAnthropic(resp, "deepseek-v4-pro")
+	require.Equal(t, 100, out.Usage.InputTokens)
+	require.Equal(t, 50, out.Usage.OutputTokens)
+	require.Equal(t, 900, out.Usage.CacheReadInputTokens)
+}
+
+func TestChatCompletionsChunkToAnthropicEvents_DeepSeekCacheTokens(t *testing.T) {
+	events := collectAnthropicStreamEvents(t, []string{
+		`{"choices":[{"index":0,"delta":{"content":"hello"}}]}`,
+		`{"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":1000,"completion_tokens":50,"total_tokens":1050,"prompt_cache_hit_tokens":900,"prompt_cache_miss_tokens":100}}`,
+	})
+
+	for _, event := range events {
+		if event.Type != "message_delta" || event.Usage == nil {
+			continue
+		}
+		require.Equal(t, 100, event.Usage.InputTokens)
+		require.Equal(t, 50, event.Usage.OutputTokens)
+		require.Equal(t, 900, event.Usage.CacheReadInputTokens)
+		return
+	}
+	t.Fatal("message_delta usage event missing")
+}
+
 func TestChatCompletionsResponseToAnthropic_NilResponse(t *testing.T) {
 	out := ChatCompletionsResponseToAnthropic(nil, "claude-sonnet-4-20250514")
 	require.Len(t, out.Content, 1)

@@ -45,11 +45,11 @@ var cursorResponsesUnsupportedFields = []string{
 // 正确的，但 sub2api 接入 DeepSeek/Kimi/GLM 等第三方 OpenAI 兼容上游后假设破裂：
 // 这些上游普遍只支持 /v1/chat/completions，无 /v1/responses 端点。
 //
-// 当前路由策略（基于账号覆盖模式/探测标记，详见 openai_compat.ShouldUseResponsesAPI）：
-//   - APIKey 账号 + 强制或探测确认不支持 Responses → 走 forwardAsRawChatCompletions
+// 当前路由策略（账号覆盖/探测 + 少量官方模型级能力差异）：
+//   - APIKey 账号最终模型不支持 Responses → 走 forwardAsRawChatCompletions
 //     直转上游 /v1/chat/completions，不做协议转换
-//   - 其他所有情况（OAuth、APIKey 强制/探测确认支持、未探测）→ 走原有 CC→Responses
-//     转换路径（保留旧行为，存量未探测账号零兼容破坏）
+//   - 其他所有情况（OAuth、APIKey 强制/探测确认支持、未探测，以及官方 DeepSeek
+//     V4 Flash）→ 走原有 CC→Responses 转换路径
 func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 	ctx context.Context,
 	c *gin.Context,
@@ -85,9 +85,9 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 		return s.forwardAsRawChatCompletions(ctx, c, account, body, defaultMappedModel)
 	}
 
-	// 入口分流：APIKey 账号 + 强制或已探测确认上游不支持 Responses，走 CC 直转。
-	// 自动模式下标记缺失（未探测）按"现状即证据"原则继续走下方原 Responses 转换路径。
-	if account.Type == AccountTypeAPIKey && !openai_compat.ShouldUseResponsesAPI(account.Extra) {
+	// 入口分流：APIKey 账号按最终映射模型选择端点。除账号覆盖/探测外，
+	// 官方 DeepSeek V4 Flash 走 Responses，V4 Pro 走 Chat Completions。
+	if !shouldUseResponsesAPIForAccountModel(account, gjson.GetBytes(body, "model").String(), defaultMappedModel) {
 		return s.forwardAsRawChatCompletions(ctx, c, account, body, defaultMappedModel)
 	}
 

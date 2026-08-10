@@ -158,6 +158,47 @@ func TestGetModelPricing_OpenAIGPT54Fallback(t *testing.T) {
 	require.InDelta(t, 1.5, pricing.LongContextOutputMultiplier, 1e-12)
 }
 
+func TestGetModelPricing_DeepSeekV4Fallback(t *testing.T) {
+	svc := newTestBillingService()
+
+	tests := []struct {
+		model     string
+		input     float64
+		output    float64
+		cacheRead float64
+	}{
+		{model: "deepseek-v4-flash", input: 0.14e-6, output: 0.28e-6, cacheRead: 0.0028e-6},
+		{model: "deepseek-v4-pro", input: 0.435e-6, output: 0.87e-6, cacheRead: 0.003625e-6},
+		{model: "deepseek-chat", input: 0.14e-6, output: 0.28e-6, cacheRead: 0.0028e-6},
+		{model: "deepseek-reasoner", input: 0.14e-6, output: 0.28e-6, cacheRead: 0.0028e-6},
+	}
+	for _, tt := range tests {
+		t.Run(tt.model, func(t *testing.T) {
+			pricing, err := svc.GetModelPricing(tt.model)
+			require.NoError(t, err)
+			require.NotNil(t, pricing)
+			require.InDelta(t, tt.input, pricing.InputPricePerToken, 1e-12)
+			require.InDelta(t, tt.output, pricing.OutputPricePerToken, 1e-12)
+			require.InDelta(t, tt.cacheRead, pricing.CacheReadPricePerToken, 1e-12)
+		})
+	}
+}
+
+func TestCalculateCost_DeepSeekV4FlashCacheHitUsesDiscountedRate(t *testing.T) {
+	svc := newTestBillingService()
+
+	cost, err := svc.CalculateCost("deepseek-v4-flash", UsageTokens{
+		InputTokens:     700_000,
+		CacheReadTokens: 300_000,
+		OutputTokens:    100_000,
+	}, 1.0)
+	require.NoError(t, err)
+	require.InDelta(t, 0.098, cost.InputCost, 1e-12)
+	require.InDelta(t, 0.00084, cost.CacheReadCost, 1e-12)
+	require.InDelta(t, 0.028, cost.OutputCost, 1e-12)
+	require.InDelta(t, 0.12684, cost.TotalCost, 1e-12)
+}
+
 func TestGetModelPricing_OpenAIGPT56Fallbacks(t *testing.T) {
 	svc := newTestBillingService()
 

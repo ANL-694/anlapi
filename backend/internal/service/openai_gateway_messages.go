@@ -15,9 +15,9 @@ import (
 	"anlapi/internal/pkg/apicompat"
 	"anlapi/internal/pkg/claude"
 	"anlapi/internal/pkg/logger"
-	"anlapi/internal/pkg/openai_compat"
 	"anlapi/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
+	"github.com/tidwall/gjson"
 	"go.uber.org/zap"
 )
 
@@ -33,7 +33,8 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 	promptCacheKey string,
 	defaultMappedModel string,
 ) (*OpenAIForwardResult, error) {
-	if account != nil && account.Platform != PlatformGrok && account.Type == AccountTypeAPIKey && !openai_compat.ShouldUseResponsesAPI(account.Extra) {
+	if account != nil && account.Platform != PlatformGrok &&
+		!shouldUseResponsesAPIForAccountModel(account, gjson.GetBytes(body, "model").String(), defaultMappedModel) {
 		return s.forwardAnthropicViaRawChatCompletions(ctx, c, account, body, defaultMappedModel)
 	}
 

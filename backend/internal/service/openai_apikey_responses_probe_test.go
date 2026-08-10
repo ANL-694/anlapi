@@ -117,4 +117,15 @@ func TestSelectResponsesProbeModel(t *testing.T) {
 		"model_mapping": map[string]any{"a": "gpt-*"},
 	}}
 	require.Equal(t, openai.DefaultTestModel, selectResponsesProbeModel(acctAllWild))
+
+	// DeepSeek official API exposes a native Responses endpoint for V4 Flash.
+	// Use that real model instead of probing the provider with an OpenAI model ID.
+	deepSeek := &Account{
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"base_url": "https://api.deepseek.com/v1",
+		},
+	}
+	require.Equal(t, "deepseek-v4-flash", selectResponsesProbeModel(deepSeek))
 }

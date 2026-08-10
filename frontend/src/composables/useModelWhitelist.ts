@@ -107,6 +107,7 @@ const qwenModels = [
 
 // DeepSeek
 const deepseekModels = [
+  'deepseek-v4-flash', 'deepseek-v4-pro',
   'deepseek-chat', 'deepseek-coder', 'deepseek-reasoner',
   'deepseek-v3', 'deepseek-v3-0324',
   'deepseek-r1', 'deepseek-r1-0528',

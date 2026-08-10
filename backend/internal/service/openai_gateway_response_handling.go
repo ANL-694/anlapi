@@ -1042,6 +1042,21 @@ func openAIUsageFromGJSON(value gjson.Result) (OpenAIUsage, bool) {
 	if inputTokens == 0 {
 		inputTokens = value.Get("prompt_tokens").Int()
 	}
+	if inputTokens == 0 {
+		cacheHit := value.Get("prompt_cache_hit_tokens")
+		cacheMiss := value.Get("prompt_cache_miss_tokens")
+		if cacheHit.Exists() || cacheMiss.Exists() {
+			cacheHitTokens := cacheHit.Int()
+			if cacheHitTokens < 0 {
+				cacheHitTokens = 0
+			}
+			cacheMissTokens := cacheMiss.Int()
+			if cacheMissTokens < 0 {
+				cacheMissTokens = 0
+			}
+			inputTokens = cacheHitTokens + cacheMissTokens
+		}
+	}
 	outputTokens := value.Get("output_tokens").Int()
 	if outputTokens == 0 {
 		outputTokens = value.Get("completion_tokens").Int()
@@ -1075,6 +1090,10 @@ func openAIUsageFromGJSON(value gjson.Result) (OpenAIUsage, bool) {
 }
 
 func openAICacheReadTokensFromUsage(value gjson.Result) int {
+	if deepSeek := value.Get("prompt_cache_hit_tokens"); deepSeek.Exists() {
+		return max(int(deepSeek.Int()), 0)
+	}
+
 	for _, nested := range []gjson.Result{
 		value.Get("input_tokens_details.cached_tokens"),
 		value.Get("prompt_tokens_details.cached_tokens"),

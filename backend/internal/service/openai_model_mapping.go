@@ -1,6 +1,10 @@
 package service
 
-import "strings"
+import (
+	"strings"
+
+	"anlapi/internal/pkg/openai_compat"
+)
 
 // resolveOpenAIForwardModel determines the upstream model for OpenAI-compatible
 // forwarding. The group-level messages default only applies to Claude-family
@@ -19,6 +23,19 @@ func resolveOpenAIForwardModel(account *Account, requestedModel, messagesDispatc
 		return messagesDispatchMappedModel
 	}
 	return mappedModel
+}
+
+func shouldUseResponsesAPIForAccountModel(account *Account, requestedModel, messagesDispatchMappedModel string) bool {
+	if account == nil || account.Type != AccountTypeAPIKey {
+		return true
+	}
+	effectiveModel := resolveOpenAIForwardModel(account, requestedModel, messagesDispatchMappedModel)
+	effectiveModel = normalizeOpenAIModelForUpstream(account, effectiveModel)
+	return openai_compat.ShouldUseResponsesAPIForModel(
+		account.Extra,
+		account.GetOpenAIBaseURL(),
+		effectiveModel,
+	)
 }
 
 // openAIOAuthForeignModelPrefixes lists model families that a Codex OAuth
