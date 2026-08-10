@@ -9,6 +9,8 @@
 
 anlapi は Sub2API をベースに二次開発された、セルフホスト向けの AI API ゲートウェイ兼サブスクリプション管理プラットフォームです。アカウントプール、API Key 管理、複数プロバイダーへのリクエスト転送、利用量計測、サブスクリプション課金、モデレーション制御、管理運用機能を提供します。
 
+現在の `1.0.11` リリーススナップショットは、Sub2API `v0.1.173` の互換性・セキュリティ修正を選択的に取り込みつつ、ANL 固有の決済、画像生成、アカウント分離、監査、ユーザー単位の同時実行制御を維持しています。
+
 [English](README.md) | [中文](README_CN.md) | 日本語
 
 サイト：[https://api.anlmc.top](https://api.anlmc.top)
@@ -31,6 +33,7 @@ QQ グループ：`146499741`
 - chat、responses、models、embeddings、image、ストリーミング用途に対応した OpenAI 互換ゲートウェイエンドポイント。
 - Grok OAuth、Kiro OAuth、無料モデルプロバイダーの接続、設定可能なプライベートアカウント接続フローに対応。
 - OpenAI 互換チャネルとアカウント型上流サービスに対応する複数プロバイダーのルーティング。
+- DeepSeek 公式 API Key の簡易設定、`deepseek-v4-flash` / `deepseek-v4-pro` のルーティング、推論強度、キャッシュヒット usage の計測。
 - 公開、プライベート、所有、相乗り型スケジューリング概念を含むアカウントプール管理。
 - 複数グループルーティング、IP アクセス制御、クォータ制御、利用記録、課金メタデータを備えた API Key 管理。
 - ユーザーサブスクリプション、チャージフロー、引換コード、招待報酬、ショップ/カードキー機能。
@@ -39,6 +42,17 @@ QQ グループ：`146499741`
 - タグビルド、Docker イメージ、アーカイブ、GitHub Releases に対応した組み込みリリースワークフロー。
 - Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS、Vite によるフロントエンドコンソール。
 - Go、Gin、Ent、PostgreSQL、Redis とモジュール化されたサービス境界によるバックエンド。
+
+### DeepSeek V4 対応
+
+管理画面で API Key アカウントを作成するときに **DeepSeek** のショートカットを選択できます。公式 API URL `https://api.deepseek.com` と、次のモデル候補が自動入力されます。
+
+- `deepseek-v4-flash`
+- `deepseek-v4-pro`
+
+クライアントは通常の OpenAI 互換 `POST /v1/chat/completions` を使えます。anlapi は最終モデルの能力に応じて上流プロトコルを選択し、V4 Flash は Responses、V4 Pro は Chat Completions に転送します。DeepSeek の上流 API Key はサーバー側に保存され、クライアントへ公開されません。
+
+`reasoning_effort` と対応するネスト形式の推論設定を受け付けます。クライアントが明示した値は保持され、管理者がグループまたは API Key に設定したポリシーの範囲で適用されます。`prompt_cache_hit_tokens` などのキャッシュ usage は統一 usage として記録され、キャッシュ読み取り用の課金計算に反映されます。これは回答本文を保存して再利用するレスポンスキャッシュではありません。
 
 ### OpenAI Realtime / Live の使用例
 
@@ -59,6 +73,27 @@ wscat -c 'wss://your-domain.example/v1/realtime?call_id=call_123' \
 ```
 
 既存の `POST /v1/live` と `GET /v1/live/:call_id` も引き続き利用できます。
+
+## クイックスタート
+
+デプロイ後は、次の順番で初期設定します。
+
+1. 管理画面のアカウント管理で上流アカウントを作成します。公式 DeepSeek API を使う場合は **DeepSeek** ショートカットを選び、上流 API Key を入力します。
+2. グループを作成または選択し、公開モデル名、モデルマッピング、利用可能なアカウントを設定します。
+3. ユーザー API Key を作成し、対象グループへのアクセスを付与します。クライアントが使うのはこのユーザー API Key だけで、上流の認証情報は anlapi のサーバー側設定に残ります。
+4. OpenAI 互換 API を呼び出します。
+
+```bash
+curl https://your-domain.example/v1/chat/completions \
+  -H "Authorization: Bearer $ANL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek-v4-pro",
+    "messages": [{"role": "user", "content": "こんにちは"}],
+    "reasoning_effort": "high",
+    "stream": false
+  }'
+```
 
 ## 1.0.11 更新内容
 

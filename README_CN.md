@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-LGPL--3.0-blue)
 
-anlapi 是基于 Sub2API 二次开发的自托管 AI API 网关与订阅管理平台，提供账号池、API Key 管理、多供应商请求转发、用量计费、订阅充值、风控审查和后台运营能力。
+anlapi 是基于 Sub2API 二次开发的自托管 AI API 网关与订阅管理平台，提供账号池、API Key 管理、多供应商请求转发、用量计费、订阅充值、风控审查和后台运营能力。当前 `1.0.11` 发布快照已选择性对齐 Sub2API `v0.1.173` 的兼容与安全修复，同时保留 ANL 自己的支付、生图、账号隔离、审计和用户级并发策略。
 
 [English](README.md) | 中文 | [日本語](README_JA.md)
 
@@ -31,6 +31,7 @@ QQ 群：`146499741`
 - 提供 OpenAI 兼容网关接口，支持 chat、responses、models、embeddings、image 和流式请求等场景。
 - 支持 Grok OAuth、Kiro OAuth、免费模型供应商接入和可配置的私有账号接入流程。
 - 支持 OpenAI 兼容渠道和账号型上游的多供应商路由。
+- 支持 DeepSeek 官方 API Key 快捷配置，以及 `deepseek-v4-flash`、`deepseek-v4-pro` 模型路由、思考强度和缓存命中用量计量。
 - 账号池管理，包含公共、私有、自有和拼车等调度概念。
 - API Key 管理，支持多分组路由、IP 访问控制、额度控制、使用记录和计费元数据。
 - 用户订阅、充值流程、兑换码、邀请奖励和商城/卡密流程。
@@ -39,6 +40,42 @@ QQ 群：`146499741`
 - 内置发布流程，支持标签构建、Docker 镜像、归档包和 GitHub Releases。
 - 前端控制台基于 Vue 3、TypeScript、Pinia、Vue Router、Tailwind CSS 和 Vite。
 - 后端服务基于 Go、Gin、Ent、PostgreSQL、Redis 和模块化服务边界。
+
+### DeepSeek V4 支持
+
+在管理后台新建 API Key 账号时，可以直接选择 **DeepSeek** 快捷入口。该入口会预填官方 API 地址 `https://api.deepseek.com`，并提供以下默认模型候选：
+
+- `deepseek-v4-flash`
+- `deepseek-v4-pro`
+
+客户端仍然使用标准 OpenAI 兼容接口。对于 `POST /v1/chat/completions` 请求，anlapi 会根据最终模型能力选择上游协议：V4 Flash 转发到官方 Responses 路径，V4 Pro 转发到官方 Chat Completions 路径。客户端不需要感知内部端点差异，也不需要接触 DeepSeek 上游 API Key。
+
+思考强度支持标准的 `reasoning_effort` 字段，也兼容当前支持的嵌套 provider options 形式。客户端显式传入的强度会保留，并受到管理员为分组或 API Key 配置的策略限制。
+
+DeepSeek 返回的 `prompt_cache_hit_tokens` 等缓存 usage 会被解析进统一用量记录，并按缓存读取单价参与计费。因此这里的优化是缓存命中用量识别和计费优化，不是把完整回答缓存后直接复用。
+
+## 快速开始
+
+完成部署后，可以按以下顺序开始使用：
+
+1. 在管理后台进入账号管理并新建上游账号。使用官方 DeepSeek API 时选择 **DeepSeek** 快捷入口，填入上游 API Key；除非你明确使用其他兼容服务，否则保留预填的官方地址。
+2. 创建或选择一个分组，配置对外提供的模型名、模型映射以及该分组可使用的账号。
+3. 创建用户 API Key，并授予它访问对应分组的权限。客户端只需要这个用户 API Key；上游凭据保留在 anlapi 服务端账号配置中。
+4. 使用 OpenAI 兼容接口调用模型：
+
+```bash
+curl https://your-domain.example/v1/chat/completions \
+  -H "Authorization: Bearer $ANL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek-v4-pro",
+    "messages": [{"role": "user", "content": "你好"}],
+    "reasoning_effort": "high",
+    "stream": false
+  }'
+```
+
+实际可用模型、路由权限、计费倍率和上游可用性以部署者的后台配置及实际上游账号状态为准。
 
 ## ANL 定制界面
 

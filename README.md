@@ -1,6 +1,6 @@
 # ANL API
 
-`anlapi` 是 ANL API 的自托管 AI API 网关与用量管理平台。它把不同类型的 AI 上游统一到 OpenAI 兼容接口下，并提供账号、分组、API Key、用量、计费和后台运营能力，适合个人部署、内部团队使用和二次开发。
+`anlapi` is ANL API's self-hosted AI API gateway and usage-management platform. It unifies different upstream providers behind OpenAI-compatible endpoints and provides account, group, API key, usage, billing, and administration workflows for personal deployments, internal teams, and further customization.
 
 [在线控制台](https://api.anlmc.top) | [中文说明](README_CN.md) | [部署文档](deploy/README.md)
 
@@ -13,7 +13,7 @@
 
 > ANL API 是独立维护的项目名称和代码仓库。它基于 [Sub2API](https://github.com/Wei-Shaw/sub2api) 进行二次开发，并不代表上游项目或任何模型供应商的官方产品。
 
-当前版本 `1.0.11` 已选择性对齐 Sub2API `v0.1.173` 的兼容、安全与 Codex 稳定性修复，同时保留 ANL 的支付、生图、账号隔离和用户级并发实现。
+The current `1.0.11` release selectively tracks compatibility, security, and Codex stability fixes from Sub2API `v0.1.173` while retaining ANL-specific payment, image-generation, account-isolation, and user-level concurrency behavior.
 
 ## 项目定位
 
@@ -29,6 +29,16 @@ ANL API 面向需要统一接入 AI 能力的部署者：管理员在后台配�
 - 支持不同上游类型的统一路由、失败切换和请求/响应处理。
 - 支持 Codex 客户端相关请求；客户端的 `fast` 意图可按兼容路径透传给上游，由上游决定是否支持。
 - 支持长耗时图像任务的异步提交与轮询（需要按 [异步图像任务文档](docs/ASYNC_IMAGE_TASKS.md) 配置对象存储）。
+
+### DeepSeek V4
+
+ANL API provides a dedicated DeepSeek setup path while keeping the client-facing API OpenAI-compatible:
+
+- In the admin console, choose the **DeepSeek** shortcut when creating an API-key account. The official base URL (`https://api.deepseek.com`) and supported model candidates are prefilled; the upstream key remains server-side and is not exposed through the client API.
+- The built-in V4 models are `deepseek-v4-flash` and `deepseek-v4-pro`. You can still use a public alias and map it to an upstream model through the normal account/group configuration.
+- Clients can continue to call `POST /v1/chat/completions`. The gateway selects the upstream protocol by model capability: V4 Flash uses the official Responses route, while V4 Pro uses Chat Completions.
+- Reasoning controls accept the standard `reasoning_effort` form and the supported nested provider-options form. Explicit client values are preserved and are subject to the group/API-key policy configured by the administrator.
+- DeepSeek cache-hit usage, including `prompt_cache_hit_tokens`, is parsed into the normalized usage record and billed with the configured cache-read rate. This is usage and billing optimization, not response-content caching.
 
 ### OpenAI Realtime / Live
 
@@ -89,6 +99,29 @@ wscat -c 'wss://your-domain.example/v1/realtime?call_id=call_123' \
 <p align="center">
   <img src="assets/screenshots/anlapi-admin-dashboard-demo.png" alt="anlapi 管理端运营与用量仪表盘脱敏演示截图" width="100%">
 </p>
+
+## Quick start
+
+After deployment, the usual setup flow is:
+
+1. In the admin console, create an upstream account. For the official DeepSeek API, use the **DeepSeek** shortcut, enter the upstream API key, and keep the prefilled official base URL unless you intentionally use another compatible endpoint.
+2. Create or select a group, then configure the public model names and the accounts/models that group may use.
+3. Create a user API key and grant it access to the group. The user key is the only credential a client needs to call ANL API; upstream credentials stay in the server-side account configuration.
+4. Call the OpenAI-compatible endpoint:
+
+```bash
+curl https://your-domain.example/v1/chat/completions \
+  -H "Authorization: Bearer $ANL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek-v4-pro",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "reasoning_effort": "high",
+    "stream": false
+  }'
+```
+
+The actual model list, routing permissions, billing rate, and upstream availability are controlled by the deployment administrator and the configured provider accounts.
 
 ## 技术栈
 
