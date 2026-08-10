@@ -1,8 +1,8 @@
 # ANL API
 
-`anlapi` is ANL API's self-hosted AI API gateway and usage-management platform. It unifies different upstream providers behind OpenAI-compatible endpoints and provides account, group, API key, usage, billing, and administration workflows for personal deployments, internal teams, and further customization.
+`anlapi` 是 ANL API 的自托管 AI API 网关与用量管理平台。它把不同类型的 AI 上游统一到 OpenAI 兼容接口下，并提供账号、分组、API Key、用量、计费和后台运营能力，适合个人部署、内部团队使用和二次开发。
 
-[在线控制台](https://api.anlmc.top) | [中文说明](README_CN.md) | [部署文档](deploy/README.md)
+[在线控制台](https://api.anlmc.top) | [English guide](README_EN.md) | [部署文档](deploy/README.md)
 
 ![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)
@@ -13,7 +13,7 @@
 
 > ANL API 是独立维护的项目名称和代码仓库。它基于 [Sub2API](https://github.com/Wei-Shaw/sub2api) 进行二次开发，并不代表上游项目或任何模型供应商的官方产品。
 
-The current `1.0.11` release selectively tracks compatibility, security, and Codex stability fixes from Sub2API `v0.1.173` while retaining ANL-specific payment, image-generation, account-isolation, and user-level concurrency behavior.
+当前 `1.0.11` 发布快照已选择性对齐 Sub2API `v0.1.173` 的兼容、安全与 Codex 稳定性修复，同时保留 ANL 自己的支付、生图、账号隔离和用户级并发实现。
 
 ## 项目定位
 
@@ -30,15 +30,15 @@ ANL API 面向需要统一接入 AI 能力的部署者：管理员在后台配�
 - 支持 Codex 客户端相关请求；客户端的 `fast` 意图可按兼容路径透传给上游，由上游决定是否支持。
 - 支持长耗时图像任务的异步提交与轮询（需要按 [异步图像任务文档](docs/ASYNC_IMAGE_TASKS.md) 配置对象存储）。
 
-### DeepSeek V4
+### DeepSeek V4 支持
 
-ANL API provides a dedicated DeepSeek setup path while keeping the client-facing API OpenAI-compatible:
+anlapi 提供独立的 DeepSeek 配置入口，同时保持面向客户端的 OpenAI 兼容接口：
 
-- In the admin console, choose the **DeepSeek** shortcut when creating an API-key account. The official base URL (`https://api.deepseek.com`) and supported model candidates are prefilled; the upstream key remains server-side and is not exposed through the client API.
-- The built-in V4 models are `deepseek-v4-flash` and `deepseek-v4-pro`. You can still use a public alias and map it to an upstream model through the normal account/group configuration.
-- Clients can continue to call `POST /v1/chat/completions`. The gateway selects the upstream protocol by model capability: V4 Flash uses the official Responses route, while V4 Pro uses Chat Completions.
-- Reasoning controls accept the standard `reasoning_effort` form and the supported nested provider-options form. Explicit client values are preserved and are subject to the group/API-key policy configured by the administrator.
-- DeepSeek cache-hit usage, including `prompt_cache_hit_tokens`, is parsed into the normalized usage record and billed with the configured cache-read rate. This is usage and billing optimization, not response-content caching.
+- 在管理后台新建 API Key 账号时可以选择 **DeepSeek** 快捷入口。系统会预填官方地址（`https://api.deepseek.com`）和支持的模型候选；上游 Key 保留在服务端，不会通过客户端接口暴露。
+- 内置 V4 模型为 `deepseek-v4-flash` 和 `deepseek-v4-pro`，也可以按常规账号/分组配置使用公开模型别名并映射到上游模型。
+- 客户端继续调用 `POST /v1/chat/completions` 即可。网关会按最终模型能力选择上游协议：V4 Flash 使用官方 Responses 路径，V4 Pro 使用 Chat Completions 路径。
+- 支持标准 `reasoning_effort` 形式以及当前兼容的嵌套 provider options 形式。客户端显式传入的值会保留，并受管理员配置的分组/API Key 策略约束。
+- `prompt_cache_hit_tokens` 等 DeepSeek 缓存命中 usage 会被解析到统一用量记录，并按配置的缓存读取倍率计费。这是用量识别和计费优化，不是响应内容缓存。
 
 ### OpenAI Realtime / Live
 
@@ -100,14 +100,14 @@ wscat -c 'wss://your-domain.example/v1/realtime?call_id=call_123' \
   <img src="assets/screenshots/anlapi-admin-dashboard-demo.png" alt="anlapi 管理端运营与用量仪表盘脱敏演示截图" width="100%">
 </p>
 
-## Quick start
+## 快速开始
 
-After deployment, the usual setup flow is:
+完成部署后，可以按以下顺序开始使用：
 
-1. In the admin console, create an upstream account. For the official DeepSeek API, use the **DeepSeek** shortcut, enter the upstream API key, and keep the prefilled official base URL unless you intentionally use another compatible endpoint.
-2. Create or select a group, then configure the public model names and the accounts/models that group may use.
-3. Create a user API key and grant it access to the group. The user key is the only credential a client needs to call ANL API; upstream credentials stay in the server-side account configuration.
-4. Call the OpenAI-compatible endpoint:
+1. 在管理后台新建上游账号。使用官方 DeepSeek API 时选择 **DeepSeek** 快捷入口，填入上游 API Key；除非你明确使用其他兼容服务，否则保留预填的官方地址。
+2. 创建或选择一个分组，配置对外提供的模型名以及该分组可使用的账号和模型。
+3. 创建用户 API Key，并授予它访问对应分组的权限。客户端只需要这个用户 Key；上游凭据保留在服务端账号配置中。
+4. 使用 OpenAI 兼容接口调用模型：
 
 ```bash
 curl https://your-domain.example/v1/chat/completions \
@@ -121,7 +121,7 @@ curl https://your-domain.example/v1/chat/completions \
   }'
 ```
 
-The actual model list, routing permissions, billing rate, and upstream availability are controlled by the deployment administrator and the configured provider accounts.
+实际可用模型、路由权限、计费倍率和上游可用性以部署者的后台配置及实际上游账号状态为准。
 
 ## 技术栈
 
@@ -220,7 +220,7 @@ pnpm run i18n:audit:strict
 - [支付接入](docs/PAYMENT.md)
 - [管理员支付接口](docs/ADMIN_PAYMENT_INTEGRATION_API.md)
 - [官方更新与合并流程](docs/OFFICIAL_UPDATE_AND_DEPLOY_CN.md)
-- [中文说明](README_CN.md)
+- [English guide](README_EN.md)
 
 ## 许可证与上游
 
