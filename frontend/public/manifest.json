@@ -1,0 +1,18 @@
+{
+  "name": "ANL Gateway",
+  "short_name": "ANL Gateway",
+  "description": "Subscription-aware AI API Gateway",
+  "lang": "zh-CN",
+  "start_url": "/home",
+  "display": "standalone",
+  "theme_color": "#061127",
+  "background_color": "#061127",
+  "icons": [
+    {
+      "src": "/anl-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
