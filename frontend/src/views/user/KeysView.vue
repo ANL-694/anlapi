@@ -2495,11 +2495,11 @@ onUnmounted(() => {
 }
 
 .keys-data-table:not(.keys-details-mode) :deep(.keys-col-name) {
-  width: 12%;
+  width: 14%;
 }
 
 .keys-data-table:not(.keys-details-mode) :deep(.keys-col-key) {
-  width: 14%;
+  width: 16%;
 }
 
 .keys-data-table:not(.keys-details-mode) :deep(.keys-col-group) {
@@ -2511,11 +2511,11 @@ onUnmounted(() => {
 }
 
 .keys-data-table:not(.keys-details-mode) :deep(.keys-col-usage) {
-  width: 16%;
+  width: 18%;
 }
 
 .keys-data-table:not(.keys-details-mode) :deep(.keys-col-rate) {
-  width: 10%;
+  width: 12%;
 }
 
 .keys-data-table:not(.keys-details-mode) :deep(.keys-col-status) {
@@ -2523,11 +2523,13 @@ onUnmounted(() => {
 }
 
 .keys-data-table:not(.keys-details-mode) :deep(.keys-col-actions) {
-  width: 24%;
+  width: 16%;
+  min-width: 13.5rem;
 }
 
 .keys-data-table:not(.keys-details-mode) .keys-action-group {
   flex-wrap: nowrap;
+  justify-content: flex-start;
 }
 
 .keys-data-table:not(.keys-details-mode) .keys-action-button {
