@@ -566,7 +566,7 @@ function triggerRingAnimation(items: RingItem[]) {
 
   nextTick(() => {
     if (ringAnimationCancelled) return
-    const startFrame = (callback: FrameRequestCallback) => {
+    const startFrame = (callback: (time: number) => void) => {
       if (typeof requestAnimationFrame === 'function') {
         ringAnimationFrame = requestAnimationFrame(callback)
       } else {
