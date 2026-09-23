@@ -90,7 +90,7 @@ func resolveGrokCacheIdentity(c *gin.Context, body []byte, explicitKey, upstream
 
 	// generateSessionUUID hashes the whole seed before formatting it as a UUID.
 	// Include a versioned namespace so this identity cannot collide with other
-	// upstream session identifiers derived by sub2api.
+	// upstream session identifiers derived by the gateway.
 	isolatedSeed := fmt.Sprintf("grok-prompt-cache:v1:%d:%s:%s", apiKeyID, model, seed)
 	return generateSessionUUID(isolatedSeed)
 }

@@ -827,9 +827,9 @@ database:
   # Database password
   # 数据库密码
   password: "your_secure_password_here"
-  # Database name (legacy production identity retained for data compatibility)
-  # 数据库名称（保留现有生产标识，避免现有数据断开）
-  dbname: "ikik_api"
+  # Database name (new installations use anlapi; existing deployments may keep their explicit name)
+  # 数据库名称（新安装使用 anlapi；现有部署可继续填写原有名称）
+  dbname: "anlapi"
   # SSL mode: disable, prefer, require, verify-ca, verify-full
   # SSL 模式：disable（禁用）, prefer（优先加密，默认）, require（要求）, verify-ca（验证CA）, verify-full（完全验证）
   # 默认值为 "prefer"，数据库支持 SSL 时自动使用加密连接，不支持时回退明文

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSub2APIV0162GrokVideoRelayAndSignedURLPolicy(t *testing.T) {
+func TestANLAPIV0162GrokVideoRelayAndSignedURLPolicy(t *testing.T) {
 	relay, err := grokMediaSignedVideoContentURL([]byte(`{"video":{"url":"/v1/videos/task-1/content"}}`), "task-1")
 	require.NoError(t, err)
 	require.Empty(t, relay)
@@ -24,7 +24,7 @@ func TestSub2APIV0162GrokVideoRelayAndSignedURLPolicy(t *testing.T) {
 	require.Equal(t, "https://vidgen.x.ai/video.mp4", signed)
 }
 
-func TestSub2APIV0162GrokCachePrefersClaudeCodeSession(t *testing.T) {
+func TestANLAPIV0162GrokCachePrefersClaudeCodeSession(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
@@ -42,7 +42,7 @@ func TestSub2APIV0162GrokCachePrefersClaudeCodeSession(t *testing.T) {
 	require.Equal(t, "meta-session", extractClaudeCodeSessionIDFromPayload(meta))
 }
 
-func TestSub2APIV0162GrokManualTestBypassesSchedulingGate(t *testing.T) {
+func TestANLAPIV0162GrokManualTestBypassesSchedulingGate(t *testing.T) {
 	account := &Account{
 		Platform:    PlatformGrok,
 		Type:        AccountTypeOAuth,
@@ -64,7 +64,7 @@ func TestSub2APIV0162GrokManualTestBypassesSchedulingGate(t *testing.T) {
 	require.Equal(t, "manual-test-token", token)
 }
 
-func TestSub2APIV0162GrokCountTokensAndRetryPolicy(t *testing.T) {
+func TestANLAPIV0162GrokCountTokensAndRetryPolicy(t *testing.T) {
 	count, err := EstimateGrokCountTokens([]byte(`{"model":"grok-4","messages":[{"role":"user","content":"hello"}]}`))
 	require.NoError(t, err)
 	require.Positive(t, count)
@@ -79,7 +79,7 @@ func TestSub2APIV0162GrokCountTokensAndRetryPolicy(t *testing.T) {
 	require.False(t, isRetryableGrokBillingStatus(http.StatusTooManyRequests))
 }
 
-func TestSub2APIV0162OpsReportUsesANLShellAndEscapesTitle(t *testing.T) {
+func TestANLAPIV0162OpsReportUsesANLShellAndEscapesTitle(t *testing.T) {
 	html := buildOpsSummaryEmailHTML(`<script>alert(1)</script>`, time.Unix(0, 0), time.Unix(60, 0), nil)
 	require.Contains(t, html, "ANL API 运维中心")
 	require.Contains(t, html, "当前周期暂无可用数据")

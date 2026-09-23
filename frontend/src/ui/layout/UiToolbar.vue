@@ -17,6 +17,9 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding-block: 0.25rem;
+  transition:
+    border-color var(--ui-duration-fast) var(--ui-ease-standard),
+    background-color var(--ui-duration-fast) var(--ui-ease-standard);
 }
 
 .ui-toolbar-main,
@@ -45,6 +48,19 @@
 
   .ui-toolbar-actions {
     justify-content: flex-start;
+    width: 100%;
+  }
+
+  .ui-toolbar-actions :deep(.btn),
+  .ui-toolbar-actions :deep(button),
+  .ui-toolbar-actions :deep(a) {
+    flex: 0 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-toolbar {
+    transition-duration: 1ms;
   }
 }
 </style>

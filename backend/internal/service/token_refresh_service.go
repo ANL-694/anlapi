@@ -142,7 +142,7 @@ func NewTokenRefreshService(
 	return s
 }
 
-// AddKiroTokenRefresher preserves the IK provider extension on top of Sub2API's registry.
+// AddKiroTokenRefresher preserves the IK provider extension on top of ANLAPI's registry.
 func (s *TokenRefreshService) AddKiroTokenRefresher(kiroOAuthService *KiroOAuthService) {
 	if s == nil || kiroOAuthService == nil {
 		return

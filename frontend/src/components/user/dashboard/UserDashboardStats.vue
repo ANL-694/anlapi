@@ -64,9 +64,54 @@ const formatDuration = (milliseconds: number) => (
 
 <style scoped>
 .dashboard-metric-strip :deep(.ui-metric) {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-lg);
   background: var(--ui-surface);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.035);
+  box-shadow: var(--ui-shadow-card);
+  transition:
+    border-color var(--ui-duration-base) var(--ui-ease-standard),
+    box-shadow var(--ui-duration-base) var(--ui-ease-standard),
+    transform var(--ui-duration-base) var(--ui-ease-emphasized);
+}
+
+.dashboard-metric-strip :deep(.ui-metric)::before {
+  position: absolute;
+  top: 0;
+  right: 1rem;
+  left: 1rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--ui-brand);
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.3);
+  transform-origin: left;
+  transition:
+    opacity var(--ui-duration-base) var(--ui-ease-standard),
+    transform var(--ui-duration-slow) var(--ui-ease-emphasized);
+}
+
+.dashboard-metric-strip :deep(.ui-metric:hover) {
+  border-color: var(--ui-border-strong);
+  box-shadow: var(--ui-shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.dashboard-metric-strip :deep(.ui-metric:hover)::before {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-metric-strip :deep(.ui-metric),
+  .dashboard-metric-strip :deep(.ui-metric)::before {
+    transition-duration: 1ms;
+  }
+
+  .dashboard-metric-strip :deep(.ui-metric:hover) {
+    transform: none;
+  }
 }
 </style>

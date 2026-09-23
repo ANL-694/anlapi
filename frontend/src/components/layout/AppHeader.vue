@@ -65,6 +65,7 @@
           <button
             @click="toggleDropdown"
             class="app-header-user-button"
+            :class="{ 'app-header-user-button-open': dropdownOpen }"
             :aria-label="t('nav.userMenu')"
             aria-haspopup="menu"
             :aria-expanded="dropdownOpen"
@@ -78,6 +79,7 @@
               >
               <span v-else>{{ userInitials }}</span>
             </div>
+            <span class="app-header-avatar-status" aria-hidden="true"></span>
           </button>
 
           <!-- Dropdown Menu -->
@@ -340,12 +342,22 @@ onBeforeUnmount(() => {
 <style scoped>
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: all 0.2s ease;
+  transition:
+    opacity var(--ui-duration-base) var(--ui-ease-emphasized),
+    transform var(--ui-duration-base) var(--ui-ease-emphasized);
+  transform-origin: top right;
 }
 
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
-  transform: scale(0.95) translateY(-4px);
+  transform: scale(0.96) translateY(-5px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-enter-active,
+  .dropdown-leave-active {
+    transition-duration: 1ms;
+  }
 }
 </style>

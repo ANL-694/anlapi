@@ -100,6 +100,15 @@ const resetText = (quota: PlatformQuotaRecord, window: PlatformQuotaWindow) => {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 0;
+  border-radius: var(--ui-radius-md);
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease-standard),
+    transform var(--ui-duration-fast) var(--ui-ease-standard);
+}
+
+.quota-row:hover {
+  background: var(--ui-surface-hover);
+  transform: translateX(2px);
 }
 
 .quota-window {
@@ -126,6 +135,8 @@ const resetText = (quota: PlatformQuotaRecord, window: PlatformQuotaWindow) => {
 .quota-progress > div {
   height: 100%;
   border-radius: inherit;
+  transform-origin: left;
+  animation: quota-progress-in var(--ui-duration-slow) var(--ui-ease-emphasized) both;
 }
 
 .quota-reset {
@@ -137,10 +148,35 @@ const resetText = (quota: PlatformQuotaRecord, window: PlatformQuotaWindow) => {
   white-space: nowrap;
 }
 
+@keyframes quota-progress-in {
+  from {
+    opacity: 0.35;
+    transform: scaleX(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
 @media (max-width: 900px) {
   .quota-row {
     grid-template-columns: 1fr;
     gap: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quota-row {
+    transition-duration: 1ms;
+  }
+
+  .quota-row:hover {
+    transform: none;
+  }
+
+  .quota-progress > div {
+    animation: none;
   }
 }
 </style>

@@ -684,8 +684,54 @@ onMounted(() => {
 }
 
 .admin-metric-row > .card {
+  position: relative;
+  overflow: hidden;
   min-width: 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.035);
+  transition:
+    border-color var(--ui-duration-base) var(--ui-ease-standard),
+    box-shadow var(--ui-duration-base) var(--ui-ease-standard),
+    transform var(--ui-duration-base) var(--ui-ease-emphasized);
+}
+
+.admin-metric-row > .card::before,
+.admin-chart-toolbar::before,
+.admin-chart-panel::before,
+.admin-chart-column::before {
+  position: absolute;
+  top: 0;
+  right: 1rem;
+  left: 1rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--ui-brand);
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.3);
+  transform-origin: left;
+  transition:
+    opacity var(--ui-duration-base) var(--ui-ease-standard),
+    transform var(--ui-duration-slow) var(--ui-ease-emphasized);
+}
+
+.admin-metric-row > .card:hover,
+.admin-chart-toolbar:hover,
+.admin-chart-panel:hover,
+.admin-chart-column:hover {
+  border-color: var(--ui-border-strong) !important;
+  box-shadow: var(--ui-shadow-card-hover) !important;
+}
+
+.admin-metric-row > .card:hover {
+  transform: translateY(-2px);
+}
+
+.admin-metric-row > .card:hover::before,
+.admin-chart-toolbar:hover::before,
+.admin-chart-panel:hover::before,
+.admin-chart-column:hover::before {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 .admin-metric-row > .card > .flex {
@@ -695,14 +741,29 @@ onMounted(() => {
 .admin-chart-toolbar,
 .admin-chart-panel,
 .admin-chart-column {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--ui-border) !important;
   border-radius: var(--ui-radius-lg) !important;
   background: var(--ui-surface) !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.035) !important;
+  box-shadow: var(--ui-shadow-card) !important;
+  transition:
+    border-color var(--ui-duration-base) var(--ui-ease-standard),
+    box-shadow var(--ui-duration-base) var(--ui-ease-standard);
 }
 
 .admin-chart-toolbar {
   padding: 0.75rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .admin-chart-toolbar {
+    position: sticky;
+    top: 3.75rem;
+    z-index: 10;
+    background: color-mix(in srgb, var(--ui-surface) 92%, transparent) !important;
+    backdrop-filter: blur(14px);
+  }
 }
 
 .admin-chart-panel,
@@ -768,6 +829,23 @@ onMounted(() => {
   .admin-dashboard-filter-control--granularity {
     flex: 0 0 auto;
     margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-metric-row > .card,
+  .admin-chart-toolbar,
+  .admin-chart-panel,
+  .admin-chart-column,
+  .admin-metric-row > .card::before,
+  .admin-chart-toolbar::before,
+  .admin-chart-panel::before,
+  .admin-chart-column::before {
+    transition-duration: 1ms;
+  }
+
+  .admin-metric-row > .card:hover {
+    transform: none;
   }
 }
 </style>

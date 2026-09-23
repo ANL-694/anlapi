@@ -2,8 +2,9 @@
 
 `anlapi` is the project/repository name. `anlapi` is the runtime name used by
 the binary, container, service, and Linux user because some environments do
-not accept hyphens. Existing deployments may continue using the compatible
-PostgreSQL database name `ikik_api`; renaming that database is not required.
+not accept hyphens. Existing deployments may keep the legacy PostgreSQL database
+name `ikik_api`; renaming that database is not required. New deployments use
+`anlapi` by default.
 
 ## Quick Start
 
@@ -13,9 +14,9 @@ docker run -d \
   -p 8080:8080 \
   -e DATABASE_HOST=host.docker.internal \
   -e DATABASE_PORT=5432 \
-  -e DATABASE_USER=ikik_api \
+  -e DATABASE_USER=anlapi \
   -e DATABASE_PASSWORD="change-me" \
-  -e DATABASE_DBNAME=ikik_api \
+  -e DATABASE_DBNAME=anlapi \
   -e REDIS_HOST=host.docker.internal \
   -e REDIS_PORT=6379 \
   anlapi:latest
@@ -34,9 +35,9 @@ services:
     environment:
       - DATABASE_HOST=db
       - DATABASE_PORT=5432
-      - DATABASE_USER=ikik_api
+      - DATABASE_USER=anlapi
       - DATABASE_PASSWORD=change-me
-      - DATABASE_DBNAME=ikik_api
+      - DATABASE_DBNAME=anlapi
       - DATABASE_SSLMODE=disable
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -49,7 +50,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=change-me
-      - POSTGRES_DB=ikik_api
+      - POSTGRES_DB=anlapi
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -69,9 +70,9 @@ volumes:
 |----------|-------------|----------|---------|
 | `DATABASE_HOST` | PostgreSQL host | Yes | - |
 | `DATABASE_PORT` | PostgreSQL port | No | `5432` |
-| `DATABASE_USER` | PostgreSQL user | No | `ikik_api` |
+| `DATABASE_USER` | PostgreSQL user | No | `anlapi` |
 | `DATABASE_PASSWORD` | PostgreSQL password | Yes | - |
-| `DATABASE_DBNAME` | PostgreSQL database name | No | `ikik_api` |
+| `DATABASE_DBNAME` | PostgreSQL database name | No | `anlapi` |
 | `DATABASE_SSLMODE` | PostgreSQL SSL mode | No | `disable` |
 | `REDIS_HOST` | Redis host | Yes | - |
 | `REDIS_PORT` | Redis port | No | `6379` |

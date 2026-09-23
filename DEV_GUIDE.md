@@ -1,13 +1,13 @@
-# sub2api 项目开发指南
+# ANLAPI 项目开发指南
 
-> 本文档记录项目环境配置、常见坑点和注意事项，供 Claude Code 和团队成员参考。
+> 本文档记录 anlapi 的开发环境、常见坑点和维护注意事项，供项目维护者参考。
 
 ## 一、项目基本信息
 
 | 项目 | 说明 |
 |------|------|
 | **项目仓库** | ANL-694/anlapi |
-| **Fork 仓库** | bayma888/sub2api-bmai |
+| **上游项目** | Wei-Shaw/sub2api（兼容性参考） |
 | **技术栈** | Go 后端 (Ent ORM + Gin) + Vue3 前端 (pnpm) |
 | **数据库** | PostgreSQL 16 + Redis |
 | **包管理** | 后端: go modules, 前端: **pnpm**（不是 npm） |
@@ -21,8 +21,8 @@
 | 端口 | 5432 |
 | psql 路径 | `C:\Program Files\PostgreSQL\16\bin\psql.exe` |
 | pg_hba.conf | `C:\Program Files\PostgreSQL\16\data\pg_hba.conf` |
-| 数据库凭据 | user=`sub2api`, password=`sub2api`, dbname=`sub2api` |
-| 超级用户 | user=`postgres`, password=`postgres` |
+| 数据库凭据 | 使用本机 `.env` 或隔离测试配置，不在仓库固定账号和密码 |
+| 超级用户 | 使用本机 PostgreSQL 管理员账号，不在仓库记录密码 |
 
 ### Redis
 
@@ -114,7 +114,7 @@ psql -c "INSERT INTO users ... VALUES ('$2a$10$...')"
 
 # 正确做法
 echo "INSERT INTO users ... VALUES ('\$2a\$10\$...')" > temp.sql
-psql -U sub2api -h 127.0.0.1 -d sub2api -f temp.sql
+psql -U anlapi -h 127.0.0.1 -d anlapi -f temp.sql
 ```
 
 ---
@@ -148,8 +148,7 @@ psql -f "C:\temp.sql"
 3. 无密码登录并重置
    ```bash
    psql -U postgres -h 127.0.0.1
-   ALTER USER sub2api WITH PASSWORD 'sub2api';
-   ALTER USER postgres WITH PASSWORD 'postgres';
+   ALTER USER anlapi WITH PASSWORD '<new-local-password>';
    ```
 4. 改回 `scram-sha-256` 并重启
 
@@ -249,7 +248,7 @@ git add ent/       # 生成的文件也要提交
 
 ```bash
 # 连接数据库
-psql -U sub2api -h 127.0.0.1 -d sub2api
+psql -U anlapi -h 127.0.0.1 -d anlapi
 
 # 查看所有用户
 psql -U postgres -h 127.0.0.1 -c "\du"
@@ -258,7 +257,7 @@ psql -U postgres -h 127.0.0.1 -c "\du"
 psql -U postgres -h 127.0.0.1 -c "\l"
 
 # 执行 SQL 文件
-psql -U sub2api -h 127.0.0.1 -d sub2api -f migration.sql
+psql -U anlapi -h 127.0.0.1 -d anlapi -f migration.sql
 ```
 
 ### Git 操作
@@ -313,7 +312,7 @@ golangci-lint run ./...
 ## 六、项目结构速览
 
 ```
-sub2api-bmai/
+anlapi/
 ├── backend/
 │   ├── cmd/server/          # 主程序入口
 │   ├── ent/                 # Ent ORM 生成代码

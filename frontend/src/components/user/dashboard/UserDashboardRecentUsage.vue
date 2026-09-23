@@ -58,9 +58,28 @@ const formatCost = (c: number) => c.toFixed(4)
   gap: 1rem;
   padding: 0.75rem 0;
   border-bottom: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease-standard),
+    transform var(--ui-duration-fast) var(--ui-ease-standard);
+}
+
+.recent-usage-row:hover {
+  background: var(--ui-surface-hover);
+  transform: translateX(2px);
 }
 
 .recent-usage-row:last-of-type {
   border-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recent-usage-row {
+    transition-duration: 1ms;
+  }
+
+  .recent-usage-row:hover {
+    transform: none;
+  }
 }
 </style>

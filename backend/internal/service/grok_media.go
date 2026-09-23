@@ -580,7 +580,7 @@ func grokMediaSignedVideoContentURL(body []byte, requestID string) (string, erro
 	if rawURL == "" {
 		return "", nil
 	}
-	// 上游 Sub2API 可能已把受保护内容改写成自己的中继地址。此时应按
+	// 上游兼容网关可能已把受保护内容改写成自己的中继地址。此时应按
 	// 当前账号 base_url 重建地址并继续携带认证，而不是当成外部签名 URL。
 	if isGrokMediaVideoContentURL(rawURL, requestID) {
 		return "", nil

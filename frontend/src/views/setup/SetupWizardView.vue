@@ -131,7 +131,7 @@
                 v-model="formData.database.dbname"
                 type="text"
                 class="input"
-                placeholder="ikik_api"
+                placeholder="anlapi"
               />
             </div>
             <div>
@@ -545,7 +545,7 @@ const formData = reactive<InstallRequest>({
     port: 5432,
     user: 'postgres',
     password: '',
-    dbname: 'ikik_api',
+    dbname: 'anlapi',
     sslmode: 'disable'
   },
   redis: {

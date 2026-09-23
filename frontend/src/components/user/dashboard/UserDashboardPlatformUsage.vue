@@ -118,6 +118,15 @@ const platformDotClass = (platform: string) => {
   align-items: center;
   gap: 1.25rem;
   padding: 0.75rem 0;
+  border-radius: var(--ui-radius-md);
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease-standard),
+    transform var(--ui-duration-fast) var(--ui-ease-standard);
+}
+
+.platform-row:hover {
+  background: var(--ui-surface-hover);
+  transform: translateX(2px);
 }
 
 .platform-name {
@@ -161,6 +170,8 @@ const platformDotClass = (platform: string) => {
 .platform-progress > div {
   height: 100%;
   border-radius: inherit;
+  transform-origin: left;
+  animation: platform-progress-in var(--ui-duration-slow) var(--ui-ease-emphasized) both;
 }
 
 .platform-breakdown {
@@ -189,6 +200,17 @@ const platformDotClass = (platform: string) => {
   font-size: 0.875rem;
 }
 
+@keyframes platform-progress-in {
+  from {
+    opacity: 0.35;
+    transform: scaleX(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
 @media (max-width: 760px) {
   .platform-summary {
     justify-content: flex-start;
@@ -201,6 +223,20 @@ const platformDotClass = (platform: string) => {
 
   .platform-breakdown {
     text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-row {
+    transition-duration: 1ms;
+  }
+
+  .platform-row:hover {
+    transform: none;
+  }
+
+  .platform-progress > div {
+    animation: none;
   }
 }
 </style>

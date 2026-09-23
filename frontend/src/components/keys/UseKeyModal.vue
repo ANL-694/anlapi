@@ -853,24 +853,24 @@ function generateGrokCodexFiles(baseUrl: string, apiKey: string): FileConfig[] {
   const configPath = isWindows
     ? '%USERPROFILE%\\.codex\\config.toml'
     : '~/.codex/config.toml'
-  const configContent = `model_provider = "sub2api_grok"
+  const configContent = `model_provider = "anlapi_grok"
 model = "grok-4.5"
 review_model = "grok-4.5"
 model_reasoning_effort = "xhigh"
 model_context_window = 1000000
 
-[model_providers.sub2api_grok]
-name = "Sub2API Grok"
+[model_providers.anlapi_grok]
+name = "ANLAPI Grok"
 base_url = "${baseUrl}"
-env_key = "SUB2API_API_KEY"
+env_key = "ANLAPI_API_KEY"
 wire_api = "responses"
 supports_websockets = true
 
 [features]
 responses_websockets_v2 = true`
   const environmentContent = isWindows
-    ? `$env:SUB2API_API_KEY="${apiKey}"`
-    : `export SUB2API_API_KEY="${apiKey}"`
+    ? `$env:ANLAPI_API_KEY="${apiKey}"`
+    : `export ANLAPI_API_KEY="${apiKey}"`
 
   return [
     {

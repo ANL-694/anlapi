@@ -26,6 +26,15 @@ const toneClass = computed(() => `ui-metric-value--${props.tone}`)
 .ui-metric {
   min-width: 0;
   padding: 1rem 1.25rem;
+  border-radius: var(--ui-radius-md);
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease-standard),
+    transform var(--ui-duration-fast) var(--ui-ease-standard);
+}
+
+.ui-metric:hover {
+  background: var(--ui-surface-hover);
+  transform: translateY(-1px);
 }
 
 .ui-metric-label {
@@ -77,6 +86,16 @@ const toneClass = computed(() => `ui-metric-value--${props.tone}`)
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-metric {
+    transition-duration: 1ms;
+  }
+
+  .ui-metric:hover {
+    transform: none;
   }
 }
 </style>

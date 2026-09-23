@@ -2059,8 +2059,9 @@ func setDefaults() {
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.user", "postgres")
 	viper.SetDefault("database.password", "postgres")
-	// Keep the production database identity until a coordinated database rename.
-	viper.SetDefault("database.dbname", "ikik_api")
+	// New installations use the ANL database identity. Existing deployments keep
+	// their explicit DATABASE_DBNAME value for compatibility.
+	viper.SetDefault("database.dbname", "anlapi")
 	viper.SetDefault("database.sslmode", "prefer")
 	viper.SetDefault("database.max_open_conns", 256)
 	viper.SetDefault("database.max_idle_conns", 128)

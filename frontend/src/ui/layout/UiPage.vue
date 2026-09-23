@@ -1,5 +1,5 @@
 <template>
-  <div class="ui-page" :class="[`ui-page--${width}`, `ui-page--${density}`]">
+  <div class="ui-page ui-page--animated" :class="[`ui-page--${width}`, `ui-page--${density}`]">
     <slot />
   </div>
 </template>
@@ -47,6 +47,43 @@ withDefaults(defineProps<{
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.ui-page--animated > :deep(*) {
+  animation: ui-page-section-in 220ms ease-out both;
+}
+
+.ui-page--animated > :deep(*:nth-child(2)) {
+  animation-delay: 35ms;
+}
+
+.ui-page--animated > :deep(*:nth-child(3)) {
+  animation-delay: 70ms;
+}
+
+.ui-page--animated > :deep(*:nth-child(4)) {
+  animation-delay: 105ms;
+}
+
+.ui-page--animated > :deep(*:nth-child(n + 5)) {
+  animation-delay: 140ms;
+}
+
+@keyframes ui-page-section-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-page--animated > :deep(*) {
+    animation: none;
+  }
 }
 
 @media (max-width: 640px) {

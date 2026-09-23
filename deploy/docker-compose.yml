@@ -57,9 +57,9 @@ services:
       # =======================================================================
       - DATABASE_HOST=postgres
       - DATABASE_PORT=5432
-      - DATABASE_USER=${POSTGRES_USER:-ikik_api}
+      - DATABASE_USER=${POSTGRES_USER:-anlapi}
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      - DATABASE_DBNAME=${POSTGRES_DB:-ikik_api}
+      - DATABASE_DBNAME=${POSTGRES_DB:-anlapi}
       - DATABASE_SSLMODE=disable
       - DATABASE_MAX_OPEN_CONNS=${DATABASE_MAX_OPEN_CONNS:-50}
       - DATABASE_MAX_IDLE_CONNS=${DATABASE_MAX_IDLE_CONNS:-10}
@@ -222,9 +222,9 @@ services:
       # 若不显式设置 PGDATA，则即使挂载了 postgres_data 到 /var/lib/postgresql/data，数据也不会落盘到该命名卷，
       # docker compose down/up 后会触发 initdb 重新初始化，导致用户/密码等数据丢失。
       - PGDATA=/var/lib/postgresql/data
-      - POSTGRES_USER=${POSTGRES_USER:-ikik_api}
+      - POSTGRES_USER=${POSTGRES_USER:-anlapi}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      - POSTGRES_DB=${POSTGRES_DB:-ikik_api}
+      - POSTGRES_DB=${POSTGRES_DB:-anlapi}
       - TZ=${TZ:-Asia/Shanghai}
     networks:
       - anlapi-network
@@ -232,7 +232,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-ikik_api} -d ${POSTGRES_DB:-ikik_api}",
+          "pg_isready -U ${POSTGRES_USER:-anlapi} -d ${POSTGRES_DB:-anlapi}",
         ]
       interval: 10s
       timeout: 5s

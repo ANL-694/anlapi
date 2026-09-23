@@ -11,7 +11,12 @@
         @click.self="handleClose"
       >
         <!-- Modal panel -->
-        <div ref="dialogRef" :class="['modal-content', widthClasses]" @click.stop>
+        <div
+          ref="dialogRef"
+          :class="['modal-content', widthClasses]"
+          tabindex="-1"
+          @click.stop
+        >
           <!-- Header -->
           <div class="modal-header">
             <h3 :id="dialogId" class="modal-title">
@@ -23,7 +28,7 @@
               class="modal-close-button"
               aria-label="Close modal"
             >
-              <Icon name="x" size="md" />
+              <Icon name="x" size="md" aria-hidden="true" />
             </button>
           </div>
 

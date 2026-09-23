@@ -3,17 +3,25 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${SUB2API_ENV_FILE:-${SCRIPT_DIR}/.env}"
+ENV_FILE="${ANLAPI_ENV_FILE:-${SUB2API_ENV_FILE:-${SCRIPT_DIR}/.env}}"
 
-STACK_LABEL_KEY="org.sub2api.stack"
+STACK_LABEL_KEY="org.anlapi.stack"
+LEGACY_STACK_LABEL_KEY="org.sub2api.stack"
 STACK_LABEL_VALUE="apple-container"
-NETWORK_NAME="sub2api-apple"
-APP_CONTAINER="sub2api-apple"
-POSTGRES_CONTAINER="sub2api-apple-postgres"
-REDIS_CONTAINER="sub2api-apple-redis"
-APP_VOLUME="sub2api-apple-data"
-POSTGRES_VOLUME="sub2api-apple-postgres-data"
-REDIS_VOLUME="sub2api-apple-redis-data"
+NETWORK_NAME="anlapi-apple"
+APP_CONTAINER="anlapi-apple"
+POSTGRES_CONTAINER="anlapi-apple-postgres"
+REDIS_CONTAINER="anlapi-apple-redis"
+APP_VOLUME="anlapi-apple-data"
+POSTGRES_VOLUME="anlapi-apple-postgres-data"
+REDIS_VOLUME="anlapi-apple-redis-data"
+LEGACY_NETWORK_NAME="sub2api-apple"
+LEGACY_APP_CONTAINER="sub2api-apple"
+LEGACY_POSTGRES_CONTAINER="sub2api-apple-postgres"
+LEGACY_REDIS_CONTAINER="sub2api-apple-redis"
+LEGACY_APP_VOLUME="sub2api-apple-data"
+LEGACY_POSTGRES_VOLUME="sub2api-apple-postgres-data"
+LEGACY_REDIS_VOLUME="sub2api-apple-redis-data"
 PLATFORM="linux/arm64"
 
 TEMP_DIR=""
@@ -37,6 +45,7 @@ APP_ENV_FILE=""
 POSTGRES_ENV_FILE=""
 POSTGRES_PROBE_ENV_FILE=""
 REDIS_ENV_FILE=""
+STACK_NAMES_SELECTED=false
 
 info() {
     printf '[INFO] %s\n' "$*"
@@ -57,7 +66,7 @@ Usage: ./apple-container.sh <command> [options]
 
 Commands:
   init                  Create .env and generate required secrets
-  up [--recreate]       Create and start the complete Sub2API stack
+  up [--recreate]       Create and start the complete ANLAPI stack
   down                  Stop the stack and preserve all data
   restart               Restart the stack in dependency order
   status                Show container and workload health
@@ -70,7 +79,8 @@ Destroy options:
   --yes                 Skip the confirmation prompt
 
 Environment:
-  SUB2API_ENV_FILE      Path to the deployment env file (default: deploy/.env)
+  ANLAPI_ENV_FILE       Path to the deployment env file (default: deploy/.env)
+  SUB2API_ENV_FILE      Legacy alias for ANLAPI_ENV_FILE
 EOF
 }
 
@@ -98,7 +108,7 @@ acquire_lock() {
             rm -rf "${LOCK_DIR}"
             mkdir "${LOCK_DIR}" || die "Failed to reclaim stale operation lock."
         else
-            die "Another Sub2API Apple container operation is already running."
+            die "Another ANLAPI Apple container operation is already running."
         fi
     fi
     printf '%s\n' "$$" >"${LOCK_DIR}/pid"
@@ -168,6 +178,57 @@ resource_exists() {
     return 1
 }
 
+resource_group_exists() {
+    local resource_type=$1
+    shift
+    local resource_name
+
+    for resource_name in "$@"; do
+        if resource_exists "${resource_type}" "${resource_name}"; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+select_stack_names() {
+    local current_present=false
+    local legacy_present=false
+
+    if [[ "${STACK_NAMES_SELECTED}" == true ]]; then
+        return
+    fi
+
+    if resource_group_exists container "${APP_CONTAINER}" "${POSTGRES_CONTAINER}" "${REDIS_CONTAINER}" || \
+        resource_group_exists network "${NETWORK_NAME}" || \
+        resource_group_exists volume "${APP_VOLUME}" "${POSTGRES_VOLUME}" "${REDIS_VOLUME}"; then
+        current_present=true
+    fi
+    if resource_group_exists container "${LEGACY_APP_CONTAINER}" "${LEGACY_POSTGRES_CONTAINER}" "${LEGACY_REDIS_CONTAINER}" || \
+        resource_group_exists network "${LEGACY_NETWORK_NAME}" || \
+        resource_group_exists volume "${LEGACY_APP_VOLUME}" "${LEGACY_POSTGRES_VOLUME}" "${LEGACY_REDIS_VOLUME}"; then
+        legacy_present=true
+    fi
+
+    if [[ "${current_present}" == true && "${legacy_present}" == true ]]; then
+        die "Both ANLAPI and legacy Sub2API Apple container resources exist. Remove one stack or run this command with only one stack present."
+    fi
+    if [[ "${legacy_present}" == true ]]; then
+        NETWORK_NAME="${LEGACY_NETWORK_NAME}"
+        APP_CONTAINER="${LEGACY_APP_CONTAINER}"
+        POSTGRES_CONTAINER="${LEGACY_POSTGRES_CONTAINER}"
+        REDIS_CONTAINER="${LEGACY_REDIS_CONTAINER}"
+        APP_VOLUME="${LEGACY_APP_VOLUME}"
+        POSTGRES_VOLUME="${LEGACY_POSTGRES_VOLUME}"
+        REDIS_VOLUME="${LEGACY_REDIS_VOLUME}"
+        STACK_NAMES_SELECTED=true
+        return
+    fi
+
+    STACK_NAMES_SELECTED=true
+}
+
 inspect_resource() {
     case "$1" in
         container) container inspect "$2" ;;
@@ -186,7 +247,8 @@ assert_resource_owned() {
         plutil -extract 0.configuration.labels json -o - -)" || \
         die "Failed to inspect ${resource_type} ${resource_name}."
     compact="$(printf '%s' "${inspection}" | tr -d '[:space:]')"
-    if [[ "${compact}" != *"\"${STACK_LABEL_KEY}\":\"${STACK_LABEL_VALUE}\""* ]]; then
+    if [[ "${compact}" != *"\"${STACK_LABEL_KEY}\":\"${STACK_LABEL_VALUE}\""* &&
+        "${compact}" != *"\"${LEGACY_STACK_LABEL_KEY}\":\"${STACK_LABEL_VALUE}\""* ]]; then
         die "Refusing to manage existing ${resource_type} '${resource_name}' because it is not owned by this stack."
     fi
 }
@@ -358,7 +420,7 @@ cmd_init() {
     mv "${temp_file}" "${ENV_FILE}"
 
     info "Created ${ENV_FILE} with generated secrets."
-    info "Review the file, then run: SUB2API_ENV_FILE='${ENV_FILE}' ${SCRIPT_DIR}/apple-container.sh up"
+    info "Review the file, then run: ANLAPI_ENV_FILE='${ENV_FILE}' ${SCRIPT_DIR}/apple-container.sh up"
 }
 
 validate_port() {
@@ -400,14 +462,14 @@ validate_env_file_security() {
 prepare_environment() {
     validate_env_file_security
 
-    APP_IMAGE="$(read_env_value APPLE_CONTAINER_SUB2API_IMAGE weishaw/sub2api:latest)"
+    APP_IMAGE="$(read_env_value APPLE_CONTAINER_ANLAPI_IMAGE "$(read_env_value APPLE_CONTAINER_SUB2API_IMAGE weishaw/sub2api:latest)")"
     POSTGRES_IMAGE="$(read_env_value APPLE_CONTAINER_POSTGRES_IMAGE postgres:18-alpine)"
     REDIS_IMAGE="$(read_env_value APPLE_CONTAINER_REDIS_IMAGE redis:8-alpine)"
     BIND_HOST="$(read_env_value BIND_HOST 0.0.0.0)"
     HOST_PORT="$(read_env_value SERVER_PORT 8080)"
-    POSTGRES_USER="$(read_env_value POSTGRES_USER sub2api)"
+    POSTGRES_USER="$(read_env_value POSTGRES_USER anlapi)"
     POSTGRES_PASSWORD="$(read_env_value POSTGRES_PASSWORD)"
-    POSTGRES_DB="$(read_env_value POSTGRES_DB sub2api)"
+    POSTGRES_DB="$(read_env_value POSTGRES_DB anlapi)"
     REDIS_PASSWORD="$(read_env_value REDIS_PASSWORD)"
     TZ_VALUE="$(read_env_value TZ Asia/Shanghai)"
 
@@ -425,7 +487,7 @@ prepare_environment() {
         die "Set a secure POSTGRES_PASSWORD in ${ENV_FILE}."
     fi
 
-    TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sub2api-apple.XXXXXX")"
+    TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/anlapi-apple.XXXXXX")"
     APP_ENV_FILE="${TEMP_DIR}/app.env"
     POSTGRES_ENV_FILE="${TEMP_DIR}/postgres.env"
     POSTGRES_PROBE_ENV_FILE="${TEMP_DIR}/postgres-probe.env"
@@ -506,7 +568,7 @@ create_redis_container() {
 }
 
 create_app_container() {
-    info "Creating Sub2API container..."
+    info "Creating ANLAPI container..."
     container create \
         --name "${APP_CONTAINER}" \
         --label "${STACK_LABEL_KEY}=${STACK_LABEL_VALUE}" \
@@ -518,7 +580,7 @@ create_app_container() {
         --volume "${APP_VOLUME}:/app/storage" \
         --entrypoint /bin/sh \
         "${APP_IMAGE}" \
-        -c 'set -e; mkdir -p "$DATA_DIR"; chown -R sub2api:sub2api "$DATA_DIR"; exec su-exec sub2api /app/sub2api' \
+        -c 'set -e; mkdir -p "$DATA_DIR"; if id anlapi >/dev/null 2>&1 && [ -x /app/anlapi ]; then chown -R anlapi:anlapi "$DATA_DIR"; exec su-exec anlapi /app/anlapi; fi; chown -R sub2api:sub2api "$DATA_DIR"; exec su-exec sub2api /app/sub2api' \
         >/dev/null
 }
 
@@ -635,11 +697,11 @@ start_dependencies() {
 
 start_app() {
     start_container_if_needed "${APP_CONTAINER}"
-    if ! wait_for_probe "Sub2API" 180 probe_app; then
+    if ! wait_for_probe "ANLAPI" 180 probe_app; then
         show_failure_logs "${APP_CONTAINER}"
-        die "Sub2API did not become ready."
+        die "ANLAPI did not become ready."
     fi
-    if ! wait_for_probe "Sub2API host port" 15 probe_host_app; then
+    if ! wait_for_probe "ANLAPI host port" 15 probe_host_app; then
         die "Host port forwarding failed. In System Settings > Privacy & Security > Local Network, allow container-runtime-linux; restart Apple container services; then run 'apple-container.sh up' again."
     fi
 }
@@ -657,6 +719,7 @@ cmd_up() {
 
     ensure_system
     prepare_environment
+    select_stack_names
     preflight_stack_ownership
     ensure_network
     ensure_volume "${APP_VOLUME}"
@@ -683,7 +746,7 @@ cmd_up() {
     create_app_container
     start_app
 
-    info "Sub2API is available at http://${ACCESS_HOST}:${HOST_PORT}"
+    info "ANLAPI is available at http://${ACCESS_HOST}:${HOST_PORT}"
 }
 
 cmd_down() {
@@ -692,11 +755,12 @@ cmd_down() {
         info "Apple container services are already stopped."
         return
     fi
+    select_stack_names
     preflight_stack_ownership
     stop_container_if_running "${APP_CONTAINER}"
     stop_container_if_running "${REDIS_CONTAINER}"
     stop_container_if_running "${POSTGRES_CONTAINER}"
-    info "Sub2API stack stopped; persistent volumes were preserved."
+    info "ANLAPI stack stopped; persistent volumes were preserved."
 }
 
 cmd_restart() {
@@ -727,6 +791,7 @@ cmd_status() {
     fi
 
     printf '%-12s %s\n' "system" "running"
+    select_stack_names
     preflight_stack_ownership
     print_container_status app "${APP_CONTAINER}"
     print_container_status postgres "${POSTGRES_CONTAINER}"
@@ -777,15 +842,16 @@ cmd_logs() {
         exit 2
     fi
 
+    require_container_version
+    system_is_running || die "Apple container services are not running."
+    select_stack_names
+
     case "${service}" in
-        app|sub2api) container_name="${APP_CONTAINER}" ;;
+        app|anlapi|sub2api) container_name="${APP_CONTAINER}" ;;
         postgres) container_name="${POSTGRES_CONTAINER}" ;;
         redis) container_name="${REDIS_CONTAINER}" ;;
         *) die "Unknown service '${service}'. Use app, postgres, or redis." ;;
     esac
-
-    require_container_version
-    system_is_running || die "Apple container services are not running."
     resource_exists container "${container_name}" || die "Container not found: ${container_name}"
     assert_resource_owned container "${container_name}"
     if [[ -n "${follow}" ]]; then
@@ -811,9 +877,9 @@ confirm_destroy() {
     local answer
 
     if [[ "${include_volumes}" == true ]]; then
-        printf 'Delete the Sub2API stack and all persistent data? [y/N] '
+        printf 'Delete the ANLAPI stack and all persistent data? [y/N] '
     else
-        printf 'Delete the Sub2API containers and network, preserving volumes? [y/N] '
+        printf 'Delete the ANLAPI containers and network, preserving volumes? [y/N] '
     fi
     read -r answer
     [[ "${answer}" == "y" || "${answer}" == "Y" ]]
@@ -844,6 +910,7 @@ cmd_destroy() {
 
     require_container_version
     start_system
+    select_stack_names
     preflight_stack_ownership
     if [[ "${assume_yes}" != true ]] && ! confirm_destroy "${include_volumes}"; then
         info "Cancelled."
@@ -864,9 +931,9 @@ cmd_destroy() {
         delete_volume_if_present "${APP_VOLUME}"
         delete_volume_if_present "${REDIS_VOLUME}"
         delete_volume_if_present "${POSTGRES_VOLUME}"
-        info "Sub2API stack and persistent data deleted."
+        info "ANLAPI stack and persistent data deleted."
     else
-        info "Sub2API stack deleted; persistent volumes were preserved."
+        info "ANLAPI stack deleted; persistent volumes were preserved."
     fi
 }
 

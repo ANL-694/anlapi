@@ -1,6 +1,6 @@
 # Apple container Deployment
 
-Sub2API can run as a native three-service stack with Apple's `container` CLI. This workflow runs the published Sub2API, PostgreSQL, and Redis OCI images without Docker Desktop or a Docker-compatible daemon.
+ANLAPI can run as a native three-service stack with Apple's `container` CLI. This workflow runs an ANLAPI-compatible application image together with PostgreSQL and Redis without Docker Desktop or a Docker-compatible daemon. The default image and legacy environment variable names remain compatible with the upstream Sub2API workflow.
 
 ## Support Level
 
@@ -25,8 +25,8 @@ container --version
 ## Quick Start
 
 ```bash
-git clone https://github.com/Wei-Shaw/sub2api.git
-cd sub2api/deploy
+git clone https://github.com/ANL-694/anlapi.git
+cd anlapi/deploy
 
 # Creates .env with random PostgreSQL, JWT, and TOTP secrets.
 ./apple-container.sh init
@@ -34,7 +34,7 @@ cd sub2api/deploy
 # Review optional settings before startup.
 nano .env
 
-# Creates volumes/network/containers, waits for dependencies, and starts Sub2API.
+# Creates volumes/network/containers, waits for dependencies, and starts ANLAPI.
 ./apple-container.sh up
 
 # Verifies PostgreSQL, Redis, and the application endpoint.
@@ -61,7 +61,7 @@ The env file uses literal `KEY=value` syntax. Do not use Compose expressions suc
 # Stop containers while preserving all resources and data.
 ./apple-container.sh down
 
-# Restart PostgreSQL, Redis, and Sub2API in dependency order.
+# Restart PostgreSQL, Redis, and ANLAPI in dependency order.
 ./apple-container.sh restart
 
 # Show resource state and run live health probes.
@@ -89,10 +89,10 @@ After a host reboot or `container system stop`, run `./apple-container.sh up` ag
 
 ## Configuration
 
-The script uses `deploy/.env`, the same source file used by Docker Compose. Export `SUB2API_ENV_FILE` to use another file for every command in the current shell:
+The script uses `deploy/.env`, the same source file used by Docker Compose. Export `ANLAPI_ENV_FILE` to use another file for every command in the current shell. `SUB2API_ENV_FILE` remains accepted as a legacy alias:
 
 ```bash
-export SUB2API_ENV_FILE=/absolute/path/to/sub2api.env
+export ANLAPI_ENV_FILE=/absolute/path/to/anlapi.env
 ./apple-container.sh init
 ./apple-container.sh up
 ```
@@ -100,6 +100,9 @@ export SUB2API_ENV_FILE=/absolute/path/to/sub2api.env
 Apple-specific image overrides are available:
 
 ```dotenv
+# Set this after publishing/building an ANLAPI image.
+APPLE_CONTAINER_ANLAPI_IMAGE=ghcr.io/anl-694/anlapi:latest
+# Legacy fallback, used only when APPLE_CONTAINER_ANLAPI_IMAGE is absent.
 APPLE_CONTAINER_SUB2API_IMAGE=weishaw/sub2api:latest
 APPLE_CONTAINER_POSTGRES_IMAGE=postgres:18-alpine
 APPLE_CONTAINER_REDIS_IMAGE=redis:8-alpine
@@ -113,32 +116,32 @@ Apple-specific handling of shared settings:
 
 | Setting | Apple workflow behavior |
 |---|---|
-| Application and gateway variables | Passed to Sub2API from `.env` |
+| Application and gateway variables | Passed to ANLAPI from `.env` |
 | `BIND_HOST`, `SERVER_PORT` | Used for the macOS published port |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | PostgreSQL first initialization only |
-| `REDIS_PASSWORD` | Applied to Redis and Sub2API |
+| `REDIS_PASSWORD` | Applied to Redis and ANLAPI |
 | `DATABASE_PORT`, `REDIS_PORT` | Internal ports are fixed to 5432 and 6379 |
 | `POSTGRES_MAX_*`, `REDIS_MAXCLIENTS` | Not currently applied to the database/cache server |
 
 ## Managed Resources
 
-The script creates only resources carrying the `org.sub2api.stack=apple-container` label:
+New stacks use the `org.anlapi.stack=apple-container` label and `anlapi-apple-*` resource names. Existing resources carrying the legacy `org.sub2api.stack=apple-container` label and `sub2api-apple-*` names are detected and managed in place; the script never mixes both stacks:
 
 | Type | Names |
 |---|---|
-| Containers | `sub2api-apple`, `sub2api-apple-postgres`, `sub2api-apple-redis` |
-| Network | `sub2api-apple` |
-| Volumes | `sub2api-apple-data`, `sub2api-apple-postgres-data`, `sub2api-apple-redis-data` |
+| Containers | `anlapi-apple`, `anlapi-apple-postgres`, `anlapi-apple-redis` |
+| Network | `anlapi-apple` |
+| Volumes | `anlapi-apple-data`, `anlapi-apple-postgres-data`, `anlapi-apple-redis-data` |
 
-The PostgreSQL volume is mounted at `/var/lib/postgresql`, retaining PostgreSQL 18's default child data directory. Sub2API and Redis also store data in child directories below their Apple volume mount points. This is required because Apple named volumes do not have Docker's copy-up and mount-point ownership behavior.
+The PostgreSQL volume is mounted at `/var/lib/postgresql`, retaining PostgreSQL 18's default child data directory. ANLAPI and Redis also store data in child directories below their Apple volume mount points. This is required because Apple named volumes do not have Docker's copy-up and mount-point ownership behavior.
 
 ## Networking
 
-Apple `container` 1.1 does not provide Compose-style network-scoped service aliases. After PostgreSQL and Redis start, the script reads their current private-network IPv4 addresses from `container inspect`, injects those addresses into a newly created application container, and then starts Sub2API. The script does not modify `~/.config/container/config.toml` or the macOS host resolver.
+Apple `container` 1.1 does not provide Compose-style network-scoped service aliases. After PostgreSQL and Redis start, the script reads their current private-network IPv4 addresses from `container inspect`, injects those addresses into a newly created application container, and then starts ANLAPI. The script does not modify `~/.config/container/config.toml` or the macOS host resolver.
 
-All three services attach only to the private `sub2api-apple` network. Only the application publishes a host port; database and Redis ports remain unpublished.
+All three services attach only to the private `anlapi-apple` network for new stacks. Only the application publishes a host port; database and Redis ports remain unpublished. Legacy stacks continue using `sub2api-apple` automatically.
 
-The application container is intentionally recreated by every `up` and `restart` operation because dependency VM addresses can change after they stop. Application data remains in `sub2api-apple-data`.
+The application container is intentionally recreated by every `up` and `restart` operation because dependency VM addresses can change after they stop. Application data remains in `anlapi-apple-data` for new stacks and is preserved under the legacy volume name for existing stacks.
 
 The script checks the published `/health` endpoint from macOS before reporting success. Approve the Local Network prompt on first startup. If the internal probe succeeds but the host-port probe fails with a connection reset, enable Local Network access for `container-runtime-linux`, run `container system stop` followed by `container system start`, and then run `up` again. Runtime upgrades may prompt for permission again.
 
@@ -150,14 +153,17 @@ Pin image release tags or digests in `.env` before using this workflow for persi
 umask 077
 mkdir -p backups
 
+# The commands below use the new ANLAPI resource names. If an older
+# sub2api-apple stack already exists, use its legacy names instead.
+
 # Logical PostgreSQL backup.
-container exec sub2api-apple sh -c \
+container exec anlapi-apple sh -c \
   'PGPASSWORD="$DATABASE_PASSWORD" pg_dump -h "$DATABASE_HOST" -U "$DATABASE_USER" "$DATABASE_DBNAME"' \
-  > backups/sub2api.sql
+  > backups/anlapi.sql
 
 # Application configuration and local files.
-container exec sub2api-apple sh -c 'tar -C "$DATA_DIR" -czf - .' \
-  > backups/sub2api-data.tar.gz
+container exec anlapi-apple sh -c 'tar -C "$DATA_DIR" -czf - .' \
+  > backups/anlapi-data.tar.gz
 
 ./apple-container.sh pull
 ./apple-container.sh up --recreate
@@ -174,25 +180,25 @@ To restore these backups into an existing stack, first ensure the image versions
 ./apple-container.sh down
 
 # Remove only the app container so a helper can mount its named volume.
-container delete sub2api-apple
-SUB2API_IMAGE=weishaw/sub2api:latest # Match APPLE_CONTAINER_SUB2API_IMAGE in .env.
-container run --rm --name sub2api-apple-data-restore \
+container delete anlapi-apple
+ANLAPI_IMAGE=ghcr.io/anl-694/anlapi:latest # Match APPLE_CONTAINER_ANLAPI_IMAGE in .env.
+container run --rm --name anlapi-apple-data-restore \
   --entrypoint /bin/sh \
-  --volume sub2api-apple-data:/restore \
+  --volume anlapi-apple-data:/restore \
   --volume "$PWD/backups:/backup:ro" \
-  "$SUB2API_IMAGE" \
-  -c 'rm -rf /restore/data && mkdir -p /restore/data && tar -xzf /backup/sub2api-data.tar.gz -C /restore/data'
+  "$ANLAPI_IMAGE" \
+  -c 'rm -rf /restore/data && mkdir -p /restore/data && tar -xzf /backup/anlapi-data.tar.gz -C /restore/data'
 
 # Restore the logical database while the application is absent.
-container start sub2api-apple-postgres
-until container exec sub2api-apple-postgres sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'; do sleep 1; done
-container copy backups/sub2api.sql sub2api-apple-postgres:/tmp/sub2api.sql
-container exec sub2api-apple-postgres sh -c '
+container start anlapi-apple-postgres
+until container exec anlapi-apple-postgres sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'; do sleep 1; done
+container copy backups/anlapi.sql anlapi-apple-postgres:/tmp/anlapi.sql
+container exec anlapi-apple-postgres sh -c '
   export PGPASSWORD="$POSTGRES_PASSWORD"
   dropdb -h 127.0.0.1 -U "$POSTGRES_USER" --if-exists --force "$POSTGRES_DB"
   createdb -h 127.0.0.1 -U "$POSTGRES_USER" "$POSTGRES_DB"
-  psql -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /tmp/sub2api.sql
-  rm /tmp/sub2api.sql
+  psql -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /tmp/anlapi.sql
+  rm /tmp/anlapi.sql
 '
 
 ./apple-container.sh up
@@ -217,5 +223,5 @@ container system start
 - Health probes run during `up`, `restart`, and `status`; Apple `container` does not continuously schedule them.
 - Docker Compose, Testcontainers, Buildx, and tools requiring `/var/run/docker.sock` cannot use this runtime directly.
 - Named volume backup and restore must be tested before using this workflow for important data.
-- The script targets native `linux/arm64` images. The normal Sub2API release publishes an arm64 variant.
+- The script targets native `linux/arm64` images. Configure an ANLAPI-compatible arm64 image in `.env`; the legacy upstream default remains available for compatibility.
 - Runtime environment values, including credentials, are retained in Apple container configuration and are visible to users who can inspect the local runtime.
