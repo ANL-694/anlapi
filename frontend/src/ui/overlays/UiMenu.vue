@@ -74,7 +74,6 @@ onUnmounted(() => {
   border-radius: var(--ui-radius-lg);
   background: var(--ui-surface);
   box-shadow: var(--ui-shadow-popover);
-  transform-origin: top right;
 }
 
 .ui-menu-content :deep(button),
@@ -88,10 +87,7 @@ onUnmounted(() => {
   color: var(--ui-text-secondary);
   font-size: 0.875rem;
   text-align: left;
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard);
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .ui-menu-content :deep(.btn) {
@@ -105,7 +101,6 @@ onUnmounted(() => {
 .ui-menu-content :deep(a:hover) {
   background: var(--ui-surface-hover);
   color: var(--ui-text);
-  transform: translateX(1px);
 }
 
 .ui-menu-content :deep(button:disabled) {
@@ -115,28 +110,12 @@ onUnmounted(() => {
 
 .ui-menu-fade-enter-active,
 .ui-menu-fade-leave-active {
-  transition:
-    opacity var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-emphasized);
+  transition: opacity 120ms ease, transform 120ms ease;
 }
 
 .ui-menu-fade-enter-from,
 .ui-menu-fade-leave-to {
   opacity: 0;
-  transform: translateY(-4px) scale(0.98);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ui-menu-fade-enter-active,
-  .ui-menu-fade-leave-active,
-  .ui-menu-content :deep(button),
-  .ui-menu-content :deep(a) {
-    transition-duration: 1ms;
-  }
-
-  .ui-menu-content :deep(button:hover),
-  .ui-menu-content :deep(a:hover) {
-    transform: none;
-  }
+  transform: translateY(-2px);
 }
 </style>

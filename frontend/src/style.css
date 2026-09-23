@@ -102,39 +102,6 @@
     padding: 0.875rem 1rem 1.5rem;
   }
 
-  /*
-   * Keep navigation changes spatially calm: the shell stays fixed while the
-   * active view enters with a short opacity/translation transition.
-   */
-  .route-enter-active,
-  .route-leave-active {
-    transition:
-      opacity 180ms ease,
-      transform 180ms ease;
-  }
-
-  .route-enter-from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  .route-leave-to {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .route-enter-active,
-    .route-leave-active {
-      transition-duration: 1ms;
-    }
-
-    .route-enter-from,
-    .route-leave-to {
-      transform: none;
-    }
-  }
-
   @media (min-width: 768px) {
     .app-main {
       padding: 1rem 1.5rem 2rem;
@@ -774,15 +741,6 @@
     background: transparent;
   }
 
-  .app-header-user-button {
-    position: relative;
-  }
-
-  .app-header-user-button-open {
-    background: var(--app-surface-muted);
-    color: var(--app-text);
-  }
-
   .app-header-control {
     @apply px-2.5 py-1.5;
   }
@@ -888,18 +846,6 @@
     color: #ffffff;
   }
 
-  .app-header-avatar-status {
-    position: absolute;
-    right: 0.3rem;
-    bottom: 0.25rem;
-    width: 0.5rem;
-    height: 0.5rem;
-    border: 2px solid var(--app-bg);
-    border-radius: 999px;
-    background: var(--ui-success);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ui-success) 22%, transparent);
-  }
-
   .dark .app-header-avatar {
     background: #f4f4f4;
     color: #171717;
@@ -978,13 +924,6 @@
       width: 1.875rem;
       font-size: 0.75rem;
     }
-
-    .app-header-avatar-status {
-      right: 0.18rem;
-      bottom: 0.16rem;
-      width: 0.45rem;
-      height: 0.45rem;
-    }
   }
 
   @media (max-width: 360px) {
@@ -1017,7 +956,6 @@
     border-radius: var(--ui-radius-lg);
     box-shadow: var(--ui-shadow-dialog);
     max-width: calc(100vw - 1rem);
-    transform-origin: center;
   }
 
   .dark .modal-content {
@@ -1031,12 +969,12 @@
     @apply sm:px-5 sm:py-4;
     @apply flex items-center justify-between;
     @apply flex-shrink-0;
-    border-bottom: 1px solid var(--app-border);
+    border-bottom: 1px solid transparent;
     background: var(--app-surface);
   }
 
   .dark .modal-header {
-    border-bottom-color: var(--app-border);
+    border-bottom-color: transparent;
     background: var(--app-surface);
   }
 
@@ -1079,12 +1017,12 @@
     @apply sm:px-5 sm:py-4;
     @apply flex items-center justify-end gap-3;
     @apply flex-shrink-0;
-    border-top: 1px solid var(--app-border);
+    border-top: 1px solid transparent;
     background: var(--app-surface);
   }
 
   .dark .modal-footer {
-    border-top-color: var(--app-border);
+    border-top-color: transparent;
     background: var(--app-surface);
   }
 
@@ -1178,11 +1116,11 @@
   .toast {
     @apply fixed right-4 top-4 z-[100];
     @apply min-w-[320px] max-w-md;
+    @apply shadow-none;
     @apply p-4;
     @apply animate-slide-in-right;
     background: var(--app-surface);
     border: 1px solid var(--app-border);
-    border-left-width: 3px;
     border-radius: var(--ui-radius-lg);
   }
 
@@ -1200,10 +1138,6 @@
 
   .toast-info {
     @apply border-l-primary-500;
-  }
-
-  .toast-card:hover .toast-progress {
-    animation-play-state: paused;
   }
 
   /* ============ 侧边栏 ============ */
@@ -1247,27 +1181,9 @@
   }
 
   .sidebar-link-active {
-    isolation: isolate;
     background: color-mix(in srgb, var(--app-text) 8%, transparent);
     color: var(--app-text);
     box-shadow: none;
-  }
-
-  .sidebar-link-active::before {
-    position: absolute;
-    left: 0;
-    top: 0.45rem;
-    bottom: 0.45rem;
-    width: 3px;
-    border-radius: 999px;
-    background: var(--app-primary);
-    content: "";
-    transform-origin: center;
-    animation: sidebar-active-in 180ms ease-out both;
-  }
-
-  .sidebar-link-collapsed.sidebar-link-active::before {
-    left: 0.125rem;
   }
 
   .sidebar-link-active:hover {
@@ -1308,23 +1224,6 @@
   .dark .sidebar-link-active:hover {
     background: color-mix(in srgb, var(--app-text) 15%, transparent);
     color: var(--app-text);
-  }
-
-  @keyframes sidebar-active-in {
-    from {
-      opacity: 0;
-      transform: scaleY(0.45);
-    }
-    to {
-      opacity: 1;
-      transform: scaleY(1);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .sidebar-link-active::before {
-      animation: none;
-    }
   }
 
   .dark .sidebar-section-title {
@@ -1522,243 +1421,5 @@
 
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Shared interaction layer: quiet elevation, clear focus, and stateful
- * feedback make dense operational screens easier to scan without adding
- * decorative noise. */
-:where(button, a, input, select, textarea):focus-visible {
-  outline: 2px solid var(--ui-brand);
-  outline-offset: 2px;
-}
-
-:where(button, a) {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.btn,
-.input,
-.card,
-.glass-card,
-.table-container,
-.tabs,
-.app-header-control,
-.app-header-subscription-control,
-.app-header-user-button,
-.app-header-balance,
-.app-header-concurrency,
-.sidebar-link {
-  transition-timing-function: var(--ui-ease-standard);
-}
-
-.btn {
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    border-color var(--ui-duration-fast) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.btn:not(:disabled):active {
-  transform: translateY(1px);
-}
-
-.btn-primary:not(:disabled):hover {
-  box-shadow: 0 5px 14px color-mix(in srgb, var(--ui-brand) 22%, transparent);
-}
-
-.btn-secondary:not(:disabled):hover,
-.btn-ghost:not(:disabled):hover {
-  box-shadow: var(--ui-shadow-card);
-}
-
-.input {
-  transition:
-    border-color var(--ui-duration-fast) var(--ui-ease-standard),
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.input:focus {
-  box-shadow: var(--ui-shadow-focus);
-}
-
-.card,
-.glass-card {
-  box-shadow: var(--ui-shadow-card);
-  transition:
-    border-color var(--ui-duration-base) var(--ui-ease-standard),
-    background-color var(--ui-duration-base) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-base) var(--ui-ease-standard),
-    transform var(--ui-duration-base) var(--ui-ease-standard);
-}
-
-.card-hover:hover,
-.glass-card:hover {
-  box-shadow: var(--ui-shadow-card-hover);
-  transform: translateY(-1px);
-}
-
-.table-container {
-  box-shadow: var(--ui-shadow-card);
-}
-
-.table tbody tr {
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.table tbody tr:hover {
-  box-shadow: inset 3px 0 0 var(--ui-brand);
-}
-
-.tabs {
-  border: 1px solid var(--ui-border);
-}
-
-.tab {
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.tab-active {
-  box-shadow: var(--ui-shadow-card);
-}
-
-.progress-bar,
-.quota-progress > div,
-.platform-progress > div {
-  transition:
-    width var(--ui-duration-slow) var(--ui-ease-emphasized),
-    background-color var(--ui-duration-base) var(--ui-ease-standard);
-}
-
-.skeleton {
-  background:
-    linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--ui-surface-subtle) 88%, transparent) 20%,
-      color-mix(in srgb, var(--ui-surface-hover) 92%, transparent) 38%,
-      color-mix(in srgb, var(--ui-surface-subtle) 88%, transparent) 54%
-    );
-  background-size: 220% 100%;
-  animation: ui-skeleton-shimmer 1.5s linear infinite;
-}
-
-.dropdown,
-.modal-content,
-.dialog-container,
-.toast {
-  box-shadow: var(--ui-shadow-popover);
-}
-
-.app-header {
-  border-bottom-color: color-mix(in srgb, var(--ui-border) 72%, transparent);
-}
-
-.app-header-action-item,
-.app-header-control,
-.app-header-subscription-control,
-.app-header-user-button,
-.app-header-balance,
-.app-header-concurrency {
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    border-color var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.app-header-action-item:hover,
-.app-header-control:hover,
-.app-header-subscription-control:hover,
-.app-header-user-button:hover,
-.app-header-balance:hover,
-.app-header-concurrency:hover {
-  transform: translateY(-1px);
-}
-
-.sidebar {
-  box-shadow: 1px 0 0 color-mix(in srgb, var(--ui-border) 55%, transparent);
-}
-
-.sidebar-link {
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.sidebar-link:hover {
-  transform: translateX(1px);
-}
-
-.sidebar-link-active:hover {
-  transform: translateX(0);
-}
-
-@keyframes ui-skeleton-shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -20% 0;
-  }
-}
-
-@media (max-width: 640px) {
-  .app-main {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
-
-  .toast {
-    right: 0.75rem;
-    left: 0.75rem;
-    min-width: 0;
-    max-width: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-    background: var(--ui-surface-subtle);
-  }
-
-  .btn,
-  .card,
-  .glass-card,
-  .table tbody tr,
-  .tab,
-  .progress-bar,
-  .quota-progress > div,
-  .platform-progress > div,
-  .app-header-action-item,
-  .app-header-control,
-  .app-header-subscription-control,
-  .app-header-user-button,
-  .app-header-balance,
-  .app-header-concurrency,
-  .sidebar-link {
-    transition-duration: 1ms;
-  }
-
-  .btn:not(:disabled):active,
-  .card-hover:hover,
-  .glass-card:hover,
-  .app-header-action-item:hover,
-  .app-header-control:hover,
-  .app-header-subscription-control:hover,
-  .app-header-user-button:hover,
-  .app-header-balance:hover,
-  .app-header-concurrency:hover,
-  .sidebar-link:hover {
-    transform: none;
   }
 }

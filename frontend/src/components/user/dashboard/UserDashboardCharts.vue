@@ -119,20 +119,7 @@ const doughnutOptions = {
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-lg);
   background: var(--ui-surface);
-  box-shadow: var(--ui-shadow-card);
-  transition:
-    border-color var(--ui-duration-base) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-base) var(--ui-ease-standard);
-}
-
-@media (min-width: 768px) {
-  .dashboard-analytics-toolbar {
-    position: sticky;
-    top: 3.75rem;
-    z-index: 10;
-    background: color-mix(in srgb, var(--ui-surface) 92%, transparent);
-    backdrop-filter: blur(14px);
-  }
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.035);
 }
 
 .dashboard-filter-row,
@@ -167,44 +154,12 @@ const doughnutOptions = {
 
 .dashboard-analytics-pane {
   min-width: 0;
-  position: relative;
-  overflow: hidden;
   padding: 1rem 1.125rem 0;
+  overflow: hidden;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-lg);
   background: var(--ui-surface);
-  box-shadow: var(--ui-shadow-card);
-  transition:
-    border-color var(--ui-duration-base) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-base) var(--ui-ease-standard);
-}
-
-.dashboard-analytics-pane::before {
-  position: absolute;
-  top: 0;
-  right: 1.125rem;
-  left: 1.125rem;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--ui-brand);
-  content: "";
-  opacity: 0;
-  transform: scaleX(0.3);
-  transform-origin: left;
-  transition:
-    opacity var(--ui-duration-base) var(--ui-ease-standard),
-    transform var(--ui-duration-slow) var(--ui-ease-emphasized);
-}
-
-.dashboard-analytics-toolbar:hover,
-.dashboard-analytics-pane:hover {
-  border-color: var(--ui-border-strong);
-  box-shadow: var(--ui-shadow-card-hover);
-}
-
-.dashboard-analytics-pane:hover::before {
-  opacity: 1;
-  transform: scaleX(1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.035);
 }
 
 .dashboard-analytics-pane--models {
@@ -216,17 +171,6 @@ const doughnutOptions = {
   min-width: 0;
   align-items: center;
   gap: 1.5rem;
-}
-
-.model-distribution tbody tr {
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.model-distribution tbody tr:hover {
-  background: var(--ui-surface-hover);
-  transform: translateX(2px);
 }
 
 @media (max-width: 640px) {
@@ -269,19 +213,6 @@ const doughnutOptions = {
 
   .dashboard-analytics-pane--models {
     border-left: 1px solid var(--ui-border);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-analytics-toolbar,
-  .dashboard-analytics-pane,
-  .dashboard-analytics-pane::before,
-  .model-distribution tbody tr {
-    transition-duration: 1ms;
-  }
-
-  .model-distribution tbody tr:hover {
-    transform: none;
   }
 }
 </style>

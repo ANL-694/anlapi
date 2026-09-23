@@ -7070,7 +7070,7 @@
                     }}</span>
                   </div>
                 </div>
-                <!-- Row 4: Enabled payment types -->
+                <!-- Row 4: Enabled payment types (provider badges like sub2apipay) -->
                 <div>
                   <label class="input-label">{{
                     t("admin.settings.payment.enabledPaymentTypes")

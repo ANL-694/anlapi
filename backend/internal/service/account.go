@@ -1823,7 +1823,7 @@ func (a *Account) IsShadow() bool {
 	return a != nil && a.ParentAccountID != nil
 }
 
-// IsCredentialShadow is the credential-routing alias used by ANLAPI services.
+// IsCredentialShadow is the credential-routing alias used by Sub2API services.
 func (a *Account) IsCredentialShadow() bool {
 	return a.IsShadow()
 }

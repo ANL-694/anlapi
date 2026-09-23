@@ -17,8 +17,7 @@
           v-for="toast in toasts"
           :key="toast.id"
           :class="[
-            'toast-card pointer-events-auto w-full overflow-hidden border',
-            `toast-${toast.type}`,
+            'pointer-events-auto w-full overflow-hidden border',
             'bg-[var(--app-surface)] text-[var(--app-text)]',
             'border-[var(--app-border-strong)]',
             'sm:w-[22rem]'
@@ -125,19 +124,6 @@ const removeToast = (id: string) => {
 </script>
 
 <style scoped>
-.toast-card {
-  border-left-width: 3px;
-  box-shadow: var(--ui-shadow-popover);
-  transition:
-    transform var(--ui-duration-fast) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.toast-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--ui-shadow-dialog);
-}
-
 .toast-progress {
   width: 100%;
   animation-name: toast-progress-shrink;
@@ -151,20 +137,6 @@ const removeToast = (id: string) => {
   }
   to {
     width: 0%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .toast-card {
-    transition-duration: 1ms;
-  }
-
-  .toast-card:hover {
-    transform: none;
-  }
-
-  .toast-progress {
-    animation: none;
   }
 }
 </style>

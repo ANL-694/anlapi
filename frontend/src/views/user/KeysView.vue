@@ -33,35 +33,25 @@
       </template>
 
       <template #actions>
-        <div class="flex flex-wrap justify-end gap-2">
-          <button
-            type="button"
-            class="keys-details-toggle"
-            :aria-pressed="showDetailsColumns"
-            @click="showDetailsColumns = !showDetailsColumns"
-          >
-            <Icon :name="showDetailsColumns ? 'eye' : 'more'" size="sm" />
-            {{ showDetailsColumns ? t('keys.hideDetails') : t('keys.showDetails') }}
-          </button>
-          <UiIconButton
-            :label="t('common.refresh')"
-            @click="refreshKeyPageData"
-            :disabled="loading"
-          >
-            <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-          </UiIconButton>
-          <button @click="openCreateModal" class="btn btn-primary" data-tour="keys-create-btn">
-            <Icon name="plus" size="sm" />
-            {{ t('keys.createKey') }}
-          </button>
-        </div>
+        <div class="flex justify-end gap-3">
+        <UiIconButton
+          :label="t('common.refresh')"
+          @click="refreshKeyPageData"
+          :disabled="loading"
+        >
+          <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+        </UiIconButton>
+        <button @click="openCreateModal" class="btn btn-primary" data-tour="keys-create-btn">
+          <Icon name="plus" size="sm" />
+          {{ t('keys.createKey') }}
+        </button>
+      </div>
       </template>
 
       <template #table>
         <DataTable
           :columns="columns"
           :data="apiKeys"
-          :class="['keys-data-table', { 'keys-details-mode': showDetailsColumns }]"
           :loading="loading"
           :card-rows="true"
           :sticky-actions-column="true"
@@ -75,7 +65,7 @@
           </template>
 
           <template #cell-key="{ value, row }">
-            <div class="keys-key-cell">
+            <div class="flex items-center gap-2">
               <code class="code text-xs">
                 {{ maskApiKey(value) }}
               </code>
@@ -101,9 +91,8 @@
           </template>
 
           <template #cell-name="{ value, row }">
-            <div class="keys-name-cell">
-              <div class="flex items-center gap-1.5">
-                <span class="font-medium text-[var(--app-text)]">{{ value }}</span>
+            <div class="flex items-center gap-1.5">
+	              <span class="font-medium text-[var(--app-text)]">{{ value }}</span>
               <span
                 v-if="row.managed_type === 'image_generation'"
                 class="badge badge-success whitespace-nowrap"
@@ -115,8 +104,6 @@
                 class="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ui-success)]"
                 :title="t('keys.ipRestrictionEnabled')"
               ></span>
-              </div>
-              <span class="keys-name-meta">#{{ row.id }}</span>
             </div>
           </template>
 
@@ -151,13 +138,7 @@
 	                <span v-else class="text-sm text-[var(--app-muted)]">{{
                   t('keys.noGroup')
                 }}</span>
-                <Icon
-                  v-if="row.is_system_managed"
-                  name="lock"
-                  size="xs"
-                  class="shrink-0 text-[var(--app-muted)]"
-                  :title="t('keys.systemGroupLocked')"
-                />
+	                <span class="shrink-0 text-xs text-[var(--app-muted)]">{{ row.is_system_managed ? t('keys.systemManaged') : t('keys.selectGroup') }}</span>
                 <svg
 	                  v-if="!row.is_system_managed"
 	                  class="h-3.5 w-3.5 shrink-0 text-[var(--app-muted)] opacity-60 transition-opacity group-hover/dropdown:opacity-100"
@@ -341,24 +322,16 @@
 	            <span v-else class="text-sm text-[var(--app-muted)]">{{ t('keys.noExpiration') }}</span>
           </template>
 
-          <template #cell-status="{ value, row }">
-            <div class="keys-status-cell">
-              <span :class="[
-                'badge',
-                value === 'active' ? 'badge-success' :
-                value === 'quota_exhausted' ? 'badge-warning' :
-                value === 'expired' ? 'badge-danger' :
-                'badge-gray'
-              ]">
-                {{ t('keys.status.' + value) }}
-              </span>
-              <span
-                class="keys-status-meta"
-                :class="row.expires_at && new Date(row.expires_at) < new Date() ? 'text-red-500' : ''"
-              >
-                {{ row.expires_at ? formatDateTime(row.expires_at) : t('keys.noExpiration') }}
-              </span>
-            </div>
+          <template #cell-status="{ value }">
+            <span :class="[
+              'badge',
+              value === 'active' ? 'badge-success' :
+              value === 'quota_exhausted' ? 'badge-warning' :
+              value === 'expired' ? 'badge-danger' :
+              'badge-gray'
+            ]">
+              {{ t('keys.status.' + value) }}
+            </span>
           </template>
 
           <template #cell-last_used_at="{ value }">
@@ -373,74 +346,63 @@
           </template>
 
           <template #cell-actions="{ row }">
-            <div class="keys-action-group">
+            <div class="flex items-center gap-1">
+              <!-- Use Key Button -->
               <button
-                type="button"
-                class="keys-action-button"
                 @click="openUseKeyModal(row)"
+	                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary-hover)]"
               >
                 <Icon name="terminal" size="sm" />
-                <span>{{ t('keys.useKey') }}</span>
+                <span class="text-xs">{{ t('keys.useKey') }}</span>
               </button>
-              <button
-                type="button"
-                class="keys-action-button"
+              <UiIconButton
+                size="sm"
+                :label="t('keys.testModel')"
                 @click="openTestModal(row)"
               >
                 <Icon name="beaker" size="sm" />
-                <span>{{ t('keys.testModel') }}</span>
+              </UiIconButton>
+              <!-- Import to CC Switch Button -->
+              <button
+                v-if="!publicSettings?.hide_ccs_import_button"
+                @click="importToCcswitch(row)"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary-hover)]"
+              >
+                <Icon name="upload" size="sm" />
+                <span class="text-xs">{{ t('keys.importToCcSwitch') }}</span>
               </button>
+              <!-- Toggle Status Button -->
               <button
                 v-if="!row.is_system_managed"
-                type="button"
-                class="keys-action-button"
+                @click="toggleKeyStatus(row)"
+                :class="[
+                  'flex flex-col items-center gap-0.5 rounded-lg p-1.5 transition-colors',
+                  row.status === 'active'
+	                    ? 'text-[var(--app-muted)] hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30 dark:hover:text-amber-300'
+	                    : 'text-[var(--app-muted)] hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary-hover)]'
+                ]"
+              >
+                <Icon v-if="row.status === 'active'" name="ban" size="sm" />
+                <Icon v-else name="checkCircle" size="sm" />
+                <span class="text-xs">{{ row.status === 'active' ? t('keys.disable') : t('keys.enable') }}</span>
+              </button>
+              <!-- Edit Button -->
+              <button
+                v-if="!row.is_system_managed"
                 @click="editKey(row)"
+	                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-primary-hover)]"
               >
                 <Icon name="edit" size="sm" />
-                <span>{{ t('common.edit') }}</span>
+                <span class="text-xs">{{ t('common.edit') }}</span>
               </button>
-              <UiMenu :label="t('common.more')">
-                <template #trigger="{ open, toggle }">
-                  <button
-                    type="button"
-                    class="keys-more-button"
-                    aria-haspopup="menu"
-                    :aria-expanded="open"
-                    @click="toggle"
-                  >
-                    {{ t('common.more') }}
-                  </button>
-                </template>
-                <template #default="{ close }">
-                  <button
-                    v-if="!publicSettings?.hide_ccs_import_button"
-                    type="button"
-                    class="keys-menu-item"
-                    @click="importToCcswitch(row); close()"
-                  >
-                    <Icon name="upload" size="sm" />
-                    {{ t('keys.importToCcSwitch') }}
-                  </button>
-                  <button
-                    v-if="!row.is_system_managed"
-                    type="button"
-                    class="keys-menu-item"
-                    @click="toggleKeyStatus(row); close()"
-                  >
-                    <Icon v-if="row.status === 'active'" name="ban" size="sm" />
-                    <Icon v-else name="checkCircle" size="sm" />
-                    {{ row.status === 'active' ? t('keys.disable') : t('keys.enable') }}
-                  </button>
-                  <button
-                    type="button"
-                    class="keys-menu-item keys-menu-item-danger"
-                    @click="confirmDelete(row); close()"
-                  >
-                    <Icon name="trash" size="sm" />
-                    {{ t('common.delete') }}
-                  </button>
-                </template>
-              </UiMenu>
+              <!-- Delete Button -->
+              <button
+                @click="confirmDelete(row)"
+	                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-[var(--app-muted)] transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:text-red-300"
+              >
+                <Icon name="trash" size="sm" />
+                <span class="text-xs">{{ t('common.delete') }}</span>
+              </button>
             </div>
           </template>
 
@@ -1305,7 +1267,7 @@ const { t } = useI18n()
 import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import { UiIconButton, UiMenu, UiPage } from '@/ui'
+import { UiIconButton, UiPage } from '@/ui'
 	import DataTable from '@/components/common/DataTable.vue'
 	import Pagination from '@/components/common/Pagination.vue'
 	import BaseDialog from '@/components/common/BaseDialog.vue'
@@ -1369,28 +1331,20 @@ const appStore = useAppStore()
 const onboardingStore = useOnboardingStore()
 const { copyToClipboard: clipboardCopy } = useClipboard()
 
-const showDetailsColumns = ref(false)
-
-const columns = computed<Column[]>(() => {
-  const baseColumns: Column[] = [
-    { key: 'name', label: t('common.name'), sortable: true, class: 'keys-col-name' },
-    { key: 'id', label: t('keys.id'), sortable: true, class: 'keys-col-id' },
-    { key: 'key', label: t('keys.apiKey'), sortable: false, class: 'keys-col-key' },
-    { key: 'group', label: t('keys.group'), sortable: false, class: 'keys-col-group' },
-    { key: 'current_concurrency', label: t('keys.currentConcurrency'), sortable: false, class: 'keys-col-concurrency' },
-    { key: 'usage', label: t('keys.usage'), sortable: false, class: 'keys-col-usage' },
-    { key: 'rate_limit', label: t('keys.rateLimitColumn'), sortable: false, class: 'keys-col-rate' },
-    { key: 'expires_at', label: t('keys.expiresAt'), sortable: true, class: 'keys-col-expires' },
-    { key: 'status', label: t('common.status'), sortable: true, class: 'keys-col-status' },
-    { key: 'last_used_at', label: t('keys.lastUsedAt'), sortable: true, class: 'keys-col-last-used' },
-    { key: 'created_at', label: t('keys.created'), sortable: true, class: 'keys-col-created' },
-    { key: 'actions', label: t('common.actions'), sortable: false, class: 'keys-col-actions' }
-  ]
-
-  if (showDetailsColumns.value) return baseColumns
-
-  return baseColumns.filter((column) => !['id', 'expires_at', 'last_used_at', 'created_at'].includes(column.key))
-})
+const columns = computed<Column[]>(() => [
+  { key: 'name', label: t('common.name'), sortable: true },
+  { key: 'id', label: t('keys.id'), sortable: true },
+  { key: 'key', label: t('keys.apiKey'), sortable: false },
+  { key: 'group', label: t('keys.group'), sortable: false },
+  { key: 'current_concurrency', label: t('keys.currentConcurrency'), sortable: false },
+  { key: 'usage', label: t('keys.usage'), sortable: false },
+  { key: 'rate_limit', label: t('keys.rateLimitColumn'), sortable: false },
+  { key: 'expires_at', label: t('keys.expiresAt'), sortable: true },
+  { key: 'status', label: t('common.status'), sortable: true },
+  { key: 'last_used_at', label: t('keys.lastUsedAt'), sortable: true },
+  { key: 'created_at', label: t('keys.created'), sortable: true },
+  { key: 'actions', label: t('common.actions'), sortable: false }
+])
 
 const apiKeys = ref<ApiKey[]>([])
 const groups = ref<Group[]>([])
@@ -2318,279 +2272,3 @@ onUnmounted(() => {
   if (resetTimer) clearInterval(resetTimer)
 })
 </script>
-
-<style scoped>
-.keys-action-group {
-  display: inline-flex;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.2rem;
-}
-
-.keys-action-button {
-  display: inline-flex;
-  min-width: 3.25rem;
-  min-height: 2.125rem;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.1rem;
-  border-radius: var(--ui-radius-md);
-  padding: 0.25rem 0.3rem;
-  color: var(--ui-text-secondary);
-  font-size: 0.625rem;
-  line-height: 1.1;
-  white-space: nowrap;
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.keys-action-button:hover,
-.keys-action-button:focus-visible {
-  background: var(--ui-surface-hover);
-  color: var(--ui-brand-strong);
-}
-
-.keys-action-button:focus-visible {
-  outline: 2px solid var(--ui-focus);
-  outline-offset: 1px;
-}
-
-.keys-more-button {
-  display: inline-flex;
-  flex-shrink: 0;
-  min-height: 2.125rem;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-surface);
-  padding: 0.35rem 0.55rem;
-  color: var(--ui-text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard),
-    border-color var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.keys-more-button:hover,
-.keys-more-button:focus-visible,
-.keys-more-button[aria-expanded='true'] {
-  border-color: var(--ui-brand-border);
-  background: var(--ui-brand-soft);
-  color: var(--ui-brand-strong);
-}
-
-.keys-more-button:focus-visible {
-  outline: 2px solid var(--ui-focus);
-  outline-offset: 1px;
-}
-
-.keys-menu-item {
-  gap: 0.55rem;
-}
-
-.keys-menu-item-danger {
-  color: var(--ui-danger) !important;
-}
-
-.keys-key-cell {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.keys-details-toggle {
-  display: inline-flex;
-  min-height: 2.25rem;
-  align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-surface);
-  padding: 0.5rem 0.7rem;
-  color: var(--ui-text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    border-color var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard);
-}
-
-.keys-details-toggle:hover,
-.keys-details-toggle[aria-pressed='true'] {
-  border-color: var(--ui-brand-border);
-  background: var(--ui-brand-soft);
-  color: var(--ui-brand-strong);
-}
-
-.keys-name-cell,
-.keys-status-cell {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.keys-name-cell > div {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.keys-name-cell .font-medium {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.keys-name-meta,
-.keys-status-meta {
-  color: var(--ui-text-tertiary);
-  font-size: 0.6875rem;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(table) {
-  width: 100%;
-  min-width: 70rem !important;
-  table-layout: fixed;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.data-table-cell),
-.keys-data-table:not(.keys-details-mode) :deep(.data-table-header-cell) {
-  min-width: 0;
-  white-space: normal;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-name),
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-key),
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-group) {
-  overflow: hidden;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-actions) {
-  overflow: visible;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-key) {
-  padding-right: 0.5rem;
-  padding-left: 0.5rem;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-actions) {
-  padding-right: 0.5rem;
-  padding-left: 0.5rem;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-name) {
-  width: 12%;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-key) {
-  width: 14%;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-group) {
-  width: 10%;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-concurrency) {
-  width: 7%;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-usage) {
-  width: 16%;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-rate) {
-  width: 10%;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-status) {
-  width: 7%;
-}
-
-.keys-data-table:not(.keys-details-mode) :deep(.keys-col-actions) {
-  width: 24%;
-}
-
-.keys-data-table:not(.keys-details-mode) .keys-action-group {
-  flex-wrap: nowrap;
-}
-
-.keys-data-table:not(.keys-details-mode) .keys-action-button {
-  min-width: 2.75rem;
-  padding-right: 0.2rem;
-  padding-left: 0.2rem;
-}
-
-.keys-data-table:not(.keys-details-mode) .keys-more-button {
-  padding-right: 0.45rem;
-  padding-left: 0.45rem;
-}
-
-.table-page-layout :deep(.card-rows .data-table-cell) {
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-  vertical-align: middle;
-}
-
-.table-page-layout :deep(.card-rows .data-table-row:hover .data-table-cell) {
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ui-brand) 18%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--ui-brand) 18%, transparent);
-}
-
-.table-page-layout :deep(.card-rows .data-table-cell:first-child) {
-  padding-left: 1rem;
-}
-
-.table-page-layout :deep(.card-rows .data-table-cell:last-child) {
-  padding-right: 0.75rem;
-}
-
-.table-page-layout :deep(.sticky-col-right) {
-  box-shadow: -10px 0 18px -16px rgba(15, 23, 42, 0.5);
-}
-
-.table-page-layout :deep(.code) {
-  display: block;
-  min-width: 0;
-  max-width: none;
-  flex: 1 1 auto;
-  align-items: center;
-  overflow: hidden;
-  border: 1px solid var(--ui-border-subtle);
-  border-radius: var(--ui-radius-sm);
-  background: var(--ui-surface-subtle);
-  color: var(--ui-text-secondary);
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 900px) {
-  .keys-action-group {
-    min-width: 0;
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .table-page-layout :deep(.card-rows .data-table-row:hover .data-table-cell) {
-    box-shadow: none;
-  }
-}
-</style>

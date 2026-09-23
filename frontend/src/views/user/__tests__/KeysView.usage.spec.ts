@@ -123,13 +123,10 @@ describe('KeysView model testing entry', () => {
     try {
       await flushPromises()
 
-      const testButton = wrapper
-        .findAll('button.keys-action-button')
-        .find((button) => button.text() === 'keys.testModel')
+      const testButton = wrapper.get('button[aria-label="keys.testModel"]')
+      expect(testButton.element.parentElement?.querySelector('[role="tooltip"]')?.textContent).toBe('keys.testModel')
 
-      expect(testButton).toBeDefined()
-
-      await testButton!.trigger('click')
+      await testButton.trigger('click')
 
       const testModal = wrapper.getComponent(ApiKeyTestModalStub)
       expect(testModal.props('show')).toBe(true)

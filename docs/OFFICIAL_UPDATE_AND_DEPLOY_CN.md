@@ -4,7 +4,7 @@
 
 ## 当前基线
 
-本文档中的 `1.0.8` 与 `v0.1.164` 是历史更新批次的版本记录；当前项目版本请以根目录 README、`backend/cmd/server/VERSION` 和发布标签为准。
+当前 ANL API 版本为 `1.0.8`，已选择性对齐 Sub2API `v0.1.164` 的兼容与安全修复。
 
 当前开发和部署主线是：
 
@@ -411,7 +411,7 @@ set -a
 set +a
 
 docker compose -f docker-compose.local.yml -f docker-compose.override.yml exec -T postgres \
-  pg_dump -U "${POSTGRES_USER:-anlapi}" "${POSTGRES_DB:-anlapi}" \
+  pg_dump -U "${POSTGRES_USER:-ikik_api}" "${POSTGRES_DB:-ikik_api}" \
   > backups/anlapi-db-$(date +%F-%H%M%S).sql
 ```
 

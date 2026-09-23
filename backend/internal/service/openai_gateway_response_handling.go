@@ -1137,7 +1137,7 @@ func (s *OpenAIGatewayService) handleNonStreamingResponse(ctx context.Context, r
 	}
 
 	// Detect SSE responses for ALL account types via Content-Type header.
-// Some OpenAI-compatible upstreams (including other compatible gateway instances)
+	// Some OpenAI-compatible upstreams (including other sub2api instances)
 	// may return SSE even when stream=false was requested.
 	if isEventStreamResponse(resp.Header) {
 		return s.handleSSEToJSON(resp, c, body, originalModel, mappedModel)

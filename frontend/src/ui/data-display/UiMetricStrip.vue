@@ -6,15 +6,10 @@
 
 <style scoped>
 .ui-metric-strip {
-  min-width: 0;
   display: grid;
   grid-template-columns: repeat(var(--metric-columns, 4), minmax(0, 1fr));
   column-gap: clamp(1rem, 3vw, 2.5rem);
   row-gap: 1.25rem;
-  padding: 0.25rem;
-  border: 1px solid var(--ui-border-subtle);
-  border-radius: var(--ui-radius-lg);
-  background: color-mix(in srgb, var(--ui-surface) 92%, var(--ui-surface-subtle));
 }
 
 @media (max-width: 900px) {

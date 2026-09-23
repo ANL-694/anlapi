@@ -31,7 +31,7 @@
               {{ t('adminCompliance.version') }}
             </p>
             <p class="mt-1 break-all font-mono text-gray-900 dark:text-white">
-              {{ complianceStore.status?.version || 'v2026.09.23' }}
+              {{ complianceStore.status?.version || 'v2026.06.10' }}
             </p>
           </div>
           <a
@@ -129,9 +129,9 @@ const canSubmit = computed(() => typedPhrase.value.trim() === expectedPhrase.val
 const currentDocument = computed(() => getLocale() === 'zh' ? zhDocument : enDocument)
 const documentUrl = computed(() => {
   if (getLocale() === 'zh') {
-    return complianceStore.status?.document_url_zh || 'https://github.com/ANL-694/anlapi/blob/main/docs/legal/admin-compliance.zh.md'
+    return complianceStore.status?.document_url_zh || 'https://github.com/Wei-Shaw/sub2api/blob/v0.1.160/docs/legal/admin-compliance.zh.md'
   }
-  return complianceStore.status?.document_url_en || 'https://github.com/ANL-694/anlapi/blob/main/docs/legal/admin-compliance.en.md'
+  return complianceStore.status?.document_url_en || 'https://github.com/Wei-Shaw/sub2api/blob/v0.1.160/docs/legal/admin-compliance.en.md'
 })
 const inputError = computed(() => {
   if (!attemptedSubmit.value || canSubmit.value) {

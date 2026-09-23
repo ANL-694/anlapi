@@ -1,4 +1,4 @@
-# anlapi
+# ANL API
 
 ![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)
@@ -22,19 +22,6 @@ ANL API is intended for operators who need one controlled entry point for multip
 The repository contains source code, configuration templates, migrations, deployment examples, tests, and public assets. It does not contain production databases, OAuth credentials, payment secrets, server passwords, or real user data.
 
 ## Features
-
-### Engineering highlights
-
-This repository represents a full-stack system shaped by real deployment requirements:
-
-- Go gateway services and a Vue 3 operations console developed as one product.
-- Multi-upstream account routing, groups, failover, usage tracking, and billing flows.
-- PostgreSQL migrations, Redis caching, Docker Compose, systemd, and disaster-recovery tooling.
-- OAuth, API keys, passkeys, admin compliance, and request-audit boundaries.
-- Runtime handling for long-lived streams, SSE, WebSocket, asynchronous image jobs, and OpenAI-compatible APIs.
-- Tests, type checks, i18n audits, and release-oriented security checks for maintainability.
-
-Upstream references, compatibility endpoints, and historical migration identifiers remain documented where they are part of the technical contract; they are not the current product name.
 
 ### OpenAI-compatible gateway
 

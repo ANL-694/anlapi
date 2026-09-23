@@ -40,11 +40,7 @@ withDefaults(defineProps<{
   border-radius: var(--ui-radius-md);
   background: transparent;
   color: var(--ui-text-secondary);
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-standard);
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .ui-icon-button--sm {
@@ -61,15 +57,6 @@ withDefaults(defineProps<{
 .ui-icon-button:focus-visible {
   background: var(--ui-surface-hover);
   color: var(--ui-text);
-}
-
-.ui-icon-button:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--ui-shadow-card);
-}
-
-.ui-icon-button:active {
-  transform: translateY(0);
 }
 
 .ui-icon-button:focus-visible {
@@ -102,26 +89,12 @@ withDefaults(defineProps<{
   line-height: 1.2;
   opacity: 0;
   pointer-events: none;
-  transition:
-    opacity var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard);
+  transition: opacity 120ms ease, transform 120ms ease;
 }
 
 .ui-icon-button-wrap:hover .ui-icon-button-tooltip,
 .ui-icon-button:focus-visible + .ui-icon-button-tooltip {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ui-icon-button,
-  .ui-icon-button-tooltip {
-    transition-duration: 1ms;
-  }
-
-  .ui-icon-button:hover,
-  .ui-icon-button:active {
-    transform: none;
-  }
 }
 </style>

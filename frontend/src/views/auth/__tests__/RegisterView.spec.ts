@@ -14,7 +14,7 @@ const publicSettings = {
   affiliate_enabled: true,
   turnstile_enabled: true,
   turnstile_site_key: 'site-key',
-  site_name: 'ANLAPI',
+  site_name: 'Sub2API',
   registration_email_suffix_whitelist: [],
   linuxdo_oauth_enabled: false,
   wechat_oauth_enabled: false,

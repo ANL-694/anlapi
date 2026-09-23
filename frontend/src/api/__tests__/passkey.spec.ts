@@ -80,7 +80,7 @@ describe('passkey api', () => {
           options: {
             publicKey: {
               challenge: 'AQID',
-              rpId: 'anlapi.example.com',
+              rpId: 'sub2api.example.com',
               userVerification: 'required'
             }
           }

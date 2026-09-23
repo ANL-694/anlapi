@@ -96,7 +96,7 @@ func RunCLI() error {
 	cfg.Database.Password = promptPassword("PostgreSQL Password")
 
 	for {
-		cfg.Database.DBName = promptString(reader, "Database Name", "anlapi")
+		cfg.Database.DBName = promptString(reader, "Database Name", "ikik_api")
 		if cliValidateDBName(cfg.Database.DBName) {
 			break
 		}

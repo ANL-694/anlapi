@@ -76,21 +76,19 @@
                   />
                 </span>
               </button>
-              <Transition name="sidebar-group">
-                <div v-if="!sidebarCollapsed && isGroupExpanded(item)" class="sidebar-child-group">
-                  <router-link
-                    v-for="child in item.children"
-                    :key="child.path"
-                    :to="navLinkTo(child)"
-                    class="sidebar-link mb-0.5 py-1.5 text-sm"
-                    :class="{ 'sidebar-link-active': isActive(child.path) }"
-                    :id="navItemId(child)"
-                    @click="handleMenuItemClick(child, $event)"
-                  >
-                    <span class="sidebar-child-label">{{ child.label }}</span>
-                  </router-link>
-                </div>
-              </Transition>
+              <div v-if="!sidebarCollapsed && isGroupExpanded(item)" class="sidebar-child-group">
+                <router-link
+                  v-for="child in item.children"
+                  :key="child.path"
+                  :to="navLinkTo(child)"
+                  class="sidebar-link mb-0.5 py-1.5 text-sm"
+                  :class="{ 'sidebar-link-active': isActive(child.path) }"
+                  :id="navItemId(child)"
+                  @click="handleMenuItemClick(child, $event)"
+                >
+                  <span class="sidebar-child-label">{{ child.label }}</span>
+                </router-link>
+              </div>
             </template>
             <router-link
               v-else
@@ -1149,89 +1147,22 @@ watch(
 }
 
 .sidebar-workspace-switch button {
-  position: relative;
-  overflow: hidden;
   min-height: 2rem;
   border-radius: var(--ui-radius-md);
   color: var(--app-muted);
   font-size: 0.75rem;
   font-weight: 500;
-  transition:
-    background-color var(--ui-duration-fast) var(--ui-ease-standard),
-    color var(--ui-duration-fast) var(--ui-ease-standard),
-    transform var(--ui-duration-fast) var(--ui-ease-standard);
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .sidebar-workspace-switch button:hover {
   color: var(--app-text);
-  transform: translateY(-1px);
 }
 
 .sidebar-workspace-switch .sidebar-workspace-active {
   background: var(--app-surface);
   color: var(--app-text);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-.sidebar-workspace-switch .sidebar-workspace-active::after {
-  position: absolute;
-  right: 0.5rem;
-  bottom: 0.25rem;
-  left: 0.5rem;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--app-primary);
-  content: "";
-  animation: workspace-indicator-in var(--ui-duration-base) var(--ui-ease-emphasized) both;
-}
-
-.sidebar-workspace-switch button:active {
-  transform: translateY(0);
-}
-
-.sidebar-group-enter-active,
-.sidebar-group-leave-active {
-  overflow: hidden;
-  max-height: 20rem;
-  transform-origin: top;
-  transition:
-    opacity var(--ui-duration-base) var(--ui-ease-standard),
-    max-height var(--ui-duration-slow) var(--ui-ease-emphasized),
-    transform var(--ui-duration-base) var(--ui-ease-standard);
-}
-
-.sidebar-group-enter-from,
-.sidebar-group-leave-to {
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-@keyframes workspace-indicator-in {
-  from {
-    opacity: 0;
-    transform: scaleX(0.35);
-  }
-  to {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-workspace-switch button,
-  .sidebar-group-enter-active,
-  .sidebar-group-leave-active {
-    transition-duration: 1ms;
-  }
-
-  .sidebar-workspace-switch .sidebar-workspace-active::after {
-    animation: none;
-  }
-
-  .sidebar-workspace-switch button:hover {
-    transform: none;
-  }
 }
 
 .sidebar-brand {

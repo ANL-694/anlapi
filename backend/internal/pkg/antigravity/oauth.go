@@ -55,17 +55,18 @@ var defaultUserAgentVersion = "1.21.9"
 
 var userAgentVersionPattern = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
-// defaultClientSecret 仅从环境变量 ANTIGRAVITY_OAUTH_CLIENT_SECRET 读取。
-// OAuth client_secret 不得写入源码、镜像或公开仓库。
-var defaultClientSecret string
+// defaultClientSecret 可通过环境变量 ANTIGRAVITY_OAUTH_CLIENT_SECRET 配置
+var defaultClientSecret = "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"
 
 func init() {
 	// 从环境变量读取版本号，未设置则使用默认值
 	if version := os.Getenv("ANTIGRAVITY_USER_AGENT_VERSION"); version != "" {
 		defaultUserAgentVersion = version
 	}
-	// 从环境变量读取 client_secret；未设置时由 getClientSecret 返回明确错误。
-	defaultClientSecret = strings.TrimSpace(os.Getenv(AntigravityOAuthClientSecretEnv))
+	// 从环境变量读取 client_secret，未设置则使用默认值
+	if secret := os.Getenv(AntigravityOAuthClientSecretEnv); secret != "" {
+		defaultClientSecret = secret
+	}
 }
 
 // GetUserAgent 返回当前配置的 User-Agent

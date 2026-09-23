@@ -132,11 +132,7 @@ onMounted(async () => {
 
 <template>
   <NavigationProgress />
-  <RouterView v-if="!adminComplianceVisible" v-slot="{ Component }">
-    <Transition name="route">
-      <component :is="Component" />
-    </Transition>
-  </RouterView>
+  <RouterView v-if="!adminComplianceVisible" />
   <Toast />
   <AnnouncementPopup />
   <AdminComplianceDialog :show="adminComplianceVisible" />
